@@ -1,4 +1,4 @@
-﻿#ifndef CAPTAL_TEXT_HPP_INCLUDED
+#ifndef CAPTAL_TEXT_HPP_INCLUDED
 #define CAPTAL_TEXT_HPP_INCLUDED
 
 #include "config.hpp"
@@ -12,6 +12,7 @@
 #include <tephra/texture.hpp>
 #include <tephra/image.hpp>
 
+#include "color.hpp"
 #include "renderable.hpp"
 
 namespace cpt
@@ -98,6 +99,10 @@ public:
     text(text&&) noexcept = default;
     text& operator=(text&&) noexcept = default;
 
+    void set_color(const color& color);
+    void set_color(std::uint32_t character_index, const color& color);
+    void set_color(std::uint32_t first, std::uint32_t count, const color& color);
+
     std::uint32_t width() const noexcept
     {
         return m_width;
@@ -139,8 +144,8 @@ public:
     void set_style(font_style style) noexcept;
     void resize(std::uint32_t pixels_size);
 
-    text_ptr draw(std::string_view u8string, const glm::vec4& color = glm::vec4{1.0f, 1.0f, 1.0f, 1.0f});
-    text_ptr draw(std::u32string u32string, const glm::vec4& color = glm::vec4{1.0f, 1.0f, 1.0f, 1.0f});
+    text_ptr draw(std::string_view u8string, const color& color = colors::white);
+    text_ptr draw(std::u32string u32string, const color& color = colors::white);
 
     cpt::font& font() noexcept
     {
@@ -170,6 +175,8 @@ private:
     std::unordered_map<char32_t, std::shared_ptr<glyph>> m_cache{};
 };
 
+text_ptr draw_text(cpt::font& font, std::string_view u8string, const glm::vec4& color = glm::vec4{1.0f, 1.0f, 1.0f, 1.0f}, text_drawer_options options = text_drawer_options::kerning);
+text_ptr draw_text(cpt::font&& font, std::string_view u8string, const glm::vec4& color = glm::vec4{1.0f, 1.0f, 1.0f, 1.0f}, text_drawer_options options = text_drawer_options::kerning);
 
 
 }

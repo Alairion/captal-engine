@@ -13,14 +13,25 @@ tilemap::tilemap(std::uint32_t width, std::uint32_t height, std::uint32_t tile_w
     init();
 }
 
-void tilemap::set_color(std::uint32_t row, std::uint32_t col, const glm::vec4& color) noexcept
+tilemap::tilemap(std::uint32_t width, std::uint32_t height, tileset_ptr tileset)
+:renderable{width * height * 6, width * height * 4}
+,m_width{width}
+,m_height{height}
+,m_tile_width{tileset->tile_width()}
+,m_tile_height{tileset->tile_height()}
+{
+    init();
+    set_texture(std::move(tileset));
+}
+
+void tilemap::set_color(std::uint32_t row, std::uint32_t col, const color& color) noexcept
 {
     vertex* const current{get_vertices() + (col * m_width) + row};
 
-    current[0].color = color;
-    current[1].color = color;
-    current[2].color = color;
-    current[3].color = color;
+    current[0].color = static_cast<glm::vec4>(color);
+    current[1].color = static_cast<glm::vec4>(color);
+    current[2].color = static_cast<glm::vec4>(color);
+    current[3].color = static_cast<glm::vec4>(color);
 
     update();
 }
@@ -42,6 +53,18 @@ void tilemap::set_texture_coords(std::uint32_t row, std::uint32_t col, std::int3
 void tilemap::set_texture_rect(std::uint32_t row, std::uint32_t col, std::int32_t x, std::int32_t y, std::uint32_t width, std::uint32_t height) noexcept
 {
     set_texture_coords(row, col, x, y, x + width, y + height);
+}
+
+void tilemap::set_texture_rect(std::uint32_t row, std::uint32_t col, const tileset::texture_rect& rect) noexcept
+{
+    vertex* const current{get_vertices() + (col * m_width) + row};
+
+    current[0].texture_coord = rect.top_left;
+    current[1].texture_coord = rect.top_right;
+    current[2].texture_coord = rect.bottom_right;
+    current[3].texture_coord = rect.bottom_left;
+
+    update();
 }
 
 void tilemap::set_relative_texture_coords(std::uint32_t row, std::uint32_t col, float x1, float y1, float x2, float y2) noexcept

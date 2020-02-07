@@ -12,6 +12,7 @@
 #include "src/sound.hpp"
 #include "src/view.hpp"
 #include "src/text.hpp"
+#include "src/color.hpp"
 
 #include "src/components/node.hpp"
 #include "src/components/camera.hpp"
@@ -32,15 +33,13 @@ void run()
     cpt::render_window& window{engine.make_window("Captal test", cpt::video_mode{640, 480, 2, tph::present_mode::fifo, tph::render_target_options::clipping, tph::sample_count::msaa_x1}, apr::window_options::resizable)};
     window.get_target().set_clear_color_value(0.6f, 0.8f, 1.0f);
 
-    std::ifstream ifs{"font.ttf", std::ios_base::binary};
-    const std::string data{std::istreambuf_iterator<char>{ifs}, std::istreambuf_iterator<char>{}};
+    cpt::font font{"font.ttf", cpt::load_from_file, 48};
+    cpt::text_ptr sprite{cpt::draw_text(font, u8"Hello world!")};
+    sprite->set_color(0, 4, 0xFF0055A4);
+    sprite->set_color(4, 4, cpt::colors::white);
+    sprite->set_color(8, 4, cpt::color{239, 65, 53});
 
-    cpt::font font{data, cpt::load_from_memory, 40};
-    cpt::text_drawer drawer{std::move(font), cpt::text_drawer_options::kerning};
-
-    cpt::text_ptr sprite{drawer.draw(u8"Hello world!")};
-
-    cpt::sound_ptr sound{cpt::make_sound("bim_bam_boom.wav", swl::load_from_file, swl::sound_reader_options::none)};
+    cpt::sound_ptr sound{cpt::make_sound("bim_bam_boom.wav", swl::load_from_file)};
     sound->enable_spatialization();
     sound->set_minimum_distance(200.0f);
 
@@ -108,12 +107,7 @@ void run()
     });
 
     engine.on_update().connect([&world, &pressed_keys, camera](float time)
-    {/*
-        world.view<cpt::components::node, cpt::components::drawable>().each([time](auto, cpt::components::node& node, const cpt::components::drawable&)
-        {
-            node.rotate(cpt::pi<float> * time / 2.0f);
-        });*/
-
+    {
         cpt::components::node& node{world.get<cpt::components::node>(camera)};
 
         if(pressed_keys[0])

@@ -4,6 +4,7 @@
 #include "config.hpp"
 
 #include "renderable.hpp"
+#include "color.hpp"
 
 namespace cpt
 {
@@ -20,7 +21,7 @@ public:
     sprite(sprite&&) noexcept = default;
     sprite& operator=(sprite&&) noexcept = default;
 
-    void set_color(const glm::vec4& color) noexcept;
+    void set_color(const color& color) noexcept;
     void set_color(float red, float green, float blue, float alpha = 1.0f) noexcept;
 
     void set_texture_coords(std::int32_t x1, std::int32_t y1, std::uint32_t x2, std::uint32_t y2) noexcept;

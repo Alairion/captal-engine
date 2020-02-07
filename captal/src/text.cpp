@@ -190,6 +190,48 @@ text::text(const std::vector<std::uint16_t>& indices, const std::vector<vertex>&
     set_texture(std::move(texture));
 }
 
+void text::set_color(const color& color)
+{
+    vertex* const vertices{get_vertices()};
+    const glm::vec4 native_color{static_cast<glm::vec4>(color)};
+
+    for(std::uint32_t i{}; i < vertex_count(); ++i)
+        vertices[i].color = native_color;
+
+    update();
+}
+
+void text::set_color(std::uint32_t character_index, const color& color)
+{
+    vertex* const current{get_vertices() + character_index * 4};
+    const glm::vec4 native_color{static_cast<glm::vec4>(color)};
+
+    current[0].color = native_color;
+    current[1].color = native_color;
+    current[2].color = native_color;
+    current[3].color = native_color;
+
+    update();
+}
+
+void text::set_color(std::uint32_t first, std::uint32_t count, const color& color)
+{
+    vertex* const vertices{get_vertices() + first * 4};
+    const glm::vec4 native_color{static_cast<glm::vec4>(color)};
+
+    for(std::uint32_t i{}; i < count; ++i)
+    {
+        vertex* const current{vertices + i * 4};
+
+        current[0].color = native_color;
+        current[1].color = native_color;
+        current[2].color = native_color;
+        current[3].color = native_color;
+    }
+
+    update();
+}
+
 text_drawer::text_drawer(cpt::font font, text_drawer_options options)
 :m_font{std::move(font)}
 ,m_options{options}
@@ -215,7 +257,7 @@ void text_drawer::resize(std::uint32_t pixels_size)
     m_cache.clear();
 }
 
-text_ptr text_drawer::draw(std::string_view u8string, const glm::vec4& color)
+text_ptr text_drawer::draw(std::string_view u8string, const color& color)
 {
     std::u32string u32string{};
     u32string.reserve(utf8::count(std::begin(u8string), std::end(u8string)));
@@ -225,15 +267,15 @@ text_ptr text_drawer::draw(std::string_view u8string, const glm::vec4& color)
     return draw(std::move(u32string), color);
 }
 
-text_ptr text_drawer::draw(std::u32string u32string, const glm::vec4& color)
+text_ptr text_drawer::draw(std::u32string u32string, const color& color)
 {
     if(static_cast<bool>(m_options & text_drawer_options::cached))
     {
-        return draw_cached(u32string, color);
+        return draw_cached(u32string, static_cast<glm::vec4>(color));
     }
     else
     {
-        return draw_uncached(u32string, color);
+        return draw_uncached(u32string, static_cast<glm::vec4>(color));
     }
 }
 
@@ -255,7 +297,6 @@ text_ptr text_drawer::draw_cached(std::u32string u32string, const glm::vec4& col
     float greatest_x{};
     float greatest_y{};
     char32_t last{};
-    std::size_t displayed_count{};
 
     for(auto c : u32string)
     {
@@ -290,8 +331,13 @@ text_ptr text_drawer::draw_cached(std::u32string u32string, const glm::vec4& col
                 lowest_y = std::min(lowest_y, y);
                 greatest_x = std::max(greatest_x, x + width);
                 greatest_y = std::max(greatest_y, y + height);
-
-                ++displayed_count;
+            }
+            else
+            {
+                vertices.push_back(vertex{});
+                vertices.push_back(vertex{});
+                vertices.push_back(vertex{});
+                vertices.push_back(vertex{});
             }
 
             current_x += glyph.advance;
@@ -304,8 +350,8 @@ text_ptr text_drawer::draw_cached(std::u32string u32string, const glm::vec4& col
     signal.connect([cache = std::move(cache)](){});
 
     std::vector<std::uint16_t> indices{};
-    indices.reserve(displayed_count * 6);
-    for(std::size_t i{}; i < displayed_count; ++i)
+    indices.reserve(std::size(u32string) * 6);
+    for(std::size_t i{}; i < std::size(u32string); ++i)
     {
         const std::size_t shift{i * 4};
 
@@ -331,8 +377,8 @@ texture_ptr text_drawer::make_cached_texture(std::u32string string, std::unorder
     std::sort(std::begin(string), std::end(string));
     string.erase(std::unique(std::begin(string), std::end(string)), std::end(string));
 
-    std::uint32_t current_x{1};
-    std::uint32_t current_y{1};
+    std::uint32_t current_x{};
+    std::uint32_t current_y{};
     std::uint32_t texture_width{};
     std::uint32_t texture_height{};
 
@@ -348,15 +394,15 @@ texture_ptr text_drawer::make_cached_texture(std::u32string string, std::unorder
 
         if(current_x + character_glyph.image.width() > max_texture_width)
         {
-            current_x = 1;
+            current_x = 0;
             current_y += texture_height;
         }
 
         const glm::vec2 texture_pos{static_cast<float>(current_x), static_cast<float>(current_y)};
 
-        current_x += character_glyph.image.width() + 1;
+        current_x += character_glyph.image.width();
         texture_width = std::max(current_x, texture_width);
-        texture_height = std::max(static_cast<std::uint32_t>(current_y + character_glyph.image.height() + 1), texture_height);
+        texture_height = std::max(static_cast<std::uint32_t>(current_y + character_glyph.image.height()), texture_height);
 
         cache.emplace(std::make_pair(c, std::make_pair(it->second, texture_pos)));
     }
@@ -403,7 +449,6 @@ text_ptr text_drawer::draw_uncached(std::u32string u32string, const glm::vec4& c
     float greatest_x{};
     float greatest_y{};
     char32_t last{};
-    std::size_t displayed_count{};
 
     for(auto c : u32string)
     {
@@ -438,8 +483,13 @@ text_ptr text_drawer::draw_uncached(std::u32string u32string, const glm::vec4& c
                 lowest_y = std::min(lowest_y, y);
                 greatest_x = std::max(greatest_x, x + width);
                 greatest_y = std::max(greatest_y, y + height);
-
-                ++displayed_count;
+            }
+            else
+            {
+                vertices.push_back(vertex{});
+                vertices.push_back(vertex{});
+                vertices.push_back(vertex{});
+                vertices.push_back(vertex{});
             }
 
             current_x += glyph.advance;
@@ -452,8 +502,8 @@ text_ptr text_drawer::draw_uncached(std::u32string u32string, const glm::vec4& c
     signal.connect([cache = std::move(cache)](){});
 
     std::vector<std::uint16_t> indices{};
-    indices.reserve(displayed_count * 6);
-    for(std::size_t i{}; i < displayed_count; ++i)
+    indices.reserve(std::size(u32string) * 6);
+    for(std::size_t i{}; i < std::size(u32string); ++i)
     {
         const std::size_t shift{i * 4};
 
@@ -479,8 +529,8 @@ texture_ptr text_drawer::make_uncached_texture(std::u32string string, std::unord
     std::sort(std::begin(string), std::end(string));
     string.erase(std::unique(std::begin(string), std::end(string)), std::end(string));
 
-    std::uint32_t current_x{1};
-    std::uint32_t current_y{1};
+    std::uint32_t current_x{};
+    std::uint32_t current_y{};
     std::uint32_t texture_width{};
     std::uint32_t texture_height{};
 
@@ -490,15 +540,15 @@ texture_ptr text_drawer::make_uncached_texture(std::u32string string, std::unord
 
         if(current_x + character_glyph.image.width() > max_texture_width)
         {
-            current_x = 1;
+            current_x = 0;
             current_y += texture_height;
         }
 
         const glm::vec2 texture_pos{static_cast<float>(current_x), static_cast<float>(current_y)};
 
-        current_x += character_glyph.image.width() + 1;
+        current_x += character_glyph.image.width();
         texture_width = std::max(current_x, texture_width);
-        texture_height = std::max(static_cast<std::uint32_t>(current_y + character_glyph.image.height() + 1), texture_height);
+        texture_height = std::max(static_cast<std::uint32_t>(current_y + character_glyph.image.height()), texture_height);
 
         cache.emplace(std::make_pair(c, std::make_pair(std::move(character_glyph), texture_pos)));
     }
@@ -525,6 +575,24 @@ texture_ptr text_drawer::make_uncached_texture(std::u32string string, std::unord
     }
 
     return texture;
+}
+
+text_ptr draw_text(cpt::font& font, std::string_view u8string, const glm::vec4& color, text_drawer_options options)
+{
+    text_drawer drawer{std::move(font), options};
+    text_ptr text{drawer.draw(u8string, color)};
+
+    font = std::move(drawer.font());
+    return text;
+}
+
+text_ptr draw_text(cpt::font&& font, std::string_view u8string, const glm::vec4& color, text_drawer_options options)
+{
+    text_drawer drawer{std::move(font), options};
+    text_ptr text{drawer.draw(u8string, color)};
+
+    font = std::move(drawer.font());
+    return text;
 }
 
 }

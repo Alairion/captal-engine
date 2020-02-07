@@ -13,6 +13,8 @@ set(GLOBAL_LIBRARIES "${PROJECT_SOURCE_DIR}/../libs/external")
 set(FREETYPE_INCLUDES "${GLOBAL_INCLUDES}/freetype")
 set(FREETYPE_LIBRARIES "${GLOBAL_LIBRARIES}/libfreetype.a")
 
+set(CHIPMUNK_LIBRARIES "${GLOBAL_LIBRARIES}/libchipmunk.a")
+
 set(HEADERS
     "src/config.hpp"
     "src/algorithm.hpp"
@@ -25,6 +27,7 @@ set(HEADERS
     "src/render_window.hpp"
     "src/render_texture.hpp"
     "src/state.hpp"
+    "src/color.hpp"
     "src/vertex.hpp"
     "src/texture.hpp"
     "src/framed_buffer.hpp"
@@ -32,8 +35,10 @@ set(HEADERS
     "src/view.hpp"
     "src/text.hpp"
     "src/sprite.hpp"
+    "src/tileset.hpp"
     "src/tilemap.hpp"
     "src/sound.hpp"
+    "src/physics.hpp"
 
     "src/components/node.hpp"
     "src/components/drawable.hpp"
@@ -60,8 +65,10 @@ set(SOURCES
     "src/view.cpp"
     "src/text.cpp"
     "src/sprite.cpp"
+    "src/tileset.cpp"
     "src/tilemap.cpp"
     "src/sound.cpp"
+    "src/physics.cpp"
 
     "src/systems/frame.cpp"
     "src/systems/audio.cpp"
@@ -75,7 +82,7 @@ if(CMAKE_BUILD_TYPE STREQUAL Debug)
     add_definitions(-DCAPTAL_DEBUG)
 endif()
 
-target_include_directories(${PROJECT_NAME} PUBLIC ${GLOBAL_INCLUDES} ${FREETYPE_INCLUDES})
+target_include_directories(${PROJECT_NAME} PUBLIC ${GLOBAL_INCLUDES} ${FREETYPE_INCLUDES} ${CHIPMUNK_LIBRARIES})
 
 if(CMAKE_BUILD_TYPE STREQUAL Debug)
     target_link_libraries(${PROJECT_NAME} "${PROJECT_SOURCE_DIR}/../libs/debug/libapyre.dll.a")

@@ -20,14 +20,14 @@ sprite::sprite(texture_ptr texture)
     set_texture(std::move(texture));
 }
 
-void sprite::set_color(const glm::vec4& color) noexcept
+void sprite::set_color(const color& color) noexcept
 {
     vertex* vertices{get_vertices()};
 
-    vertices[0].color = color;
-    vertices[1].color = color;
-    vertices[2].color = color;
-    vertices[3].color = color;
+    vertices[0].color = static_cast<glm::vec4>(color);
+    vertices[1].color = static_cast<glm::vec4>(color);
+    vertices[2].color = static_cast<glm::vec4>(color);
+    vertices[3].color = static_cast<glm::vec4>(color);
 
     update();
 }

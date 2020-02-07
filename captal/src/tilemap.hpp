@@ -4,6 +4,8 @@
 #include "config.hpp"
 
 #include "renderable.hpp"
+#include "tileset.hpp"
+#include "color.hpp"
 
 namespace cpt
 {
@@ -13,17 +15,20 @@ class tilemap : public renderable
 public:
     tilemap() = default;
     tilemap(std::uint32_t width, std::uint32_t height, std::uint32_t tile_width, std::uint32_t tile_height);
+    tilemap(std::uint32_t width, std::uint32_t height, tileset_ptr tileset);
+
     ~tilemap() = default;
     tilemap(const tilemap&) = delete;
     tilemap& operator=(const tilemap&) = delete;
     tilemap(tilemap&&) noexcept = default;
     tilemap& operator=(tilemap&&) noexcept = default;
 
-    void set_color(std::uint32_t row, std::uint32_t col, const glm::vec4& color) noexcept;
+    void set_color(std::uint32_t row, std::uint32_t col, const color& color) noexcept;
     void set_color(std::uint32_t row, std::uint32_t col, float red, float green, float blue, float alpha = 1.0f) noexcept;
 
     void set_texture_coords(std::uint32_t row, std::uint32_t col, std::int32_t x1, std::int32_t y1, std::uint32_t x2, std::uint32_t y2) noexcept;
     void set_texture_rect(std::uint32_t row, std::uint32_t col, std::int32_t x, std::int32_t y, std::uint32_t width, std::uint32_t height) noexcept;
+    void set_texture_rect(std::uint32_t row, std::uint32_t col, const tileset::texture_rect& rect) noexcept;
 
     void set_relative_texture_coords(std::uint32_t row, std::uint32_t col, float x1, float y1, float x2, float y2) noexcept;
     void set_relative_texture_rect(std::uint32_t row, std::uint32_t col, float x, float y, float width, float height) noexcept;

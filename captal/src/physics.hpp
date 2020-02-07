@@ -7,16 +7,80 @@
 
 #include <memory>
 #include <vector>
+#include <functional>
 
 struct cpSpace;
 struct cpBody;
 struct cpShape;
+struct cpArbiter;
+struct cpCollisionHandler;
 
 namespace cpt
 {
 
+class physical_body;
+
+struct bounding_box
+{
+    float x{};
+    float y{};
+    float width{};
+    float height{};
+};
+
+class physical_collision_arbiter
+{
+public:
+    physical_collision_arbiter();
+    physical_collision_arbiter(cpArbiter* arbiter) noexcept
+    :m_arbiter{arbiter}
+    {
+
+    }
+
+    ~physical_collision_arbiter();
+    physical_collision_arbiter(const physical_collision_arbiter&) = delete;
+    physical_collision_arbiter& operator=(const physical_collision_arbiter&) = delete;
+    physical_collision_arbiter(physical_collision_arbiter&&) noexcept = delete;
+    physical_collision_arbiter& operator=(physical_collision_arbiter&&) noexcept = delete;
+
+    std::pair<physical_body&, physical_body&> bodies() const noexcept;
+
+private:
+    cpArbiter* m_arbiter{};
+};
+
 class physical_world
 {
+public:
+    using collision_begin_callback_type = std::function<bool(physical_world& world, physical_body& first, physical_body& second, physical_collision_arbiter& arbiter, void* userdata)>;
+    using collision_pre_solve_callback_type = std::function<bool(physical_world& world, physical_body& first, physical_body& second, physical_collision_arbiter& arbiter, void* userdata)>;
+    using collision_post_solve_callback_type = std::function<void(physical_world& world, physical_body& first, physical_body& second, physical_collision_arbiter& arbiter, void* userdata)>;
+    using collision_end_callback_type = std::function<void(physical_world& world, physical_body& first, physical_body& second, physical_collision_arbiter& arbiter, void* userdata)>;
+
+public:
+    struct collision_handler
+    {
+        collision_begin_callback_type collision_begin{};
+        collision_pre_solve_callback_type collision_pre_solve{};
+        collision_post_solve_callback_type collision_post_solve{};
+        collision_end_callback_type collision_end{};
+        void* userdata{};
+    };
+
+public:
+    struct raycast_hit
+    {
+        physical_body& body;
+        glm::vec2 position{};
+        glm::vec2 normal{};
+        float distance{};
+    };
+
+public:
+    using region_query_callback_type = std::function<void(physical_body& body)>;
+    using raycast_callback_type = std::function<void(raycast_hit hit)>;
+
 public:
     physical_world();
     ~physical_world();
@@ -25,8 +89,50 @@ public:
     physical_world(physical_world&&) noexcept = delete;
     physical_world& operator=(physical_world&&) noexcept = delete;
 
+    void add_collision(std::uint32_t first_id, std::uint32_t second_id, collision_handler handler);
+    void add_wildcard(std::uint32_t id, collision_handler handler);
+
+    void region_query(float x, float y, float width, float height, std::uint64_t group, std::uint32_t id, std::uint32_t mask, region_query_callback_type callback);
+
+    void raycast(const glm::vec2& from, const glm::vec2& to, float thickness, std::uint64_t group, std::uint32_t id, std::uint32_t mask, raycast_callback_type callback);
+    std::optional<raycast_hit> raycast_first(const glm::vec2& from, const glm::vec2& to, float thickness, std::uint64_t group, std::uint32_t id, std::uint32_t mask);
+
+    void update(float time);
+
+    void set_step(float step) noexcept
+    {
+        m_step = step;
+    }
+
+    void set_max_steps(std::uint32_t max_steps) noexcept
+    {
+        m_max_steps = max_steps;
+    }
+
+    float step() const noexcept
+    {
+        return m_step;
+    }
+
+    std::uint32_t max_steps() const noexcept
+    {
+        return m_max_steps;
+    }
+
+    cpSpace* handle() const noexcept
+    {
+        return m_world;
+    }
+
+private:
+    void add_callback(cpCollisionHandler* cphandler, collision_handler handler);
+
 private:
     cpSpace* m_world{};
+    std::unordered_map<cpCollisionHandler*, std::unique_ptr<collision_handler>> m_callbacks{};
+    float m_step{0.001f};
+    std::uint32_t m_max_steps{std::numeric_limits<std::uint32_t>::max()};
+    float m_time{};
 };
 
 using physical_world_ptr = std::shared_ptr<physical_world>;
@@ -37,26 +143,70 @@ physical_world_ptr make_physical_world(Args&&... args)
     return std::make_shared<physical_world>(std::forward<Args>(args)...);
 }
 
-class physical_body;
 using physical_body_ptr = std::shared_ptr<physical_body>;
 
 class physical_shape
 {
 public:
-    physical_shape() = default;
-    physical_shape(const physical_body_ptr& body, float radius, const glm::vec2& offset = glm::vec2{});
-    physical_shape(const physical_body_ptr& body, const glm::vec2& first, const glm::vec2& second, float thickness = 0.0f);
-    physical_shape(const physical_body_ptr& body, const std::vector<glm::vec2>& vertices, float radius = 0.0f);
-    physical_shape(const physical_body_ptr& body, float width, float height, float radius = 0.0f);
+    physical_shape(physical_body_ptr body, float radius, const glm::vec2& offset = glm::vec2{});
+    physical_shape(physical_body_ptr body, const glm::vec2& first, const glm::vec2& second, float thickness = 0.0f);
+    physical_shape(physical_body_ptr body, const std::vector<glm::vec2>& vertices, float radius = 0.0f);
+    physical_shape(physical_body_ptr body, float width, float height, float radius = 0.0f);
     ~physical_shape();
     physical_shape(const physical_shape&) = delete;
     physical_shape& operator=(const physical_shape&) = delete;
     physical_shape(physical_shape&&) noexcept = delete;
     physical_shape& operator=(physical_shape&&) noexcept = delete;
 
+    void set_sensor(bool enable) noexcept;
+    void set_elasticity(float elasticity) noexcept;
+    void set_friction(float friction) noexcept;
+    void set_surface_velocity(const glm::vec2& surface_velocity) noexcept;
+    void set_collision_type(std::uint64_t type) noexcept;
+    void set_filter(std::uint64_t group, std::uint32_t categories, std::uint32_t collision_mask) noexcept;
+
+    void set_user_data(void* userdata) noexcept
+    {
+        m_userdata = userdata;
+    }
+
+    bool is_sensor() const noexcept;
+    float elasticity() const noexcept;
+    float friction() const noexcept;
+    glm::vec2 surface_velocity() const noexcept;
+    std::uint64_t collision_type() const noexcept;
+    std::uint64_t group() const noexcept;
+    std::uint32_t categories() const noexcept;
+    std::uint32_t collision_mask() const noexcept;
+
+    const physical_body_ptr& body() const noexcept
+    {
+        return m_body;
+    }
+
+    cpShape* handle() const noexcept
+    {
+        return m_shape;
+    }
+
+    void* user_data() const noexcept
+    {
+        return m_userdata;
+    }
+
 private:
+    physical_body_ptr m_body{};
     cpShape* m_shape{};
+    void* m_userdata{};
 };
+
+using physical_shape_ptr = std::shared_ptr<physical_shape>;
+
+template<typename... Args>
+physical_shape_ptr make_physical_shape(Args&&... args)
+{
+    return std::make_shared<physical_shape>(std::forward<Args>(args)...);
+}
 
 enum class physical_body_type
 {
@@ -67,14 +217,72 @@ enum class physical_body_type
 
 class physical_body
 {
+    friend class physical_shape;
+
 public:
-    physical_body() = default;
-    physical_body(physical_body_type type, float mass = 1.0f, float inertia = 1.0f);
+    physical_body(physical_world_ptr world, physical_body_type type, float mass = 1.0f, float inertia = 1.0f);
     ~physical_body();
     physical_body(const physical_body&) = delete;
     physical_body& operator=(const physical_body&) = delete;
     physical_body(physical_body&&) noexcept = delete;
     physical_body& operator=(physical_body&&) noexcept = delete;
+
+    void apply_force(const glm::vec2& force, const glm::vec2& point) noexcept;
+    void apply_local_force(const glm::vec2& force, const glm::vec2& point) noexcept;
+    void apply_impulse(const glm::vec2& impulse, const glm::vec2& point) noexcept;
+    void apply_local_impulse(const glm::vec2& impulse, const glm::vec2& point) noexcept;
+    void add_torque(float torque) noexcept;
+
+    void set_angular_velocity(float velocity) noexcept;
+    void set_mass(float mass) noexcept;
+    void set_mass_center(const glm::vec2& center) noexcept;
+    void set_moment_of_inertia(float moment) noexcept;
+    void set_position(const glm::vec2& position) noexcept;
+    void set_rotation(float rotation) noexcept;
+    void set_velocity(const glm::vec2& velocity) noexcept;
+
+    void sleep() noexcept;
+    void wake_up() noexcept;
+
+    glm::vec2 world_to_local(const glm::vec2& vec) noexcept;
+    glm::vec2 local_to_world(const glm::vec2& vec) noexcept;
+
+    void set_user_data(void* userdata) noexcept
+    {
+        m_userdata = userdata;
+    }
+
+    cpt::bounding_box bounding_box() const noexcept;
+    float angular_damping() const noexcept;
+    float angular_velocity() const noexcept;
+    float mass() const noexcept;
+    glm::vec2 mass_center() const noexcept;
+    float moment_of_inertia() const noexcept;
+    glm::vec2 position() const noexcept;
+    float rotation() const noexcept;
+    glm::vec2 velocity() const noexcept;
+    bool sleeping() const noexcept;
+    physical_body_type type() const noexcept;
+
+    std::size_t shape_count() const noexcept
+    {
+        return std::size(m_shapes);
+    }
+
+    physical_shape& shape(std::size_t index) const noexcept
+    {
+        return *m_shapes[index];
+    }
+
+    void* user_data() const noexcept
+    {
+        return m_userdata;
+    }
+
+    const physical_world_ptr& world() const noexcept
+    {
+        return m_world;
+    }
 
     cpBody* handle() const noexcept
     {
@@ -82,8 +290,28 @@ public:
     }
 
 private:
+    void register_shape(physical_shape* shape)
+    {
+        m_shapes.push_back(shape);
+    }
+
+    void unregister_shape(physical_shape* shape)
+    {
+        m_shapes.erase(std::find(std::begin(m_shapes), std::end(m_shapes), shape));
+    }
+
+private:
+    physical_world_ptr m_world{};
     cpBody* m_body{};
+    std::vector<physical_shape*> m_shapes{};
+    void* m_userdata{};
 };
+
+template<typename... Args>
+physical_body_ptr make_physical_body(Args&&... args)
+{
+    return std::make_shared<physical_body>(std::forward<Args>(args)...);
+}
 
 }
 
