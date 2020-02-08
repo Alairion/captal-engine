@@ -20,11 +20,6 @@ namespace systems
 
 static void update_nodes(entt::registry& world)
 {
-    world.sort<components::node>([](const components::node& left, const components::node& right) -> bool
-    {
-        return left.position().y < right.position().y || left.position().z < right.position().z;
-    });
-
     world.view<components::node, components::drawable>().each([](entt::entity entity [[maybe_unused]], components::node& node, components::drawable& drawable)
     {
         if(node.is_updated())

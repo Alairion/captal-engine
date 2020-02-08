@@ -1,18 +1,11 @@
 #include <iostream>
-#include <fstream>
-#include <random>
 
 #include "src/engine.hpp"
-#include "src/state.hpp"
 
-#include "src/render_texture.hpp"
 #include "src/texture.hpp"
 #include "src/sprite.hpp"
-#include "src/tilemap.hpp"
 #include "src/sound.hpp"
 #include "src/view.hpp"
-#include "src/text.hpp"
-#include "src/color.hpp"
 #include "src/physics.hpp"
 
 #include "src/components/node.hpp"
@@ -27,6 +20,20 @@
 #include "src/systems/render.hpp"
 #include "src/systems/physics.hpp"
 
+void add_item(entt::registry& world, const cpt::physical_world_ptr& physical_world, float x, float y)
+{
+    cpt::sprite_ptr sprite{cpt::make_sprite(64, 64)};
+    cpt::physical_body_ptr sprite_body{cpt::make_physical_body(physical_world, cpt::physical_body_type::dynamic, std::numeric_limits<float>::max(), std::numeric_limits<float>::infinity())};
+    sprite_body->set_position(glm::vec2{x, y});
+
+    auto item{world.create()};
+    auto& item_body{world.assign<cpt::components::physical_body>(item)};
+    item_body.attach(sprite_body);
+    item_body.add_shape(static_cast<float>(sprite->width()), static_cast<float>(sprite->height()));
+    world.assign<cpt::components::node>(item).set_origin(sprite->width() / 2.0f, sprite->height() / 2.0f);
+    world.assign<cpt::components::drawable>(item).attach(std::move(sprite));
+}
+
 void run()
 {
     const cpt::audio_parameters audio{2, 44100};
@@ -38,7 +45,6 @@ void run()
 
     cpt::physical_world_ptr physical_world{cpt::make_physical_world()};
     physical_world->set_damping(0.5f);
-    physical_world->set_gravity(glm::vec2{0.0f, 512.0f});
 
     entt::registry world{};
 
@@ -58,7 +64,7 @@ void run()
     sound->set_minimum_distance(200.0f);
     sound->set_volume(0.5f);
 
-    cpt::physical_body_ptr sprite_body{cpt::make_physical_body(physical_world, cpt::physical_body_type::dynamic)};
+    cpt::physical_body_ptr sprite_body{cpt::make_physical_body(physical_world, cpt::physical_body_type::dynamic, 1.0f, std::numeric_limits<float>::infinity())};
     sprite_body->set_position(glm::vec2{320.0f, 240.0f});
 
     auto item{world.create()};
@@ -68,25 +74,24 @@ void run()
 
     auto& item_body{world.assign<cpt::components::physical_body>(item)};
     item_body.attach(sprite_body);
-    item_body.add_shape(static_cast<float>(sprite->width()), static_cast<float>(sprite->height()));
+    item_body.add_shape(static_cast<float>(sprite->width()), static_cast<float>(sprite->height()), 0.0f);
     item_body.shape(0)->set_collision_type(0);
-    item_body.shape(0)->set_elasticity(0.0f);
-    item_body.shape(0)->set_friction(0.0f);
 
     auto walls{world.create()};
     auto& walls_body{world.assign<cpt::components::physical_body>(walls)};
-    walls_body.attach(cpt::make_physical_body(physical_world, cpt::physical_body_type::steady));
+    walls_body.attach(cpt::make_physical_body(physical_world, cpt::physical_body_type::steady, 0.0f, 0.0f));
     walls_body.add_shape(glm::vec2{0.0f, 0.0f}, glm::vec2{0.0f, 480.0f});
     walls_body.add_shape(glm::vec2{0.0f, 0.0f}, glm::vec2{640.0f, 0.0f});
     walls_body.add_shape(glm::vec2{640.0f, 0.0f}, glm::vec2{640.0f, 480.0f});
     walls_body.add_shape(glm::vec2{0.0f, 480.0f}, glm::vec2{640.0f, 480.0f});
 
     for(std::size_t i{}; i < 4; ++i)
-    {
-        walls_body.shape(i)->set_elasticity(0.0f);
-        walls_body.shape(i)->set_friction(0.0f);
         walls_body.shape(i)->set_collision_type(1);
-    }
+
+    add_item(world, physical_world, 50.0f, 50.0f);
+    add_item(world, physical_world, 150.0f, 150.0f);
+    add_item(world, physical_world, 150.0f, 50.0f);
+    add_item(world, physical_world, 50.0f, 150.0f);
 
     physical_world->add_collision(0, 1, cpt::physical_world::collision_handler
     {

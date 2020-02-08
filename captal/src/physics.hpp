@@ -8,12 +8,14 @@
 #include <memory>
 #include <vector>
 #include <functional>
+#include <variant>
 
 struct cpSpace;
 struct cpBody;
 struct cpShape;
 struct cpArbiter;
 struct cpCollisionHandler;
+struct cpConstraint;
 
 namespace cpt
 {
@@ -238,7 +240,7 @@ physical_shape_ptr make_physical_shape(Args&&... args)
     return std::make_shared<physical_shape>(std::forward<Args>(args)...);
 }
 
-enum class physical_body_type
+enum class physical_body_type : std::uint32_t
 {
     dynamic = 0,
     steady = 1,
@@ -342,6 +344,176 @@ physical_body_ptr make_physical_body(Args&&... args)
 {
     return std::make_shared<physical_body>(std::forward<Args>(args)...);
 }
+
+enum class physical_constraint_type : std::uint32_t
+{
+    pin_joint = 0,
+    slide_joint = 1,
+    pivot_joint = 2,
+    groove_joint = 3,
+    damped_spring = 4,
+    damped_rotary_spring = 5,
+    rotary_limit_joint = 6,
+    ratchet_joint = 7,
+    gear_joint = 8,
+    simple_motor = 9
+};
+
+class CAPTAL_API physical_constraint
+{
+public:
+    struct pin_joint_t{};
+    static constexpr pin_joint_t pin_joint{};
+    struct slide_joint_t{};
+    static constexpr slide_joint_t slide_joint{};
+    struct pivot_joint_t{};
+    static constexpr pivot_joint_t pivot_joint{};
+    struct groove_joint_t{};
+    static constexpr groove_joint_t groove_joint{};
+    struct damped_spring_t{};
+    static constexpr damped_spring_t damped_spring{};
+    struct damped_rotary_spring_t{};
+    static constexpr damped_rotary_spring_t damped_rotary_spring{};
+    struct rotary_limit_joint_t{};
+    static constexpr rotary_limit_joint_t rotary_limit_joint{};
+    struct ratchet_joint_t{};
+    static constexpr ratchet_joint_t ratchet_joint{};
+    struct gear_joint_t{};
+    static constexpr gear_joint_t gear_joint{};
+    struct motor_joint_t{};
+    static constexpr motor_joint_t motor_joint{};
+
+public:
+    physical_constraint(pin_joint_t, const physical_body_ptr& first, const physical_body_ptr& second, const glm::vec2& first_anchor, const glm::vec2& second_anchor);
+    physical_constraint(slide_joint_t, const physical_body_ptr& first, const physical_body_ptr& second, const glm::vec2& first_anchor, const glm::vec2& second_anchor, float min, float max);
+    physical_constraint(pivot_joint_t, const physical_body_ptr& first, const physical_body_ptr& second, const glm::vec2& pivot);
+    physical_constraint(pivot_joint_t, const physical_body_ptr& first, const physical_body_ptr& second, const glm::vec2& first_anchor, const glm::vec2& second_anchor);
+    physical_constraint(groove_joint_t, const physical_body_ptr& first, const physical_body_ptr& second, const glm::vec2& first_groove, const glm::vec2& second_groove, const glm::vec2& anchor);
+    physical_constraint(damped_spring_t, const physical_body_ptr& first, const physical_body_ptr& second, const glm::vec2& first_anchor, const glm::vec2& second_anchor, float rest_length, float stiffness, float damping);
+    physical_constraint(damped_rotary_spring_t, const physical_body_ptr& first, const physical_body_ptr& second, float rest_angle, float stiffness, float damping);
+    physical_constraint(rotary_limit_joint_t, const physical_body_ptr& first, const physical_body_ptr& second, float min, float max);
+    physical_constraint(ratchet_joint_t, const physical_body_ptr& first, const physical_body_ptr& second, float phase, float ratchet);
+    physical_constraint(gear_joint_t, const physical_body_ptr& first, const physical_body_ptr& second, float phase, float ratio);
+    physical_constraint(motor_joint_t, const physical_body_ptr& first, const physical_body_ptr& second, float rate);
+
+    ~physical_constraint();
+    physical_constraint(const physical_constraint&) = delete;
+    physical_constraint& operator=(const physical_constraint&) = delete;
+    physical_constraint(physical_constraint&&) noexcept = delete;
+    physical_constraint& operator=(physical_constraint&&) noexcept = delete;
+
+    void set_maximum_force(float force) noexcept;
+    void set_error_bias(float bias) noexcept;
+    void set_max_bias(float bias) noexcept;
+    void set_collide_bodies(bool enable) noexcept;
+
+    void set_user_data(void* userdata) noexcept
+    {
+        m_userdata = userdata;
+    }
+
+    std::pair<physical_body&, physical_body&> bodies() const noexcept;
+    float maximum_force() const noexcept;
+    float error_bias() const noexcept;
+    float max_bias() const noexcept;
+    bool collide_bodies() const noexcept;
+
+    cpConstraint* handle() const noexcept
+    {
+        return m_constaint;
+    }
+
+    physical_constraint_type type() const noexcept
+    {
+        return m_type;
+    }
+
+    void* user_data() const noexcept
+    {
+        return m_userdata;
+    }
+
+public:
+    void set_pin_joint_first_anchor(const glm::vec2& anchor) noexcept;
+    void set_pin_joint_second_anchor(const glm::vec2& anchor) noexcept;
+    void set_pin_joint_distance(float distance) noexcept;
+    glm::vec2 pin_joint_first_anchor() const noexcept;
+    glm::vec2 pin_joint_second_anchor() const noexcept;
+    float pin_joint_distance() const noexcept;
+
+public:
+    void set_slide_joint_first_anchor(const glm::vec2& anchor) noexcept;
+    void set_slide_joint_second_anchor(const glm::vec2& anchor) noexcept;
+    void set_slide_joint_min(float min) noexcept;
+    void set_slide_joint_max(float max) noexcept;
+    glm::vec2 slide_joint_first_anchor() const noexcept;
+    glm::vec2 slide_joint_second_anchor() const noexcept;
+    float slide_joint_min() const noexcept;
+    float slide_joint_max() const noexcept;
+
+public:
+    void set_pivot_joint_first_anchor(const glm::vec2& anchor) noexcept;
+    void set_pivot_joint_second_anchor(const glm::vec2& anchor) noexcept;
+    glm::vec2 pivot_joint_first_anchor() const noexcept;
+    glm::vec2 pivot_joint_second_anchor() const noexcept;
+
+public:
+    void set_groove_joint_first_groove(const glm::vec2& anchor) noexcept;
+    void set_groove_joint_second_groove(const glm::vec2& anchor) noexcept;
+    void set_groove_joint_anchor(const glm::vec2& anchor) noexcept;
+    glm::vec2 groove_joint_first_groove() const noexcept;
+    glm::vec2 groove_joint_second_groove() const noexcept;
+    glm::vec2 groove_joint_anchor() const noexcept;
+
+public:
+    void set_damped_spring_first_anchor(const glm::vec2& anchor) noexcept;
+    void set_damped_spring_second_anchor(const glm::vec2& anchor) noexcept;
+    void set_damped_spring_rest_length(float rest_length) noexcept;
+    void set_damped_spring_stiffness(float stiffness) noexcept;
+    void set_damped_spring_damping(float damping) noexcept;
+    glm::vec2 damped_spring_first_anchor() const noexcept;
+    glm::vec2 damped_spring_second_anchor() const noexcept;
+    float damped_spring_rest_length() const noexcept;
+    float damped_spring_stiffness() const noexcept;
+    float damped_spring_damping() const noexcept;
+
+public:
+    void set_damped_rotary_spring_rest_length(float rest_length) noexcept;
+    void set_damped_rotary_spring_stiffness(float stiffness) noexcept;
+    void set_damped_rotary_spring_damping(float damping) noexcept;
+    float damped_rotary_spring_rest_length() const noexcept;
+    float damped_rotary_spring_stiffness() const noexcept;
+    float damped_rotary_spring_damping() const noexcept;
+
+public:
+    void set_rotary_limit_joint_min(float min) noexcept;
+    void set_rotary_limit_joint_max(float max) noexcept;
+    float rotary_limit_joint_min() const noexcept;
+    float rotary_limit_joint_max() const noexcept;
+
+public:
+    void set_ratchet_joint_angle(float angle) noexcept;
+    void set_ratchet_joint_phase(float phase) noexcept;
+    void set_ratchet_joint_ratchet(float ratchet) noexcept;
+    float ratchet_joint_angle() const noexcept;
+    float ratchet_joint_phase() const noexcept;
+    float ratchet_joint_ratchet() const noexcept;
+
+public:
+    void set_gear_joint_phase(float phase) noexcept;
+    void set_gear_joint_ratio(float ratio) noexcept;
+    float gear_joint_phase() const noexcept;
+    float gear_joint_ratio() const noexcept;
+
+public:
+    void set_motor_joint_ratio(float ratio) noexcept;
+    float motor_joint_ratio() const noexcept;
+
+private:
+    cpConstraint* m_constaint{};
+    physical_constraint_type m_type{};
+    void* m_userdata{};
+};
 
 }
 

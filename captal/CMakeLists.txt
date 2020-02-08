@@ -49,6 +49,7 @@ set(HEADERS
     "src/components/physical_body.hpp"
 
     "src/systems/frame.hpp"
+    "src/systems/sorting.hpp"
     "src/systems/audio.hpp"
     "src/systems/render.hpp"
     "src/systems/physics.hpp"
@@ -74,6 +75,7 @@ set(SOURCES
     "src/physics.cpp"
 
     "src/systems/frame.cpp"
+    "src/systems/sorting.cpp"
     "src/systems/audio.cpp"
     "src/systems/render.cpp"
     "src/systems/physics.cpp"
