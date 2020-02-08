@@ -7,14 +7,24 @@
 namespace cpt
 {
 
-static cpVect to_cp_vect(const glm::vec2& vec)
+static inline cpVect tocp(const glm::vec2& vec) noexcept
 {
     return cpVect{static_cast<cpFloat>(vec.x), static_cast<cpFloat>(vec.y)};
 }
 
-static glm::vec2 from_cp_vect(const cpVect& vec)
+static inline cpFloat tocp(float value) noexcept
+{
+    return static_cast<cpFloat>(value);
+}
+
+static inline glm::vec2 fromcp(const cpVect& vec) noexcept
 {
     return glm::vec2{static_cast<float>(vec.x), static_cast<float>(vec.y)};
+}
+
+static inline float fromcp(cpFloat value) noexcept
+{
+    return static_cast<float>(value);
 }
 
 void physical_collision_arbiter::set_restitution(float restitution) noexcept
@@ -29,7 +39,7 @@ void physical_collision_arbiter::set_friction(float friction) noexcept
 
 void physical_collision_arbiter::set_surface_velocity(const glm::vec2& surface_velocity) noexcept
 {
-    cpArbiterSetSurfaceVelocity(m_arbiter, to_cp_vect(surface_velocity));
+    cpArbiterSetSurfaceVelocity(m_arbiter, tocp(surface_velocity));
 }
 
 void physical_collision_arbiter::set_user_data(void* user_data) noexcept
@@ -62,17 +72,17 @@ std::size_t physical_collision_arbiter::contact_count() const noexcept
 
 glm::vec2 physical_collision_arbiter::normal() const noexcept
 {
-    return from_cp_vect(cpArbiterGetNormal(m_arbiter));
+    return fromcp(cpArbiterGetNormal(m_arbiter));
 }
 
 std::pair<glm::vec2, glm::vec2> physical_collision_arbiter::points(std::size_t contact_index) const noexcept
 {
-    return std::make_pair(from_cp_vect(cpArbiterGetPointA(m_arbiter, contact_index)), from_cp_vect(cpArbiterGetPointB(m_arbiter, contact_index)));
+    return std::make_pair(fromcp(cpArbiterGetPointA(m_arbiter, contact_index)), fromcp(cpArbiterGetPointB(m_arbiter, contact_index)));
 }
 
 float physical_collision_arbiter::depth(std::size_t contact_index) const noexcept
 {
-    return static_cast<float>(cpArbiterGetDepth(m_arbiter, contact_index));
+    return fromcp(cpArbiterGetDepth(m_arbiter, contact_index));
 }
 
 bool physical_collision_arbiter::is_first_contact() const noexcept
@@ -121,7 +131,7 @@ void physical_world::region_query(float x, float y, float width, float height, s
         callback(body);
     };
 
-    cpSpaceBBQuery(m_world, cpBBNew(static_cast<cpFloat>(x), static_cast<cpFloat>(y), static_cast<cpFloat>(x + width), static_cast<cpFloat>(y + height)), filter, native_callback, &callback);
+    cpSpaceBBQuery(m_world, cpBBNew(tocp(x), tocp(y), tocp(x + width), tocp(y + height)), filter, native_callback, &callback);
 }
 
 void physical_world::raycast(const glm::vec2& from, const glm::vec2& to, float thickness, std::uint64_t group, std::uint32_t id, std::uint32_t mask, raycast_callback_type callback)
@@ -132,12 +142,12 @@ void physical_world::raycast(const glm::vec2& from, const glm::vec2& to, float t
     {
         const raycast_callback_type& callback{*reinterpret_cast<const raycast_callback_type*>(data)};
         physical_body& body{*reinterpret_cast<physical_body*>(cpShapeGetUserData(shape))};
-        const raycast_hit info{body, from_cp_vect(point), from_cp_vect(normal), static_cast<float>(alpha)};
+        const raycast_hit info{body, fromcp(point), fromcp(normal), fromcp(alpha)};
 
         callback(info);
     };
 
-    cpSpaceSegmentQuery(m_world, to_cp_vect(from), to_cp_vect(to), thickness, filter, native_callback, &callback);
+    cpSpaceSegmentQuery(m_world, tocp(from), tocp(to), thickness, filter, native_callback, &callback);
 }
 
 std::optional<physical_world::raycast_hit> physical_world::raycast_first(const glm::vec2& from, const glm::vec2& to, float thickness, std::uint64_t group, std::uint32_t id, std::uint32_t mask)
@@ -145,10 +155,10 @@ std::optional<physical_world::raycast_hit> physical_world::raycast_first(const g
     const cpShapeFilter filter{cpShapeFilterNew(static_cast<cpGroup>(group), id, mask)};
 
     cpSegmentQueryInfo info{};
-    if(cpSpaceSegmentQueryFirst(m_world, to_cp_vect(from), to_cp_vect(to), thickness, filter, &info))
+    if(cpSpaceSegmentQueryFirst(m_world, tocp(from), tocp(to), thickness, filter, &info))
     {
         physical_body& body{*reinterpret_cast<physical_body*>(cpShapeGetUserData(info.shape))};
-        return raycast_hit{body, from_cp_vect(info.point), from_cp_vect(info.normal), static_cast<float>(info.alpha)};
+        return raycast_hit{body, fromcp(info.point), fromcp(info.normal), fromcp(info.alpha)};
     }
 
     return std::nullopt;
@@ -168,32 +178,32 @@ void physical_world::update(float time)
 
 void physical_world::set_gravity(const glm::vec2& gravity) noexcept
 {
-    cpSpaceSetGravity(m_world, to_cp_vect(gravity));
+    cpSpaceSetGravity(m_world, tocp(gravity));
 }
 
 void physical_world::set_damping(float damping) noexcept
 {
-    cpSpaceSetDamping(m_world, static_cast<cpFloat>(damping));
+    cpSpaceSetDamping(m_world, tocp(damping));
 }
 
 void physical_world::set_idle_threshold(float idle_threshold) noexcept
 {
-    cpSpaceSetIdleSpeedThreshold(m_world, static_cast<cpFloat>(idle_threshold));
+    cpSpaceSetIdleSpeedThreshold(m_world, tocp(idle_threshold));
 }
 
 void physical_world::set_sleep_threshold(float sleep_threshold) noexcept
 {
-    cpSpaceSetSleepTimeThreshold(m_world, static_cast<cpFloat>(sleep_threshold));
+    cpSpaceSetSleepTimeThreshold(m_world, tocp(sleep_threshold));
 }
 
 void physical_world::set_collision_slop(float collision_slop) noexcept
 {
-    cpSpaceSetCollisionSlop(m_world, static_cast<cpFloat>(collision_slop));
+    cpSpaceSetCollisionSlop(m_world, tocp(collision_slop));
 }
 
 void physical_world::set_collision_bias(float collision_bias) noexcept
 {
-    cpSpaceSetCollisionBias(m_world, static_cast<cpFloat>(collision_bias));
+    cpSpaceSetCollisionBias(m_world, tocp(collision_bias));
 }
 
 void physical_world::set_collision_persistence(std::uint32_t collision_persistance) noexcept
@@ -208,32 +218,32 @@ void physical_world::set_iteration_count(std::uint32_t count) noexcept
 
 glm::vec2 physical_world::gravity() const noexcept
 {
-    return from_cp_vect(cpSpaceGetGravity(m_world));
+    return fromcp(cpSpaceGetGravity(m_world));
 }
 
 float physical_world::damping() const noexcept
 {
-    return static_cast<float>(cpSpaceGetDamping(m_world));
+    return fromcp(cpSpaceGetDamping(m_world));
 }
 
 float physical_world::idle_threshold() const noexcept
 {
-    return static_cast<float>(cpSpaceGetIdleSpeedThreshold(m_world));
+    return fromcp(cpSpaceGetIdleSpeedThreshold(m_world));
 }
 
 float physical_world::sleep_threshold() const noexcept
 {
-    return static_cast<float>(cpSpaceGetSleepTimeThreshold(m_world));
+    return fromcp(cpSpaceGetSleepTimeThreshold(m_world));
 }
 
 float physical_world::collision_slop() const noexcept
 {
-    return static_cast<float>(cpSpaceGetCollisionSlop(m_world));
+    return fromcp(cpSpaceGetCollisionSlop(m_world));
 }
 
 float physical_world::collision_bias() const noexcept
 {
-    return static_cast<float>(cpSpaceGetCollisionBias(m_world));
+    return fromcp(cpSpaceGetCollisionBias(m_world));
 }
 
 std::uint32_t physical_world::collision_persistence() const noexcept
@@ -359,7 +369,7 @@ void physical_world::add_callback(cpCollisionHandler *cphandler, collision_handl
 
 physical_shape::physical_shape(physical_body_ptr body, float radius, const glm::vec2& offset)
 :m_body{std::move(body)}
-,m_shape{cpCircleShapeNew(m_body->handle(), static_cast<cpFloat>(radius), to_cp_vect(offset))}
+,m_shape{cpCircleShapeNew(m_body->handle(), tocp(radius), tocp(offset))}
 {
     if(!m_shape)
         throw std::runtime_error{"Can not allocate physical shape."};
@@ -372,7 +382,7 @@ physical_shape::physical_shape(physical_body_ptr body, float radius, const glm::
 
 physical_shape::physical_shape(physical_body_ptr body, const glm::vec2& first, const glm::vec2& second, float thickness)
 :m_body{std::move(body)}
-,m_shape{cpSegmentShapeNew(m_body->handle(), to_cp_vect(first), to_cp_vect(second), static_cast<cpFloat>(thickness))}
+,m_shape{cpSegmentShapeNew(m_body->handle(), tocp(first), tocp(second), tocp(thickness))}
 {
     if(!m_shape)
         throw std::runtime_error{"Can not allocate physical shape."};
@@ -389,9 +399,9 @@ physical_shape::physical_shape(physical_body_ptr body, const std::vector<glm::ve
     std::vector<cpVect> native_vertices{};
     native_vertices.reserve(std::size(vertices));
     for(auto&& vertex : vertices)
-        native_vertices.push_back(to_cp_vect(vertex));
+        native_vertices.push_back(tocp(vertex));
 
-    m_shape = cpPolyShapeNew(m_body->handle(), static_cast<int>(std::size(vertices)), std::data(native_vertices), cpTransformIdentity, static_cast<cpFloat>(radius));
+    m_shape = cpPolyShapeNew(m_body->handle(), static_cast<int>(std::size(vertices)), std::data(native_vertices), cpTransformIdentity, tocp(radius));
     if(!m_shape)
         throw std::runtime_error{"Can not allocate physical shape."};
 
@@ -403,7 +413,7 @@ physical_shape::physical_shape(physical_body_ptr body, const std::vector<glm::ve
 
 physical_shape::physical_shape(physical_body_ptr body, float width, float height, float radius)
 :m_body{std::move(body)}
-,m_shape{cpBoxShapeNew(m_body->handle(), static_cast<cpFloat>(width), static_cast<cpFloat>(height), static_cast<cpFloat>(radius))}
+,m_shape{cpBoxShapeNew(m_body->handle(), tocp(width), tocp(height), tocp(radius))}
 {
     if(!m_shape)
         throw std::runtime_error{"Can not allocate physical shape."};
@@ -416,12 +426,9 @@ physical_shape::physical_shape(physical_body_ptr body, float width, float height
 
 physical_shape::~physical_shape()
 {
-    if(m_shape)
-    {
-        m_body->unregister_shape(this);
-        cpSpaceRemoveShape(m_body->world()->handle(), m_shape);
-        cpShapeFree(m_shape);
-    }
+    m_body->unregister_shape(this);
+    cpSpaceRemoveShape(m_body->world()->handle(), m_shape);
+    cpShapeFree(m_shape);
 }
 
 void physical_shape::set_sensor(bool enable) noexcept
@@ -431,17 +438,17 @@ void physical_shape::set_sensor(bool enable) noexcept
 
 void physical_shape::set_elasticity(float elasticity) noexcept
 {
-    cpShapeSetElasticity(m_shape, static_cast<cpFloat>(elasticity));
+    cpShapeSetElasticity(m_shape, tocp(elasticity));
 }
 
 void physical_shape::set_friction(float friction) noexcept
 {
-    cpShapeSetFriction(m_shape, static_cast<cpFloat>(friction));
+    cpShapeSetFriction(m_shape, tocp(friction));
 }
 
 void physical_shape::set_surface_velocity(const glm::vec2& surface_velocity) noexcept
 {
-    cpShapeSetSurfaceVelocity(m_shape, to_cp_vect(surface_velocity));
+    cpShapeSetSurfaceVelocity(m_shape, tocp(surface_velocity));
 }
 
 void physical_shape::set_collision_type(std::uint64_t type) noexcept
@@ -461,17 +468,17 @@ bool physical_shape::is_sensor() const noexcept
 
 float physical_shape::elasticity() const noexcept
 {
-    return static_cast<float>(cpShapeGetElasticity(m_shape));
+    return fromcp(cpShapeGetElasticity(m_shape));
 }
 
 float physical_shape::friction() const noexcept
 {
-    return static_cast<float>(cpShapeGetFriction(m_shape));
+    return fromcp(cpShapeGetFriction(m_shape));
 }
 
 glm::vec2 physical_shape::surface_velocity() const noexcept
 {
-    return from_cp_vect(cpShapeGetSurfaceVelocity(m_shape));
+    return fromcp(cpShapeGetSurfaceVelocity(m_shape));
 }
 
 std::uint64_t physical_shape::collision_type() const noexcept
@@ -499,7 +506,7 @@ physical_body::physical_body(physical_world_ptr world, physical_body_type type, 
 {
     if(type == physical_body_type::dynamic)
     {
-        m_body = cpBodyNew(static_cast<cpFloat>(mass), static_cast<cpFloat>(inertia));
+        m_body = cpBodyNew(tocp(mass), tocp(inertia));
     }
     else if(type == physical_body_type::steady)
     {
@@ -519,72 +526,69 @@ physical_body::physical_body(physical_world_ptr world, physical_body_type type, 
 
 physical_body::~physical_body()
 {
-    if(m_body)
-    {
-        cpSpaceRemoveBody(m_world->handle(), m_body);
-        cpBodyFree(m_body);
-    }
+    cpSpaceRemoveBody(m_world->handle(), m_body);
+    cpBodyFree(m_body);
 }
 
 void physical_body::apply_force(const glm::vec2& force, const glm::vec2& point) noexcept
 {
-    cpBodyApplyForceAtWorldPoint(m_body, to_cp_vect(force), to_cp_vect(point));
+    cpBodyApplyForceAtWorldPoint(m_body, tocp(force), tocp(point));
 }
 
 void physical_body::apply_local_force(const glm::vec2& force, const glm::vec2& point) noexcept
 {
-    cpBodyApplyForceAtLocalPoint(m_body, to_cp_vect(force), to_cp_vect(point));
+    cpBodyApplyForceAtLocalPoint(m_body, tocp(force), tocp(point));
 }
 
 void physical_body::apply_impulse(const glm::vec2& impulse, const glm::vec2& point) noexcept
 {
-    cpBodyApplyImpulseAtWorldPoint(m_body, to_cp_vect(impulse), to_cp_vect(point));
+    cpBodyApplyImpulseAtWorldPoint(m_body, tocp(impulse), tocp(point));
 }
 
 void physical_body::apply_local_impulse(const glm::vec2& impulse, const glm::vec2& point) noexcept
 {
-    cpBodyApplyImpulseAtLocalPoint(m_body, to_cp_vect(impulse), to_cp_vect(point));
+    cpBodyApplyImpulseAtLocalPoint(m_body, tocp(impulse), tocp(point));
 }
 
 void physical_body::add_torque(float torque) noexcept
 {
-    cpBodySetTorque(m_body, cpBodyGetTorque(m_body) + static_cast<cpFloat>(torque));
+    cpBodySetTorque(m_body, cpBodyGetTorque(m_body) + tocp(torque));
 }
 
 void physical_body::set_angular_velocity(float velocity) noexcept
 {
-    cpBodySetAngularVelocity(m_body, static_cast<cpFloat>(velocity));
+    cpBodySetAngularVelocity(m_body, tocp(velocity));
 }
 
 void physical_body::set_mass(float mass) noexcept
 {
-    cpBodySetMass(m_body, static_cast<cpFloat>(mass));
+    cpBodySetMass(m_body, tocp(mass));
 }
 
 void physical_body::set_mass_center(const glm::vec2& center) noexcept
 {
-    cpBodySetCenterOfGravity(m_body, to_cp_vect(center));
+    cpBodySetCenterOfGravity(m_body, tocp(center));
 }
 
 void physical_body::set_moment_of_inertia(float moment) noexcept
 {
-    cpBodySetMoment(m_body, static_cast<cpFloat>(moment));
+    cpBodySetMoment(m_body, tocp(moment));
 }
 
 void physical_body::set_position(const glm::vec2& position) noexcept
 {
-    cpBodySetPosition(m_body, to_cp_vect(position));
+    cpBodySetPosition(m_body, tocp(position));
     cpSpaceReindexShapesForBody(m_world->handle(), m_body);
 }
 
 void physical_body::set_rotation(float rotation) noexcept
 {
-    cpBodySetAngle(m_body, static_cast<cpFloat>(rotation));
+    cpBodySetAngle(m_body, tocp(rotation));
 }
 
 void physical_body::set_velocity(const glm::vec2& velocity) noexcept
 {
-    cpBodySetVelocity(m_body, to_cp_vect(velocity));
+    cpBodySetVelocity(m_body, tocp(velocity));
 }
 
 void physical_body::sleep() noexcept
@@ -599,12 +603,12 @@ void physical_body::wake_up() noexcept
 
 glm::vec2 physical_body::world_to_local(const glm::vec2& vec) noexcept
 {
-    return from_cp_vect(cpBodyWorldToLocal(m_body, to_cp_vect(vec)));
+    return fromcp(cpBodyWorldToLocal(m_body, tocp(vec)));
 }
 
 glm::vec2 physical_body::local_to_world(const glm::vec2& vec) noexcept
 {
-    return from_cp_vect(cpBodyLocalToWorld(m_body, to_cp_vect(vec)));
+    return fromcp(cpBodyLocalToWorld(m_body, tocp(vec)));
 }
 
 cpt::bounding_box physical_body::bounding_box() const noexcept
@@ -616,42 +620,42 @@ cpt::bounding_box physical_body::bounding_box() const noexcept
     for(auto shape : m_shapes)
         bb = cpBBMerge(bb, cpShapeGetBB(shape->handle()));
 
-    return cpt::bounding_box{static_cast<float>(bb.l), static_cast<float>(bb.b), static_cast<float>(bb.r - bb.l), static_cast<float>(bb.t - bb.b)};
+    return cpt::bounding_box{fromcp(bb.l), fromcp(bb.b), fromcp(bb.r - bb.l), fromcp(bb.t - bb.b)};
 }
 
 float physical_body::angular_velocity() const noexcept
 {
-    return static_cast<float>(cpBodyGetAngularVelocity(m_body));
+    return fromcp(cpBodyGetAngularVelocity(m_body));
 }
 
 float physical_body::mass() const noexcept
 {
-    return static_cast<float>(cpBodyGetMass(m_body));
+    return fromcp(cpBodyGetMass(m_body));
 }
 
 glm::vec2 physical_body::mass_center() const noexcept
 {
-    return from_cp_vect(cpBodyGetCenterOfGravity(m_body));
+    return fromcp(cpBodyGetCenterOfGravity(m_body));
 }
 
 float physical_body::moment_of_inertia() const noexcept
 {
-    return static_cast<float>(cpBodyGetMoment(m_body));
+    return fromcp(cpBodyGetMoment(m_body));
 }
 
 glm::vec2 physical_body::position() const noexcept
 {
-    return from_cp_vect(cpBodyGetPosition(m_body));
+    return fromcp(cpBodyGetPosition(m_body));
 }
 
 float physical_body::rotation() const noexcept
 {
-    return static_cast<float>(cpBodyGetAngle(m_body));
+    return fromcp(cpBodyGetAngle(m_body));
 }
 
 glm::vec2 physical_body::velocity() const noexcept
 {
-    return from_cp_vect(cpBodyGetVelocity(m_body));
+    return fromcp(cpBodyGetVelocity(m_body));
 }
 
 bool physical_body::sleeping() const noexcept
@@ -672,11 +676,16 @@ physical_body_type physical_body::type() const noexcept
 }
 
 physical_constraint::physical_constraint(pin_joint_t, const physical_body_ptr& first, const physical_body_ptr& second, const glm::vec2& first_anchor, const glm::vec2& second_anchor)
+:m_constaint{cpPinJointNew(first->handle(), second->handle(), tocp(first_anchor), tocp(second_anchor))}
+,m_type{physical_constraint_type::pin_joint}
 {
-
+    if(!m_constaint)
+        throw std::runtime_error{"Can not create physical constaint."};
 }
 
 physical_constraint::physical_constraint(slide_joint_t, const physical_body_ptr& first, const physical_body_ptr& second, const glm::vec2& first_anchor, const glm::vec2& second_anchor, float min, float max)
+:m_constaint{cpSlideJointNew(first->handle(), second->handle(), tocp(first_anchor), tocp(second_anchor), fromcp(min), fromcp(max))}
+,m_type{physical_constraint_type::pin_joint}
 {
 
 }
@@ -726,6 +735,10 @@ physical_constraint::physical_constraint(motor_joint_t, const physical_body_ptr&
 
 }
 
+physical_constraint::~physical_constraint()
+{
+
+}
 
 
 }
