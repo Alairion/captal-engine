@@ -16,7 +16,7 @@
 namespace cpt
 {
 
-class renderable : public asynchronous_resource
+class CAPTAL_API renderable : public asynchronous_resource
 {
 public:
     renderable() = default;
@@ -85,7 +85,7 @@ public:
 
     void set_rotation(float angle) noexcept
     {
-        m_rotation = angle;
+        m_rotation = std::fmod(angle, pi<float> * 2.0f);
         m_need_upload = true;
     }
 

@@ -10,7 +10,7 @@
 namespace cpt
 {
 
-class application
+class CAPTAL_API application
 {
 public:
     application(const std::string& application_name, tph::version version);

@@ -26,7 +26,7 @@ struct buffer_part
     std::uint64_t size{};
 };
 
-class framed_buffer
+class CAPTAL_API framed_buffer
 {
 public:
     framed_buffer() = default;

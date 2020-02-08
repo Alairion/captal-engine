@@ -19,6 +19,7 @@ namespace cpt
 {
 
 class physical_body;
+class physical_shape;
 
 struct bounding_box
 {
@@ -28,35 +29,48 @@ struct bounding_box
     float height{};
 };
 
-class physical_collision_arbiter
+class CAPTAL_API physical_collision_arbiter
 {
 public:
-    physical_collision_arbiter();
     physical_collision_arbiter(cpArbiter* arbiter) noexcept
     :m_arbiter{arbiter}
     {
 
     }
 
-    ~physical_collision_arbiter();
+    ~physical_collision_arbiter() = default;
     physical_collision_arbiter(const physical_collision_arbiter&) = delete;
     physical_collision_arbiter& operator=(const physical_collision_arbiter&) = delete;
-    physical_collision_arbiter(physical_collision_arbiter&&) noexcept = delete;
-    physical_collision_arbiter& operator=(physical_collision_arbiter&&) noexcept = delete;
+    physical_collision_arbiter(physical_collision_arbiter&&) noexcept = default;
+    physical_collision_arbiter& operator=(physical_collision_arbiter&&) noexcept = default;
 
+    void set_restitution(float restitution) noexcept;
+    void set_friction(float friction) noexcept;
+    void set_surface_velocity(const glm::vec2& surface_velocity) noexcept;
+    void set_user_data(void* user_data) noexcept;
+
+    std::pair<physical_shape&, physical_shape&> shapes() const noexcept;
     std::pair<physical_body&, physical_body&> bodies() const noexcept;
+    glm::vec2 normal() const noexcept;
+
+    std::size_t contact_count() const noexcept;
+    std::pair<glm::vec2, glm::vec2> points(std::size_t contact_index) const noexcept;
+    float depth(std::size_t contact_index) const noexcept;
+
+    bool is_first_contact() const noexcept;
+    bool is_removal() const noexcept;
 
 private:
     cpArbiter* m_arbiter{};
 };
 
-class physical_world
+class CAPTAL_API physical_world
 {
 public:
-    using collision_begin_callback_type = std::function<bool(physical_world& world, physical_body& first, physical_body& second, physical_collision_arbiter& arbiter, void* userdata)>;
-    using collision_pre_solve_callback_type = std::function<bool(physical_world& world, physical_body& first, physical_body& second, physical_collision_arbiter& arbiter, void* userdata)>;
-    using collision_post_solve_callback_type = std::function<void(physical_world& world, physical_body& first, physical_body& second, physical_collision_arbiter& arbiter, void* userdata)>;
-    using collision_end_callback_type = std::function<void(physical_world& world, physical_body& first, physical_body& second, physical_collision_arbiter& arbiter, void* userdata)>;
+    using collision_begin_callback_type = std::function<bool(physical_world& world, physical_body& first, physical_body& second, physical_collision_arbiter arbiter, void* userdata)>;
+    using collision_pre_solve_callback_type = std::function<bool(physical_world& world, physical_body& first, physical_body& second, physical_collision_arbiter arbiter, void* userdata)>;
+    using collision_post_solve_callback_type = std::function<void(physical_world& world, physical_body& first, physical_body& second, physical_collision_arbiter arbiter, void* userdata)>;
+    using collision_end_callback_type = std::function<void(physical_world& world, physical_body& first, physical_body& second, physical_collision_arbiter arbiter, void* userdata)>;
 
 public:
     struct collision_handler
@@ -89,15 +103,23 @@ public:
     physical_world(physical_world&&) noexcept = delete;
     physical_world& operator=(physical_world&&) noexcept = delete;
 
-    void add_collision(std::uint32_t first_id, std::uint32_t second_id, collision_handler handler);
-    void add_wildcard(std::uint32_t id, collision_handler handler);
+    void add_collision(std::uint32_t first_id, std::uint32_t second_type, collision_handler handler);
+    void add_wildcard(std::uint32_t type, collision_handler handler);
 
     void region_query(float x, float y, float width, float height, std::uint64_t group, std::uint32_t id, std::uint32_t mask, region_query_callback_type callback);
-
     void raycast(const glm::vec2& from, const glm::vec2& to, float thickness, std::uint64_t group, std::uint32_t id, std::uint32_t mask, raycast_callback_type callback);
     std::optional<raycast_hit> raycast_first(const glm::vec2& from, const glm::vec2& to, float thickness, std::uint64_t group, std::uint32_t id, std::uint32_t mask);
 
     void update(float time);
+
+    void set_gravity(const glm::vec2& gravity) noexcept;
+    void set_damping(float damping) noexcept;
+    void set_idle_threshold(float idle_threshold) noexcept;
+    void set_sleep_threshold(float speed_threshold) noexcept;
+    void set_collision_slop(float collision_slop) noexcept;
+    void set_collision_bias(float collision_bias) noexcept;
+    void set_collision_persistence(std::uint32_t collision_persistance) noexcept;
+    void set_iteration_count(std::uint32_t count) noexcept;
 
     void set_step(float step) noexcept
     {
@@ -108,6 +130,14 @@ public:
     {
         m_max_steps = max_steps;
     }
+
+    glm::vec2 gravity() const noexcept;
+    float damping() const noexcept;
+    float idle_threshold() const noexcept;
+    float sleep_threshold() const noexcept;
+    float collision_slop() const noexcept;
+    float collision_bias() const noexcept;
+    std::uint32_t collision_persistence() const noexcept;
 
     float step() const noexcept
     {
@@ -145,7 +175,7 @@ physical_world_ptr make_physical_world(Args&&... args)
 
 using physical_body_ptr = std::shared_ptr<physical_body>;
 
-class physical_shape
+class CAPTAL_API physical_shape
 {
 public:
     physical_shape(physical_body_ptr body, float radius, const glm::vec2& offset = glm::vec2{});
@@ -215,7 +245,7 @@ enum class physical_body_type
     kinematic = 2
 };
 
-class physical_body
+class CAPTAL_API physical_body
 {
     friend class physical_shape;
 

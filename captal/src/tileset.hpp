@@ -10,7 +10,7 @@
 namespace cpt
 {
 
-class tileset : public texture
+class CAPTAL_API tileset : public texture
 {
 public:
     struct texture_rect

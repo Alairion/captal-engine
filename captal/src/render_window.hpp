@@ -31,7 +31,7 @@ using mouse_event_signal = sigslot::signal<const apr::mouse_event&>;
 using keyboard_event_signal = sigslot::signal<const apr::keyboard_event&>;
 using text_event_signal = sigslot::signal<const apr::text_event&>;
 
-class render_window : apr::window, tph::surface, public render_target
+class CAPTAL_API render_window : apr::window, tph::surface, public render_target
 {
 public:
     render_window() = default;

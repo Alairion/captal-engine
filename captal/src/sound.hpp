@@ -9,7 +9,7 @@
 namespace cpt
 {
 
-class sound : swl::sound_file_reader, swl::sound
+class CAPTAL_API sound : swl::sound_file_reader, swl::sound
 {
 public:
     sound();

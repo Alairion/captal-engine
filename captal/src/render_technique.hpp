@@ -29,7 +29,7 @@ class render_target;
 class descriptor_pool;
 class render_technique;
 
-class descriptor_set : public asynchronous_resource
+class CAPTAL_API descriptor_set : public asynchronous_resource
 {
 public:
     descriptor_set() = default;
@@ -62,7 +62,7 @@ private:
 
 using descriptor_set_ptr = std::shared_ptr<descriptor_set>;
 
-class descriptor_pool
+class CAPTAL_API descriptor_pool
 {
 public:
     constexpr static std::size_t pool_size{16};
@@ -117,7 +117,7 @@ struct render_technique_info
     tph::pipeline_color_blend color_blend{};
 };
 
-class render_technique : public asynchronous_resource
+class CAPTAL_API render_technique : public asynchronous_resource
 {
 public:
     render_technique() = default;

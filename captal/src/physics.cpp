@@ -3,7 +3,6 @@
 #include <stdexcept>
 
 #include <chipmunk/chipmunk.h>
-#include <chipmunk/chipmunk_private.h>
 
 namespace cpt
 {
@@ -18,6 +17,35 @@ static glm::vec2 from_cp_vect(const cpVect& vec)
     return glm::vec2{static_cast<float>(vec.x), static_cast<float>(vec.y)};
 }
 
+void physical_collision_arbiter::set_restitution(float restitution) noexcept
+{
+    cpArbiterSetRestitution(m_arbiter, restitution);
+}
+
+void physical_collision_arbiter::set_friction(float friction) noexcept
+{
+    cpArbiterSetFriction(m_arbiter, friction);
+}
+
+void physical_collision_arbiter::set_surface_velocity(const glm::vec2& surface_velocity) noexcept
+{
+    cpArbiterSetSurfaceVelocity(m_arbiter, to_cp_vect(surface_velocity));
+}
+
+void physical_collision_arbiter::set_user_data(void* user_data) noexcept
+{
+    cpArbiterSetUserData(m_arbiter, user_data);
+}
+
+std::pair<physical_shape&, physical_shape&> physical_collision_arbiter::shapes() const noexcept
+{
+    cpShape* first{};
+    cpShape* second{};
+    cpArbiterGetShapes(m_arbiter, &first, &second);
+
+    return {*reinterpret_cast<physical_shape*>(cpShapeGetUserData(first)), *reinterpret_cast<physical_shape*>(cpShapeGetUserData(second))};
+}
+
 std::pair<physical_body&, physical_body&> physical_collision_arbiter::bodies() const noexcept
 {
     cpBody* first{};
@@ -25,6 +53,36 @@ std::pair<physical_body&, physical_body&> physical_collision_arbiter::bodies() c
     cpArbiterGetBodies(m_arbiter, &first, &second);
 
     return {*reinterpret_cast<physical_body*>(cpBodyGetUserData(first)), *reinterpret_cast<physical_body*>(cpBodyGetUserData(second))};
+}
+
+std::size_t physical_collision_arbiter::contact_count() const noexcept
+{
+    return static_cast<std::size_t>(cpArbiterGetCount(m_arbiter));
+}
+
+glm::vec2 physical_collision_arbiter::normal() const noexcept
+{
+    return from_cp_vect(cpArbiterGetNormal(m_arbiter));
+}
+
+std::pair<glm::vec2, glm::vec2> physical_collision_arbiter::points(std::size_t contact_index) const noexcept
+{
+    return std::make_pair(from_cp_vect(cpArbiterGetPointA(m_arbiter, contact_index)), from_cp_vect(cpArbiterGetPointB(m_arbiter, contact_index)));
+}
+
+float physical_collision_arbiter::depth(std::size_t contact_index) const noexcept
+{
+    return static_cast<float>(cpArbiterGetDepth(m_arbiter, contact_index));
+}
+
+bool physical_collision_arbiter::is_first_contact() const noexcept
+{
+    return static_cast<bool>(cpArbiterIsFirstContact(m_arbiter));
+}
+
+bool physical_collision_arbiter::is_removal() const noexcept
+{
+    return static_cast<bool>(cpArbiterIsRemoval(m_arbiter));
 }
 
 physical_world::physical_world()
@@ -41,14 +99,14 @@ physical_world::~physical_world()
     cpSpaceFree(m_world);
 }
 
-void physical_world::add_collision(std::uint32_t first_id, std::uint32_t second_id, collision_handler handler)
+void physical_world::add_collision(std::uint32_t first_type, std::uint32_t second_type, collision_handler handler)
 {
-    add_callback(cpSpaceAddCollisionHandler(m_world, first_id, second_id), std::move(handler));
+    add_callback(cpSpaceAddCollisionHandler(m_world, first_type, second_type), std::move(handler));
 }
 
-void physical_world::add_wildcard(std::uint32_t id, collision_handler handler)
+void physical_world::add_wildcard(std::uint32_t type, collision_handler handler)
 {
-    add_callback(cpSpaceAddWildcardHandler(m_world, id), std::move(handler));
+    add_callback(cpSpaceAddWildcardHandler(m_world, type), std::move(handler));
 }
 
 void physical_world::region_query(float x, float y, float width, float height, std::uint64_t group, std::uint32_t id, std::uint32_t mask, region_query_callback_type callback)
@@ -108,6 +166,81 @@ void physical_world::update(float time)
     }
 }
 
+void physical_world::set_gravity(const glm::vec2& gravity) noexcept
+{
+    cpSpaceSetGravity(m_world, to_cp_vect(gravity));
+}
+
+void physical_world::set_damping(float damping) noexcept
+{
+    cpSpaceSetDamping(m_world, static_cast<cpFloat>(damping));
+}
+
+void physical_world::set_idle_threshold(float idle_threshold) noexcept
+{
+    cpSpaceSetIdleSpeedThreshold(m_world, static_cast<cpFloat>(idle_threshold));
+}
+
+void physical_world::set_sleep_threshold(float sleep_threshold) noexcept
+{
+    cpSpaceSetSleepTimeThreshold(m_world, static_cast<cpFloat>(sleep_threshold));
+}
+
+void physical_world::set_collision_slop(float collision_slop) noexcept
+{
+    cpSpaceSetCollisionSlop(m_world, static_cast<cpFloat>(collision_slop));
+}
+
+void physical_world::set_collision_bias(float collision_bias) noexcept
+{
+    cpSpaceSetCollisionBias(m_world, static_cast<cpFloat>(collision_bias));
+}
+
+void physical_world::set_collision_persistence(std::uint32_t collision_persistance) noexcept
+{
+    cpSpaceSetCollisionPersistence(m_world, static_cast<cpTimestamp>(collision_persistance));
+}
+
+void physical_world::set_iteration_count(std::uint32_t count) noexcept
+{
+    cpSpaceSetIterations(m_world, static_cast<int>(count));
+}
+
+glm::vec2 physical_world::gravity() const noexcept
+{
+    return from_cp_vect(cpSpaceGetGravity(m_world));
+}
+
+float physical_world::damping() const noexcept
+{
+    return static_cast<float>(cpSpaceGetDamping(m_world));
+}
+
+float physical_world::idle_threshold() const noexcept
+{
+    return static_cast<float>(cpSpaceGetIdleSpeedThreshold(m_world));
+}
+
+float physical_world::sleep_threshold() const noexcept
+{
+    return static_cast<float>(cpSpaceGetSleepTimeThreshold(m_world));
+}
+
+float physical_world::collision_slop() const noexcept
+{
+    return static_cast<float>(cpSpaceGetCollisionSlop(m_world));
+}
+
+float physical_world::collision_bias() const noexcept
+{
+    return static_cast<float>(cpSpaceGetCollisionBias(m_world));
+}
+
+std::uint32_t physical_world::collision_persistence() const noexcept
+{
+    return static_cast<std::uint32_t>(cpSpaceGetCollisionPersistence(m_world));
+}
+
 void physical_world::add_callback(cpCollisionHandler *cphandler, collision_handler handler)
 {
     auto it{m_callbacks.find(cphandler)};
@@ -137,7 +270,7 @@ void physical_world::add_callback(cpCollisionHandler *cphandler, collision_handl
             physical_collision_arbiter arbiter{cparbiter};
             collision_handler& handler{*reinterpret_cast<collision_handler*>(userdata)};
 
-            return static_cast<cpBool>(handler.collision_begin(world, first, second, arbiter, handler.userdata));
+            return static_cast<cpBool>(handler.collision_begin(world, first, second, std::move(arbiter), handler.userdata));
         };
     }
     else
@@ -162,7 +295,7 @@ void physical_world::add_callback(cpCollisionHandler *cphandler, collision_handl
             physical_collision_arbiter arbiter{cparbiter};
             collision_handler& handler{*reinterpret_cast<collision_handler*>(userdata)};
 
-            return static_cast<cpBool>(handler.collision_pre_solve(world, first, second, arbiter, handler.userdata));
+            return static_cast<cpBool>(handler.collision_pre_solve(world, first, second, std::move(arbiter), handler.userdata));
         };
     }
     else
@@ -187,7 +320,7 @@ void physical_world::add_callback(cpCollisionHandler *cphandler, collision_handl
             physical_collision_arbiter arbiter{cparbiter};
             collision_handler& handler{*reinterpret_cast<collision_handler*>(userdata)};
 
-            handler.collision_post_solve(world, first, second, arbiter, handler.userdata);
+            handler.collision_post_solve(world, first, second, std::move(arbiter), handler.userdata);
         };
     }
     else
@@ -212,7 +345,7 @@ void physical_world::add_callback(cpCollisionHandler *cphandler, collision_handl
             physical_collision_arbiter arbiter{cparbiter};
             collision_handler& handler{*reinterpret_cast<collision_handler*>(userdata)};
 
-            handler.collision_end(world, first, second, arbiter, handler.userdata);
+            handler.collision_end(world, first, second, std::move(arbiter), handler.userdata);
         };
     }
     else
@@ -441,6 +574,7 @@ void physical_body::set_moment_of_inertia(float moment) noexcept
 void physical_body::set_position(const glm::vec2& position) noexcept
 {
     cpBodySetPosition(m_body, to_cp_vect(position));
+    cpSpaceReindexShapesForBody(m_world->handle(), m_body);
 }
 
 void physical_body::set_rotation(float rotation) noexcept
@@ -534,7 +668,6 @@ physical_body_type physical_body::type() const noexcept
         case CP_BODY_TYPE_KINEMATIC: return physical_body_type::kinematic;
     }
 
-    assert(false && "Invalid body type.");
     std::terminate();
 }
 

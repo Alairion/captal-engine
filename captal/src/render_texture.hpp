@@ -9,7 +9,7 @@
 namespace cpt
 {
 
-class render_texture : public texture, public render_target
+class CAPTAL_API render_texture : public texture, public render_target
 {
 public:
     render_texture() = default;

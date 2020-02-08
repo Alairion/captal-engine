@@ -6,7 +6,7 @@
 namespace cpt
 {
 
-class asynchronous_resource
+class CAPTAL_API asynchronous_resource
 {
 public:
     asynchronous_resource() noexcept = default;

@@ -11,7 +11,7 @@ namespace cpt
 namespace systems
 {
 
-void audio(entt::registry& world);
+void CAPTAL_API audio(entt::registry& world);
 
 }
 

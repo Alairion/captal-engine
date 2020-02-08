@@ -4,11 +4,21 @@
 #include <cstdint>
 #include <type_traits>
 
+#ifdef _WIN32
+    #ifdef CAPTAL_SHARED_BUILD
+        #define CAPTAL_API __declspec(dllexport)
+    #else
+        #define CAPTAL_API __declspec(dllimport)
+    #endif
+#else
+    #define CAPTAL_API
+#endif
+
 namespace cpt
 {
 
 template<typename T>
-static constexpr T pi{static_cast<T>(3.14159265359)};
+static constexpr T pi{static_cast<T>(3.141592653589793238462643383279)};
 
 struct load_from_file_t{};
 static constexpr load_from_file_t load_from_file{};

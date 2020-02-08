@@ -14,7 +14,7 @@
 namespace cpt
 {
 
-class texture : public asynchronous_resource
+class CAPTAL_API texture : public asynchronous_resource
 {
 public:
     texture() = default;

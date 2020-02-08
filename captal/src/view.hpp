@@ -21,7 +21,7 @@ enum class view_type
     orthographic = 0,
 };
 
-class view : public asynchronous_resource
+class CAPTAL_API view : public asynchronous_resource
 {
 public:
     struct uniform_data

@@ -52,11 +52,11 @@ struct font_info
     float underline_thickness{};
 };
 
-class font
+class CAPTAL_API font
 {
     struct freetype_info;
 
-    struct freetype_deleter
+    struct CAPTAL_API freetype_deleter
     {
         void operator()(freetype_info* ptr) noexcept;
     };
@@ -87,7 +87,7 @@ private:
     font_info m_info{};
 };
 
-class text : public renderable
+class CAPTAL_API text : public renderable
 {
 public:
     text() = default;
@@ -129,7 +129,7 @@ enum class text_drawer_options : std::uint32_t
 
 template<> struct enable_enum_operations<text_drawer_options> {static constexpr bool value{true};};
 
-class text_drawer
+class CAPTAL_API text_drawer
 {
 public:
     text_drawer() = default;
@@ -175,8 +175,8 @@ private:
     std::unordered_map<char32_t, std::shared_ptr<glyph>> m_cache{};
 };
 
-text_ptr draw_text(cpt::font& font, std::string_view u8string, const glm::vec4& color = glm::vec4{1.0f, 1.0f, 1.0f, 1.0f}, text_drawer_options options = text_drawer_options::kerning);
-text_ptr draw_text(cpt::font&& font, std::string_view u8string, const glm::vec4& color = glm::vec4{1.0f, 1.0f, 1.0f, 1.0f}, text_drawer_options options = text_drawer_options::kerning);
+text_ptr CAPTAL_API draw_text(cpt::font& font, std::string_view u8string, const glm::vec4& color = glm::vec4{1.0f, 1.0f, 1.0f, 1.0f}, text_drawer_options options = text_drawer_options::kerning);
+text_ptr CAPTAL_API draw_text(cpt::font&& font, std::string_view u8string, const glm::vec4& color = glm::vec4{1.0f, 1.0f, 1.0f, 1.0f}, text_drawer_options options = text_drawer_options::kerning);
 
 
 }

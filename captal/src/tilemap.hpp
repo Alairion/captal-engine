@@ -10,7 +10,7 @@
 namespace cpt
 {
 
-class tilemap : public renderable
+class CAPTAL_API tilemap : public renderable
 {
 public:
     tilemap() = default;

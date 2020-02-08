@@ -18,7 +18,7 @@ namespace cpt
 
 using frame_presented_signal = sigslot::signal<>;
 
-class render_target
+class CAPTAL_API render_target
 {
 public:
     render_target() = default;

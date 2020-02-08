@@ -5,7 +5,8 @@ project(captal)
 option(CAPTAL_BUILD_EXAMPLE OFF)
 
 add_definitions(-DGLM_FORCE_RADIANS
-                -DGLM_FORCE_DEPTH_ZERO_TO_ONE)
+                -DGLM_FORCE_DEPTH_ZERO_TO_ONE
+                -DCAPTAL_SHARED_BUILD)
 
 set(GLOBAL_INCLUDES "${PROJECT_SOURCE_DIR}/../libs/include")
 set(GLOBAL_LIBRARIES "${PROJECT_SOURCE_DIR}/../libs/external")
@@ -45,10 +46,12 @@ set(HEADERS
     "src/components/camera.hpp"
     "src/components/listener.hpp"
     "src/components/audio_emiter.hpp"
+    "src/components/physical_body.hpp"
 
     "src/systems/frame.hpp"
     "src/systems/audio.hpp"
     "src/systems/render.hpp"
+    "src/systems/physics.hpp"
     )
 
 set(SOURCES
@@ -73,6 +76,7 @@ set(SOURCES
     "src/systems/frame.cpp"
     "src/systems/audio.cpp"
     "src/systems/render.cpp"
+    "src/systems/physics.cpp"
     )
 
 add_library(${PROJECT_NAME} SHARED ${HEADERS} ${SOURCES})
@@ -82,7 +86,7 @@ if(CMAKE_BUILD_TYPE STREQUAL Debug)
     add_definitions(-DCAPTAL_DEBUG)
 endif()
 
-target_include_directories(${PROJECT_NAME} PUBLIC ${GLOBAL_INCLUDES} ${FREETYPE_INCLUDES} ${CHIPMUNK_LIBRARIES})
+target_include_directories(${PROJECT_NAME} PUBLIC ${GLOBAL_INCLUDES} ${FREETYPE_INCLUDES})
 
 if(CMAKE_BUILD_TYPE STREQUAL Debug)
     target_link_libraries(${PROJECT_NAME} "${PROJECT_SOURCE_DIR}/../libs/debug/libapyre.dll.a")
@@ -94,7 +98,7 @@ else()
     target_link_libraries(${PROJECT_NAME} "${PROJECT_SOURCE_DIR}/../libs/release/libtephra.dll.a")
 endif()
 
-target_link_libraries(${PROJECT_NAME} ${FREETYPE_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} ${FREETYPE_LIBRARIES} ${CHIPMUNK_LIBRARIES})
 
 if(CAPTAL_BUILD_EXAMPLE)
     add_executable(${PROJECT_NAME}_test "main.cpp")

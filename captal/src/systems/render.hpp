@@ -11,7 +11,7 @@ namespace cpt
 namespace systems
 {
 
-void render(entt::registry& world);
+void CAPTAL_API render(entt::registry& world);
 
 }
 

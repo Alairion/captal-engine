@@ -11,7 +11,7 @@ namespace cpt
 
 class state_stack;
 
-class state
+class CAPTAL_API state
 {
 public:
     state() noexcept = default;
@@ -50,7 +50,7 @@ std::shared_ptr<T> make_state(Args&&... args)
     return std::make_shared<T>(std::forward<Args>(args)...);
 }
 
-class state_stack
+class CAPTAL_API state_stack
 {
 public:
     state_stack() = default;

@@ -9,7 +9,7 @@
 namespace cpt
 {
 
-class sprite : public renderable
+class CAPTAL_API sprite : public renderable
 {
 public:
     sprite() = default;

@@ -41,7 +41,7 @@ using update_signal = sigslot::signal<float>;
 using transfer_ended_signal = sigslot::signal<>;
 using frame_per_second_signal = sigslot::signal<std::uint32_t>;
 
-class engine
+class CAPTAL_API engine
 {
     static engine* m_instance;
 

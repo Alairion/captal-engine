@@ -10,6 +10,8 @@
     #else
         #define APYRE_API __declspec(dllimport)
     #endif
+#else
+    #define APYRE_API
 #endif
 
 namespace apr

@@ -1,5 +1,5 @@
-#ifndef CAPTAL_NODE_HPP_INCLUDED
-#define CAPTAL_NODE_HPP_INCLUDED
+#ifndef CAPTAL_COMPONENTS_NODE_HPP_INCLUDED
+#define CAPTAL_COMPONENTS_NODE_HPP_INCLUDED
 
 #include "../config.hpp"
 
@@ -29,7 +29,7 @@ public:
         m_updated = true;
     }
 
-    void move_to(float x, float y, float z = 1.0f) noexcept
+    void move_to(float x, float y, float z = 0.0f) noexcept
     {
         m_position = glm::vec3{x, y, z};
         m_updated = true;
@@ -73,7 +73,7 @@ public:
 
     void set_rotation(float angle) noexcept
     {
-        m_rotation = angle;
+        m_rotation = std::fmod(angle, pi<float> * 2.0f);
         m_updated = true;
     }
 
