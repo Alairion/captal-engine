@@ -458,8 +458,8 @@ public:
     glm::vec2 pivot_joint_second_anchor() const noexcept;
 
 public:
-    void set_groove_joint_first_groove(const glm::vec2& anchor) noexcept;
-    void set_groove_joint_second_groove(const glm::vec2& anchor) noexcept;
+    void set_groove_joint_first_groove(const glm::vec2& groove) noexcept;
+    void set_groove_joint_second_groove(const glm::vec2& groove) noexcept;
     void set_groove_joint_anchor(const glm::vec2& anchor) noexcept;
     glm::vec2 groove_joint_first_groove() const noexcept;
     glm::vec2 groove_joint_second_groove() const noexcept;
@@ -478,10 +478,10 @@ public:
     float damped_spring_damping() const noexcept;
 
 public:
-    void set_damped_rotary_spring_rest_length(float rest_length) noexcept;
+    void set_damped_rotary_spring_rest_angle(float rest_angle) noexcept;
     void set_damped_rotary_spring_stiffness(float stiffness) noexcept;
     void set_damped_rotary_spring_damping(float damping) noexcept;
-    float damped_rotary_spring_rest_length() const noexcept;
+    float damped_rotary_spring_rest_angle() const noexcept;
     float damped_rotary_spring_stiffness() const noexcept;
     float damped_rotary_spring_damping() const noexcept;
 
@@ -506,8 +506,8 @@ public:
     float gear_joint_ratio() const noexcept;
 
 public:
-    void set_motor_joint_ratio(float ratio) noexcept;
-    float motor_joint_ratio() const noexcept;
+    void set_motor_joint_rate(float rate) noexcept;
+    float motor_joint_rate() const noexcept;
 
 private:
     cpConstraint* m_constaint{};

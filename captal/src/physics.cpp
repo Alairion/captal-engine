@@ -868,260 +868,260 @@ float physical_constraint::pin_joint_distance() const noexcept
 
 void physical_constraint::set_slide_joint_first_anchor(const glm::vec2& anchor) noexcept
 {
-
+    cpSlideJointSetAnchorA(m_constaint, tocp(anchor));
 }
 
 void physical_constraint::set_slide_joint_second_anchor(const glm::vec2& anchor) noexcept
 {
-
+    cpSlideJointSetAnchorB(m_constaint, tocp(anchor));
 }
 
 void physical_constraint::set_slide_joint_min(float min) noexcept
 {
-
+    cpSlideJointSetMin(m_constaint, tocp(min));
 }
 
 void physical_constraint::set_slide_joint_max(float max) noexcept
 {
-
+    cpSlideJointSetMax(m_constaint, tocp(max));
 }
 
 glm::vec2 physical_constraint::slide_joint_first_anchor() const noexcept
 {
-
+    return fromcp(cpSlideJointGetAnchorA(m_constaint));
 }
 
 glm::vec2 physical_constraint::slide_joint_second_anchor() const noexcept
 {
-
+    return fromcp(cpSlideJointGetAnchorB(m_constaint));
 }
 
 float physical_constraint::slide_joint_min() const noexcept
 {
-
+    return fromcp(cpSlideJointGetMin(m_constaint));
 }
 
 float physical_constraint::slide_joint_max() const noexcept
 {
-
+    return fromcp(cpSlideJointGetMax(m_constaint));
 }
 
 
 void physical_constraint::set_pivot_joint_first_anchor(const glm::vec2& anchor) noexcept
 {
-
+    cpPivotJointSetAnchorA(m_constaint, tocp(anchor));
 }
 
 void physical_constraint::set_pivot_joint_second_anchor(const glm::vec2& anchor) noexcept
 {
-
+    cpPivotJointSetAnchorB(m_constaint, tocp(anchor));
 }
 
 glm::vec2 physical_constraint::pivot_joint_first_anchor() const noexcept
 {
-
+    return fromcp(cpPivotJointGetAnchorA(m_constaint));
 }
 
 glm::vec2 physical_constraint::pivot_joint_second_anchor() const noexcept
 {
-
+    return fromcp(cpPivotJointGetAnchorB(m_constaint));
 }
 
 
-void physical_constraint::set_groove_joint_first_groove(const glm::vec2& anchor) noexcept
+void physical_constraint::set_groove_joint_first_groove(const glm::vec2& groove) noexcept
 {
-
+    cpGrooveJointSetGrooveA(m_constaint, tocp(groove));
 }
 
-void physical_constraint::set_groove_joint_second_groove(const glm::vec2& anchor) noexcept
+void physical_constraint::set_groove_joint_second_groove(const glm::vec2& groove) noexcept
 {
-
+    cpGrooveJointSetGrooveB(m_constaint, tocp(groove));
 }
 
 void physical_constraint::set_groove_joint_anchor(const glm::vec2& anchor) noexcept
 {
-
+    cpGrooveJointSetAnchorB(m_constaint, tocp(anchor));
 }
 
 glm::vec2 physical_constraint::groove_joint_first_groove() const noexcept
 {
-
+    return fromcp(cpGrooveJointGetGrooveA(m_constaint));
 }
 
 glm::vec2 physical_constraint::groove_joint_second_groove() const noexcept
 {
-
+    return fromcp(cpGrooveJointGetGrooveB(m_constaint));
 }
 
 glm::vec2 physical_constraint::groove_joint_anchor() const noexcept
 {
-
+    return fromcp(cpGrooveJointGetAnchorB(m_constaint));
 }
 
 
 void physical_constraint::set_damped_spring_first_anchor(const glm::vec2& anchor) noexcept
 {
-
+    cpDampedSpringSetAnchorA(m_constaint, tocp(anchor));
 }
 
 void physical_constraint::set_damped_spring_second_anchor(const glm::vec2& anchor) noexcept
 {
-
+    cpDampedSpringSetAnchorB(m_constaint, tocp(anchor));
 }
 
 void physical_constraint::set_damped_spring_rest_length(float rest_length) noexcept
 {
-
+    cpDampedSpringSetRestLength(m_constaint, tocp(rest_length));
 }
 
 void physical_constraint::set_damped_spring_stiffness(float stiffness) noexcept
 {
-
+    cpDampedSpringSetStiffness(m_constaint, tocp(stiffness));
 }
 
 void physical_constraint::set_damped_spring_damping(float damping) noexcept
 {
-
+    cpDampedSpringSetDamping(m_constaint, tocp(damping));
 }
 
 glm::vec2 physical_constraint::damped_spring_first_anchor() const noexcept
 {
-
+    return fromcp(cpDampedSpringGetAnchorA(m_constaint));
 }
 
 glm::vec2 physical_constraint::damped_spring_second_anchor() const noexcept
 {
-
+    return fromcp(cpDampedSpringGetAnchorB(m_constaint));
 }
 
 float physical_constraint::damped_spring_rest_length() const noexcept
 {
-
+    return fromcp(cpDampedSpringGetRestLength(m_constaint));
 }
 
 float physical_constraint::damped_spring_stiffness() const noexcept
 {
-
+    return fromcp(cpDampedSpringGetStiffness(m_constaint));
 }
 
 float physical_constraint::damped_spring_damping() const noexcept
 {
-
+    return fromcp(cpDampedSpringGetDamping(m_constaint));
 }
 
 
-void physical_constraint::set_damped_rotary_spring_rest_length(float rest_length) noexcept
+void physical_constraint::set_damped_rotary_spring_rest_angle(float rest_angle) noexcept
 {
-
+    cpDampedRotarySpringSetRestAngle(m_constaint, tocp(rest_angle));
 }
 
 void physical_constraint::set_damped_rotary_spring_stiffness(float stiffness) noexcept
 {
-
+    cpDampedRotarySpringSetStiffness(m_constaint, tocp(stiffness));
 }
 
 void physical_constraint::set_damped_rotary_spring_damping(float damping) noexcept
 {
-
+    cpDampedRotarySpringSetDamping(m_constaint, tocp(damping));
 }
 
-float physical_constraint::damped_rotary_spring_rest_length() const noexcept
+float physical_constraint::damped_rotary_spring_rest_angle() const noexcept
 {
-
+    return fromcp(cpDampedRotarySpringGetRestAngle(m_constaint));
 }
 
 float physical_constraint::damped_rotary_spring_stiffness() const noexcept
 {
-
+    return fromcp(cpDampedRotarySpringGetStiffness(m_constaint));
 }
 
 float physical_constraint::damped_rotary_spring_damping() const noexcept
 {
-
+    return fromcp(cpDampedRotarySpringGetDamping(m_constaint));
 }
 
 
 void physical_constraint::set_rotary_limit_joint_min(float min) noexcept
 {
-
+    cpRotaryLimitJointSetMin(m_constaint, tocp(min));
 }
 
 void physical_constraint::set_rotary_limit_joint_max(float max) noexcept
 {
-
+    cpRotaryLimitJointSetMax(m_constaint, tocp(max));
 }
 
 float physical_constraint::rotary_limit_joint_min() const noexcept
 {
-
+    return fromcp(cpRotaryLimitJointGetMin(m_constaint));
 }
 
 float physical_constraint::rotary_limit_joint_max() const noexcept
 {
-
+    return fromcp(cpRotaryLimitJointGetMax(m_constaint));
 }
 
 
 void physical_constraint::set_ratchet_joint_angle(float angle) noexcept
 {
-
+    cpRatchetJointSetAngle(m_constaint, tocp(angle));
 }
 
 void physical_constraint::set_ratchet_joint_phase(float phase) noexcept
 {
-
+    cpRatchetJointSetPhase(m_constaint, tocp(phase));
 }
 
 void physical_constraint::set_ratchet_joint_ratchet(float ratchet) noexcept
 {
-
+    cpRatchetJointSetRatchet(m_constaint, tocp(ratchet));
 }
 
 float physical_constraint::ratchet_joint_angle() const noexcept
 {
-
+    return fromcp(cpRatchetJointGetAngle(m_constaint));
 }
 
 float physical_constraint::ratchet_joint_phase() const noexcept
 {
-
+    return fromcp(cpRatchetJointGetPhase(m_constaint));
 }
 
 float physical_constraint::ratchet_joint_ratchet() const noexcept
 {
-
+    return fromcp(cpRatchetJointGetRatchet(m_constaint));
 }
 
 
 void physical_constraint::set_gear_joint_phase(float phase) noexcept
 {
-
+    cpGearJointSetPhase(m_constaint, tocp(phase));
 }
 
 void physical_constraint::set_gear_joint_ratio(float ratio) noexcept
 {
-
+    cpGearJointSetRatio(m_constaint, tocp(ratio));
 }
 
 float physical_constraint::gear_joint_phase() const noexcept
 {
-
+    return fromcp(cpGearJointGetPhase(m_constaint));
 }
 
 float physical_constraint::gear_joint_ratio() const noexcept
 {
-
+    return fromcp(cpGearJointGetRatio(m_constaint));
 }
 
 
-void physical_constraint::set_motor_joint_ratio(float ratio) noexcept
+void physical_constraint::set_motor_joint_rate(float rate) noexcept
 {
-
+    cpSimpleMotorSetRate(m_constaint, tocp(rate));
 }
 
-float physical_constraint::motor_joint_ratio() const noexcept
+float physical_constraint::motor_joint_rate() const noexcept
 {
-
+    return fromcp(cpSimpleMotorGetRate(m_constaint));
 }
 
 
