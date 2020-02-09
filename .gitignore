@@ -1,4 +1,5 @@
 *.user
+*.bat
 bin
 test
 libs
