@@ -837,32 +837,32 @@ bool physical_constraint::collide_bodies() const noexcept
 
 void physical_constraint::set_pin_joint_first_anchor(const glm::vec2& anchor) noexcept
 {
-
+    cpPinJointSetAnchorA(m_constaint, tocp(anchor));
 }
 
 void physical_constraint::set_pin_joint_second_anchor(const glm::vec2& anchor) noexcept
 {
-
+    cpPinJointSetAnchorB(m_constaint, tocp(anchor));
 }
 
 void physical_constraint::set_pin_joint_distance(float distance) noexcept
 {
-
+    cpPinJointSetDist(m_constaint, tocp(distance));
 }
 
 glm::vec2 physical_constraint::pin_joint_first_anchor() const noexcept
 {
-
+    return fromcp(cpPinJointGetAnchorA(m_constaint));
 }
 
 glm::vec2 physical_constraint::pin_joint_second_anchor() const noexcept
 {
-
+    return fromcp(cpPinJointGetAnchorB(m_constaint));
 }
 
 float physical_constraint::pin_joint_distance() const noexcept
 {
-
+    return fromcp(cpPinJointGetDist(m_constaint));
 }
 
 
