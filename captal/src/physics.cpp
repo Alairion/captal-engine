@@ -681,61 +681,445 @@ physical_constraint::physical_constraint(pin_joint_t, const physical_body_ptr& f
 {
     if(!m_constaint)
         throw std::runtime_error{"Can not create physical constaint."};
+
+    cpConstraintSetUserData(m_constaint, this);
 }
 
 physical_constraint::physical_constraint(slide_joint_t, const physical_body_ptr& first, const physical_body_ptr& second, const glm::vec2& first_anchor, const glm::vec2& second_anchor, float min, float max)
 :m_constaint{cpSlideJointNew(first->handle(), second->handle(), tocp(first_anchor), tocp(second_anchor), fromcp(min), fromcp(max))}
-,m_type{physical_constraint_type::pin_joint}
+,m_type{physical_constraint_type::slide_joint}
 {
+    if(!m_constaint)
+        throw std::runtime_error{"Can not create physical constaint."};
 
+    cpConstraintSetUserData(m_constaint, this);
 }
 
 physical_constraint::physical_constraint(pivot_joint_t, const physical_body_ptr& first, const physical_body_ptr& second, const glm::vec2& pivot)
+:m_constaint{cpPivotJointNew(first->handle(), second->handle(), tocp(pivot))}
+,m_type{physical_constraint_type::pivot_joint}
 {
+    if(!m_constaint)
+        throw std::runtime_error{"Can not create physical constaint."};
 
+    cpConstraintSetUserData(m_constaint, this);
 }
 
 physical_constraint::physical_constraint(pivot_joint_t, const physical_body_ptr& first, const physical_body_ptr& second, const glm::vec2& first_anchor, const glm::vec2& second_anchor)
+:m_constaint{cpPivotJointNew2(first->handle(), second->handle(), tocp(first_anchor), tocp(second_anchor))}
+,m_type{physical_constraint_type::pivot_joint}
 {
+    if(!m_constaint)
+        throw std::runtime_error{"Can not create physical constaint."};
 
+    cpConstraintSetUserData(m_constaint, this);
 }
 
 physical_constraint::physical_constraint(groove_joint_t, const physical_body_ptr& first, const physical_body_ptr& second, const glm::vec2& first_groove, const glm::vec2& second_groove, const glm::vec2& anchor)
+:m_constaint{cpGrooveJointNew(first->handle(), second->handle(), tocp(first_groove), tocp(second_groove), tocp(anchor))}
+,m_type{physical_constraint_type::groove_joint}
 {
+    if(!m_constaint)
+        throw std::runtime_error{"Can not create physical constaint."};
 
+    cpConstraintSetUserData(m_constaint, this);
 }
 
 physical_constraint::physical_constraint(damped_spring_t, const physical_body_ptr& first, const physical_body_ptr& second, const glm::vec2& first_anchor, const glm::vec2& second_anchor, float rest_length, float stiffness, float damping)
+:m_constaint{cpDampedSpringNew(first->handle(), second->handle(), tocp(first_anchor), tocp(second_anchor), tocp(rest_length), tocp(stiffness), tocp(damping))}
+,m_type{physical_constraint_type::damped_spring}
 {
+    if(!m_constaint)
+        throw std::runtime_error{"Can not create physical constaint."};
 
+    cpConstraintSetUserData(m_constaint, this);
 }
 
 physical_constraint::physical_constraint(damped_rotary_spring_t, const physical_body_ptr& first, const physical_body_ptr& second, float rest_angle, float stiffness, float damping)
+:m_constaint{cpDampedRotarySpringNew(first->handle(), second->handle(), tocp(rest_angle), tocp(stiffness), tocp(damping))}
+,m_type{physical_constraint_type::damped_rotary_spring}
 {
+    if(!m_constaint)
+        throw std::runtime_error{"Can not create physical constaint."};
 
+    cpConstraintSetUserData(m_constaint, this);
 }
 
 physical_constraint::physical_constraint(rotary_limit_joint_t, const physical_body_ptr& first, const physical_body_ptr& second, float min, float max)
+:m_constaint{cpRotaryLimitJointNew(first->handle(), second->handle(), tocp(min), tocp(max))}
+,m_type{physical_constraint_type::rotary_limit_joint}
 {
+    if(!m_constaint)
+        throw std::runtime_error{"Can not create physical constaint."};
 
+    cpConstraintSetUserData(m_constaint, this);
 }
 
 physical_constraint::physical_constraint(ratchet_joint_t, const physical_body_ptr& first, const physical_body_ptr& second, float phase, float ratchet)
+:m_constaint{cpRatchetJointNew(first->handle(), second->handle(), tocp(phase), tocp(ratchet))}
+,m_type{physical_constraint_type::ratchet_joint}
 {
+    if(!m_constaint)
+        throw std::runtime_error{"Can not create physical constaint."};
 
+    cpConstraintSetUserData(m_constaint, this);
 }
 
 physical_constraint::physical_constraint(gear_joint_t, const physical_body_ptr& first, const physical_body_ptr& second, float phase, float ratio)
+:m_constaint{cpGearJointNew(first->handle(), second->handle(), tocp(phase), tocp(ratio))}
+,m_type{physical_constraint_type::gear_joint}
 {
+    if(!m_constaint)
+        throw std::runtime_error{"Can not create physical constaint."};
 
+    cpConstraintSetUserData(m_constaint, this);
 }
 
 physical_constraint::physical_constraint(motor_joint_t, const physical_body_ptr& first, const physical_body_ptr& second, float rate)
+:m_constaint{cpSimpleMotorNew(first->handle(), second->handle(), tocp(rate))}
+,m_type{physical_constraint_type::motor_joint}
+{
+    if(!m_constaint)
+        throw std::runtime_error{"Can not create physical constaint."};
+
+    cpConstraintSetUserData(m_constaint, this);
+}
+
+physical_constraint::~physical_constraint()
+{
+    cpConstraintFree(m_constaint);
+}
+
+void physical_constraint::set_maximum_force(float force) noexcept
+{
+    cpConstraintSetMaxForce(m_constaint, tocp(force));
+}
+
+void physical_constraint::set_error_bias(float bias) noexcept
+{
+    cpConstraintSetErrorBias(m_constaint, tocp(bias));
+}
+
+void physical_constraint::set_max_bias(float bias) noexcept
+{
+    cpConstraintSetMaxBias(m_constaint, tocp(bias));
+}
+
+void physical_constraint::set_collide_bodies(bool enable) noexcept
+{
+    cpConstraintSetCollideBodies(m_constaint, static_cast<bool>(enable));
+}
+
+std::pair<physical_body&, physical_body&> physical_constraint::bodies() const noexcept
+{
+    return {*reinterpret_cast<physical_body*>(cpBodyGetUserData(cpConstraintGetBodyA(m_constaint))), *reinterpret_cast<physical_body*>(cpBodyGetUserData(cpConstraintGetBodyB(m_constaint)))};
+}
+
+float physical_constraint::maximum_force() const noexcept
+{
+    return tocp(cpConstraintGetMaxForce(m_constaint));
+}
+
+float physical_constraint::error_bias() const noexcept
+{
+    return tocp(cpConstraintGetErrorBias(m_constaint));
+}
+
+float physical_constraint::max_bias() const noexcept
+{
+    return tocp(cpConstraintGetMaxBias(m_constaint));
+}
+
+bool physical_constraint::collide_bodies() const noexcept
+{
+    return static_cast<bool>(cpConstraintGetCollideBodies(m_constaint));
+}
+
+void physical_constraint::set_pin_joint_first_anchor(const glm::vec2& anchor) noexcept
 {
 
 }
 
-physical_constraint::~physical_constraint()
+void physical_constraint::set_pin_joint_second_anchor(const glm::vec2& anchor) noexcept
+{
+
+}
+
+void physical_constraint::set_pin_joint_distance(float distance) noexcept
+{
+
+}
+
+glm::vec2 physical_constraint::pin_joint_first_anchor() const noexcept
+{
+
+}
+
+glm::vec2 physical_constraint::pin_joint_second_anchor() const noexcept
+{
+
+}
+
+float physical_constraint::pin_joint_distance() const noexcept
+{
+
+}
+
+
+void physical_constraint::set_slide_joint_first_anchor(const glm::vec2& anchor) noexcept
+{
+
+}
+
+void physical_constraint::set_slide_joint_second_anchor(const glm::vec2& anchor) noexcept
+{
+
+}
+
+void physical_constraint::set_slide_joint_min(float min) noexcept
+{
+
+}
+
+void physical_constraint::set_slide_joint_max(float max) noexcept
+{
+
+}
+
+glm::vec2 physical_constraint::slide_joint_first_anchor() const noexcept
+{
+
+}
+
+glm::vec2 physical_constraint::slide_joint_second_anchor() const noexcept
+{
+
+}
+
+float physical_constraint::slide_joint_min() const noexcept
+{
+
+}
+
+float physical_constraint::slide_joint_max() const noexcept
+{
+
+}
+
+
+void physical_constraint::set_pivot_joint_first_anchor(const glm::vec2& anchor) noexcept
+{
+
+}
+
+void physical_constraint::set_pivot_joint_second_anchor(const glm::vec2& anchor) noexcept
+{
+
+}
+
+glm::vec2 physical_constraint::pivot_joint_first_anchor() const noexcept
+{
+
+}
+
+glm::vec2 physical_constraint::pivot_joint_second_anchor() const noexcept
+{
+
+}
+
+
+void physical_constraint::set_groove_joint_first_groove(const glm::vec2& anchor) noexcept
+{
+
+}
+
+void physical_constraint::set_groove_joint_second_groove(const glm::vec2& anchor) noexcept
+{
+
+}
+
+void physical_constraint::set_groove_joint_anchor(const glm::vec2& anchor) noexcept
+{
+
+}
+
+glm::vec2 physical_constraint::groove_joint_first_groove() const noexcept
+{
+
+}
+
+glm::vec2 physical_constraint::groove_joint_second_groove() const noexcept
+{
+
+}
+
+glm::vec2 physical_constraint::groove_joint_anchor() const noexcept
+{
+
+}
+
+
+void physical_constraint::set_damped_spring_first_anchor(const glm::vec2& anchor) noexcept
+{
+
+}
+
+void physical_constraint::set_damped_spring_second_anchor(const glm::vec2& anchor) noexcept
+{
+
+}
+
+void physical_constraint::set_damped_spring_rest_length(float rest_length) noexcept
+{
+
+}
+
+void physical_constraint::set_damped_spring_stiffness(float stiffness) noexcept
+{
+
+}
+
+void physical_constraint::set_damped_spring_damping(float damping) noexcept
+{
+
+}
+
+glm::vec2 physical_constraint::damped_spring_first_anchor() const noexcept
+{
+
+}
+
+glm::vec2 physical_constraint::damped_spring_second_anchor() const noexcept
+{
+
+}
+
+float physical_constraint::damped_spring_rest_length() const noexcept
+{
+
+}
+
+float physical_constraint::damped_spring_stiffness() const noexcept
+{
+
+}
+
+float physical_constraint::damped_spring_damping() const noexcept
+{
+
+}
+
+
+void physical_constraint::set_damped_rotary_spring_rest_length(float rest_length) noexcept
+{
+
+}
+
+void physical_constraint::set_damped_rotary_spring_stiffness(float stiffness) noexcept
+{
+
+}
+
+void physical_constraint::set_damped_rotary_spring_damping(float damping) noexcept
+{
+
+}
+
+float physical_constraint::damped_rotary_spring_rest_length() const noexcept
+{
+
+}
+
+float physical_constraint::damped_rotary_spring_stiffness() const noexcept
+{
+
+}
+
+float physical_constraint::damped_rotary_spring_damping() const noexcept
+{
+
+}
+
+
+void physical_constraint::set_rotary_limit_joint_min(float min) noexcept
+{
+
+}
+
+void physical_constraint::set_rotary_limit_joint_max(float max) noexcept
+{
+
+}
+
+float physical_constraint::rotary_limit_joint_min() const noexcept
+{
+
+}
+
+float physical_constraint::rotary_limit_joint_max() const noexcept
+{
+
+}
+
+
+void physical_constraint::set_ratchet_joint_angle(float angle) noexcept
+{
+
+}
+
+void physical_constraint::set_ratchet_joint_phase(float phase) noexcept
+{
+
+}
+
+void physical_constraint::set_ratchet_joint_ratchet(float ratchet) noexcept
+{
+
+}
+
+float physical_constraint::ratchet_joint_angle() const noexcept
+{
+
+}
+
+float physical_constraint::ratchet_joint_phase() const noexcept
+{
+
+}
+
+float physical_constraint::ratchet_joint_ratchet() const noexcept
+{
+
+}
+
+
+void physical_constraint::set_gear_joint_phase(float phase) noexcept
+{
+
+}
+
+void physical_constraint::set_gear_joint_ratio(float ratio) noexcept
+{
+
+}
+
+float physical_constraint::gear_joint_phase() const noexcept
+{
+
+}
+
+float physical_constraint::gear_joint_ratio() const noexcept
+{
+
+}
+
+
+void physical_constraint::set_motor_joint_ratio(float ratio) noexcept
+{
+
+}
+
+float physical_constraint::motor_joint_ratio() const noexcept
 {
 
 }

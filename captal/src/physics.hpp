@@ -356,7 +356,7 @@ enum class physical_constraint_type : std::uint32_t
     rotary_limit_joint = 6,
     ratchet_joint = 7,
     gear_joint = 8,
-    simple_motor = 9
+    motor_joint = 9
 };
 
 class CAPTAL_API physical_constraint
