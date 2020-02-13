@@ -11,16 +11,16 @@ tileset::tileset(tph::texture other, std::uint32_t tile_width, std::uint32_t til
 
 }
 
-tileset::tileset(std::string_view file, tph::load_from_file_t, std::uint32_t tile_width, std::uint32_t tile_height, const tph::sampling_options& sampling)
-:texture{file, tph::load_from_file, sampling}
+tileset::tileset(std::string_view file, cpt::load_from_file_t, std::uint32_t tile_width, std::uint32_t tile_height, const tph::sampling_options& sampling)
+:texture{file, cpt::load_from_file, sampling}
 ,m_tile_width{tile_width}
 ,m_tile_height{tile_height}
 {
 
 }
 
-tileset::tileset(std::string_view data, tph::load_from_memory_t, std::uint32_t tile_width, std::uint32_t tile_height, const tph::sampling_options& sampling)
-:texture{data, tph::load_from_memory, sampling}
+tileset::tileset(std::string_view data, cpt::load_from_memory_t, std::uint32_t tile_width, std::uint32_t tile_height, const tph::sampling_options& sampling)
+:texture{data, cpt::load_from_memory, sampling}
 ,m_tile_width{tile_width}
 ,m_tile_height{tile_height}
 {

@@ -18,6 +18,7 @@ static constexpr const char default_fragment_shader_spv[]
 static constexpr std::array<std::uint8_t, 16> dummy_texture_data{255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255};
 static constexpr std::array<std::uint8_t, 16> dummy_normal_map_data{0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255};
 static constexpr std::array<std::uint8_t, 16> dummy_height_map_data{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+static constexpr std::array<std::uint8_t, 16> dummy_specular_map_data{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 using clock = std::chrono::steady_clock;
 
@@ -193,6 +194,7 @@ void engine::init()
     m_dummy_texture = make_texture(2, 2, std::data(dummy_texture_data), tph::sampling_options{tph::filter::nearest, tph::filter::nearest, tph::address_mode::repeat});
     m_dummy_normal_map = make_texture(2, 2, std::data(dummy_normal_map_data), tph::sampling_options{tph::filter::nearest, tph::filter::nearest, tph::address_mode::repeat});
     m_dummy_height_map = make_texture(2, 2, std::data(dummy_height_map_data), tph::sampling_options{tph::filter::nearest, tph::filter::nearest, tph::address_mode::repeat});
+    m_dummy_specular_map = make_texture(2, 2, std::data(dummy_specular_map_data), tph::sampling_options{tph::filter::nearest, tph::filter::nearest, tph::address_mode::repeat});
 }
 
 void engine::update_window()

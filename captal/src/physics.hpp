@@ -402,7 +402,7 @@ public:
     physical_constraint(physical_constraint&&) noexcept = delete;
     physical_constraint& operator=(physical_constraint&&) noexcept = delete;
 
-    void set_maximum_force(float force) noexcept;
+    void set_max_force(float force) noexcept;
     void set_error_bias(float bias) noexcept;
     void set_max_bias(float bias) noexcept;
     void set_collide_bodies(bool enable) noexcept;
@@ -413,7 +413,7 @@ public:
     }
 
     std::pair<physical_body&, physical_body&> bodies() const noexcept;
-    float maximum_force() const noexcept;
+    float max_force() const noexcept;
     float error_bias() const noexcept;
     float max_bias() const noexcept;
     bool collide_bodies() const noexcept;
@@ -514,6 +514,14 @@ private:
     physical_constraint_type m_type{};
     void* m_userdata{};
 };
+
+using physical_constraint_ptr = std::shared_ptr<physical_constraint>;
+
+template<typename... Args>
+physical_constraint_ptr make_physical_constraint(Args&&... args)
+{
+    return std::make_shared<physical_constraint>(std::forward<Args>(args)...);
+}
 
 }
 

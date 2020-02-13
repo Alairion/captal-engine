@@ -94,13 +94,13 @@ texture::texture(tph::texture other)
 
 }
 
-texture::texture(std::string_view file, tph::load_from_file_t, const tph::sampling_options& sampling)
+texture::texture(std::string_view file, cpt::load_from_file_t, const tph::sampling_options& sampling)
 :m_texture{make_texture(file, tph::load_from_file, sampling)}
 {
 
 }
 
-texture::texture(std::string_view data, tph::load_from_memory_t, const tph::sampling_options& sampling)
+texture::texture(std::string_view data, cpt::load_from_memory_t, const tph::sampling_options& sampling)
 :m_texture{make_texture(data, tph::load_from_memory, sampling)}
 {
 

@@ -62,6 +62,16 @@ descriptor_set::descriptor_set(renderer& renderer, descriptor_pool& pool, descri
 
 void write_descriptor(renderer& renderer, descriptor_set& descriptor_set, std::uint32_t binding, buffer& buffer, uint64_t offset, uint64_t size)
 {
+    write_descriptor(renderer, descriptor_set, binding, 0, buffer, offset, size);
+}
+
+void write_descriptor(renderer& renderer, descriptor_set& descriptor_set, std::uint32_t binding, texture& texture)
+{
+    write_descriptor(renderer, descriptor_set, binding, 0, texture);
+}
+
+void write_descriptor(renderer& renderer, descriptor_set& descriptor_set, std::uint32_t binding, std::uint32_t array_index, buffer& buffer, std::uint64_t offset, std::uint64_t size)
+{
     VkDescriptorBufferInfo descriptor_ubo{};
     descriptor_ubo.buffer = underlying_cast<VkBuffer>(buffer);
     descriptor_ubo.offset = offset;
@@ -71,7 +81,7 @@ void write_descriptor(renderer& renderer, descriptor_set& descriptor_set, std::u
     write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     write.dstSet = underlying_cast<VkDescriptorSet>(descriptor_set);
     write.dstBinding = binding;
-    write.dstArrayElement = 0;
+    write.dstArrayElement = array_index;
     write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     write.descriptorCount = 1;
     write.pBufferInfo = &descriptor_ubo;
@@ -79,7 +89,7 @@ void write_descriptor(renderer& renderer, descriptor_set& descriptor_set, std::u
     vkUpdateDescriptorSets(underlying_cast<VkDevice>(renderer), 1, &write, 0, nullptr);
 }
 
-void write_descriptor(renderer& renderer, descriptor_set& descriptor_set, std::uint32_t binding, texture& texture)
+void write_descriptor(renderer& renderer, descriptor_set& descriptor_set, std::uint32_t binding, std::uint32_t array_index, texture& texture)
 {
     VkDescriptorImageInfo descriptor_image{};
     descriptor_image.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -90,7 +100,7 @@ void write_descriptor(renderer& renderer, descriptor_set& descriptor_set, std::u
     write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     write.dstSet = underlying_cast<VkDescriptorSet>(descriptor_set);
     write.dstBinding = binding;
-    write.dstArrayElement = 0;
+    write.dstArrayElement = array_index;
     write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     write.descriptorCount = 1;
     write.pImageInfo = &descriptor_image;

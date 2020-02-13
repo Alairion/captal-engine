@@ -107,6 +107,9 @@ inline VkDescriptorSet underlying_cast(const descriptor_set& descriptor_set) noe
 
 void write_descriptor(renderer& renderer, descriptor_set& descriptor_set, std::uint32_t binding, buffer& buffer, std::uint64_t offset, std::uint64_t size);
 void write_descriptor(renderer& renderer, descriptor_set& descriptor_set, std::uint32_t binding, texture& texture);
+void write_descriptor(renderer& renderer, descriptor_set& descriptor_set, std::uint32_t binding, std::uint32_t array_index, buffer& buffer, std::uint64_t offset, std::uint64_t size);
+void write_descriptor(renderer& renderer, descriptor_set& descriptor_set, std::uint32_t binding, std::uint32_t array_index, texture& texture);
+
 
 }
 

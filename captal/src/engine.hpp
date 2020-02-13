@@ -157,19 +157,24 @@ public:
         return m_default_fragment_shader;
     }
 
-    texture_ptr dummy_texture() noexcept
+    const texture_ptr& dummy_texture() const noexcept
     {
         return m_dummy_texture;
     }
 
-    texture_ptr dummy_normal_map() noexcept
+    const texture_ptr& dummy_normal_map() const noexcept
     {
         return m_dummy_normal_map;
     }
 
-    texture_ptr dummy_height_map() noexcept
+    const texture_ptr& dummy_height_map() const noexcept
     {
         return m_dummy_height_map;
+    }
+
+    const texture_ptr& dummy_specular_map() const noexcept
+    {
+        return m_dummy_specular_map;
     }
 
     float frame_time() const noexcept
@@ -226,6 +231,7 @@ private:
     texture_ptr m_dummy_texture{};
     texture_ptr m_dummy_normal_map{};
     texture_ptr m_dummy_height_map{};
+    texture_ptr m_dummy_specular_map{};
 
     std::vector<std::unique_ptr<render_window>> m_windows{};
 

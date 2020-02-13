@@ -23,8 +23,8 @@ public:
     texture(std::uint32_t width, std::uint32_t height, std::uint32_t depth, tph::texture_usage usage);
     texture(std::uint32_t width, std::uint32_t height, std::uint32_t depth, const tph::sampling_options& options, tph::texture_usage usage);
     texture(tph::texture other);
-    texture(std::string_view file, tph::load_from_file_t, const tph::sampling_options& sampling = tph::sampling_options{});
-    texture(std::string_view data, tph::load_from_memory_t, const tph::sampling_options& sampling = tph::sampling_options{});
+    texture(std::string_view file, cpt::load_from_file_t, const tph::sampling_options& sampling = tph::sampling_options{});
+    texture(std::string_view data, cpt::load_from_memory_t, const tph::sampling_options& sampling = tph::sampling_options{});
     texture(std::uint32_t width, std::uint32_t height, const std::uint8_t* rgba, const tph::sampling_options& sampling = tph::sampling_options{});
     texture(tph::image image, const tph::sampling_options& sampling = tph::sampling_options{});
 

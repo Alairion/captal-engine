@@ -19,11 +19,13 @@
 #include "src/systems/audio.hpp"
 #include "src/systems/render.hpp"
 #include "src/systems/physics.hpp"
+#include "src/systems/sorting.hpp"
 
 void add_item(entt::registry& world, const cpt::physical_world_ptr& physical_world, float x, float y)
 {
     cpt::sprite_ptr sprite{cpt::make_sprite(64, 64)};
-    cpt::physical_body_ptr sprite_body{cpt::make_physical_body(physical_world, cpt::physical_body_type::dynamic, std::numeric_limits<float>::max(), std::numeric_limits<float>::infinity())};
+    sprite->set_color(cpt::colors::orange);
+    cpt::physical_body_ptr sprite_body{cpt::make_physical_body(physical_world, cpt::physical_body_type::dynamic, 10.0f, std::numeric_limits<float>::infinity())};
     sprite_body->set_position(glm::vec2{x, y});
 
     auto item{world.create()};
@@ -40,11 +42,11 @@ void run()
     const cpt::graphics_parameters graphics{tph::renderer_options::tiny_memory_heaps};
     cpt::engine engine{"captal_text", tph::version{1, 0, 0}, audio, graphics};
 
-    cpt::render_window& window{engine.make_window("Captal test", cpt::video_mode{640, 480, 2, tph::present_mode::fifo, tph::render_target_options::clipping, tph::sample_count::msaa_x4}, apr::window_options::resizable)};
+    cpt::render_window& window{engine.make_window("Captal test", cpt::video_mode{640, 480}, apr::window_options::resizable)};
     window.get_target().set_clear_color_value(0.6f, 0.8f, 1.0f);
 
     cpt::physical_world_ptr physical_world{cpt::make_physical_world()};
-    physical_world->set_damping(0.5f);
+    physical_world->set_damping(std::numeric_limits<float>::epsilon());
 
     entt::registry world{};
 
@@ -57,7 +59,9 @@ void run()
     world.assign<cpt::components::camera>(camera).attach(view);
     world.assign<cpt::components::listener>(camera);
 
-    cpt::sprite_ptr sprite{cpt::make_sprite(100, 100)};
+    cpt::sprite_ptr sprite{cpt::make_sprite(cpt::make_texture("diffuse.png", cpt::load_from_file))};
+    sprite->set_normal_map(cpt::make_texture("normal.png", cpt::load_from_file));
+    sprite->set_specular_map(cpt::make_texture("specular.png", cpt::load_from_file));
 
     cpt::sound_ptr sound{cpt::make_sound("bim_bam_boom.wav", swl::load_from_file)};
     sound->enable_spatialization();
@@ -77,9 +81,19 @@ void run()
     item_body.add_shape(static_cast<float>(sprite->width()), static_cast<float>(sprite->height()), 0.0f);
     item_body.shape(0)->set_collision_type(0);
 
+    auto item_controller{cpt::make_physical_body(physical_world, cpt::physical_body_type::kinematic)};
+    item_controller->set_position(glm::vec2{320.0f, 240.0f});
+    auto item_joint{cpt::make_physical_constraint(cpt::physical_constraint::pivot_joint, item_controller, sprite_body, glm::vec2{}, glm::vec2{})};
+    item_joint->set_max_bias(0.0f);
+    item_joint->set_max_force(10000.0f);
+    auto item_pivot{cpt::make_physical_constraint(cpt::physical_constraint::gear_joint, item_controller, sprite_body, 0.0f, 1.0f)};
+    item_pivot->set_error_bias(0.0f);
+    item_pivot->set_max_bias(1.0f);
+    item_pivot->set_max_force(10000.0f);
+
     auto walls{world.create()};
     auto& walls_body{world.assign<cpt::components::physical_body>(walls)};
-    walls_body.attach(cpt::make_physical_body(physical_world, cpt::physical_body_type::steady, 0.0f, 0.0f));
+    walls_body.attach(cpt::make_physical_body(physical_world, cpt::physical_body_type::steady));
     walls_body.add_shape(glm::vec2{0.0f, 0.0f}, glm::vec2{0.0f, 480.0f});
     walls_body.add_shape(glm::vec2{0.0f, 0.0f}, glm::vec2{640.0f, 0.0f});
     walls_body.add_shape(glm::vec2{640.0f, 0.0f}, glm::vec2{640.0f, 480.0f});
@@ -88,10 +102,10 @@ void run()
     for(std::size_t i{}; i < 4; ++i)
         walls_body.shape(i)->set_collision_type(1);
 
-    add_item(world, physical_world, 50.0f, 50.0f);
     add_item(world, physical_world, 150.0f, 150.0f);
-    add_item(world, physical_world, 150.0f, 50.0f);
-    add_item(world, physical_world, 50.0f, 150.0f);
+    add_item(world, physical_world, 490.0f, 330.0f);
+    add_item(world, physical_world, 490.0f, 150.0f);
+    add_item(world, physical_world, 150.0f, 330.0f);
 
     physical_world->add_collision(0, 1, cpt::physical_world::collision_handler
     {
@@ -117,7 +131,7 @@ void run()
 
     std::array<bool, 4> pressed_keys{};
 
-    window.on_key_pressed().connect([&pressed_keys, sound](const apr::keyboard_event& event)
+    window.on_key_pressed().connect([&pressed_keys](const apr::keyboard_event& event)
     {
         if(event.key == apr::keycode::right || event.scan == apr::scancode::d)
             pressed_keys[0] = true;
@@ -149,21 +163,22 @@ void run()
             world.get<cpt::components::node>(camera).scale(4.0f / 3.0f);
     });
 
-    engine.on_update().connect([&pressed_keys, &sprite_body, &physical_world](float time)
+    engine.on_update().connect([&pressed_keys, &item_controller, &physical_world](float time)
     {
         glm::vec2 new_velocity{};
 
         if(pressed_keys[0])
-            new_velocity += glm::vec2{512.0f * time, 0.0f};
+            new_velocity += glm::vec2{32.0f, 0.0f};
         if(pressed_keys[1])
-            new_velocity += glm::vec2{0.0f, 512.0f * time};
+            new_velocity += glm::vec2{0.0f, 32.0f};
         if(pressed_keys[2])
-            new_velocity += glm::vec2{-512.0f * time, 0.0f};
+            new_velocity += glm::vec2{-32.0f, 0.0f};
         if(pressed_keys[3])
-            new_velocity += glm::vec2{0.0f, -512.0f * time};
+            new_velocity += glm::vec2{0.0f, -32.0f};
 
-        sprite_body->set_velocity(sprite_body->velocity() + new_velocity);
+        item_controller->set_velocity(new_velocity);
         physical_world->update(time);
+        //item_controller->set_position(sprite_body->position());
     });
 
     while(engine.run())
@@ -172,6 +187,7 @@ void run()
         {
             cpt::systems::physics(world);
             cpt::systems::audio(world);
+            cpt::systems::z_sorting(world);
             cpt::systems::render(world);
             cpt::systems::end_frame(world);
 

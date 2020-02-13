@@ -49,11 +49,13 @@ std::vector<tph::descriptor_set_layout_binding> make_bindings(const std::vector<
     //2: texture sampler
     //3: normal map sampler
     //4: height map sampler
+    //5: specular map sampler
     output.push_back(tph::descriptor_set_layout_binding{tph::shader_stage::vertex, 0, tph::descriptor_type::uniform_buffer});
     output.push_back(tph::descriptor_set_layout_binding{tph::shader_stage::vertex, 1, tph::descriptor_type::uniform_buffer});
-    output.push_back(tph::descriptor_set_layout_binding{tph::shader_stage::fragment, 2, tph::descriptor_type::image_sampler});/*
+    output.push_back(tph::descriptor_set_layout_binding{tph::shader_stage::fragment, 2, tph::descriptor_type::image_sampler});
     output.push_back(tph::descriptor_set_layout_binding{tph::shader_stage::fragment, 3, tph::descriptor_type::image_sampler});
-    output.push_back(tph::descriptor_set_layout_binding{tph::shader_stage::fragment, 4, tph::descriptor_type::image_sampler});*/
+    output.push_back(tph::descriptor_set_layout_binding{tph::shader_stage::fragment, 4, tph::descriptor_type::image_sampler});
+    output.push_back(tph::descriptor_set_layout_binding{tph::shader_stage::fragment, 5, tph::descriptor_type::image_sampler});
 
     output.insert(std::end(output), std::begin(info), std::end(info));
 

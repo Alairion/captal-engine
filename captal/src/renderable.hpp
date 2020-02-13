@@ -33,6 +33,9 @@ public:
 
     void set_render_technique(render_technique_ptr technique) noexcept;
     void set_texture(texture_ptr texture) noexcept;
+    void set_normal_map(texture_ptr texture) noexcept;
+    void set_height_map(texture_ptr texture) noexcept;
+    void set_specular_map(texture_ptr texture) noexcept;
     void set_view(const view_ptr& view);
 
     void move_to(const glm::vec3& position) noexcept
@@ -207,6 +210,21 @@ public:
         return m_texture;
     }
 
+    const texture_ptr& normal_map() const noexcept
+    {
+        return m_normal_map;
+    }
+
+    const texture_ptr& height_map() const noexcept
+    {
+        return m_height_map;
+    }
+
+    const texture_ptr& specular_map() const noexcept
+    {
+        return m_specular_map;
+    }
+
 private:
     std::uint32_t m_index_count{};
     std::uint32_t m_vertex_count{};
@@ -222,6 +240,9 @@ private:
 
     render_technique_ptr m_render_technique{};
     texture_ptr m_texture{};
+    texture_ptr m_normal_map{};
+    texture_ptr m_height_map{};
+    texture_ptr m_specular_map{};
     std::unordered_map<view_ptr, descriptor_set_ptr> m_descriptor_sets{};
 
     descriptor_set* m_current_set{};

@@ -26,6 +26,7 @@ class CAPTAL_API view : public asynchronous_resource
 public:
     struct uniform_data
     {
+        glm::vec4 position{};
         glm::mat4 view{1.0f};
         glm::mat4 projection{1.0f};
     };
