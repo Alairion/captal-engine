@@ -62,6 +62,7 @@ void run()
     cpt::sprite_ptr sprite{cpt::make_sprite(cpt::make_texture("diffuse.png", cpt::load_from_file))};
     sprite->set_normal_map(cpt::make_texture("normal.png", cpt::load_from_file));
     sprite->set_specular_map(cpt::make_texture("specular.png", cpt::load_from_file));
+    sprite->set_shininess(8.0f);
 
     cpt::sound_ptr sound{cpt::make_sound("bim_bam_boom.wav", swl::load_from_file)};
     sound->enable_spatialization();

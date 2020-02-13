@@ -13,7 +13,7 @@ std::vector<buffer_part> compute_buffer_parts(std::uint32_t vertex_count)
 {
     return std::vector<buffer_part>
     {
-        buffer_part{buffer_part_type::uniform, sizeof(glm::mat4)},
+        buffer_part{buffer_part_type::uniform, sizeof(renderable::uniform_data)},
         buffer_part{buffer_part_type::vertex, vertex_count * sizeof(vertex)}
     };
 }
@@ -22,7 +22,7 @@ std::vector<buffer_part> compute_buffer_parts(std::uint32_t index_count, std::ui
 {
     return std::vector<buffer_part>
     {
-        buffer_part{buffer_part_type::uniform, sizeof(glm::mat4)},
+        buffer_part{buffer_part_type::uniform, sizeof(renderable::uniform_data)},
         buffer_part{buffer_part_type::index, index_count * sizeof(std::uint16_t)},
         buffer_part{buffer_part_type::vertex, vertex_count * sizeof(vertex)}
     };
@@ -148,7 +148,9 @@ void renderable::upload()
         model = glm::rotate(model, m_rotation, glm::vec3{0.0f, 0.0f, 1.0f});
         model = glm::translate(model, -m_origin);
 
-        m_buffer.get<glm::mat4>(0) = model;
+        m_buffer.get<uniform_data>(0).model = model;
+        m_buffer.get<uniform_data>(0).shininess = m_shininess;
+
         m_buffer.upload();
     }
 }

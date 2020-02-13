@@ -16,7 +16,7 @@ static constexpr const char default_fragment_shader_spv[]
 };
 
 static constexpr std::array<std::uint8_t, 16> dummy_texture_data{255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255};
-static constexpr std::array<std::uint8_t, 16> dummy_normal_map_data{0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255};
+static constexpr std::array<std::uint8_t, 16> dummy_normal_map_data{128, 128, 255, 255, 128, 128, 255, 255, 128, 128, 255, 255, 128, 128, 255, 255};
 static constexpr std::array<std::uint8_t, 16> dummy_height_map_data{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 static constexpr std::array<std::uint8_t, 16> dummy_specular_map_data{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 

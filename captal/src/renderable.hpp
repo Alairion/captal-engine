@@ -19,6 +19,13 @@ namespace cpt
 class CAPTAL_API renderable : public asynchronous_resource
 {
 public:
+    struct uniform_data
+    {
+        glm::mat4 model{};
+        float shininess{};
+    };
+
+public:
     renderable() = default;
     renderable(std::uint32_t vertex_count);
     renderable(std::uint32_t index_count, std::uint32_t vertex_count);
@@ -120,6 +127,11 @@ public:
         m_hidden = false;
     }
 
+    void set_shininess(float shininess) noexcept
+    {
+        m_shininess = shininess;
+    }
+
     void update();
     void upload();
 
@@ -163,6 +175,11 @@ public:
     float rotation() const noexcept
     {
         return m_rotation;
+    }
+
+    float shininess() const noexcept
+    {
+        return m_shininess;
     }
 
     std::uint32_t index_count() const noexcept
@@ -234,6 +251,7 @@ private:
     float m_scale{1.0f};
     float m_rotation{};
     bool m_hidden{};
+    float m_shininess{};
 
     framed_buffer m_buffer{};
     bool m_need_upload{true};
