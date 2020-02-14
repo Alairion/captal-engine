@@ -195,8 +195,8 @@ struct pipeline_color_blend_attachment
     blend_factor source_color_blend_factor{blend_factor::source_alpha};
     blend_factor destination_color_blend_factor{blend_factor::one_minus_source_alpha};
     blend_op color_blend_op{blend_op::add};
-    blend_factor source_alpha_blend_factor{blend_factor::one};
-    blend_factor destination_alpha_blend_factor{blend_factor::zero};
+    blend_factor source_alpha_blend_factor{blend_factor::source_alpha};
+    blend_factor destination_alpha_blend_factor{blend_factor::one_minus_source_alpha};
     blend_op alpha_blend_op{blend_op::add};
     color_component color_write_mask{color_component::r | color_component::g | color_component::b | color_component::a};
 };

@@ -68,7 +68,7 @@ tph::pipeline_info make_info(const render_technique_info& info)
 
     if(std::empty(info.color_blend.attachments))
     {
-        output.color_blend.attachments.emplace_back().blend = true;
+        output.color_blend.attachments.emplace_back();
     }
     else
     {
