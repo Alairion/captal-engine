@@ -42,13 +42,34 @@ physical_body_controller add_physics(entt::registry& world, const cpt::physical_
     sprite_body->set_position(glm::vec2{320.0f, 240.0f});
 
     auto item{world.create()};
-    world.assign<cpt::components::node>(item).set_origin(sprite->width() / 2.0f, sprite->height() / 2.0f);
+    world.assign<cpt::components::node>(item).set_origin(sprite->width() / 2.0f, sprite->height() / 2.0f + sprite->height() / 4.0f);
+    world.get<cpt::components::node>(item).move(0.0f, 0.0f, 0.5f);
     world.assign<cpt::components::drawable>(item).attach(sprite);
 
     auto& item_body{world.assign<cpt::components::physical_body>(item)};
     item_body.attach(sprite_body);
-    item_body.add_shape(static_cast<float>(sprite->width()), static_cast<float>(sprite->height()), 0.0f);
-    item_body.shape(0)->set_collision_type(0);
+    item_body.add_shape(static_cast<float>(sprite->width()), static_cast<float>(sprite->height()) / 2.0f, 0.0f);
+
+    constexpr std::array<glm::vec2, 4> positions{glm::vec2{300.0f, 230.0f}, glm::vec2{340.0f, 230.0f}, glm::vec2{300.0f, 250.0f}, glm::vec2{340.0f, 250.0f}};
+    for(std::size_t i{}; i < 4; ++i)
+    {
+        cpt::sprite_ptr sprite{cpt::make_sprite(cpt::make_texture("assets/diffuse.png", cpt::load_from_file))};
+        sprite->set_normal_map(cpt::make_texture("assets/normal.png", cpt::load_from_file));
+        sprite->set_height_map(cpt::make_texture("assets/height.png", cpt::load_from_file));
+        sprite->set_specular_map(cpt::make_texture("assets/specular.png", cpt::load_from_file));
+        sprite->set_shininess(8.0f);
+
+        cpt::physical_body_ptr sprite_body{cpt::make_physical_body(physical_world, cpt::physical_body_type::dynamic, 1.0f, std::numeric_limits<float>::infinity())};
+        sprite_body->set_position(positions[i]);
+
+        auto item{world.create()};
+        world.assign<cpt::components::node>(item).set_origin(sprite->width() / 2.0f, sprite->height() / 2.0f + sprite->height() / 4.0f);
+        world.assign<cpt::components::drawable>(item).attach(sprite);
+
+        auto& item_body{world.assign<cpt::components::physical_body>(item)};
+        item_body.attach(sprite_body);
+        item_body.add_shape(static_cast<float>(sprite->width()), static_cast<float>(sprite->height()) / 2.0f, 0.0f);
+    }
 
     auto item_controller{cpt::make_physical_body(physical_world, cpt::physical_body_type::kinematic)};
     item_controller->set_position(glm::vec2{320.0f, 240.0f});
@@ -67,9 +88,6 @@ physical_body_controller add_physics(entt::registry& world, const cpt::physical_
     walls_body.add_shape(glm::vec2{0.0f, 0.0f}, glm::vec2{640.0f, 0.0f});
     walls_body.add_shape(glm::vec2{640.0f, 0.0f}, glm::vec2{640.0f, 480.0f});
     walls_body.add_shape(glm::vec2{0.0f, 480.0f}, glm::vec2{640.0f, 480.0f});
-
-    for(std::size_t i{}; i < 4; ++i)
-        walls_body.shape(i)->set_collision_type(1);
 
     return physical_body_controller{physical_world, item_controller, item_joint, item_pivot};
 }
@@ -111,10 +129,10 @@ void add_logic(cpt::render_window& window, entt::registry& world, const cpt::phy
     {
         glm::vec2 new_velocity{};
 
-        if(pressed_keys[0]) new_velocity += glm::vec2{8.0f, 0.0f};
-        if(pressed_keys[1]) new_velocity += glm::vec2{0.0f, 8.0f};
-        if(pressed_keys[2]) new_velocity += glm::vec2{-8.0f, 0.0f};
-        if(pressed_keys[3]) new_velocity += glm::vec2{0.0f, -8.0f};
+        if(pressed_keys[0]) new_velocity += glm::vec2{32.0f, 0.0f};
+        if(pressed_keys[1]) new_velocity += glm::vec2{0.0f, 32.0f};
+        if(pressed_keys[2]) new_velocity += glm::vec2{-32.0f, 0.0f};
+        if(pressed_keys[3]) new_velocity += glm::vec2{0.0f, -32.0f};
 
         item_controller.item_controller->set_velocity(new_velocity);
         item_controller.physical_world->update(time);
@@ -137,6 +155,7 @@ void run()
 
     //Height
     cpt::render_texture_ptr height_map{cpt::make_render_texture(640, 480, tph::sampling_options{})};
+    height_map->get_target().set_clear_color_value(0.0f, 0.0f, 0.0f, 1.0f);
     cpt::view_ptr height_map_view{cpt::make_view(*height_map)};
     height_map_view->fit_to(*height_map);
 
@@ -213,23 +232,23 @@ void run()
     window_world.get<cpt::components::node>(window_camera).move_to(320.0f, 240.0f, 1.0f);
     window_world.assign<cpt::components::camera>(window_camera).attach(window_view);
 
-    auto window_shadow{window_world.create()};
-    window_world.assign<cpt::components::node>(window_shadow);
-    window_world.assign<cpt::components::drawable>(window_shadow).attach(cpt::make_sprite(640, 480));
-    window_world.get<cpt::components::drawable>(window_shadow).attachment()->set_texture(diffuse_map);
-
     auto window_diffuse{window_world.create()};
     window_world.assign<cpt::components::node>(window_diffuse);
     window_world.assign<cpt::components::drawable>(window_diffuse).attach(cpt::make_sprite(640, 480));
-    window_world.get<cpt::components::drawable>(window_diffuse).attachment()->move(0.0f, 0.0f, 1.0f);
-    window_world.get<cpt::components::drawable>(window_diffuse).attachment()->set_texture(shadow_map);
+    window_world.get<cpt::components::drawable>(window_diffuse).attachment()->set_texture(diffuse_map);
+
+    auto window_shadow{window_world.create()};
+    window_world.assign<cpt::components::node>(window_shadow).move(0.0f, 0.0f, 0.5f);
+    window_world.assign<cpt::components::drawable>(window_shadow).attach(cpt::make_sprite(640, 480));
+    window_world.get<cpt::components::drawable>(window_shadow);
+    window_world.get<cpt::components::drawable>(window_shadow).attachment()->set_texture(shadow_map);
 
     window.on_mouse_wheel_scroll().connect([&window_world, window_camera](const apr::mouse_event& event)
     {
         if(event.wheel > 0)
-            window_world.get<cpt::components::node>(window_camera).scale(3.0f / 4.0f);
+            window_world.get<cpt::components::node>(window_camera).scale(1.0f / 3.0f);
         else
-            window_world.get<cpt::components::node>(window_camera).scale(4.0f / 3.0f);
+            window_world.get<cpt::components::node>(window_camera).scale(3.0f / 1.0f);
     });
 
     while(cpt::engine::instance().run())
@@ -259,6 +278,13 @@ void run()
             cpt::systems::end_frame(world);
         }
     }
+
+    const auto memory_used{cpt::engine::instance().renderer().allocator().used_memory()};
+    const auto memory_alloc{cpt::engine::instance().renderer().allocator().allocated_memory()};
+
+    std::cout << "Device local : " << memory_used.device_local << " / " << memory_alloc.device_local << "\n";
+    std::cout << "Device shared : " << memory_used.device_shared << " / " << memory_alloc.device_shared << "\n";
+    std::cout << "Host shared : " << memory_used.host_shared << " / " << memory_alloc.host_shared << "\n";
 }
 
 int main()

@@ -85,11 +85,11 @@ void render_target::build_offscreen_target_depth_images()
 {
     if(static_cast<bool>(m_offscreen_target->options & render_target_options::depth_buffering))
     {
-        m_offscreen_target->depth_format = vulkan::find_format(m_surface_target->physical_device, {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT}, VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
+        m_offscreen_target->depth_format = vulkan::find_format(m_offscreen_target->physical_device, {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT}, VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
 
-        m_offscreen_target->depth_image = vulkan::image{m_surface_target->device, m_surface_target->swapchain_extent, VK_IMAGE_TYPE_2D, m_surface_target->depth_format, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_TILING_OPTIMAL, m_surface_target->sample_count};
-        m_offscreen_target->depth_image_memory = m_surface_target->allocator->allocate_bound(m_surface_target->depth_image, vulkan::memory_resource_type::non_linear, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-        m_offscreen_target->depth_image_view = vulkan::image_view{m_surface_target->device, m_surface_target->depth_image, VK_IMAGE_VIEW_TYPE_2D, m_surface_target->depth_format, VK_IMAGE_ASPECT_DEPTH_BIT};
+        m_offscreen_target->depth_image = vulkan::image{m_offscreen_target->device, m_offscreen_target->extent, VK_IMAGE_TYPE_2D, m_offscreen_target->depth_format, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_TILING_OPTIMAL, m_offscreen_target->sample_count};
+        m_offscreen_target->depth_image_memory = m_offscreen_target->allocator->allocate_bound(m_offscreen_target->depth_image, vulkan::memory_resource_type::non_linear, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        m_offscreen_target->depth_image_view = vulkan::image_view{m_offscreen_target->device, m_offscreen_target->depth_image, VK_IMAGE_VIEW_TYPE_2D, m_offscreen_target->depth_format, VK_IMAGE_ASPECT_DEPTH_BIT};
     }
 }
 
@@ -97,9 +97,9 @@ void render_target::build_offscreen_target_multisampling_images()
 {
     if(m_offscreen_target->sample_count != VK_SAMPLE_COUNT_1_BIT)
     {
-        m_offscreen_target->multisampling_image = vulkan::image{m_surface_target->device, m_surface_target->swapchain_extent, VK_IMAGE_TYPE_2D, m_surface_target->swapchain_format.format, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_IMAGE_TILING_OPTIMAL, m_surface_target->sample_count};
-        m_offscreen_target->multisampling_image_memory = m_surface_target->allocator->allocate_bound(m_surface_target->multisampling_image, vulkan::memory_resource_type::non_linear, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-        m_offscreen_target->multisampling_image_view = vulkan::image_view{m_surface_target->device, m_surface_target->multisampling_image, VK_IMAGE_VIEW_TYPE_2D,  m_surface_target->swapchain_format.format, VK_IMAGE_ASPECT_COLOR_BIT};
+        m_offscreen_target->multisampling_image = vulkan::image{m_offscreen_target->device, m_offscreen_target->extent, VK_IMAGE_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_IMAGE_TILING_OPTIMAL, m_surface_target->sample_count};
+        m_offscreen_target->multisampling_image_memory = m_offscreen_target->allocator->allocate_bound(m_offscreen_target->multisampling_image, vulkan::memory_resource_type::non_linear, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        m_offscreen_target->multisampling_image_view = vulkan::image_view{m_offscreen_target->device, m_offscreen_target->multisampling_image, VK_IMAGE_VIEW_TYPE_2D,  VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT};
     }
 }
 

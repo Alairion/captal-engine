@@ -299,7 +299,7 @@ renderer::renderer(application& app, const physical_device& physical_device, ren
     }
 
     sizes.device_local = upper_power_of_two(physical_device.memory_properties().device_local / 64);
-    sizes.host_shared = upper_power_of_two(physical_device.memory_properties().host_shared / 128);
+    sizes.host_shared = upper_power_of_two(physical_device.memory_properties().host_shared / 256);
 
     if(static_cast<bool>(options & renderer_options::tiny_memory_heaps))
     {
