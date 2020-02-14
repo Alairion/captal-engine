@@ -1,6 +1,7 @@
 #include "view.hpp"
 
 #include "render_window.hpp"
+#include "render_texture.hpp"
 #include "engine.hpp"
 
 #include <glm/gtc/matrix_transform.hpp>
@@ -32,6 +33,15 @@ void view::fit_to(render_window& window)
     m_viewport = tph::viewport{0.0f, 0.0f, static_cast<float>(window.width()), static_cast<float>(window.height()), 0.0f, 1.0f};
     m_scissor = tph::scissor{0, 0, window.width(), window.height()};
     m_size = glm::vec2{static_cast<float>(window.width()), static_cast<float>(window.height())};
+
+    m_need_upload = true;
+}
+
+void view::fit_to(render_texture& texture)
+{
+    m_viewport = tph::viewport{0.0f, 0.0f, static_cast<float>(texture.width()), static_cast<float>(texture.height()), 0.0f, 1.0f};
+    m_scissor = tph::scissor{0, 0, texture.width(), texture.height()};
+    m_size = glm::vec2{static_cast<float>(texture.width()), static_cast<float>(texture.height())};
 
     m_need_upload = true;
 }

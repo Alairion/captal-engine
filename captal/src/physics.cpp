@@ -675,125 +675,147 @@ physical_body_type physical_body::type() const noexcept
     std::terminate();
 }
 
-physical_constraint::physical_constraint(pin_joint_t, const physical_body_ptr& first, const physical_body_ptr& second, const glm::vec2& first_anchor, const glm::vec2& second_anchor)
+physical_constraint::physical_constraint(pin_joint_t, physical_body_ptr first, physical_body_ptr second, const glm::vec2& first_anchor, const glm::vec2& second_anchor)
 :m_constaint{cpPinJointNew(first->handle(), second->handle(), tocp(first_anchor), tocp(second_anchor))}
 ,m_type{physical_constraint_type::pin_joint}
+,m_first_body{std::move(first)}
+,m_second_body{std::move(second)}
 {
     if(!m_constaint)
         throw std::runtime_error{"Can not create physical constaint."};
 
     cpConstraintSetUserData(m_constaint, this);
-    cpSpaceAddConstraint(first->world()->handle(), m_constaint);
+    cpSpaceAddConstraint(m_first_body->world()->handle(), m_constaint);
 }
 
-physical_constraint::physical_constraint(slide_joint_t, const physical_body_ptr& first, const physical_body_ptr& second, const glm::vec2& first_anchor, const glm::vec2& second_anchor, float min, float max)
+physical_constraint::physical_constraint(slide_joint_t, physical_body_ptr first, physical_body_ptr second, const glm::vec2& first_anchor, const glm::vec2& second_anchor, float min, float max)
 :m_constaint{cpSlideJointNew(first->handle(), second->handle(), tocp(first_anchor), tocp(second_anchor), fromcp(min), fromcp(max))}
 ,m_type{physical_constraint_type::slide_joint}
+,m_first_body{std::move(first)}
+,m_second_body{std::move(second)}
 {
     if(!m_constaint)
         throw std::runtime_error{"Can not create physical constaint."};
 
     cpConstraintSetUserData(m_constaint, this);
-    cpSpaceAddConstraint(first->world()->handle(), m_constaint);
+    cpSpaceAddConstraint(m_first_body->world()->handle(), m_constaint);
 }
 
-physical_constraint::physical_constraint(pivot_joint_t, const physical_body_ptr& first, const physical_body_ptr& second, const glm::vec2& pivot)
+physical_constraint::physical_constraint(pivot_joint_t, physical_body_ptr first, physical_body_ptr second, const glm::vec2& pivot)
 :m_constaint{cpPivotJointNew(first->handle(), second->handle(), tocp(pivot))}
 ,m_type{physical_constraint_type::pivot_joint}
+,m_first_body{std::move(first)}
+,m_second_body{std::move(second)}
 {
     if(!m_constaint)
         throw std::runtime_error{"Can not create physical constaint."};
 
     cpConstraintSetUserData(m_constaint, this);
-    cpSpaceAddConstraint(first->world()->handle(), m_constaint);
+    cpSpaceAddConstraint(m_first_body->world()->handle(), m_constaint);
 }
 
-physical_constraint::physical_constraint(pivot_joint_t, const physical_body_ptr& first, const physical_body_ptr& second, const glm::vec2& first_anchor, const glm::vec2& second_anchor)
+physical_constraint::physical_constraint(pivot_joint_t, physical_body_ptr first, physical_body_ptr second, const glm::vec2& first_anchor, const glm::vec2& second_anchor)
 :m_constaint{cpPivotJointNew2(first->handle(), second->handle(), tocp(first_anchor), tocp(second_anchor))}
 ,m_type{physical_constraint_type::pivot_joint}
+,m_first_body{std::move(first)}
+,m_second_body{std::move(second)}
 {
     if(!m_constaint)
         throw std::runtime_error{"Can not create physical constaint."};
 
     cpConstraintSetUserData(m_constaint, this);
-    cpSpaceAddConstraint(first->world()->handle(), m_constaint);
+    cpSpaceAddConstraint(m_first_body->world()->handle(), m_constaint);
 }
 
-physical_constraint::physical_constraint(groove_joint_t, const physical_body_ptr& first, const physical_body_ptr& second, const glm::vec2& first_groove, const glm::vec2& second_groove, const glm::vec2& anchor)
+physical_constraint::physical_constraint(groove_joint_t, physical_body_ptr first, physical_body_ptr second, const glm::vec2& first_groove, const glm::vec2& second_groove, const glm::vec2& anchor)
 :m_constaint{cpGrooveJointNew(first->handle(), second->handle(), tocp(first_groove), tocp(second_groove), tocp(anchor))}
 ,m_type{physical_constraint_type::groove_joint}
+,m_first_body{std::move(first)}
+,m_second_body{std::move(second)}
 {
     if(!m_constaint)
         throw std::runtime_error{"Can not create physical constaint."};
 
     cpConstraintSetUserData(m_constaint, this);
-    cpSpaceAddConstraint(first->world()->handle(), m_constaint);
+    cpSpaceAddConstraint(m_first_body->world()->handle(), m_constaint);
 }
 
-physical_constraint::physical_constraint(damped_spring_t, const physical_body_ptr& first, const physical_body_ptr& second, const glm::vec2& first_anchor, const glm::vec2& second_anchor, float rest_length, float stiffness, float damping)
+physical_constraint::physical_constraint(damped_spring_t, physical_body_ptr first, physical_body_ptr second, const glm::vec2& first_anchor, const glm::vec2& second_anchor, float rest_length, float stiffness, float damping)
 :m_constaint{cpDampedSpringNew(first->handle(), second->handle(), tocp(first_anchor), tocp(second_anchor), tocp(rest_length), tocp(stiffness), tocp(damping))}
 ,m_type{physical_constraint_type::damped_spring}
+,m_first_body{std::move(first)}
+,m_second_body{std::move(second)}
 {
     if(!m_constaint)
         throw std::runtime_error{"Can not create physical constaint."};
 
     cpConstraintSetUserData(m_constaint, this);
-    cpSpaceAddConstraint(first->world()->handle(), m_constaint);
+    cpSpaceAddConstraint(m_first_body->world()->handle(), m_constaint);
 }
 
-physical_constraint::physical_constraint(damped_rotary_spring_t, const physical_body_ptr& first, const physical_body_ptr& second, float rest_angle, float stiffness, float damping)
+physical_constraint::physical_constraint(damped_rotary_spring_t, physical_body_ptr first, physical_body_ptr second, float rest_angle, float stiffness, float damping)
 :m_constaint{cpDampedRotarySpringNew(first->handle(), second->handle(), tocp(rest_angle), tocp(stiffness), tocp(damping))}
 ,m_type{physical_constraint_type::damped_rotary_spring}
+,m_first_body{std::move(first)}
+,m_second_body{std::move(second)}
 {
     if(!m_constaint)
         throw std::runtime_error{"Can not create physical constaint."};
 
     cpConstraintSetUserData(m_constaint, this);
-    cpSpaceAddConstraint(first->world()->handle(), m_constaint);
+    cpSpaceAddConstraint(m_first_body->world()->handle(), m_constaint);
 }
 
-physical_constraint::physical_constraint(rotary_limit_joint_t, const physical_body_ptr& first, const physical_body_ptr& second, float min, float max)
+physical_constraint::physical_constraint(rotary_limit_joint_t, physical_body_ptr first, physical_body_ptr second, float min, float max)
 :m_constaint{cpRotaryLimitJointNew(first->handle(), second->handle(), tocp(min), tocp(max))}
 ,m_type{physical_constraint_type::rotary_limit_joint}
+,m_first_body{std::move(first)}
+,m_second_body{std::move(second)}
 {
     if(!m_constaint)
         throw std::runtime_error{"Can not create physical constaint."};
 
     cpConstraintSetUserData(m_constaint, this);
-    cpSpaceAddConstraint(first->world()->handle(), m_constaint);
+    cpSpaceAddConstraint(m_first_body->world()->handle(), m_constaint);
 }
 
-physical_constraint::physical_constraint(ratchet_joint_t, const physical_body_ptr& first, const physical_body_ptr& second, float phase, float ratchet)
+physical_constraint::physical_constraint(ratchet_joint_t, physical_body_ptr first, physical_body_ptr second, float phase, float ratchet)
 :m_constaint{cpRatchetJointNew(first->handle(), second->handle(), tocp(phase), tocp(ratchet))}
 ,m_type{physical_constraint_type::ratchet_joint}
+,m_first_body{std::move(first)}
+,m_second_body{std::move(second)}
 {
     if(!m_constaint)
         throw std::runtime_error{"Can not create physical constaint."};
 
     cpConstraintSetUserData(m_constaint, this);
-    cpSpaceAddConstraint(first->world()->handle(), m_constaint);
+    cpSpaceAddConstraint(m_first_body->world()->handle(), m_constaint);
 }
 
-physical_constraint::physical_constraint(gear_joint_t, const physical_body_ptr& first, const physical_body_ptr& second, float phase, float ratio)
+physical_constraint::physical_constraint(gear_joint_t, physical_body_ptr first, physical_body_ptr second, float phase, float ratio)
 :m_constaint{cpGearJointNew(first->handle(), second->handle(), tocp(phase), tocp(ratio))}
 ,m_type{physical_constraint_type::gear_joint}
+,m_first_body{std::move(first)}
+,m_second_body{std::move(second)}
 {
     if(!m_constaint)
         throw std::runtime_error{"Can not create physical constaint."};
 
     cpConstraintSetUserData(m_constaint, this);
-    cpSpaceAddConstraint(first->world()->handle(), m_constaint);
+    cpSpaceAddConstraint(m_first_body->world()->handle(), m_constaint);
 }
 
-physical_constraint::physical_constraint(motor_joint_t, const physical_body_ptr& first, const physical_body_ptr& second, float rate)
+physical_constraint::physical_constraint(motor_joint_t, physical_body_ptr first, physical_body_ptr second, float rate)
 :m_constaint{cpSimpleMotorNew(first->handle(), second->handle(), tocp(rate))}
 ,m_type{physical_constraint_type::motor_joint}
+,m_first_body{std::move(first)}
+,m_second_body{std::move(second)}
 {
     if(!m_constaint)
         throw std::runtime_error{"Can not create physical constaint."};
 
     cpConstraintSetUserData(m_constaint, this);
-    cpSpaceAddConstraint(first->world()->handle(), m_constaint);
+    cpSpaceAddConstraint(m_first_body->world()->handle(), m_constaint);
 }
 
 physical_constraint::~physical_constraint()
@@ -820,11 +842,6 @@ void physical_constraint::set_max_bias(float bias) noexcept
 void physical_constraint::set_collide_bodies(bool enable) noexcept
 {
     cpConstraintSetCollideBodies(m_constaint, static_cast<bool>(enable));
-}
-
-std::pair<physical_body&, physical_body&> physical_constraint::bodies() const noexcept
-{
-    return {*reinterpret_cast<physical_body*>(cpBodyGetUserData(cpConstraintGetBodyA(m_constaint))), *reinterpret_cast<physical_body*>(cpBodyGetUserData(cpConstraintGetBodyB(m_constaint)))};
 }
 
 float physical_constraint::max_force() const noexcept

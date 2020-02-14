@@ -57,7 +57,7 @@ static void draw(entt::registry& world)
         {
             const view_ptr& view{camera.attachment()};
             render_target& target{*view->window_target()};
-            const render_technique_ptr& technique{target.get_render_technique()};
+            const render_technique_ptr& technique{target.render_technique()};
             auto&& [buffer, signal] = target.begin_render();
 
             view->upload();

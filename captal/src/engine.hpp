@@ -219,8 +219,6 @@ private:
     const tph::physical_device& m_graphics_device;
     tph::renderer m_renderer;
 
-    update_signal m_update_signal{};
-
     std::mutex m_queue_mutex{};
     tph::command_pool m_transfer_pool{};
     std::vector<transfer_buffer> m_transfer_buffers{};
@@ -243,6 +241,8 @@ private:
     std::uint32_t m_frame_per_second{};
     std::uint64_t m_frame_id{};
     frame_per_second_signal m_frame_per_second_signal{};
+
+    update_signal m_update_signal{};
 };
 
 }

@@ -73,10 +73,7 @@ void render_texture::present()
     data.fence.reset();
 
     tph::submit_info submit_info{};
-    submit_info.wait_semaphores.push_back(data.image_available);
-    submit_info.wait_stages.push_back(tph::pipeline_stage::color_attachment_output);
     submit_info.command_buffers.push_back(data.buffer);
-    submit_info.signal_semaphores.push_back(data.image_presentable);
 
     std::unique_lock lock{engine::instance().submit_mutex()};
     tph::submit(engine::instance().renderer(), submit_info, data.fence);
@@ -85,9 +82,7 @@ void render_texture::present()
 
 render_texture::frame_data& render_texture::add_frame_data()
 {
-    frame_data data{tph::command_pool{engine::instance().renderer()}, tph::command_buffer{},
-                    tph::semaphore{engine::instance().renderer()}, tph::semaphore{engine::instance().renderer()},
-                    tph::fence{engine::instance().renderer(), true}};
+    frame_data data{tph::command_pool{engine::instance().renderer()}, tph::command_buffer{}, tph::fence{engine::instance().renderer(), true}};
 
     return m_frames_data.emplace_back(std::move(data));
 }

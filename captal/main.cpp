@@ -7,6 +7,7 @@
 #include "src/sound.hpp"
 #include "src/view.hpp"
 #include "src/physics.hpp"
+#include "src/render_texture.hpp"
 
 #include "src/components/node.hpp"
 #include "src/components/camera.hpp"
@@ -21,53 +22,21 @@
 #include "src/systems/physics.hpp"
 #include "src/systems/sorting.hpp"
 
-void add_item(entt::registry& world, const cpt::physical_world_ptr& physical_world, float x, float y)
+struct physical_body_controller
 {
-    cpt::sprite_ptr sprite{cpt::make_sprite(64, 64)};
-    sprite->set_color(cpt::colors::orange);
-    cpt::physical_body_ptr sprite_body{cpt::make_physical_body(physical_world, cpt::physical_body_type::dynamic, 10.0f, std::numeric_limits<float>::infinity())};
-    sprite_body->set_position(glm::vec2{x, y});
+    cpt::physical_world_ptr physical_world{};
+    cpt::physical_body_ptr item_controller{};
+    cpt::physical_constraint_ptr item_pivot_joint{};
+    cpt::physical_constraint_ptr item_gear_joint{};
+};
 
-    auto item{world.create()};
-    auto& item_body{world.assign<cpt::components::physical_body>(item)};
-    item_body.attach(sprite_body);
-    item_body.add_shape(static_cast<float>(sprite->width()), static_cast<float>(sprite->height()));
-    world.assign<cpt::components::node>(item).set_origin(sprite->width() / 2.0f, sprite->height() / 2.0f);
-    world.assign<cpt::components::drawable>(item).attach(std::move(sprite));
-}
-
-void run()
+physical_body_controller add_physics(entt::registry& world, const cpt::physical_world_ptr& physical_world)
 {
-    const cpt::audio_parameters audio{2, 44100};
-    const cpt::graphics_parameters graphics{tph::renderer_options::tiny_memory_heaps};
-    cpt::engine engine{"captal_text", tph::version{1, 0, 0}, audio, graphics};
-
-    cpt::render_window& window{engine.make_window("Captal test", cpt::video_mode{640, 480}, apr::window_options::resizable)};
-    window.get_target().set_clear_color_value(0.6f, 0.8f, 1.0f);
-
-    cpt::physical_world_ptr physical_world{cpt::make_physical_world()};
-    physical_world->set_damping(std::numeric_limits<float>::epsilon());
-
-    entt::registry world{};
-
-    cpt::view_ptr view{cpt::make_view(window)};
-    view->fit_to(window);
-
-    auto camera{world.create()};
-    world.assign<cpt::components::node>(camera).set_origin(window.width() / 2.0f, window.height() / 2.0f);
-    world.get<cpt::components::node>(camera).move_to(320.0f, 240.0f, 1.0f);
-    world.assign<cpt::components::camera>(camera).attach(view);
-    world.assign<cpt::components::listener>(camera);
-
-    cpt::sprite_ptr sprite{cpt::make_sprite(cpt::make_texture("diffuse.png", cpt::load_from_file))};
-    sprite->set_normal_map(cpt::make_texture("normal.png", cpt::load_from_file));
-    sprite->set_specular_map(cpt::make_texture("specular.png", cpt::load_from_file));
+    cpt::sprite_ptr sprite{cpt::make_sprite(cpt::make_texture("assets/diffuse.png", cpt::load_from_file))};
+    sprite->set_normal_map(cpt::make_texture("assets/normal.png", cpt::load_from_file));
+    sprite->set_height_map(cpt::make_texture("assets/height.png", cpt::load_from_file));
+    sprite->set_specular_map(cpt::make_texture("assets/specular.png", cpt::load_from_file));
     sprite->set_shininess(8.0f);
-
-    cpt::sound_ptr sound{cpt::make_sound("bim_bam_boom.wav", swl::load_from_file)};
-    sound->enable_spatialization();
-    sound->set_minimum_distance(200.0f);
-    sound->set_volume(0.5f);
 
     cpt::physical_body_ptr sprite_body{cpt::make_physical_body(physical_world, cpt::physical_body_type::dynamic, 1.0f, std::numeric_limits<float>::infinity())};
     sprite_body->set_position(glm::vec2{320.0f, 240.0f});
@@ -75,7 +44,6 @@ void run()
     auto item{world.create()};
     world.assign<cpt::components::node>(item).set_origin(sprite->width() / 2.0f, sprite->height() / 2.0f);
     world.assign<cpt::components::drawable>(item).attach(sprite);
-    world.assign<cpt::components::audio_emiter>(item).attach(sound);
 
     auto& item_body{world.assign<cpt::components::physical_body>(item)};
     item_body.attach(sprite_body);
@@ -103,96 +71,192 @@ void run()
     for(std::size_t i{}; i < 4; ++i)
         walls_body.shape(i)->set_collision_type(1);
 
-    add_item(world, physical_world, 150.0f, 150.0f);
-    add_item(world, physical_world, 490.0f, 330.0f);
-    add_item(world, physical_world, 490.0f, 150.0f);
-    add_item(world, physical_world, 150.0f, 330.0f);
+    return physical_body_controller{physical_world, item_controller, item_joint, item_pivot};
+}
 
-    physical_world->add_collision(0, 1, cpt::physical_world::collision_handler
-    {
-        [sound](cpt::physical_world&, cpt::physical_body&, cpt::physical_body&, cpt::physical_collision_arbiter arbiter, void*)
-        {
-            if(arbiter.is_first_contact())
-                sound->start();
+void add_logic(cpt::render_window& window, entt::registry& world, const cpt::physical_world_ptr& physical_world, entt::entity camera)
+{
+    auto item_controller{add_physics(world, physical_world)};
 
-            return true;
-        }
-    });
-
-    engine.frame_per_second_update_signal().connect([&window](std::uint32_t frame_per_second)
+    cpt::engine::instance().frame_per_second_update_signal().connect([&window](std::uint32_t frame_per_second)
     {
         window.change_title("Captal test - " + std::to_string(frame_per_second) + " FPS");
     });
 
-    window.on_resized().connect([&window, &world, camera, &view](const apr::window_event& event)
+    window.on_resized().connect([&window, &world, camera](const apr::window_event&)
     {
-        view->fit_to(window);
-        world.get<cpt::components::node>(camera).set_origin(event.width / 2.0f, event.height / 2.0f);
+        world.get<cpt::components::camera>(camera).attachment()->fit_to(window);
+        world.get<cpt::components::node>(camera).set_origin(window.width() / 2.0f, window.height() / 2.0f);
     });
 
-    std::array<bool, 4> pressed_keys{};
+    std::shared_ptr<bool[]> pressed_keys{new bool[4]{}};
 
-    window.on_key_pressed().connect([&pressed_keys](const apr::keyboard_event& event)
+    window.on_key_pressed().connect([pressed_keys](const apr::keyboard_event& event)
     {
-        if(event.key == apr::keycode::right || event.scan == apr::scancode::d)
-            pressed_keys[0] = true;
-        if(event.key == apr::keycode::down || event.scan == apr::scancode::s)
-            pressed_keys[1] = true;
-        if(event.key == apr::keycode::left || event.scan == apr::scancode::a)
-            pressed_keys[2] = true;
-        if(event.key == apr::keycode::up || event.scan == apr::scancode::w)
-            pressed_keys[3] = true;
+        if(event.scan == apr::scancode::d) pressed_keys[0] = true;
+        if(event.scan == apr::scancode::s) pressed_keys[1] = true;
+        if(event.scan == apr::scancode::a) pressed_keys[2] = true;
+        if(event.scan == apr::scancode::w) pressed_keys[3] = true;
     });
 
-    window.on_key_released().connect([&pressed_keys](const apr::keyboard_event& event)
+    window.on_key_released().connect([pressed_keys](const apr::keyboard_event& event)
     {
-        if(event.key == apr::keycode::right || event.scan == apr::scancode::d)
-            pressed_keys[0] = false;
-        if(event.key == apr::keycode::down || event.scan == apr::scancode::s)
-            pressed_keys[1] = false;
-        if(event.key == apr::keycode::left || event.scan == apr::scancode::a)
-            pressed_keys[2] = false;
-        if(event.key == apr::keycode::up || event.scan == apr::scancode::w)
-            pressed_keys[3] = false;
+        if(event.scan == apr::scancode::d) pressed_keys[0] = false;
+        if(event.scan == apr::scancode::s) pressed_keys[1] = false;
+        if(event.scan == apr::scancode::a) pressed_keys[2] = false;
+        if(event.scan == apr::scancode::w) pressed_keys[3] = false;
     });
 
-    window.on_mouse_wheel_scroll().connect([&world, camera](const apr::mouse_event& event)
-    {
-        if(event.wheel > 0)
-            world.get<cpt::components::node>(camera).scale(3.0f / 4.0f);
-        else
-            world.get<cpt::components::node>(camera).scale(4.0f / 3.0f);
-    });
-
-    engine.on_update().connect([&pressed_keys, &item_controller, &physical_world](float time)
+    cpt::engine::instance().on_update().connect([pressed_keys, item_controller](float time)
     {
         glm::vec2 new_velocity{};
 
-        if(pressed_keys[0])
-            new_velocity += glm::vec2{32.0f, 0.0f};
-        if(pressed_keys[1])
-            new_velocity += glm::vec2{0.0f, 32.0f};
-        if(pressed_keys[2])
-            new_velocity += glm::vec2{-32.0f, 0.0f};
-        if(pressed_keys[3])
-            new_velocity += glm::vec2{0.0f, -32.0f};
+        if(pressed_keys[0]) new_velocity += glm::vec2{8.0f, 0.0f};
+        if(pressed_keys[1]) new_velocity += glm::vec2{0.0f, 8.0f};
+        if(pressed_keys[2]) new_velocity += glm::vec2{-8.0f, 0.0f};
+        if(pressed_keys[3]) new_velocity += glm::vec2{0.0f, -8.0f};
 
-        item_controller->set_velocity(new_velocity);
-        physical_world->update(time);
-        //item_controller->set_position(sprite_body->position());
+        item_controller.item_controller->set_velocity(new_velocity);
+        item_controller.physical_world->update(time);
+    });
+}
+
+void run()
+{
+    //Diffuse
+    cpt::render_texture_ptr diffuse_map{cpt::make_render_texture(640, 480, tph::sampling_options{})};
+    cpt::view_ptr diffuse_map_view{cpt::make_view(*diffuse_map)};
+    diffuse_map_view->fit_to(*diffuse_map);
+
+    tph::shader diffuse_vertex_shader{cpt::engine::instance().renderer(), tph::shader_stage::vertex, "shaders/lighting.vert.spv", tph::load_from_file};
+    tph::shader diffuse_fragment_shader{cpt::engine::instance().renderer(), tph::shader_stage::fragment, "shaders/lighting.frag.spv", tph::load_from_file};
+    cpt::render_technique_info diffuse_info{};
+    diffuse_info.stages.push_back(tph::pipeline_shader_stage{diffuse_vertex_shader});
+    diffuse_info.stages.push_back(tph::pipeline_shader_stage{diffuse_fragment_shader});
+    diffuse_map->set_render_technique(diffuse_map->add_render_technique(diffuse_info));
+
+    //Height
+    cpt::render_texture_ptr height_map{cpt::make_render_texture(640, 480, tph::sampling_options{})};
+    cpt::view_ptr height_map_view{cpt::make_view(*height_map)};
+    height_map_view->fit_to(*height_map);
+
+    tph::shader height_vertex_shader{cpt::engine::instance().renderer(), tph::shader_stage::vertex, "shaders/height.vert.spv", tph::load_from_file};
+    tph::shader height_fragment_shader{cpt::engine::instance().renderer(), tph::shader_stage::fragment, "shaders/height.frag.spv", tph::load_from_file};
+    cpt::render_technique_info height_info{};
+    height_info.stages.push_back(tph::pipeline_shader_stage{height_vertex_shader});
+    height_info.stages.push_back(tph::pipeline_shader_stage{height_fragment_shader});
+    height_map->set_render_technique(height_map->add_render_technique(height_info));
+
+    entt::registry world{};
+
+    auto camera{world.create()};
+    world.assign<cpt::components::node>(camera).set_origin(height_map->width() / 2.0f, height_map->height() / 2.0f);
+    world.get<cpt::components::node>(camera).move_to(height_map->width() / 2.0f, height_map->height() / 2.0f, 1.0f);
+    world.assign<cpt::components::camera>(camera).attach(height_map_view);
+
+    //Shadow
+    cpt::render_texture_ptr shadow_map{cpt::make_render_texture(640, 480, tph::sampling_options{})};
+    cpt::view_ptr shadow_map_view{cpt::make_view(*shadow_map)};
+    shadow_map_view->fit_to(*shadow_map);
+
+    entt::registry shadow_world{};
+
+    tph::shader shadow_vertex_shader{cpt::engine::instance().renderer(), tph::shader_stage::vertex, "shaders/shadow.vert.spv", tph::load_from_file};
+    tph::shader shadow_fragment_shader{cpt::engine::instance().renderer(), tph::shader_stage::fragment, "shaders/shadow.frag.spv", tph::load_from_file};
+    cpt::render_technique_info shadow_info{};
+    shadow_info.stages.push_back(tph::pipeline_shader_stage{shadow_vertex_shader});
+    shadow_info.stages.push_back(tph::pipeline_shader_stage{shadow_fragment_shader});
+    shadow_map->set_render_technique(shadow_map->add_render_technique(shadow_info));
+
+    auto shadow_camera{shadow_world.create()};
+    shadow_world.assign<cpt::components::node>(shadow_camera).set_origin(shadow_map->width() / 2.0f, shadow_map->height() / 2.0f);
+    shadow_world.get<cpt::components::node>(shadow_camera).move_to(shadow_map->width() / 2.0f, shadow_map->height() / 2.0f, 1.0f);
+    shadow_world.assign<cpt::components::camera>(shadow_camera).attach(shadow_map_view);
+
+    auto shadow_sprite{shadow_world.create()};
+    shadow_world.assign<cpt::components::node>(shadow_sprite);
+    shadow_world.assign<cpt::components::drawable>(shadow_sprite).attach(cpt::make_sprite(640, 480));
+    shadow_world.get<cpt::components::drawable>(shadow_sprite).attachment()->set_height_map(height_map);
+
+    //Combine
+    cpt::render_texture_ptr combine_map{cpt::make_render_texture(640, 480, tph::sampling_options{})};
+    cpt::view_ptr combine_map_view{cpt::make_view(*combine_map)};
+    combine_map_view->fit_to(*combine_map);
+
+    entt::registry combine_world{};
+
+    auto combine_camera{combine_world.create()};
+    combine_world.assign<cpt::components::node>(combine_camera).set_origin(combine_map->width() / 2.0f, combine_map->height() / 2.0f);
+    combine_world.get<cpt::components::node>(combine_camera).move_to(combine_map->width() / 2.0f, combine_map->height() / 2.0f, 1.0f);
+    combine_world.assign<cpt::components::camera>(combine_camera).attach(combine_map_view);
+
+    auto combine_sprite{combine_world.create()};
+    combine_world.assign<cpt::components::node>(combine_sprite);
+    combine_world.assign<cpt::components::drawable>(combine_sprite).attach(cpt::make_sprite(640, 480));
+    combine_world.get<cpt::components::drawable>(combine_sprite).attachment()->set_height_map(height_map);
+
+    //Display
+    cpt::render_window& window{cpt::engine::instance().make_window("Captal test", cpt::video_mode{640, 480})};
+    window.get_target().set_clear_color_value(1.0f, 1.0f, 1.0f);
+
+    cpt::physical_world_ptr physical_world{cpt::make_physical_world()};
+    physical_world->set_damping(std::numeric_limits<float>::epsilon());
+    add_logic(window, world, physical_world, camera);
+
+    entt::registry window_world{};
+
+    cpt::view_ptr window_view{cpt::make_view(window)};
+    window_view->fit_to(window);
+
+    auto window_camera{window_world.create()};
+    window_world.assign<cpt::components::node>(window_camera).set_origin(window.width() / 2.0f, window.height() / 2.0f);
+    window_world.get<cpt::components::node>(window_camera).move_to(320.0f, 240.0f, 1.0f);
+    window_world.assign<cpt::components::camera>(window_camera).attach(window_view);
+
+    auto window_shadow{window_world.create()};
+    window_world.assign<cpt::components::node>(window_shadow);
+    window_world.assign<cpt::components::drawable>(window_shadow).attach(cpt::make_sprite(640, 480));
+    window_world.get<cpt::components::drawable>(window_shadow).attachment()->set_texture(diffuse_map);
+
+    auto window_diffuse{window_world.create()};
+    window_world.assign<cpt::components::node>(window_diffuse);
+    window_world.assign<cpt::components::drawable>(window_diffuse).attach(cpt::make_sprite(640, 480));
+    window_world.get<cpt::components::drawable>(window_diffuse).attachment()->move(0.0f, 0.0f, 1.0f);
+    window_world.get<cpt::components::drawable>(window_diffuse).attachment()->set_texture(shadow_map);
+
+    window.on_mouse_wheel_scroll().connect([&window_world, window_camera](const apr::mouse_event& event)
+    {
+        if(event.wheel > 0)
+            window_world.get<cpt::components::node>(window_camera).scale(3.0f / 4.0f);
+        else
+            window_world.get<cpt::components::node>(window_camera).scale(4.0f / 3.0f);
     });
 
-    while(engine.run())
+    while(cpt::engine::instance().run())
     {
         if(window.is_rendering_enable())
         {
             cpt::systems::physics(world);
             cpt::systems::audio(world);
             cpt::systems::z_sorting(world);
-            cpt::systems::render(world);
-            cpt::systems::end_frame(world);
 
+            world.get<cpt::components::camera>(camera).attach(diffuse_map_view);
+            cpt::systems::render(world);
+            diffuse_map->present();
+
+            world.get<cpt::components::camera>(camera).attach(height_map_view);
+            cpt::systems::render(world);
+            height_map->present();
+
+            cpt::systems::render(shadow_world);
+            shadow_map->present();
+
+            cpt::systems::z_sorting(window_world);
+            cpt::systems::render(window_world);
             window.present();
+
+            cpt::systems::end_frame(window_world);
+            cpt::systems::end_frame(world);
         }
     }
 }
@@ -201,6 +265,10 @@ int main()
 {
     try
     {
+        const cpt::audio_parameters audio{2, 44100};
+        const cpt::graphics_parameters graphics{tph::renderer_options::tiny_memory_heaps};
+        cpt::engine engine{"captal_text", tph::version{1, 0, 0}, audio, graphics};
+
         run();
     }
     catch(const std::exception& e)

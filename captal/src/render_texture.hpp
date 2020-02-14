@@ -39,8 +39,6 @@ private:
     {
         tph::command_pool pool{};
         tph::command_buffer buffer{};
-        tph::semaphore image_available{};
-        tph::semaphore image_presentable{};
         tph::fence fence{};
         frame_presented_signal signal{};
         bool begin{};
@@ -54,6 +52,14 @@ private:
     tph::sample_count m_sample_count{};
     std::vector<frame_data> m_frames_data{};
 };
+
+using render_texture_ptr = std::shared_ptr<render_texture>;
+
+template<typename... Args>
+render_texture_ptr make_render_texture(Args&&... args)
+{
+    return std::make_shared<render_texture>(std::forward<Args>(args)...);
+}
 
 }
 

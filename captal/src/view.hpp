@@ -15,6 +15,7 @@ namespace cpt
 {
 
 class render_window;
+class render_texture;
 
 enum class view_type
 {
@@ -140,6 +141,7 @@ public:
 
     void set_target(render_target& target);
     void fit_to(render_window& window);
+    void fit_to(render_texture& texture);
 
     void update();
     void upload();

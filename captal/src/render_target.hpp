@@ -70,7 +70,7 @@ public:
 
     void set_render_technique(render_technique_ptr technique)
     {
-        m_current_render_technique = technique;
+        m_current_render_technique = std::move(technique);
     }
 
     void set_default_render_technique()
@@ -78,7 +78,7 @@ public:
         m_current_render_technique = m_render_techniques[0];
     }
 
-    render_technique_ptr get_render_technique() const
+    const render_technique_ptr& render_technique() const noexcept
     {
         return m_current_render_technique;
     }

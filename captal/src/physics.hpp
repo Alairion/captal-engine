@@ -384,17 +384,17 @@ public:
     static constexpr motor_joint_t motor_joint{};
 
 public:
-    physical_constraint(pin_joint_t, const physical_body_ptr& first, const physical_body_ptr& second, const glm::vec2& first_anchor, const glm::vec2& second_anchor);
-    physical_constraint(slide_joint_t, const physical_body_ptr& first, const physical_body_ptr& second, const glm::vec2& first_anchor, const glm::vec2& second_anchor, float min, float max);
-    physical_constraint(pivot_joint_t, const physical_body_ptr& first, const physical_body_ptr& second, const glm::vec2& pivot);
-    physical_constraint(pivot_joint_t, const physical_body_ptr& first, const physical_body_ptr& second, const glm::vec2& first_anchor, const glm::vec2& second_anchor);
-    physical_constraint(groove_joint_t, const physical_body_ptr& first, const physical_body_ptr& second, const glm::vec2& first_groove, const glm::vec2& second_groove, const glm::vec2& anchor);
-    physical_constraint(damped_spring_t, const physical_body_ptr& first, const physical_body_ptr& second, const glm::vec2& first_anchor, const glm::vec2& second_anchor, float rest_length, float stiffness, float damping);
-    physical_constraint(damped_rotary_spring_t, const physical_body_ptr& first, const physical_body_ptr& second, float rest_angle, float stiffness, float damping);
-    physical_constraint(rotary_limit_joint_t, const physical_body_ptr& first, const physical_body_ptr& second, float min, float max);
-    physical_constraint(ratchet_joint_t, const physical_body_ptr& first, const physical_body_ptr& second, float phase, float ratchet);
-    physical_constraint(gear_joint_t, const physical_body_ptr& first, const physical_body_ptr& second, float phase, float ratio);
-    physical_constraint(motor_joint_t, const physical_body_ptr& first, const physical_body_ptr& second, float rate);
+    physical_constraint(pin_joint_t, physical_body_ptr first, physical_body_ptr second, const glm::vec2& first_anchor, const glm::vec2& second_anchor);
+    physical_constraint(slide_joint_t, physical_body_ptr first, physical_body_ptr second, const glm::vec2& first_anchor, const glm::vec2& second_anchor, float min, float max);
+    physical_constraint(pivot_joint_t, physical_body_ptr first, physical_body_ptr second, const glm::vec2& pivot);
+    physical_constraint(pivot_joint_t, physical_body_ptr first, physical_body_ptr second, const glm::vec2& first_anchor, const glm::vec2& second_anchor);
+    physical_constraint(groove_joint_t, physical_body_ptr first, physical_body_ptr second, const glm::vec2& first_groove, const glm::vec2& second_groove, const glm::vec2& anchor);
+    physical_constraint(damped_spring_t, physical_body_ptr first, physical_body_ptr second, const glm::vec2& first_anchor, const glm::vec2& second_anchor, float rest_length, float stiffness, float damping);
+    physical_constraint(damped_rotary_spring_t, physical_body_ptr first, physical_body_ptr second, float rest_angle, float stiffness, float damping);
+    physical_constraint(rotary_limit_joint_t, physical_body_ptr first, physical_body_ptr second, float min, float max);
+    physical_constraint(ratchet_joint_t, physical_body_ptr first, physical_body_ptr second, float phase, float ratchet);
+    physical_constraint(gear_joint_t, physical_body_ptr first, physical_body_ptr second, float phase, float ratio);
+    physical_constraint(motor_joint_t, physical_body_ptr first, physical_body_ptr second, float rate);
 
     ~physical_constraint();
     physical_constraint(const physical_constraint&) = delete;
@@ -412,7 +412,16 @@ public:
         m_userdata = userdata;
     }
 
-    std::pair<physical_body&, physical_body&> bodies() const noexcept;
+    std::pair<physical_body&, physical_body&> bodies() const noexcept
+    {
+        return {*m_first_body, *m_second_body};
+    }
+
+    std::pair<const physical_body_ptr&, const physical_body_ptr&> bodies_ptr() const noexcept
+    {
+        return {m_first_body, m_second_body};
+    }
+
     float max_force() const noexcept;
     float error_bias() const noexcept;
     float max_bias() const noexcept;
@@ -513,6 +522,8 @@ private:
     cpConstraint* m_constaint{};
     physical_constraint_type m_type{};
     void* m_userdata{};
+    physical_body_ptr m_first_body{};
+    physical_body_ptr m_second_body{};
 };
 
 using physical_constraint_ptr = std::shared_ptr<physical_constraint>;
