@@ -32,6 +32,7 @@ set(HEADERS
     "src/vertex.hpp"
     "src/texture.hpp"
     "src/framed_buffer.hpp"
+    "src/uniform_buffer.hpp"
     "src/renderable.hpp"
     "src/view.hpp"
     "src/text.hpp"

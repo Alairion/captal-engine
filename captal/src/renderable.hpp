@@ -9,6 +9,7 @@
 
 #include "asynchronous_resource.hpp"
 #include "framed_buffer.hpp"
+#include "uniform_buffer.hpp"
 #include "view.hpp"
 #include "vertex.hpp"
 #include "texture.hpp"
@@ -261,6 +262,7 @@ private:
     texture_ptr m_normal_map{};
     texture_ptr m_height_map{};
     texture_ptr m_specular_map{};
+    std::vector<uniform_buffer> m_uniform_buffers{};
     std::unordered_map<view_ptr, descriptor_set_ptr> m_descriptor_sets{};
 
     descriptor_set* m_current_set{};

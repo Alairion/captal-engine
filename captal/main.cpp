@@ -36,14 +36,14 @@ physical_body_controller add_physics(entt::registry& world, const cpt::physical_
     sprite->set_normal_map(cpt::make_texture("assets/normal.png", cpt::load_from_file));
     sprite->set_height_map(cpt::make_texture("assets/height.png", cpt::load_from_file));
     sprite->set_specular_map(cpt::make_texture("assets/specular.png", cpt::load_from_file));
-    sprite->set_shininess(8.0f);
+    sprite->set_shininess(32.0f);
 
     cpt::physical_body_ptr sprite_body{cpt::make_physical_body(physical_world, cpt::physical_body_type::dynamic, 1.0f, std::numeric_limits<float>::infinity())};
     sprite_body->set_position(glm::vec2{320.0f, 240.0f});
 
     auto item{world.create()};
     world.assign<cpt::components::node>(item).set_origin(sprite->width() / 2.0f, sprite->height() / 2.0f + sprite->height() / 4.0f);
-    world.get<cpt::components::node>(item).move(0.0f, 0.0f, 0.5f);
+    world.get<cpt::components::node>(item).move(0.0f, 0.0f, 0.0f);
     world.assign<cpt::components::drawable>(item).attach(sprite);
 
     auto& item_body{world.assign<cpt::components::physical_body>(item)};
@@ -57,7 +57,7 @@ physical_body_controller add_physics(entt::registry& world, const cpt::physical_
         sprite->set_normal_map(cpt::make_texture("assets/normal.png", cpt::load_from_file));
         sprite->set_height_map(cpt::make_texture("assets/height.png", cpt::load_from_file));
         sprite->set_specular_map(cpt::make_texture("assets/specular.png", cpt::load_from_file));
-        sprite->set_shininess(8.0f);
+        sprite->set_shininess(32.0f);
 
         cpt::physical_body_ptr sprite_body{cpt::make_physical_body(physical_world, cpt::physical_body_type::dynamic, 1.0f, std::numeric_limits<float>::infinity())};
         sprite_body->set_position(positions[i]);
@@ -69,6 +69,7 @@ physical_body_controller add_physics(entt::registry& world, const cpt::physical_
         auto& item_body{world.assign<cpt::components::physical_body>(item)};
         item_body.attach(sprite_body);
         item_body.add_shape(static_cast<float>(sprite->width()), static_cast<float>(sprite->height()) / 2.0f, 0.0f);
+        item_body.attachment()->set_velocity(glm::vec2{2.0f, 2.0f});
     }
 
     auto item_controller{cpt::make_physical_body(physical_world, cpt::physical_body_type::kinematic)};

@@ -16,7 +16,7 @@ void z_sorting(entt::registry& world)
         const glm::vec3 left_position{left.position() - left.origin()};
         const glm::vec3 right_position{right.position() - right.origin()};
 
-        return left_position.z < right_position.z || left_position.y < right_position.y;
+        return std::make_pair(left_position.z, left_position.y) < std::make_pair(right_position.z, right_position.y);
     });
 
     world.sort<components::drawable, components::node>();
