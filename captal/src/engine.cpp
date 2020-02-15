@@ -104,12 +104,14 @@ engine::engine(cpt::application application, const audio_parameters& audio, cons
     init();
 }
 
-void engine::remove_window(render_window& window)
+engine::~engine()
 {
-    const auto it{std::find_if(std::begin(m_windows), std::end(m_windows), [&window](const std::unique_ptr<render_window>& other)
-    {
-        return window.id() == other->id();
-    })};
+    m_renderer.wait();
+}
+
+void engine::remove_window(render_window_ptr window)
+{
+    const auto it{std::find(std::begin(m_windows), std::end(m_windows), window)};
 
     if(it != std::end(m_windows))
         m_windows.erase(it);

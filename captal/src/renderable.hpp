@@ -38,8 +38,6 @@ public:
 
     void set_indices(const std::vector<std::uint16_t>& indices) noexcept;
     void set_vertices(const std::vector<vertex>& vertices) noexcept;
-
-    void set_render_technique(render_technique_ptr technique) noexcept;
     void set_texture(texture_ptr texture) noexcept;
     void set_normal_map(texture_ptr texture) noexcept;
     void set_height_map(texture_ptr texture) noexcept;
@@ -213,11 +211,6 @@ public:
         return &m_buffer.get<const vertex>(m_index_count > 0 ? 2 : 1);
     }
 
-    const render_technique_ptr& technique() const noexcept
-    {
-        return m_render_technique;
-    }
-
     const descriptor_set_ptr& set(view_ptr view) const noexcept
     {
         return m_descriptor_sets.at(view);
@@ -243,6 +236,45 @@ public:
         return m_specular_map;
     }
 
+    template<typename T>
+    void add_uniform_buffer(std::uint32_t binding, const T& data)
+    {
+        m_uniform_buffers.emplace_back(binding, data);
+        m_need_descriptor_update = true;
+    }
+
+    cpt::uniform_buffer& uniform_buffer(std::uint32_t binding) noexcept
+    {
+        return *std::find_if(std::begin(m_uniform_buffers), std::end(m_uniform_buffers), [binding](const cpt::uniform_buffer& buffer)
+        {
+            return buffer.binding() == binding;
+        });
+    }
+
+    const cpt::uniform_buffer& uniform_buffer(std::uint32_t binding) const noexcept
+    {
+        return *std::find_if(std::begin(m_uniform_buffers), std::end(m_uniform_buffers), [binding](const cpt::uniform_buffer& buffer)
+        {
+            return buffer.binding() == binding;
+        });
+    }
+
+    template<typename T>
+    void set_uniform(std::uint32_t binding, const T& data) noexcept
+    {
+        uniform_buffer(binding).set(data);
+    }
+
+    std::vector<cpt::uniform_buffer>& uniform_buffers() noexcept
+    {
+        return m_uniform_buffers;
+    }
+
+    const std::vector<cpt::uniform_buffer>& uniform_buffers() const noexcept
+    {
+        return m_uniform_buffers;
+    }
+
 private:
     std::uint32_t m_index_count{};
     std::uint32_t m_vertex_count{};
@@ -257,14 +289,13 @@ private:
     framed_buffer m_buffer{};
     bool m_need_upload{true};
 
-    render_technique_ptr m_render_technique{};
     texture_ptr m_texture{};
     texture_ptr m_normal_map{};
     texture_ptr m_height_map{};
     texture_ptr m_specular_map{};
-    std::vector<uniform_buffer> m_uniform_buffers{};
-    std::unordered_map<view_ptr, descriptor_set_ptr> m_descriptor_sets{};
+    std::vector<cpt::uniform_buffer> m_uniform_buffers{};
 
+    std::unordered_map<view_ptr, descriptor_set_ptr> m_descriptor_sets{};
     descriptor_set* m_current_set{};
     bool m_need_descriptor_update{};
 };

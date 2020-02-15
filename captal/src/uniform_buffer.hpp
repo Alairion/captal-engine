@@ -12,13 +12,18 @@ class uniform_buffer
 {
 public:
     template<typename T>
-    uniform_buffer(std::uint32_t set, std::uint32_t binding, T&& data)
+    uniform_buffer(std::uint32_t binding, const T& data)
     :m_buffer{{buffer_part{buffer_part_type::uniform, sizeof(data)}}}
-    ,m_set{set}
     ,m_binding{binding}
     {
-
+        m_buffer.get<T>(0) = data;
     }
+
+    ~uniform_buffer() = default;
+    uniform_buffer(const uniform_buffer&) = delete;
+    uniform_buffer& operator=(const uniform_buffer&) = delete;
+    uniform_buffer(uniform_buffer&&) noexcept = default;
+    uniform_buffer& operator=(uniform_buffer&&) noexcept = default;
 
     template<typename T>
     T& get() noexcept
@@ -33,9 +38,9 @@ public:
     }
 
     template<typename T>
-    void set(T&& data) noexcept(std::is_nothrow_assignable<T&, decltype(data)>::value)
+    void set(const T& data) noexcept
     {
-        m_buffer.get<T>(0) = std::forward<T>(data);
+        m_buffer.get<T>(0) = data;
     }
 
     framed_buffer& buffer() noexcept
@@ -48,24 +53,18 @@ public:
         return m_buffer;
     }
 
-    std::uint32_t set() const noexcept
-    {
-        return m_set;
-    }
-
     std::uint32_t binding() const noexcept
     {
         return m_binding;
     }
 
-    void upload() noexcept
+    void upload()
     {
         m_buffer.upload();
     }
 
 private:
     framed_buffer m_buffer;
-    std::uint32_t m_set{};
     std::uint32_t m_binding{};
 };
 

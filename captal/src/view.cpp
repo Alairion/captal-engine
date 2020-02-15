@@ -15,33 +15,48 @@ view::view()
 
 }
 
-view::view(render_target& target)
+view::view(render_target_ptr target, const render_technique_info& info)
 :m_buffer{{buffer_part{buffer_part_type::uniform, sizeof(uniform_data)}}}
 {
-    set_target(target);
+    set_target(std::move(target), info);
 }
 
-void view::set_target(render_target& target)
+view::view(render_target_ptr target, render_technique_ptr technique)
+:m_buffer{{buffer_part{buffer_part_type::uniform, sizeof(uniform_data)}}}
 {
-    m_target = &target;
+    set_target(std::move(target), std::move(technique));
+}
+
+void view::set_target(render_target_ptr target, const render_technique_info& info)
+{
+    m_target = std::move(target);
+    m_render_technique = make_render_technique(m_target, info);
 
     m_need_upload = true;
 }
 
-void view::fit_to(render_window& window)
+void view::set_target(render_target_ptr target, render_technique_ptr technique)
 {
-    m_viewport = tph::viewport{0.0f, 0.0f, static_cast<float>(window.width()), static_cast<float>(window.height()), 0.0f, 1.0f};
-    m_scissor = tph::scissor{0, 0, window.width(), window.height()};
-    m_size = glm::vec2{static_cast<float>(window.width()), static_cast<float>(window.height())};
+    m_target = std::move(target);
+    m_render_technique = std::move(technique);
 
     m_need_upload = true;
 }
 
-void view::fit_to(render_texture& texture)
+void view::fit_to(const render_window_ptr& window)
 {
-    m_viewport = tph::viewport{0.0f, 0.0f, static_cast<float>(texture.width()), static_cast<float>(texture.height()), 0.0f, 1.0f};
-    m_scissor = tph::scissor{0, 0, texture.width(), texture.height()};
-    m_size = glm::vec2{static_cast<float>(texture.width()), static_cast<float>(texture.height())};
+    m_viewport = tph::viewport{0.0f, 0.0f, static_cast<float>(window->width()), static_cast<float>(window->height()), 0.0f, 1.0f};
+    m_scissor = tph::scissor{0, 0, window->width(), window->height()};
+    m_size = glm::vec2{static_cast<float>(window->width()), static_cast<float>(window->height())};
+
+    m_need_upload = true;
+}
+
+void view::fit_to(const render_texture_ptr& texture)
+{
+    m_viewport = tph::viewport{0.0f, 0.0f, static_cast<float>(texture->width()), static_cast<float>(texture->height()), 0.0f, 1.0f};
+    m_scissor = tph::scissor{0, 0, texture->width(), texture->height()};
+    m_size = glm::vec2{static_cast<float>(texture->width()), static_cast<float>(texture->height())};
 
     m_need_upload = true;
 }

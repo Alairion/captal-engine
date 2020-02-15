@@ -93,24 +93,24 @@ physical_body_controller add_physics(entt::registry& world, const cpt::physical_
     return physical_body_controller{physical_world, item_controller, item_joint, item_pivot};
 }
 
-void add_logic(cpt::render_window& window, entt::registry& world, const cpt::physical_world_ptr& physical_world, entt::entity camera)
+void add_logic(cpt::render_window_ptr& window, entt::registry& world, const cpt::physical_world_ptr& physical_world, entt::entity camera)
 {
     auto item_controller{add_physics(world, physical_world)};
 
     cpt::engine::instance().frame_per_second_update_signal().connect([&window](std::uint32_t frame_per_second)
     {
-        window.change_title("Captal test - " + std::to_string(frame_per_second) + " FPS");
+        window->change_title("Captal test - " + std::to_string(frame_per_second) + " FPS");
     });
 
-    window.on_resized().connect([&window, &world, camera](const apr::window_event&)
+    window->on_resized().connect([&window, &world, camera](const apr::window_event&)
     {
         world.get<cpt::components::camera>(camera).attachment()->fit_to(window);
-        world.get<cpt::components::node>(camera).set_origin(window.width() / 2.0f, window.height() / 2.0f);
+        world.get<cpt::components::node>(camera).set_origin(window->width() / 2.0f, window->height() / 2.0f);
     });
 
     std::shared_ptr<bool[]> pressed_keys{new bool[4]{}};
 
-    window.on_key_pressed().connect([pressed_keys](const apr::keyboard_event& event)
+    window->on_key_pressed().connect([pressed_keys](const apr::keyboard_event& event)
     {
         if(event.scan == apr::scancode::d) pressed_keys[0] = true;
         if(event.scan == apr::scancode::s) pressed_keys[1] = true;
@@ -118,7 +118,7 @@ void add_logic(cpt::render_window& window, entt::registry& world, const cpt::phy
         if(event.scan == apr::scancode::w) pressed_keys[3] = true;
     });
 
-    window.on_key_released().connect([pressed_keys](const apr::keyboard_event& event)
+    window->on_key_released().connect([pressed_keys](const apr::keyboard_event& event)
     {
         if(event.scan == apr::scancode::d) pressed_keys[0] = false;
         if(event.scan == apr::scancode::s) pressed_keys[1] = false;
@@ -140,32 +140,46 @@ void add_logic(cpt::render_window& window, entt::registry& world, const cpt::phy
     });
 }
 
+struct directional_light
+{
+    glm::vec4 direction{};
+    glm::vec4 ambiant{};
+    glm::vec4 diffuse{};
+    glm::vec4 specular{};
+};
+
 void run()
 {
-    //Diffuse
-    cpt::render_texture_ptr diffuse_map{cpt::make_render_texture(640, 480, tph::sampling_options{})};
-    cpt::view_ptr diffuse_map_view{cpt::make_view(*diffuse_map)};
-    diffuse_map_view->fit_to(*diffuse_map);
+    directional_light light{};
+    light.direction = glm::vec4{-1.0f, 1.0f, -1.0f, 0.0f};
+    light.ambiant = glm::vec4{0.2f, 0.2f, 0.2f, 0.0f};
+    light.diffuse = glm::vec4{0.8f, 0.8f, 0.8f, 0.0f};
+    light.specular = glm::vec4{1.0f, 1.0f, 1.0f, 0.0f};
 
+    //Diffuse
     tph::shader diffuse_vertex_shader{cpt::engine::instance().renderer(), tph::shader_stage::vertex, "shaders/lighting.vert.spv", tph::load_from_file};
     tph::shader diffuse_fragment_shader{cpt::engine::instance().renderer(), tph::shader_stage::fragment, "shaders/lighting.frag.spv", tph::load_from_file};
     cpt::render_technique_info diffuse_info{};
     diffuse_info.stages.push_back(tph::pipeline_shader_stage{diffuse_vertex_shader});
     diffuse_info.stages.push_back(tph::pipeline_shader_stage{diffuse_fragment_shader});
-    diffuse_map->set_render_technique(diffuse_map->add_render_technique(diffuse_info));
+    diffuse_info.stages_bindings.push_back(tph::descriptor_set_layout_binding{tph::shader_stage::fragment, 8, tph::descriptor_type::uniform_buffer});
+
+    cpt::render_texture_ptr diffuse_map{cpt::make_render_texture(640, 480, tph::sampling_options{})};
+    cpt::view_ptr diffuse_map_view{cpt::make_view(diffuse_map, diffuse_info)};
+    diffuse_map_view->fit_to(diffuse_map);
+    diffuse_map_view->add_uniform_buffer(8, light);
 
     //Height
-    cpt::render_texture_ptr height_map{cpt::make_render_texture(640, 480, tph::sampling_options{})};
-    height_map->get_target().set_clear_color_value(0.0f, 0.0f, 0.0f, 1.0f);
-    cpt::view_ptr height_map_view{cpt::make_view(*height_map)};
-    height_map_view->fit_to(*height_map);
-
     tph::shader height_vertex_shader{cpt::engine::instance().renderer(), tph::shader_stage::vertex, "shaders/height.vert.spv", tph::load_from_file};
     tph::shader height_fragment_shader{cpt::engine::instance().renderer(), tph::shader_stage::fragment, "shaders/height.frag.spv", tph::load_from_file};
     cpt::render_technique_info height_info{};
     height_info.stages.push_back(tph::pipeline_shader_stage{height_vertex_shader});
     height_info.stages.push_back(tph::pipeline_shader_stage{height_fragment_shader});
-    height_map->set_render_technique(height_map->add_render_technique(height_info));
+
+    cpt::render_texture_ptr height_map{cpt::make_render_texture(640, 480, tph::sampling_options{})};
+    height_map->get_target().set_clear_color_value(0.0f, 0.0f, 0.0f, 1.0f);
+    cpt::view_ptr height_map_view{cpt::make_view(height_map, height_info)};
+    height_map_view->fit_to(height_map);
 
     entt::registry world{};
 
@@ -175,18 +189,19 @@ void run()
     world.assign<cpt::components::camera>(camera).attach(height_map_view);
 
     //Shadow
-    cpt::render_texture_ptr shadow_map{cpt::make_render_texture(640, 480, tph::sampling_options{})};
-    cpt::view_ptr shadow_map_view{cpt::make_view(*shadow_map)};
-    shadow_map_view->fit_to(*shadow_map);
-
-    entt::registry shadow_world{};
-
     tph::shader shadow_vertex_shader{cpt::engine::instance().renderer(), tph::shader_stage::vertex, "shaders/shadow.vert.spv", tph::load_from_file};
     tph::shader shadow_fragment_shader{cpt::engine::instance().renderer(), tph::shader_stage::fragment, "shaders/shadow.frag.spv", tph::load_from_file};
     cpt::render_technique_info shadow_info{};
     shadow_info.stages.push_back(tph::pipeline_shader_stage{shadow_vertex_shader});
     shadow_info.stages.push_back(tph::pipeline_shader_stage{shadow_fragment_shader});
-    shadow_map->set_render_technique(shadow_map->add_render_technique(shadow_info));
+    shadow_info.stages_bindings.push_back(tph::descriptor_set_layout_binding{tph::shader_stage::fragment, 8, tph::descriptor_type::uniform_buffer});
+
+    cpt::render_texture_ptr shadow_map{cpt::make_render_texture(640, 480, tph::sampling_options{})};
+    cpt::view_ptr shadow_map_view{cpt::make_view(shadow_map, shadow_info)};
+    shadow_map_view->fit_to(shadow_map);
+    shadow_map_view->add_uniform_buffer(8, light);
+
+    entt::registry shadow_world{};
 
     auto shadow_camera{shadow_world.create()};
     shadow_world.assign<cpt::components::node>(shadow_camera).set_origin(shadow_map->width() / 2.0f, shadow_map->height() / 2.0f);
@@ -200,8 +215,8 @@ void run()
 
     //Combine
     cpt::render_texture_ptr combine_map{cpt::make_render_texture(640, 480, tph::sampling_options{})};
-    cpt::view_ptr combine_map_view{cpt::make_view(*combine_map)};
-    combine_map_view->fit_to(*combine_map);
+    cpt::view_ptr combine_map_view{cpt::make_view(combine_map)};
+    combine_map_view->fit_to(combine_map);
 
     entt::registry combine_world{};
 
@@ -216,8 +231,8 @@ void run()
     combine_world.get<cpt::components::drawable>(combine_sprite).attachment()->set_height_map(height_map);
 
     //Display
-    cpt::render_window& window{cpt::engine::instance().make_window("Captal test", cpt::video_mode{640, 480})};
-    window.get_target().set_clear_color_value(1.0f, 1.0f, 1.0f);
+    cpt::render_window_ptr window{cpt::engine::instance().make_window("Captal test", cpt::video_mode{640, 480})};
+    window->get_target().set_clear_color_value(1.0f, 1.0f, 1.0f);
 
     cpt::physical_world_ptr physical_world{cpt::make_physical_world()};
     physical_world->set_damping(std::numeric_limits<float>::epsilon());
@@ -229,7 +244,7 @@ void run()
     window_view->fit_to(window);
 
     auto window_camera{window_world.create()};
-    window_world.assign<cpt::components::node>(window_camera).set_origin(window.width() / 2.0f, window.height() / 2.0f);
+    window_world.assign<cpt::components::node>(window_camera).set_origin(window->width() / 2.0f, window->height() / 2.0f);
     window_world.get<cpt::components::node>(window_camera).move_to(320.0f, 240.0f, 1.0f);
     window_world.assign<cpt::components::camera>(window_camera).attach(window_view);
 
@@ -244,7 +259,7 @@ void run()
     window_world.get<cpt::components::drawable>(window_shadow);
     window_world.get<cpt::components::drawable>(window_shadow).attachment()->set_texture(shadow_map);
 
-    window.on_mouse_wheel_scroll().connect([&window_world, window_camera](const apr::mouse_event& event)
+    window->on_mouse_wheel_scroll().connect([&window_world, window_camera](const apr::mouse_event& event)
     {
         if(event.wheel > 0)
             window_world.get<cpt::components::node>(window_camera).scale(1.0f / 3.0f);
@@ -254,7 +269,7 @@ void run()
 
     while(cpt::engine::instance().run())
     {
-        if(window.is_rendering_enable())
+        if(window->is_rendering_enable())
         {
             cpt::systems::physics(world);
             cpt::systems::audio(world);
@@ -273,7 +288,7 @@ void run()
 
             cpt::systems::z_sorting(window_world);
             cpt::systems::render(window_world);
-            window.present();
+            window->present();
 
             cpt::systems::end_frame(window_world);
             cpt::systems::end_frame(world);

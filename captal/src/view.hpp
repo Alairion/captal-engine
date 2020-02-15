@@ -10,12 +10,13 @@
 
 #include "asynchronous_resource.hpp"
 #include "framed_buffer.hpp"
+#include "uniform_buffer.hpp"
+#include "render_technique.hpp"
+#include "render_window.hpp"
+#include "render_texture.hpp"
 
 namespace cpt
 {
-
-class render_window;
-class render_texture;
 
 enum class view_type
 {
@@ -34,7 +35,8 @@ public:
 
 public:
     view();
-    view(render_target& target);
+    view(render_target_ptr target, const render_technique_info& info = render_technique_info{});
+    view(render_target_ptr target, render_technique_ptr technique);
     ~view() = default;
     view(const view&) = delete;
     view& operator=(const view&) = delete;
@@ -139,9 +141,15 @@ public:
         m_need_upload = true;
     }
 
-    void set_target(render_target& target);
-    void fit_to(render_window& window);
-    void fit_to(render_texture& texture);
+    void set_render_technique(render_technique_ptr technique) noexcept
+    {
+        m_render_technique = std::move(technique);
+    }
+
+    void set_target(render_target_ptr target, const render_technique_info& info = render_technique_info{});
+    void set_target(render_target_ptr target, render_technique_ptr technique);
+    void fit_to(const render_texture_ptr& window);
+    void fit_to(const render_window_ptr& texture);
 
     void update();
     void upload();
@@ -196,7 +204,7 @@ public:
         return m_type;
     }
 
-    render_target* window_target() const noexcept
+    const render_target_ptr& target() const noexcept
     {
         return m_target;
     }
@@ -211,6 +219,56 @@ public:
         return m_buffer.buffer();
     }
 
+    template<typename T>
+    void add_uniform_buffer(std::uint32_t binding, const T& data)
+    {
+        m_uniform_buffers.emplace_back(binding, data);
+        m_uniform_buffers.back().upload();
+        m_need_descriptor_update = true;
+    }
+
+    cpt::uniform_buffer& uniform_buffer(std::uint32_t binding) noexcept
+    {
+        return *std::find_if(std::begin(m_uniform_buffers), std::end(m_uniform_buffers), [binding](const cpt::uniform_buffer& buffer)
+        {
+            return buffer.binding() == binding;
+        });
+    }
+
+    const cpt::uniform_buffer& uniform_buffer(std::uint32_t binding) const noexcept
+    {
+        return *std::find_if(std::begin(m_uniform_buffers), std::end(m_uniform_buffers), [binding](const cpt::uniform_buffer& buffer)
+        {
+            return buffer.binding() == binding;
+        });
+    }
+
+    template<typename T>
+    void set_uniform(std::uint32_t binding, const T& data) noexcept
+    {
+        uniform_buffer(binding).set(data);
+    }
+
+    std::vector<cpt::uniform_buffer>& uniform_buffers() noexcept
+    {
+        return m_uniform_buffers;
+    }
+
+    const std::vector<cpt::uniform_buffer>& uniform_buffers() const noexcept
+    {
+        return m_uniform_buffers;
+    }
+
+    bool need_descriptor_update(bool new_value = false) noexcept
+    {
+        return std::exchange(m_need_descriptor_update, new_value);
+    }
+
+    const render_technique_ptr& render_technique() const noexcept
+    {
+        return m_render_technique;
+    }
+
 private:
     tph::viewport m_viewport{};
     tph::scissor m_scissor{};
@@ -221,9 +279,12 @@ private:
     float m_rotation{};
     view_type m_type{};
 
-    render_target* m_target{};
+    render_target_ptr m_target{};
     framed_buffer m_buffer{};
     bool m_need_upload{true};
+    std::vector<cpt::uniform_buffer> m_uniform_buffers{};
+    bool m_need_descriptor_update{};
+    render_technique_ptr m_render_technique{};
 };
 
 using view_ptr = std::shared_ptr<view>;

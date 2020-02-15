@@ -11,6 +11,7 @@
 #include <tephra/descriptor.hpp>
 
 #include "asynchronous_resource.hpp"
+#include "render_target.hpp"
 
 namespace cpt
 {
@@ -21,7 +22,7 @@ namespace cpt
 //2: texture sampler
 //3: normal map sampler
 //4: height map sampler
-//5: reserved
+//4: specular map sampler
 //6: reserved
 //7: reserved
 
@@ -121,7 +122,7 @@ class CAPTAL_API render_technique : public asynchronous_resource
 {
 public:
     render_technique() = default;
-    render_technique(render_target& target, const render_technique_info& info);
+    render_technique(render_target_ptr target, const render_technique_info& info);
     ~render_technique() = default;
     render_technique(const render_technique&) = delete;
     render_technique& operator=(const render_technique&) = delete;

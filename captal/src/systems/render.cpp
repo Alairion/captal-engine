@@ -53,12 +53,12 @@ static void draw(entt::registry& world)
 {
     world.view<components::camera>().each([&](entt::entity entity [[maybe_unused]], components::camera& camera)
     {
-        if(camera.attachment() && camera.attachment()->window_target() && camera.attachment()->window_target()->is_rendering_enable())
+        if(camera.attachment() && camera.attachment()->target() && camera.attachment()->target()->is_rendering_enable())
         {
             const view_ptr& view{camera.attachment()};
-            render_target& target{*view->window_target()};
-            const render_technique_ptr& technique{target.render_technique()};
-            auto&& [buffer, signal] = target.begin_render();
+            const render_target_ptr& target{view->target()};
+            const render_technique_ptr& technique{view->render_technique()};
+            auto&& [buffer, signal] = target->begin_render();
 
             view->upload();
 
@@ -77,9 +77,6 @@ static void draw(entt::registry& world)
 
                     if(!renderable->hidden())
                     {
-                        if(!renderable->technique())
-                            renderable->set_render_technique(technique);
-
                         renderable->set_view(view);
                         renderable->upload();
                         renderable->draw(buffer);

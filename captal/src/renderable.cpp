@@ -65,12 +65,6 @@ void renderable::set_vertices(const std::vector<vertex>& vertices) noexcept
     m_need_upload = true;
 }
 
-void renderable::set_render_technique(render_technique_ptr technique) noexcept
-{
-    m_render_technique = std::move(technique);
-    m_need_descriptor_update = true;
-}
-
 void renderable::set_texture(texture_ptr texture) noexcept
 {
     m_texture = std::move(texture);
@@ -97,12 +91,21 @@ void renderable::set_specular_map(texture_ptr texture) noexcept
 
 void renderable::set_view(const view_ptr& view)
 {
+    const auto has_binding = [](const view_ptr& view, std::uint32_t binding)
+    {
+        for(auto&& layout_binding : view->render_technique()->bindings())
+            if(layout_binding.binding == binding)
+                return true;
+
+        return false;
+    };
+
     const auto it{m_descriptor_sets.find(view)};
     if(it == std::end(m_descriptor_sets))
     {
         auto& set{m_descriptor_sets[view]};
 
-        set = m_render_technique->make_set();
+        set = view->render_technique()->make_set();
         tph::write_descriptor(engine::instance().renderer(), set->set(), 0, view->buffer(), 0, view->buffer().size());
         tph::write_descriptor(engine::instance().renderer(), set->set(), 1, m_buffer.buffer(), 0, sizeof(glm::mat4));
         tph::write_descriptor(engine::instance().renderer(), set->set(), 2, m_texture->get_texture());
@@ -110,20 +113,34 @@ void renderable::set_view(const view_ptr& view)
         tph::write_descriptor(engine::instance().renderer(), set->set(), 4, m_height_map->get_texture());
         tph::write_descriptor(engine::instance().renderer(), set->set(), 5, m_specular_map->get_texture());
 
+        for(auto& uniform : m_uniform_buffers)
+            if(has_binding(view, uniform.binding()))
+                tph::write_descriptor(engine::instance().renderer(), set->set(), uniform.binding(), uniform.buffer().buffer(), 0, uniform.buffer().size());
+
+        for(auto& uniform : view->uniform_buffers())
+            tph::write_descriptor(engine::instance().renderer(), set->set(), uniform.binding(), uniform.buffer().buffer(), 0, uniform.buffer().size());
+
         m_current_set = set.get();
         update();
     }
     else
     {
-        if(m_need_descriptor_update)
+        if(m_need_descriptor_update || view->need_descriptor_update())
         {
-            it->second = m_render_technique->make_set();
+            it->second = view->render_technique()->make_set();
             tph::write_descriptor(engine::instance().renderer(), it->second->set(), 0, view->buffer(), 0, view->buffer().size());
             tph::write_descriptor(engine::instance().renderer(), it->second->set(), 1, m_buffer.buffer(), 0, sizeof(glm::mat4));
             tph::write_descriptor(engine::instance().renderer(), it->second->set(), 2, m_texture->get_texture());
             tph::write_descriptor(engine::instance().renderer(), it->second->set(), 3, m_normal_map->get_texture());
             tph::write_descriptor(engine::instance().renderer(), it->second->set(), 4, m_height_map->get_texture());
             tph::write_descriptor(engine::instance().renderer(), it->second->set(), 5, m_specular_map->get_texture());
+
+            for(auto& uniform : m_uniform_buffers)
+                if(has_binding(view, uniform.binding()))
+                    tph::write_descriptor(engine::instance().renderer(), it->second->set(), uniform.binding(), uniform.buffer().buffer(), 0, uniform.buffer().size());
+
+            for(auto& uniform : view->uniform_buffers())
+                tph::write_descriptor(engine::instance().renderer(), it->second->set(), uniform.binding(), uniform.buffer().buffer(), 0, uniform.buffer().size());
         }
 
         m_current_set = it->second.get();
@@ -161,13 +178,13 @@ void renderable::draw(tph::command_buffer& buffer)
     {
         tph::cmd::bind_index_buffer(buffer, m_buffer.buffer(), m_buffer.compute_offset(1), tph::index_type::uint16);
         tph::cmd::bind_vertex_buffer(buffer, m_buffer.buffer(), m_buffer.compute_offset(2));
-        tph::cmd::bind_descriptor_set(buffer, m_current_set->set(), m_render_technique->pipeline_layout());
+        tph::cmd::bind_descriptor_set(buffer, m_current_set->set(), m_current_set->pool().technique().pipeline_layout());
         tph::cmd::draw_indexed(buffer, m_index_count, 1, 0, 0, 0);
     }
     else
     {
         tph::cmd::bind_vertex_buffer(buffer, m_buffer.buffer(), m_buffer.compute_offset(1));
-        tph::cmd::bind_descriptor_set(buffer, m_current_set->set(), m_render_technique->pipeline_layout());
+        tph::cmd::bind_descriptor_set(buffer, m_current_set->set(), m_current_set->pool().technique().pipeline_layout());
         tph::cmd::draw(buffer, m_vertex_count, 1, 0, 0);
     }
 }

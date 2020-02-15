@@ -3,6 +3,8 @@
 
 #include "config.hpp"
 
+#include <tephra/commands.hpp>
+
 #include "texture.hpp"
 #include "render_target.hpp"
 

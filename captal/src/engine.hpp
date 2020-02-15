@@ -11,6 +11,7 @@
 
 #include <tephra/renderer.hpp>
 #include <tephra/commands.hpp>
+#include <tephra/shader.hpp>
 
 #include <entt/entity/registry.hpp>
 
@@ -52,19 +53,19 @@ public:
     engine(const std::string& application_name, tph::version version);
     engine(const std::string& application_name, tph::version version, const audio_parameters& audio, const graphics_parameters& graphics);
     engine(cpt::application application, const audio_parameters& audio, const graphics_parameters& graphics);
-    ~engine() = default;
+    ~engine();
     engine(const engine&) = delete;
     engine& operator=(const engine&) = delete;
     engine(engine&& other) noexcept = delete;
     engine& operator=(engine&& other) noexcept = delete;
 
     template<typename... Args>
-    render_window& make_window(Args&&... args)
+    render_window_ptr make_window(Args&&... args)
     {
-        return *m_windows.emplace_back(std::make_unique<render_window>(std::forward<Args>(args)...));
+        return m_windows.emplace_back(std::make_shared<render_window>(std::forward<Args>(args)...));
     }
 
-    void remove_window(render_window& window);
+    void remove_window(render_window_ptr window);
 
     std::pair<tph::command_buffer&, transfer_ended_signal&> begin_transfer();
     void flush_transfers();
@@ -231,7 +232,7 @@ private:
     texture_ptr m_dummy_height_map{};
     texture_ptr m_dummy_specular_map{};
 
-    std::vector<std::unique_ptr<render_window>> m_windows{};
+    std::vector<std::shared_ptr<render_window>> m_windows{};
 
     std::chrono::steady_clock::time_point m_last_update{std::chrono::steady_clock::now()};
     float m_frame_time{};

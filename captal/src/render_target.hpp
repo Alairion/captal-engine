@@ -3,13 +3,7 @@
 
 #include "config.hpp"
 
-#include <memory>
-#include <vector>
-
-#include <tephra/commands.hpp>
 #include <tephra/render_target.hpp>
-
-#include "render_technique.hpp"
 
 #include <sigslots/signal.hpp>
 
@@ -27,7 +21,7 @@ public:
     render_target(Args&&... args)
     :m_render_target{std::forward<Args>(args)...}
     {
-        set_render_technique(add_render_technique(render_technique_info{}));
+
     }
 
     virtual ~render_target() = default;
@@ -35,10 +29,6 @@ public:
     render_target& operator=(const render_target&) = delete;
     render_target(render_target&&) noexcept = default;
     render_target& operator=(render_target&&) noexcept = default;
-
-    render_technique_ptr add_render_technique(const render_technique_info& info);
-    render_technique_ptr add_render_technique(render_technique_ptr technique);
-    void remove_render_technique(render_technique_ptr technique);
 
     virtual std::pair<tph::command_buffer&, frame_presented_signal&> begin_render() = 0;
     virtual void present() = 0;
@@ -68,28 +58,12 @@ public:
         return m_enable;
     }
 
-    void set_render_technique(render_technique_ptr technique)
-    {
-        m_current_render_technique = std::move(technique);
-    }
-
-    void set_default_render_technique()
-    {
-        m_current_render_technique = m_render_techniques[0];
-    }
-
-    const render_technique_ptr& render_technique() const noexcept
-    {
-        return m_current_render_technique;
-    }
-
 private:
     tph::render_target m_render_target{};
-    std::vector<render_technique_ptr> m_render_techniques{};
-    render_technique_ptr m_current_render_technique{};
-
     bool m_enable{true};
 };
+
+using render_target_ptr = std::shared_ptr<render_target>;
 
 }
 

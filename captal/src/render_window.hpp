@@ -179,6 +179,10 @@ private:
     text_event_signal m_text_entered{};
 };
 
+using render_window_ptr = std::shared_ptr<render_window>;
+
+
+
 }
 
 #endif
