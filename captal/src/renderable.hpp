@@ -211,9 +211,9 @@ public:
         return &m_buffer.get<const vertex>(m_index_count > 0 ? 2 : 1);
     }
 
-    const descriptor_set_ptr& set(view_ptr view) const noexcept
+    const descriptor_set_ptr& set(const view_ptr& view) const noexcept
     {
-        return m_descriptor_sets.at(view);
+        return m_descriptor_sets.at(view.get());
     }
 
     const texture_ptr& texture() const noexcept
@@ -295,7 +295,7 @@ private:
     texture_ptr m_specular_map{};
     std::vector<cpt::uniform_buffer> m_uniform_buffers{};
 
-    std::unordered_map<view_ptr, descriptor_set_ptr> m_descriptor_sets{};
+    std::unordered_map<const view*, descriptor_set_ptr> m_descriptor_sets{};
     descriptor_set* m_current_set{};
     bool m_need_descriptor_update{};
 };

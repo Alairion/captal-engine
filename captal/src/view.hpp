@@ -35,8 +35,8 @@ public:
 
 public:
     view();
-    view(render_target_ptr target, const render_technique_info& info = render_technique_info{});
-    view(render_target_ptr target, render_technique_ptr technique);
+    view(const render_target_ptr& target, const render_technique_info& info = render_technique_info{});
+    view(const render_target_ptr& target, render_technique_ptr technique);
     ~view() = default;
     view(const view&) = delete;
     view& operator=(const view&) = delete;
@@ -146,8 +146,8 @@ public:
         m_render_technique = std::move(technique);
     }
 
-    void set_target(render_target_ptr target, const render_technique_info& info = render_technique_info{});
-    void set_target(render_target_ptr target, render_technique_ptr technique);
+    void set_target(const render_target_ptr& target, const render_technique_info& info = render_technique_info{});
+    void set_target(const render_target_ptr& target, render_technique_ptr technique);
     void fit_to(const render_texture_ptr& window);
     void fit_to(const render_window_ptr& texture);
 
@@ -204,9 +204,9 @@ public:
         return m_type;
     }
 
-    const render_target_ptr& target() const noexcept
+    render_target& target() const noexcept
     {
-        return m_target;
+        return *m_target;
     }
 
     tph::buffer& buffer() noexcept
@@ -279,11 +279,12 @@ private:
     float m_rotation{};
     view_type m_type{};
 
-    render_target_ptr m_target{};
     framed_buffer m_buffer{};
     bool m_need_upload{true};
     std::vector<cpt::uniform_buffer> m_uniform_buffers{};
     bool m_need_descriptor_update{};
+
+    render_target* m_target{};
     render_technique_ptr m_render_technique{};
 };
 

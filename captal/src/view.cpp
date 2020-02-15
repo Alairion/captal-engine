@@ -15,29 +15,29 @@ view::view()
 
 }
 
-view::view(render_target_ptr target, const render_technique_info& info)
+view::view(const render_target_ptr& target, const render_technique_info& info)
 :m_buffer{{buffer_part{buffer_part_type::uniform, sizeof(uniform_data)}}}
 {
-    set_target(std::move(target), info);
+    set_target(target, info);
 }
 
-view::view(render_target_ptr target, render_technique_ptr technique)
+view::view(const render_target_ptr& target, render_technique_ptr technique)
 :m_buffer{{buffer_part{buffer_part_type::uniform, sizeof(uniform_data)}}}
 {
-    set_target(std::move(target), std::move(technique));
+    set_target(target, std::move(technique));
 }
 
-void view::set_target(render_target_ptr target, const render_technique_info& info)
+void view::set_target(const render_target_ptr& target, const render_technique_info& info)
 {
-    m_target = std::move(target);
-    m_render_technique = make_render_technique(m_target, info);
+    m_target = target.get();
+    m_render_technique = make_render_technique(target, info);
 
     m_need_upload = true;
 }
 
-void view::set_target(render_target_ptr target, render_technique_ptr technique)
+void view::set_target(const render_target_ptr& target, render_technique_ptr technique)
 {
-    m_target = std::move(target);
+    m_target = target.get();
     m_render_technique = std::move(technique);
 
     m_need_upload = true;

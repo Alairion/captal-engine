@@ -93,7 +93,7 @@ physical_body_controller add_physics(entt::registry& world, const cpt::physical_
     return physical_body_controller{physical_world, item_controller, item_joint, item_pivot};
 }
 
-void add_logic(cpt::render_window_ptr& window, entt::registry& world, const cpt::physical_world_ptr& physical_world, entt::entity camera)
+void add_logic(const cpt::render_window_ptr& window, entt::registry& world, const cpt::physical_world_ptr& physical_world, entt::entity camera)
 {
     auto item_controller{add_physics(world, physical_world)};
 
@@ -294,13 +294,13 @@ void run()
             cpt::systems::end_frame(world);
         }
     }
-
+/*
     const auto memory_used{cpt::engine::instance().renderer().allocator().used_memory()};
     const auto memory_alloc{cpt::engine::instance().renderer().allocator().allocated_memory()};
 
     std::cout << "Device local : " << memory_used.device_local << " / " << memory_alloc.device_local << "\n";
     std::cout << "Device shared : " << memory_used.device_shared << " / " << memory_alloc.device_shared << "\n";
-    std::cout << "Host shared : " << memory_used.host_shared << " / " << memory_alloc.host_shared << "\n";
+    std::cout << "Host shared : " << memory_used.host_shared << " / " << memory_alloc.host_shared << "\n";*/
 }
 
 int main()

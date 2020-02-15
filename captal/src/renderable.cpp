@@ -100,10 +100,10 @@ void renderable::set_view(const view_ptr& view)
         return false;
     };
 
-    const auto it{m_descriptor_sets.find(view)};
+    const auto it{m_descriptor_sets.find(view.get())};
     if(it == std::end(m_descriptor_sets))
     {
-        auto& set{m_descriptor_sets[view]};
+        auto& set{m_descriptor_sets[view.get()]};
 
         set = view->render_technique()->make_set();
         tph::write_descriptor(engine::instance().renderer(), set->set(), 0, view->buffer(), 0, view->buffer().size());

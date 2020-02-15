@@ -53,12 +53,12 @@ static void draw(entt::registry& world)
 {
     world.view<components::camera>().each([&](entt::entity entity [[maybe_unused]], components::camera& camera)
     {
-        if(camera.attachment() && camera.attachment()->target() && camera.attachment()->target()->is_rendering_enable())
+        if(camera.attachment() && camera.attachment()->target().is_rendering_enable())
         {
             const view_ptr& view{camera.attachment()};
-            const render_target_ptr& target{view->target()};
             const render_technique_ptr& technique{view->render_technique()};
-            auto&& [buffer, signal] = target->begin_render();
+            render_target& target{view->target()};
+            auto&& [buffer, signal] = target.begin_render();
 
             view->upload();
 
@@ -67,7 +67,8 @@ static void draw(entt::registry& world)
             tph::cmd::bind_pipeline(buffer, technique->pipeline());
 
             std::vector<std::shared_ptr<asynchronous_resource>> to_keep_alive{};
-            to_keep_alive.reserve(world.size<components::drawable>());
+            to_keep_alive.reserve(world.size<components::drawable>() + 1);
+            to_keep_alive.push_back(view);
 
             world.view<components::drawable>().each([&, &buffer = buffer](entt::entity entity [[maybe_unused]], const components::drawable& drawable)
             {
