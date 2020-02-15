@@ -251,7 +251,11 @@ void render_window::setup_signals()
 void render_window::wait_all()
 {
     for(frame_data& data : m_frames_data)
+    {
         data.fence.wait();
+        data.signal();
+        data.signal.disconnect_all();
+    }
 
     m_frame_index = 0;
 }

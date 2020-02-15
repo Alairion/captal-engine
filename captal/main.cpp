@@ -151,10 +151,10 @@ struct directional_light
 void run()
 {
     directional_light light{};
-    light.direction = glm::vec4{-1.0f, 1.0f, -1.0f, 0.0f};
-    light.ambiant = glm::vec4{0.2f, 0.2f, 0.2f, 0.0f};
-    light.diffuse = glm::vec4{0.8f, 0.8f, 0.8f, 0.0f};
-    light.specular = glm::vec4{1.0f, 1.0f, 1.0f, 0.0f};
+    light.direction = glm::vec4{0.0f, 0.0f, 0.0f, 0.0f};
+    light.ambiant = glm::vec4{0.25f, 0.25f, 0.25f, 0.0f};
+    light.diffuse = glm::vec4{0.9f, 0.9f, 0.9f, 0.0f};
+    light.specular = glm::vec4{0.75f, 0.75f, 0.75f, 0.0f};
 
     //Diffuse
     tph::shader diffuse_vertex_shader{cpt::engine::instance().renderer(), tph::shader_stage::vertex, "shaders/lighting.vert.spv", tph::load_from_file};
@@ -267,6 +267,22 @@ void run()
             window_world.get<cpt::components::node>(window_camera).scale(3.0f / 1.0f);
     });
 
+    float angle{};
+    cpt::engine::instance().on_update().connect([&angle, &light, &diffuse_map_view, &shadow_map_view](float time)
+    {
+        angle = std::fmod(angle + (time / 4.0f), cpt::pi<float>);
+        light.direction = glm::vec4{std::cos(angle), std::cos(angle) / 4.0f, -0.5f - std::abs(std::sin(angle) / 2.0f), 0.0f};
+        light.diffuse = (-light.direction.z) * glm::vec4{0.9f, 0.9f, 0.9f, 0.0f};
+
+        std::cout << "(" << light.direction.x << ", " << light.direction.y << ", " << light.direction.z << ")" << std::endl;
+
+        diffuse_map_view->set_uniform(8, light);
+        diffuse_map_view->uniform_buffer(8).upload();
+
+        shadow_map_view->set_uniform(8, light);
+        shadow_map_view->uniform_buffer(8).upload();
+    });
+
     while(cpt::engine::instance().run())
     {
         if(window->is_rendering_enable())
@@ -294,13 +310,13 @@ void run()
             cpt::systems::end_frame(world);
         }
     }
-/*
+
     const auto memory_used{cpt::engine::instance().renderer().allocator().used_memory()};
     const auto memory_alloc{cpt::engine::instance().renderer().allocator().allocated_memory()};
 
     std::cout << "Device local : " << memory_used.device_local << " / " << memory_alloc.device_local << "\n";
     std::cout << "Device shared : " << memory_used.device_shared << " / " << memory_alloc.device_shared << "\n";
-    std::cout << "Host shared : " << memory_used.host_shared << " / " << memory_alloc.host_shared << "\n";*/
+    std::cout << "Host shared : " << memory_used.host_shared << " / " << memory_alloc.host_shared << "\n";
 }
 
 int main()

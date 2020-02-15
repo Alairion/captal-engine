@@ -3,6 +3,8 @@
 
 #include "config.hpp"
 
+#include <memory>
+
 namespace cpt
 {
 
@@ -16,6 +18,9 @@ public:
     asynchronous_resource(asynchronous_resource&& other) noexcept = default;
     asynchronous_resource& operator=(asynchronous_resource&& other) noexcept = default;
 };
+
+using asynchronous_resource_ptr = std::shared_ptr<asynchronous_resource>;
+using asynchronous_resource_weak_ptr = std::weak_ptr<asynchronous_resource>;
 
 }
 

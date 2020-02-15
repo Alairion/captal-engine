@@ -23,6 +23,11 @@ render_texture::render_texture(std::uint32_t width, std::uint32_t height, const 
 
 }
 
+render_texture::~render_texture()
+{
+    wait_all();
+}
+
 std::pair<tph::command_buffer&, frame_presented_signal&> render_texture::begin_render()
 {
     for(auto&& data : m_frames_data)
@@ -85,6 +90,16 @@ render_texture::frame_data& render_texture::add_frame_data()
     frame_data data{tph::command_pool{engine::instance().renderer()}, tph::command_buffer{}, tph::fence{engine::instance().renderer(), true}};
 
     return m_frames_data.emplace_back(std::move(data));
+}
+
+void render_texture::wait_all()
+{
+    for(frame_data& data : m_frames_data)
+    {
+        data.fence.wait();
+        data.signal();
+        data.signal.disconnect_all();
+    }
 }
 
 }

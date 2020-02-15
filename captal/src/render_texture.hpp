@@ -17,7 +17,7 @@ public:
     render_texture() = default;
     render_texture(std::uint32_t width, std::uint32_t height, tph::render_target_options target_options = tph::render_target_options::clipping, tph::sample_count sample_count = tph::sample_count::msaa_x1);
     render_texture(std::uint32_t width, std::uint32_t height, const tph::sampling_options& sampling, tph::render_target_options target_options = tph::render_target_options::clipping, tph::sample_count sample_count = tph::sample_count::msaa_x1);
-    ~render_texture() = default;
+    ~render_texture();
     render_texture(const render_texture&) = delete;
     render_texture& operator=(const render_texture&) = delete;
     render_texture(render_texture&&) = default;
@@ -48,6 +48,7 @@ private:
 
 private:
     frame_data& add_frame_data();
+    void wait_all();
 
 private:
     tph::render_target_options m_options{};
