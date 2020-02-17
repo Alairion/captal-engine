@@ -97,7 +97,7 @@ void render_target::build_offscreen_target_multisampling_images()
 {
     if(m_offscreen_target->sample_count != VK_SAMPLE_COUNT_1_BIT)
     {
-        m_offscreen_target->multisampling_image = vulkan::image{m_offscreen_target->device, m_offscreen_target->extent, VK_IMAGE_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_IMAGE_TILING_OPTIMAL, m_surface_target->sample_count};
+        m_offscreen_target->multisampling_image = vulkan::image{m_offscreen_target->device, m_offscreen_target->extent, VK_IMAGE_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_IMAGE_TILING_OPTIMAL, m_offscreen_target->sample_count};
         m_offscreen_target->multisampling_image_memory = m_offscreen_target->allocator->allocate_bound(m_offscreen_target->multisampling_image, vulkan::memory_resource_type::non_linear, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
         m_offscreen_target->multisampling_image_view = vulkan::image_view{m_offscreen_target->device, m_offscreen_target->multisampling_image, VK_IMAGE_VIEW_TYPE_2D,  VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT};
     }

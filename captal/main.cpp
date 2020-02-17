@@ -32,6 +32,13 @@ struct physical_body_controller
 
 physical_body_controller add_physics(entt::registry& world, const cpt::physical_world_ptr& physical_world)
 {
+    cpt::sprite_ptr background{cpt::make_sprite(640, 480)};
+    background->set_color(0xFF078900);
+
+    auto background_entity{world.create()};
+    world.assign<cpt::components::node>(background_entity);
+    world.assign<cpt::components::drawable>(background_entity).attach(background);
+
     cpt::sprite_ptr sprite{cpt::make_sprite(cpt::make_texture("assets/diffuse.png", cpt::load_from_file))};
     sprite->set_normal_map(cpt::make_texture("assets/normal.png", cpt::load_from_file));
     sprite->set_height_map(cpt::make_texture("assets/height.png", cpt::load_from_file));
@@ -152,9 +159,9 @@ void run()
 {
     directional_light light{};
     light.direction = glm::vec4{0.0f, 0.0f, 0.0f, 0.0f};
-    light.ambiant = glm::vec4{0.25f, 0.25f, 0.25f, 0.0f};
-    light.diffuse = glm::vec4{0.9f, 0.9f, 0.9f, 0.0f};
-    light.specular = glm::vec4{0.75f, 0.75f, 0.75f, 0.0f};
+    light.ambiant = glm::vec4{0.25f, 0.25f, 0.25f, 1.0f};
+    light.diffuse = glm::vec4{0.9f, 0.9f, 0.9f, 1.0f};
+    light.specular = glm::vec4{0.75f, 0.75f, 0.75f, 1.0f};
 
     //Diffuse
     tph::shader diffuse_vertex_shader{cpt::engine::instance().renderer(), tph::shader_stage::vertex, "shaders/lighting.vert.spv", tph::load_from_file};
@@ -256,7 +263,6 @@ void run()
     auto window_shadow{window_world.create()};
     window_world.assign<cpt::components::node>(window_shadow).move(0.0f, 0.0f, 0.5f);
     window_world.assign<cpt::components::drawable>(window_shadow).attach(cpt::make_sprite(640, 480));
-    window_world.get<cpt::components::drawable>(window_shadow);
     window_world.get<cpt::components::drawable>(window_shadow).attachment()->set_texture(shadow_map);
 
     window->on_mouse_wheel_scroll().connect([&window_world, window_camera](const apr::mouse_event& event)
@@ -271,16 +277,26 @@ void run()
     cpt::engine::instance().on_update().connect([&angle, &light, &diffuse_map_view, &shadow_map_view](float time)
     {
         angle = std::fmod(angle + (time / 4.0f), cpt::pi<float>);
-        light.direction = glm::vec4{std::cos(angle), std::cos(angle) / 4.0f, -0.5f - std::abs(std::sin(angle) / 2.0f), 0.0f};
-        light.diffuse = (-light.direction.z) * glm::vec4{0.9f, 0.9f, 0.9f, 0.0f};
+        light.direction = glm::vec4{std::cos(angle), std::cos(angle) / 2.0f, -std::abs(std::sin(angle)), 0.0f};
 
-        std::cout << "(" << light.direction.x << ", " << light.direction.y << ", " << light.direction.z << ")" << std::endl;
+        glm::vec4 factor{1.0f, 0.75f + std::min(-light.direction.z / 2.0f, 0.25f), 0.5f + std::min(-light.direction.z, 0.5f), 1.0f};
+        light.ambiant = factor * glm::vec4{0.25f, 0.25f, 0.25f, 1.0f};
+        light.diffuse = factor * glm::vec4{0.9f, 0.9f, 0.9f, 1.0f};
+        light.specular = factor * glm::vec4{0.75f, 0.75f, 0.75f, 1.0f};
 
         diffuse_map_view->set_uniform(8, light);
         diffuse_map_view->uniform_buffer(8).upload();
 
         shadow_map_view->set_uniform(8, light);
         shadow_map_view->uniform_buffer(8).upload();
+    });
+
+    window->on_key_pressed().connect([&angle](const apr::keyboard_event& event)
+    {
+        if(event.scan == apr::scancode::left)
+            angle -= cpt::pi<float> / 32.0f;
+        if(event.scan == apr::scancode::right)
+            angle += cpt::pi<float> / 32.0f;
     });
 
     while(cpt::engine::instance().run())
