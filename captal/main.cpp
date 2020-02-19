@@ -237,7 +237,7 @@ void run()
     diffuse_map_view->add_uniform_binding(shadow_map_binding, shadow_map);
 
     //Display
-    cpt::render_window_ptr window{cpt::engine::instance().make_window("Captal test", cpt::video_mode{640, 480})};
+    cpt::render_window_ptr window{cpt::engine::instance().make_window("Captal test", cpt::video_mode{640, 480, 3, tph::present_mode::mailbox})};
     window->get_target().set_clear_color_value(1.0f, 1.0f, 1.0f);
 
     cpt::physical_world_ptr physical_world{cpt::make_physical_world()};
@@ -270,12 +270,12 @@ void run()
     float angle{};
     cpt::engine::instance().on_update().connect([&angle, &light, &light_buffer](float time)
     {
-        angle = std::fmod(angle + (time / 4.0f), cpt::pi<float>);
+        angle = std::fmod(angle + (time / 12.0f), cpt::pi<float>);
         light.direction = glm::vec4{std::cos(angle), std::cos(angle) / 2.0f, -std::abs(std::sin(angle)), 0.0f};
 
         const glm::vec4 color_factor{1.0f, 0.75f + std::min(-light.direction.z / 2.0f, 0.25f), 0.5f + std::min(-light.direction.z, 0.5f), 1.0f};
         light.ambiant = color_factor * glm::vec4{0.25f, 0.25f, 0.25f, 1.0f};
-        light.diffuse = color_factor * glm::vec4{0.9f, 0.9f, 0.9f, 1.0f};
+        light.diffuse = color_factor * glm::vec4{0.75f, 0.75f, 0.75f, 1.0f};
         light.specular = color_factor * glm::vec4{0.75f, 0.75f, 0.75f, 1.0f};
 
         light_buffer->upload();
@@ -296,24 +296,20 @@ void run()
             cpt::systems::physics(world);
             cpt::systems::audio(world);
             cpt::systems::z_sorting(world);
-
             world.get<cpt::components::camera>(camera).attach(height_map_view);
             cpt::systems::render(world);
-            height_map->present();
-
             cpt::systems::render(shadow_world);
-            shadow_map->present();
-
             world.get<cpt::components::camera>(camera).attach(diffuse_map_view);
             cpt::systems::render(world);
-            diffuse_map->present();
-
-            cpt::systems::z_sorting(window_world);
             cpt::systems::render(window_world);
-            window->present();
-
-            cpt::systems::end_frame(window_world);
             cpt::systems::end_frame(world);
+            cpt::systems::end_frame(shadow_world);
+            cpt::systems::end_frame(window_world);
+
+            height_map->present();
+            shadow_map->present();
+            diffuse_map->present();
+            window->present();
         }
     }
 
