@@ -219,7 +219,6 @@ void run()
     diffuse_info.stages.push_back(tph::pipeline_shader_stage{diffuse_vertex_shader});
     diffuse_info.stages.push_back(tph::pipeline_shader_stage{diffuse_fragment_shader});
     diffuse_info.stages_bindings.push_back(tph::descriptor_set_layout_binding{tph::shader_stage::fragment, normal_map_binding, tph::descriptor_type::image_sampler});
-    diffuse_info.stages_bindings.push_back(tph::descriptor_set_layout_binding{tph::shader_stage::fragment, height_map_binding, tph::descriptor_type::image_sampler});
     diffuse_info.stages_bindings.push_back(tph::descriptor_set_layout_binding{tph::shader_stage::fragment, specular_map_binding, tph::descriptor_type::image_sampler});
     diffuse_info.stages_bindings.push_back(tph::descriptor_set_layout_binding{tph::shader_stage::fragment, directional_light_binding, tph::descriptor_type::uniform_buffer});
     diffuse_info.stages_bindings.push_back(tph::descriptor_set_layout_binding{tph::shader_stage::fragment, shadow_map_binding, tph::descriptor_type::image_sampler});
@@ -228,23 +227,7 @@ void run()
     cpt::view_ptr diffuse_map_view{cpt::make_view(diffuse_map, diffuse_info)};
     diffuse_map_view->fit_to(diffuse_map);
     diffuse_map_view->add_uniform_binding(directional_light_binding, light_buffer);
-
-    //Combine
-    cpt::render_texture_ptr combine_map{cpt::make_render_texture(640, 480, tph::sampling_options{})};
-    cpt::view_ptr combine_map_view{cpt::make_view(combine_map)};
-    combine_map_view->fit_to(combine_map);
-
-    entt::registry combine_world{};
-
-    auto combine_camera{combine_world.create()};
-    combine_world.assign<cpt::components::node>(combine_camera).set_origin(combine_map->width() / 2.0f, combine_map->height() / 2.0f);
-    combine_world.get<cpt::components::node>(combine_camera).move_to(combine_map->width() / 2.0f, combine_map->height() / 2.0f, 1.0f);
-    combine_world.assign<cpt::components::camera>(combine_camera).attach(combine_map_view);
-
-    auto combine_sprite{combine_world.create()};
-    combine_world.assign<cpt::components::node>(combine_sprite);
-    combine_world.assign<cpt::components::drawable>(combine_sprite).attach(cpt::make_sprite(640, 480));
-    combine_world.get<cpt::components::drawable>(combine_sprite).attachment()->add_uniform_binding(height_map_binding, height_map);
+    diffuse_map_view->add_uniform_binding(shadow_map_binding, shadow_map);
 
     //Display
     cpt::render_window_ptr window{cpt::engine::instance().make_window("Captal test", cpt::video_mode{640, 480})};
@@ -268,11 +251,6 @@ void run()
     window_world.assign<cpt::components::node>(window_diffuse);
     window_world.assign<cpt::components::drawable>(window_diffuse).attach(cpt::make_sprite(640, 480));
     window_world.get<cpt::components::drawable>(window_diffuse).attachment()->set_texture(diffuse_map);
-
-    auto window_shadow{window_world.create()};
-    window_world.assign<cpt::components::node>(window_shadow).move(0.0f, 0.0f, 0.5f);
-    window_world.assign<cpt::components::drawable>(window_shadow).attach(cpt::make_sprite(640, 480));
-    window_world.get<cpt::components::drawable>(window_shadow).attachment()->set_texture(shadow_map);
 
     window->on_mouse_wheel_scroll().connect([&window_world, window_camera](const apr::mouse_event& event)
     {
@@ -312,16 +290,16 @@ void run()
             cpt::systems::audio(world);
             cpt::systems::z_sorting(world);
 
-            world.get<cpt::components::camera>(camera).attach(diffuse_map_view);
-            cpt::systems::render(world);
-            diffuse_map->present();
-
             world.get<cpt::components::camera>(camera).attach(height_map_view);
             cpt::systems::render(world);
             height_map->present();
 
             cpt::systems::render(shadow_world);
             shadow_map->present();
+
+            world.get<cpt::components::camera>(camera).attach(diffuse_map_view);
+            cpt::systems::render(world);
+            diffuse_map->present();
 
             cpt::systems::z_sorting(window_world);
             cpt::systems::render(window_world);

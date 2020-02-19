@@ -19,7 +19,7 @@ enum class uniform_binding_type : std::size_t
     texture = 1
 };
 
-uniform_binding_type get_uniform_binding_type(const uniform_binding& binding)
+inline uniform_binding_type get_uniform_binding_type(const uniform_binding& binding)
 {
     return static_cast<uniform_binding_type>(binding.index());
 }
