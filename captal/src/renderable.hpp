@@ -221,7 +221,7 @@ public:
     template<typename T>
     cpt::uniform_binding& add_uniform_binding(std::uint32_t binding, T&& data)
     {
-        auto [it, success] = m_uniform_bindings.try_emplace(std::make_pair(binding, std::forward<T>(data)));
+        auto [it, success] = m_uniform_bindings.try_emplace(binding, cpt::uniform_binding{std::forward<T>(data)});
         assert(success && "cpt::view::add_uniform_buffer called with already used binding.");
 
         m_need_descriptor_update = true;

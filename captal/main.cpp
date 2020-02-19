@@ -36,10 +36,17 @@ static constexpr std::uint32_t specular_map_binding{5};
 static constexpr std::uint32_t directional_light_binding{6};
 static constexpr std::uint32_t shadow_map_binding{7};
 
+static constexpr std::array<std::uint8_t, 16> dummy_normal_map_data{128, 128, 255, 255, 128, 128, 255, 255, 128, 128, 255, 255, 128, 128, 255, 255};
+static constexpr std::array<std::uint8_t, 16> dummy_height_map_data{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+static constexpr std::array<std::uint8_t, 16> dummy_specular_map_data{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+
 physical_body_controller add_physics(entt::registry& world, const cpt::physical_world_ptr& physical_world)
 {
     cpt::sprite_ptr background{cpt::make_sprite(640, 480)};
     background->set_color(0xFF078900);
+    background->add_uniform_binding(normal_map_binding, cpt::make_texture(2, 2, std::data(dummy_normal_map_data), tph::sampling_options{tph::filter::nearest, tph::filter::nearest, tph::address_mode::repeat}));
+    background->add_uniform_binding(height_map_binding, cpt::make_texture(2, 2, std::data(dummy_height_map_data), tph::sampling_options{tph::filter::nearest, tph::filter::nearest, tph::address_mode::repeat}));
+    background->add_uniform_binding(specular_map_binding, cpt::make_texture(2, 2, std::data(dummy_specular_map_data), tph::sampling_options{tph::filter::nearest, tph::filter::nearest, tph::address_mode::repeat}));
 
     auto background_entity{world.create()};
     world.assign<cpt::components::node>(background_entity);
