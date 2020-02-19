@@ -220,43 +220,45 @@ public:
     }
 
     template<typename T>
-    void add_uniform_buffer(std::uint32_t binding, const T& data)
+    cpt::uniform_binding& add_uniform_binding(std::uint32_t binding, T&& data)
     {
-        m_uniform_buffers.emplace_back(binding, data);
-        m_uniform_buffers.back().upload();
+        auto [it, success] = m_uniform_bindings.try_emplace(std::make_pair(binding, std::forward<T>(data)));
+        assert(success && "cpt::view::add_uniform_buffer called with already used binding.");
+
         m_need_descriptor_update = true;
+        return it->second;
     }
 
-    cpt::uniform_buffer& uniform_buffer(std::uint32_t binding) noexcept
+    cpt::uniform_binding& uniform_binding(std::uint32_t binding)
     {
-        return *std::find_if(std::begin(m_uniform_buffers), std::end(m_uniform_buffers), [binding](const cpt::uniform_buffer& buffer)
-        {
-            return buffer.binding() == binding;
-        });
+        return m_uniform_bindings.at(binding);
     }
 
-    const cpt::uniform_buffer& uniform_buffer(std::uint32_t binding) const noexcept
+    const cpt::uniform_binding& uniform_binding(std::uint32_t binding) const
     {
-        return *std::find_if(std::begin(m_uniform_buffers), std::end(m_uniform_buffers), [binding](const cpt::uniform_buffer& buffer)
-        {
-            return buffer.binding() == binding;
-        });
+        return m_uniform_bindings.at(binding);
     }
 
     template<typename T>
-    void set_uniform(std::uint32_t binding, const T& data) noexcept
+    void set_uniform(std::uint32_t binding, T&& data)
     {
-        uniform_buffer(binding).set(data);
+        uniform_binding(binding) = std::forward<T>(data);
+        m_need_descriptor_update = true;
     }
 
-    std::vector<cpt::uniform_buffer>& uniform_buffers() noexcept
+    bool has_binding(std::uint32_t binding) const
     {
-        return m_uniform_buffers;
+        return m_uniform_bindings.find(binding) != std::end(m_uniform_bindings);
     }
 
-    const std::vector<cpt::uniform_buffer>& uniform_buffers() const noexcept
+    std::unordered_map<std::uint32_t, cpt::uniform_binding>& uniform_bindings() noexcept
     {
-        return m_uniform_buffers;
+        return m_uniform_bindings;
+    }
+
+    const std::unordered_map<std::uint32_t, cpt::uniform_binding>& uniform_bindings() const noexcept
+    {
+        return m_uniform_bindings;
     }
 
     bool need_descriptor_update(bool new_value = false) noexcept
@@ -281,7 +283,7 @@ private:
 
     framed_buffer m_buffer{};
     bool m_need_upload{true};
-    std::vector<cpt::uniform_buffer> m_uniform_buffers{};
+    std::unordered_map<std::uint32_t, cpt::uniform_binding> m_uniform_bindings{};
     bool m_need_descriptor_update{};
 
     render_target* m_target{};

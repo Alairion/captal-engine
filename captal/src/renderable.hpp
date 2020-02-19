@@ -39,9 +39,6 @@ public:
     void set_indices(const std::vector<std::uint16_t>& indices) noexcept;
     void set_vertices(const std::vector<vertex>& vertices) noexcept;
     void set_texture(texture_ptr texture) noexcept;
-    void set_normal_map(texture_ptr texture) noexcept;
-    void set_height_map(texture_ptr texture) noexcept;
-    void set_specular_map(texture_ptr texture) noexcept;
     void set_view(const view_ptr& view);
 
     void move_to(const glm::vec3& position) noexcept
@@ -221,58 +218,46 @@ public:
         return m_texture;
     }
 
-    const texture_ptr& normal_map() const noexcept
+    template<typename T>
+    cpt::uniform_binding& add_uniform_binding(std::uint32_t binding, T&& data)
     {
-        return m_normal_map;
+        auto [it, success] = m_uniform_bindings.try_emplace(std::make_pair(binding, std::forward<T>(data)));
+        assert(success && "cpt::view::add_uniform_buffer called with already used binding.");
+
+        m_need_descriptor_update = true;
+        return it->second;
     }
 
-    const texture_ptr& height_map() const noexcept
+    cpt::uniform_binding& uniform_binding(std::uint32_t binding)
     {
-        return m_height_map;
+        return m_uniform_bindings.at(binding);
     }
 
-    const texture_ptr& specular_map() const noexcept
+    const cpt::uniform_binding& uniform_binding(std::uint32_t binding) const
     {
-        return m_specular_map;
+        return m_uniform_bindings.at(binding);
     }
 
     template<typename T>
-    void add_uniform_buffer(std::uint32_t binding, const T& data)
+    void set_uniform(std::uint32_t binding, T&& data)
     {
-        m_uniform_buffers.emplace_back(binding, data);
+        uniform_binding(binding) = std::forward<T>(data);
         m_need_descriptor_update = true;
     }
 
-    cpt::uniform_buffer& uniform_buffer(std::uint32_t binding) noexcept
+    bool has_binding(std::uint32_t binding) const
     {
-        return *std::find_if(std::begin(m_uniform_buffers), std::end(m_uniform_buffers), [binding](const cpt::uniform_buffer& buffer)
-        {
-            return buffer.binding() == binding;
-        });
+        return m_uniform_bindings.find(binding) != std::end(m_uniform_bindings);
     }
 
-    const cpt::uniform_buffer& uniform_buffer(std::uint32_t binding) const noexcept
+    std::unordered_map<std::uint32_t, cpt::uniform_binding>& uniform_bindings() noexcept
     {
-        return *std::find_if(std::begin(m_uniform_buffers), std::end(m_uniform_buffers), [binding](const cpt::uniform_buffer& buffer)
-        {
-            return buffer.binding() == binding;
-        });
+        return m_uniform_bindings;
     }
 
-    template<typename T>
-    void set_uniform(std::uint32_t binding, const T& data) noexcept
+    const std::unordered_map<std::uint32_t, cpt::uniform_binding>& uniform_bindings() const noexcept
     {
-        uniform_buffer(binding).set(data);
-    }
-
-    std::vector<cpt::uniform_buffer>& uniform_buffers() noexcept
-    {
-        return m_uniform_buffers;
-    }
-
-    const std::vector<cpt::uniform_buffer>& uniform_buffers() const noexcept
-    {
-        return m_uniform_buffers;
+        return m_uniform_bindings;
     }
 
 private:
@@ -290,10 +275,7 @@ private:
     bool m_need_upload{true};
 
     texture_ptr m_texture{};
-    texture_ptr m_normal_map{};
-    texture_ptr m_height_map{};
-    texture_ptr m_specular_map{};
-    std::vector<cpt::uniform_buffer> m_uniform_buffers{};
+    std::unordered_map<std::uint32_t, cpt::uniform_binding> m_uniform_bindings{};
 
     std::unordered_map<const view*, descriptor_set_ptr> m_descriptor_sets{};
     descriptor_set* m_current_set{};

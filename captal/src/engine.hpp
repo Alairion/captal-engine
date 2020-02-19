@@ -158,24 +158,9 @@ public:
         return m_default_fragment_shader;
     }
 
-    const texture_ptr& dummy_texture() const noexcept
+    texture& dummy_texture() noexcept
     {
         return m_dummy_texture;
-    }
-
-    const texture_ptr& dummy_normal_map() const noexcept
-    {
-        return m_dummy_normal_map;
-    }
-
-    const texture_ptr& dummy_height_map() const noexcept
-    {
-        return m_dummy_height_map;
-    }
-
-    const texture_ptr& dummy_specular_map() const noexcept
-    {
-        return m_dummy_specular_map;
     }
 
     float frame_time() const noexcept
@@ -227,10 +212,7 @@ private:
 
     tph::shader m_default_vertex_shader{};
     tph::shader m_default_fragment_shader{};
-    texture_ptr m_dummy_texture{};
-    texture_ptr m_dummy_normal_map{};
-    texture_ptr m_dummy_height_map{};
-    texture_ptr m_dummy_specular_map{};
+    texture m_dummy_texture{};
 
     std::vector<std::shared_ptr<render_window>> m_windows{};
 

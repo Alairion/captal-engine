@@ -31,6 +31,14 @@ class CAPTAL_API framed_buffer
 public:
     framed_buffer() = default;
     framed_buffer(std::vector<buffer_part> parts);
+
+    template<typename T>
+    framed_buffer(T&& data)
+    :framed_buffer{{buffer_part{buffer_part_type::uniform, sizeof(T)}}}
+    {
+        get<T>(0) = std::forward<T>(data);
+    }
+
     ~framed_buffer() = default;
     framed_buffer(const framed_buffer&) = delete;
     framed_buffer& operator=(const framed_buffer&) = delete;
@@ -105,6 +113,14 @@ private:
     std::vector<staging_buffer> m_stagings{}; //cpu-gpu-shared buffers, stay alive waiting for transfers
     tph::buffer m_device_buffer{}; //the gpu buffer
 };
+
+using framed_buffer_ptr = std::shared_ptr<framed_buffer>;
+
+template<typename... Args>
+framed_buffer_ptr make_framed_buffer(Args&&... args)
+{
+    return std::make_shared<framed_buffer>(std::forward<Args>(args)...);
+}
 
 }
 

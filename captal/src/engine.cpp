@@ -7,18 +7,15 @@ namespace cpt
 
 static constexpr const char default_vertex_shader_spv[]
 {
-    #include "data/vertex.vert.spv.str"
+    #include "data/default.vert.spv.str"
 };
 
 static constexpr const char default_fragment_shader_spv[]
 {
-    #include "data/fragment.frag.spv.str"
+    #include "data/default.frag.spv.str"
 };
 
 static constexpr std::array<std::uint8_t, 16> dummy_texture_data{255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255};
-static constexpr std::array<std::uint8_t, 16> dummy_normal_map_data{128, 128, 255, 255, 128, 128, 255, 255, 128, 128, 255, 255, 128, 128, 255, 255};
-static constexpr std::array<std::uint8_t, 16> dummy_height_map_data{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-static constexpr std::array<std::uint8_t, 16> dummy_specular_map_data{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 using clock = std::chrono::steady_clock;
 
@@ -193,10 +190,7 @@ void engine::init()
     m_default_vertex_shader = tph::shader{m_renderer, tph::shader_stage::vertex, std::string_view{default_vertex_shader_spv, std::size(default_vertex_shader_spv) - 1}, tph::load_from_memory};
     m_default_fragment_shader = tph::shader{m_renderer, tph::shader_stage::fragment, std::string_view{default_fragment_shader_spv, std::size(default_fragment_shader_spv) - 1}, tph::load_from_memory};
 
-    m_dummy_texture = make_texture(2, 2, std::data(dummy_texture_data), tph::sampling_options{tph::filter::nearest, tph::filter::nearest, tph::address_mode::repeat});
-    m_dummy_normal_map = make_texture(2, 2, std::data(dummy_normal_map_data), tph::sampling_options{tph::filter::nearest, tph::filter::nearest, tph::address_mode::repeat});
-    m_dummy_height_map = make_texture(2, 2, std::data(dummy_height_map_data), tph::sampling_options{tph::filter::nearest, tph::filter::nearest, tph::address_mode::repeat});
-    m_dummy_specular_map = make_texture(2, 2, std::data(dummy_specular_map_data), tph::sampling_options{tph::filter::nearest, tph::filter::nearest, tph::address_mode::repeat});
+    m_dummy_texture = texture{2, 2, std::data(dummy_texture_data), tph::sampling_options{tph::filter::nearest, tph::filter::nearest, tph::address_mode::repeat}};
 }
 
 void engine::update_window()

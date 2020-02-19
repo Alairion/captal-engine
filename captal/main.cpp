@@ -30,6 +30,12 @@ struct physical_body_controller
     cpt::physical_constraint_ptr item_gear_joint{};
 };
 
+static constexpr std::uint32_t normal_map_binding{3};
+static constexpr std::uint32_t height_map_binding{4};
+static constexpr std::uint32_t specular_map_binding{5};
+static constexpr std::uint32_t directional_light_binding{6};
+static constexpr std::uint32_t shadow_map_binding{7};
+
 physical_body_controller add_physics(entt::registry& world, const cpt::physical_world_ptr& physical_world)
 {
     cpt::sprite_ptr background{cpt::make_sprite(640, 480)};
@@ -40,9 +46,9 @@ physical_body_controller add_physics(entt::registry& world, const cpt::physical_
     world.assign<cpt::components::drawable>(background_entity).attach(background);
 
     cpt::sprite_ptr sprite{cpt::make_sprite(cpt::make_texture("assets/diffuse.png", cpt::load_from_file))};
-    sprite->set_normal_map(cpt::make_texture("assets/normal.png", cpt::load_from_file));
-    sprite->set_height_map(cpt::make_texture("assets/height.png", cpt::load_from_file));
-    sprite->set_specular_map(cpt::make_texture("assets/specular.png", cpt::load_from_file));
+    sprite->add_uniform_binding(normal_map_binding, cpt::make_texture("assets/normal.png", cpt::load_from_file));
+    sprite->add_uniform_binding(height_map_binding, cpt::make_texture("assets/height.png", cpt::load_from_file));
+    sprite->add_uniform_binding(specular_map_binding, cpt::make_texture("assets/specular.png", cpt::load_from_file));
     sprite->set_shininess(32.0f);
 
     cpt::physical_body_ptr sprite_body{cpt::make_physical_body(physical_world, cpt::physical_body_type::dynamic, 1.0f, std::numeric_limits<float>::infinity())};
@@ -61,9 +67,9 @@ physical_body_controller add_physics(entt::registry& world, const cpt::physical_
     for(std::size_t i{}; i < 4; ++i)
     {
         cpt::sprite_ptr sprite{cpt::make_sprite(cpt::make_texture("assets/diffuse.png", cpt::load_from_file))};
-        sprite->set_normal_map(cpt::make_texture("assets/normal.png", cpt::load_from_file));
-        sprite->set_height_map(cpt::make_texture("assets/height.png", cpt::load_from_file));
-        sprite->set_specular_map(cpt::make_texture("assets/specular.png", cpt::load_from_file));
+        sprite->add_uniform_binding(normal_map_binding, cpt::make_texture("assets/normal.png", cpt::load_from_file));
+        sprite->add_uniform_binding(height_map_binding, cpt::make_texture("assets/height.png", cpt::load_from_file));
+        sprite->add_uniform_binding(specular_map_binding, cpt::make_texture("assets/specular.png", cpt::load_from_file));
         sprite->set_shininess(32.0f);
 
         cpt::physical_body_ptr sprite_body{cpt::make_physical_body(physical_world, cpt::physical_body_type::dynamic, 1.0f, std::numeric_limits<float>::infinity())};
@@ -157,24 +163,8 @@ struct directional_light
 
 void run()
 {
-    directional_light light{};
-    light.direction = glm::vec4{0.0f, 0.0f, 0.0f, 0.0f};
-    light.ambiant = glm::vec4{0.25f, 0.25f, 0.25f, 1.0f};
-    light.diffuse = glm::vec4{0.9f, 0.9f, 0.9f, 1.0f};
-    light.specular = glm::vec4{0.75f, 0.75f, 0.75f, 1.0f};
-
-    //Diffuse
-    tph::shader diffuse_vertex_shader{cpt::engine::instance().renderer(), tph::shader_stage::vertex, "shaders/lighting.vert.spv", tph::load_from_file};
-    tph::shader diffuse_fragment_shader{cpt::engine::instance().renderer(), tph::shader_stage::fragment, "shaders/lighting.frag.spv", tph::load_from_file};
-    cpt::render_technique_info diffuse_info{};
-    diffuse_info.stages.push_back(tph::pipeline_shader_stage{diffuse_vertex_shader});
-    diffuse_info.stages.push_back(tph::pipeline_shader_stage{diffuse_fragment_shader});
-    diffuse_info.stages_bindings.push_back(tph::descriptor_set_layout_binding{tph::shader_stage::fragment, 8, tph::descriptor_type::uniform_buffer});
-
-    cpt::render_texture_ptr diffuse_map{cpt::make_render_texture(640, 480, tph::sampling_options{})};
-    cpt::view_ptr diffuse_map_view{cpt::make_view(diffuse_map, diffuse_info)};
-    diffuse_map_view->fit_to(diffuse_map);
-    diffuse_map_view->add_uniform_buffer(8, light);
+    cpt::framed_buffer_ptr light_buffer{cpt::make_framed_buffer(directional_light{glm::vec4{0.0f, 0.0f, 0.0f, 0.0f}, glm::vec4{0.25f, 0.25f, 0.25f, 1.0f}, glm::vec4{0.9f, 0.9f, 0.9f, 1.0f}, glm::vec4{0.75f, 0.75f, 0.75f, 1.0f}})};
+    directional_light& light{light_buffer->get<directional_light>(0)};
 
     //Height
     tph::shader height_vertex_shader{cpt::engine::instance().renderer(), tph::shader_stage::vertex, "shaders/height.vert.spv", tph::load_from_file};
@@ -182,6 +172,7 @@ void run()
     cpt::render_technique_info height_info{};
     height_info.stages.push_back(tph::pipeline_shader_stage{height_vertex_shader});
     height_info.stages.push_back(tph::pipeline_shader_stage{height_fragment_shader});
+    height_info.stages_bindings.push_back(tph::descriptor_set_layout_binding{tph::shader_stage::fragment, height_map_binding, tph::descriptor_type::image_sampler});
 
     cpt::render_texture_ptr height_map{cpt::make_render_texture(640, 480, tph::sampling_options{})};
     height_map->get_target().set_clear_color_value(0.0f, 0.0f, 0.0f, 1.0f);
@@ -201,12 +192,13 @@ void run()
     cpt::render_technique_info shadow_info{};
     shadow_info.stages.push_back(tph::pipeline_shader_stage{shadow_vertex_shader});
     shadow_info.stages.push_back(tph::pipeline_shader_stage{shadow_fragment_shader});
-    shadow_info.stages_bindings.push_back(tph::descriptor_set_layout_binding{tph::shader_stage::fragment, 8, tph::descriptor_type::uniform_buffer});
+    shadow_info.stages_bindings.push_back(tph::descriptor_set_layout_binding{tph::shader_stage::fragment, height_map_binding, tph::descriptor_type::image_sampler});
+    shadow_info.stages_bindings.push_back(tph::descriptor_set_layout_binding{tph::shader_stage::fragment, directional_light_binding, tph::descriptor_type::uniform_buffer});
 
     cpt::render_texture_ptr shadow_map{cpt::make_render_texture(640, 480, tph::sampling_options{})};
     cpt::view_ptr shadow_map_view{cpt::make_view(shadow_map, shadow_info)};
     shadow_map_view->fit_to(shadow_map);
-    shadow_map_view->add_uniform_buffer(8, light);
+    shadow_map_view->add_uniform_binding(directional_light_binding, light_buffer);
 
     entt::registry shadow_world{};
 
@@ -218,7 +210,24 @@ void run()
     auto shadow_sprite{shadow_world.create()};
     shadow_world.assign<cpt::components::node>(shadow_sprite);
     shadow_world.assign<cpt::components::drawable>(shadow_sprite).attach(cpt::make_sprite(640, 480));
-    shadow_world.get<cpt::components::drawable>(shadow_sprite).attachment()->set_height_map(height_map);
+    shadow_world.get<cpt::components::drawable>(shadow_sprite).attachment()->add_uniform_binding(height_map_binding, height_map);
+
+    //Diffuse
+    tph::shader diffuse_vertex_shader{cpt::engine::instance().renderer(), tph::shader_stage::vertex, "shaders/lighting.vert.spv", tph::load_from_file};
+    tph::shader diffuse_fragment_shader{cpt::engine::instance().renderer(), tph::shader_stage::fragment, "shaders/lighting.frag.spv", tph::load_from_file};
+    cpt::render_technique_info diffuse_info{};
+    diffuse_info.stages.push_back(tph::pipeline_shader_stage{diffuse_vertex_shader});
+    diffuse_info.stages.push_back(tph::pipeline_shader_stage{diffuse_fragment_shader});
+    diffuse_info.stages_bindings.push_back(tph::descriptor_set_layout_binding{tph::shader_stage::fragment, normal_map_binding, tph::descriptor_type::image_sampler});
+    diffuse_info.stages_bindings.push_back(tph::descriptor_set_layout_binding{tph::shader_stage::fragment, height_map_binding, tph::descriptor_type::image_sampler});
+    diffuse_info.stages_bindings.push_back(tph::descriptor_set_layout_binding{tph::shader_stage::fragment, specular_map_binding, tph::descriptor_type::image_sampler});
+    diffuse_info.stages_bindings.push_back(tph::descriptor_set_layout_binding{tph::shader_stage::fragment, directional_light_binding, tph::descriptor_type::uniform_buffer});
+    diffuse_info.stages_bindings.push_back(tph::descriptor_set_layout_binding{tph::shader_stage::fragment, shadow_map_binding, tph::descriptor_type::image_sampler});
+
+    cpt::render_texture_ptr diffuse_map{cpt::make_render_texture(640, 480, tph::sampling_options{})};
+    cpt::view_ptr diffuse_map_view{cpt::make_view(diffuse_map, diffuse_info)};
+    diffuse_map_view->fit_to(diffuse_map);
+    diffuse_map_view->add_uniform_binding(directional_light_binding, light_buffer);
 
     //Combine
     cpt::render_texture_ptr combine_map{cpt::make_render_texture(640, 480, tph::sampling_options{})};
@@ -235,7 +244,7 @@ void run()
     auto combine_sprite{combine_world.create()};
     combine_world.assign<cpt::components::node>(combine_sprite);
     combine_world.assign<cpt::components::drawable>(combine_sprite).attach(cpt::make_sprite(640, 480));
-    combine_world.get<cpt::components::drawable>(combine_sprite).attachment()->set_height_map(height_map);
+    combine_world.get<cpt::components::drawable>(combine_sprite).attachment()->add_uniform_binding(height_map_binding, height_map);
 
     //Display
     cpt::render_window_ptr window{cpt::engine::instance().make_window("Captal test", cpt::video_mode{640, 480})};
@@ -274,21 +283,17 @@ void run()
     });
 
     float angle{};
-    cpt::engine::instance().on_update().connect([&angle, &light, &diffuse_map_view, &shadow_map_view](float time)
+    cpt::engine::instance().on_update().connect([&angle, &light, &light_buffer](float time)
     {
         angle = std::fmod(angle + (time / 4.0f), cpt::pi<float>);
         light.direction = glm::vec4{std::cos(angle), std::cos(angle) / 2.0f, -std::abs(std::sin(angle)), 0.0f};
 
-        glm::vec4 factor{1.0f, 0.75f + std::min(-light.direction.z / 2.0f, 0.25f), 0.5f + std::min(-light.direction.z, 0.5f), 1.0f};
-        light.ambiant = factor * glm::vec4{0.25f, 0.25f, 0.25f, 1.0f};
-        light.diffuse = factor * glm::vec4{0.9f, 0.9f, 0.9f, 1.0f};
-        light.specular = factor * glm::vec4{0.75f, 0.75f, 0.75f, 1.0f};
+        const glm::vec4 color_factor{1.0f, 0.75f + std::min(-light.direction.z / 2.0f, 0.25f), 0.5f + std::min(-light.direction.z, 0.5f), 1.0f};
+        light.ambiant = color_factor * glm::vec4{0.25f, 0.25f, 0.25f, 1.0f};
+        light.diffuse = color_factor * glm::vec4{0.9f, 0.9f, 0.9f, 1.0f};
+        light.specular = color_factor * glm::vec4{0.75f, 0.75f, 0.75f, 1.0f};
 
-        diffuse_map_view->set_uniform(8, light);
-        diffuse_map_view->uniform_buffer(8).upload();
-
-        shadow_map_view->set_uniform(8, light);
-        shadow_map_view->uniform_buffer(8).upload();
+        light_buffer->upload();
     });
 
     window->on_key_pressed().connect([&angle](const apr::keyboard_event& event)
