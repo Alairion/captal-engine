@@ -306,6 +306,11 @@ text_ptr text_drawer::draw_cached(std::u32string u32string, const glm::vec4& col
             current_x = 0;
             current_y += m_font.info().line_height;
             last = 0;
+
+            vertices.push_back(vertex{});
+            vertices.push_back(vertex{});
+            vertices.push_back(vertex{});
+            vertices.push_back(vertex{});
         }
         else
         {

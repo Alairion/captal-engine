@@ -75,9 +75,9 @@ void sprite::resize(std::uint32_t width, std::uint32_t height) noexcept
     vertex* vertices{get_vertices()};
 
     vertices[0].position = glm::vec3{0.0f, 0.0f, 0.0f};
-    vertices[1].position = glm::vec3{static_cast<float>(m_width), 0.0f, 0.0f};
-    vertices[2].position = glm::vec3{static_cast<float>(m_width), static_cast<float>(m_height), 0.0f};
-    vertices[3].position = glm::vec3{0.0f, static_cast<float>(m_height), 0.0f};
+    vertices[1].position = glm::vec3{static_cast<float>(m_width) - 0.01f, 0.0f, 0.0f};
+    vertices[2].position = glm::vec3{static_cast<float>(m_width) - 0.01f, static_cast<float>(m_height) - 0.01f, 0.0f};
+    vertices[3].position = glm::vec3{0.0f, static_cast<float>(m_height) - 0.01f, 0.0f};
 
     update();
 }
