@@ -57,6 +57,7 @@ private:
 };
 
 using render_texture_ptr = std::shared_ptr<render_texture>;
+using render_texture_weak_ptr = std::weak_ptr<render_texture>;
 
 template<typename... Args>
 render_texture_ptr make_render_texture(Args&&... args)

@@ -64,6 +64,7 @@ private:
 };
 
 using render_target_ptr = std::shared_ptr<render_target>;
+using render_target_weak_ptr = std::weak_ptr<render_target>;
 
 }
 

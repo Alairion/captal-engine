@@ -168,6 +168,7 @@ private:
 };
 
 using physical_world_ptr = std::shared_ptr<physical_world>;
+using physical_world_weak_ptr = std::weak_ptr<physical_world>;
 
 template<typename... Args>
 physical_world_ptr make_physical_world(Args&&... args)
@@ -176,6 +177,7 @@ physical_world_ptr make_physical_world(Args&&... args)
 }
 
 using physical_body_ptr = std::shared_ptr<physical_body>;
+using physical_body_weak_ptr = std::weak_ptr<physical_body>;
 
 class CAPTAL_API physical_shape
 {
@@ -233,6 +235,7 @@ private:
 };
 
 using physical_shape_ptr = std::shared_ptr<physical_shape>;
+using physical_shape_weak_ptr = std::weak_ptr<physical_shape>;
 
 template<typename... Args>
 physical_shape_ptr make_physical_shape(Args&&... args)
@@ -527,6 +530,7 @@ private:
 };
 
 using physical_constraint_ptr = std::shared_ptr<physical_constraint>;
+using physical_constraint_weak_ptr = std::weak_ptr<physical_constraint>;
 
 template<typename... Args>
 physical_constraint_ptr make_physical_constraint(Args&&... args)

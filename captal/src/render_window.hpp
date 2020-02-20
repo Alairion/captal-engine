@@ -180,8 +180,7 @@ private:
 };
 
 using render_window_ptr = std::shared_ptr<render_window>;
-
-
+using render_window_weak_ptr = std::weak_ptr<render_window>;
 
 }
 

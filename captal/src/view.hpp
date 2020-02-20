@@ -151,7 +151,11 @@ public:
     void fit_to(const render_texture_ptr& window);
     void fit_to(const render_window_ptr& texture);
 
-    void update();
+    void update() noexcept
+    {
+        m_need_upload = true;
+    }
+
     void upload();
 
     const tph::viewport& viewport() const noexcept
@@ -291,6 +295,7 @@ private:
 };
 
 using view_ptr = std::shared_ptr<view>;
+using view_weak_ptr = std::weak_ptr<view>;
 
 template<typename... Args>
 view_ptr make_view(Args&&... args)

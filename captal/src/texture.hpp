@@ -64,6 +64,7 @@ private:
 };
 
 using texture_ptr = std::shared_ptr<texture>;
+using texture_weak_ptr = std::weak_ptr<texture>;
 
 template<typename... Args>
 texture_ptr make_texture(Args&&... args)

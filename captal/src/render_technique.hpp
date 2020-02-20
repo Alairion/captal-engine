@@ -62,6 +62,7 @@ private:
 };
 
 using descriptor_set_ptr = std::shared_ptr<descriptor_set>;
+using descriptor_set_weak_ptr = std::weak_ptr<descriptor_set>;
 
 class CAPTAL_API descriptor_pool
 {
@@ -183,6 +184,7 @@ private:
 };
 
 using render_technique_ptr = std::shared_ptr<render_technique>;
+using render_technique_weak_ptr = std::weak_ptr<render_technique>;
 
 template<typename... Args>
 render_technique_ptr make_render_technique(Args&&... args)

@@ -283,6 +283,7 @@ private:
 };
 
 using renderable_ptr = std::shared_ptr<renderable>;
+using renderable_weak_ptr = std::weak_ptr<renderable>;
 
 template<typename... Args>
 renderable_ptr make_renderable(Args&&... args)

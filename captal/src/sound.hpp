@@ -71,6 +71,7 @@ public:
 };
 
 using sound_ptr = std::shared_ptr<sound>;
+using sound_weak_ptr = std::weak_ptr<sound>;
 
 template<typename... Args>
 sound_ptr make_sound(Args&&... args)

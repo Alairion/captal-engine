@@ -51,6 +51,7 @@ private:
 };
 
 using sprite_ptr = std::shared_ptr<sprite>;
+using sprite_weak_ptr = std::weak_ptr<sprite>;
 
 template<typename... Args>
 sprite_ptr make_sprite(Args&&... args)

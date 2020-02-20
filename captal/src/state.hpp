@@ -43,6 +43,7 @@ protected:
 };
 
 using state_ptr = std::shared_ptr<state>;
+using state_weak_ptr = std::weak_ptr<state>;
 
 template<typename T, typename... Args>
 std::shared_ptr<T> make_state(Args&&... args)

@@ -91,7 +91,7 @@ class CAPTAL_API text : public renderable
 {
 public:
     text() = default;
-    text(const std::vector<std::uint16_t>& indices, const std::vector<vertex>& vertices, texture_ptr texture, std::uint32_t width, std::uint32_t height);
+    text(const std::vector<std::uint16_t>& indices, const std::vector<vertex>& vertices, texture_ptr texture, std::uint32_t width, std::uint32_t height, std::size_t count);
 
     ~text() = default;
     text(const text&) = delete;
@@ -116,9 +116,11 @@ public:
 private:
     std::uint32_t m_width{};
     std::uint32_t m_height{};
+    std::size_t m_count{};
 };
 
 using text_ptr = std::shared_ptr<text>;
+using text_weak_ptr = std::weak_ptr<text>;
 
 enum class text_drawer_options : std::uint32_t
 {
@@ -177,7 +179,6 @@ private:
 
 text_ptr CAPTAL_API draw_text(cpt::font& font, std::string_view u8string, const glm::vec4& color = glm::vec4{1.0f, 1.0f, 1.0f, 1.0f}, text_drawer_options options = text_drawer_options::kerning);
 text_ptr CAPTAL_API draw_text(cpt::font&& font, std::string_view u8string, const glm::vec4& color = glm::vec4{1.0f, 1.0f, 1.0f, 1.0f}, text_drawer_options options = text_drawer_options::kerning);
-
 
 }
 

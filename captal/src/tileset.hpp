@@ -77,6 +77,7 @@ private:
 };
 
 using tileset_ptr = std::shared_ptr<tileset>;
+using tileset_weak_ptr = std::weak_ptr<tileset>;
 
 template<typename... Args>
 tileset_ptr make_tileset(Args&&... args)

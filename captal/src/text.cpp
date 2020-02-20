@@ -180,10 +180,11 @@ float font::kerning(char32_t left, char32_t right)
     return output.x / (FT_IS_SCALABLE(m_loader->face) ? 64.0f : 1.0f);
 }
 
-text::text(const std::vector<std::uint16_t>& indices, const std::vector<vertex>& vertices, texture_ptr texture, std::uint32_t width, std::uint32_t height)
+text::text(const std::vector<std::uint16_t>& indices, const std::vector<vertex>& vertices, texture_ptr texture, std::uint32_t width, std::uint32_t height, std::size_t count)
 :renderable{static_cast<std::uint32_t>(std::size(indices)), static_cast<std::uint32_t>(std::size(vertices))}
 ,m_width{width}
 ,m_height{height}
+,m_count{count}
 {
     set_indices(indices);
     set_vertices(vertices);
@@ -367,7 +368,7 @@ text_ptr text_drawer::draw_cached(std::u32string u32string, const glm::vec4& col
     for(auto& vertex : vertices)
         vertex.position += shift;
 
-    return std::make_shared<text>(indices, vertices, std::move(texture), static_cast<std::uint32_t>(greatest_x - lowest_x), static_cast<std::uint32_t>(greatest_y - lowest_y));
+    return std::make_shared<text>(indices, vertices, std::move(texture), static_cast<std::uint32_t>(greatest_x - lowest_x), static_cast<std::uint32_t>(greatest_y - lowest_y), std::size(u32string));
 }
 
 texture_ptr text_drawer::make_cached_texture(std::u32string string, std::unordered_map<char32_t, std::pair<std::shared_ptr<glyph>, glm::vec2>>& cache, tph::command_buffer& command_buffer)
@@ -519,7 +520,7 @@ text_ptr text_drawer::draw_uncached(std::u32string u32string, const glm::vec4& c
     for(auto& vertex : vertices)
         vertex.position += shift;
 
-    return std::make_shared<text>(indices, vertices, std::move(texture), static_cast<std::uint32_t>(greatest_x - lowest_x), static_cast<std::uint32_t>(greatest_y - lowest_y));
+    return std::make_shared<text>(indices, vertices, std::move(texture), static_cast<std::uint32_t>(greatest_x - lowest_x), static_cast<std::uint32_t>(greatest_y - lowest_y), std::size(u32string));
 }
 
 texture_ptr text_drawer::make_uncached_texture(std::u32string string, std::unordered_map<char32_t, std::pair<glyph, glm::vec2>>& cache, tph::command_buffer& command_buffer)

@@ -64,6 +64,7 @@ private:
 };
 
 using tilemap_ptr = std::shared_ptr<tilemap>;
+using tilemap_weak_ptr = std::weak_ptr<tilemap>;
 
 template<typename... Args>
 tilemap_ptr make_tilemap(Args&&... args)

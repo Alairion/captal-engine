@@ -237,7 +237,7 @@ void run()
     diffuse_map_view->add_uniform_binding(shadow_map_binding, shadow_map);
 
     //Display
-    cpt::render_window_ptr window{cpt::engine::instance().make_window("Captal test", cpt::video_mode{640, 480, 3, tph::present_mode::mailbox})};
+    cpt::render_window_ptr window{cpt::engine::instance().make_window("Captal test", cpt::video_mode{640, 480})};
     window->get_target().set_clear_color_value(1.0f, 1.0f, 1.0f);
 
     cpt::physical_world_ptr physical_world{cpt::make_physical_world()};
@@ -298,12 +298,15 @@ void run()
             cpt::systems::z_sorting(world);
             world.get<cpt::components::camera>(camera).attach(height_map_view);
             cpt::systems::render(world);
+
             cpt::systems::render(shadow_world);
+            cpt::systems::end_frame(shadow_world);
+
             world.get<cpt::components::camera>(camera).attach(diffuse_map_view);
             cpt::systems::render(world);
-            cpt::systems::render(window_world);
             cpt::systems::end_frame(world);
-            cpt::systems::end_frame(shadow_world);
+
+            cpt::systems::render(window_world);
             cpt::systems::end_frame(window_world);
 
             height_map->present();

@@ -61,11 +61,6 @@ void view::fit_to(const render_texture_ptr& texture)
     m_need_upload = true;
 }
 
-void view::update()
-{
-    m_need_upload = true;
-}
-
 void view::upload()
 {
     if(std::exchange(m_need_upload, false))

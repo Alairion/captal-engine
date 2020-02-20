@@ -115,6 +115,7 @@ private:
 };
 
 using framed_buffer_ptr = std::shared_ptr<framed_buffer>;
+using framed_buffer_weak_ptr = std::weak_ptr<framed_buffer>;
 
 template<typename... Args>
 framed_buffer_ptr make_framed_buffer(Args&&... args)
