@@ -78,6 +78,7 @@ public:
     using apr::window::current_monitor;
 
     void update();
+    void close();
 
     std::pair<tph::command_buffer&, frame_presented_signal&> begin_render();
     void present();

@@ -143,6 +143,13 @@ void render_window::update()
     }
 }
 
+void render_window::close()
+{
+     m_closed = true;
+     m_close(apr::window_event{apr::window_event::closed, id()});
+     disable_rendering();
+}
+
 std::pair<tph::command_buffer&, frame_presented_signal&> render_window::begin_render()
 {
     frame_data& data{m_frames_data[m_frame_index]};

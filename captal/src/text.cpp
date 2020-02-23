@@ -12,7 +12,6 @@
 #include <glm/vec2.hpp>
 
 #include "engine.hpp"
-#include "algorithm.hpp"
 #include "encoding.hpp"
 #include "texture.hpp"
 
@@ -583,7 +582,7 @@ texture_ptr text_drawer::make_uncached_texture(std::u32string string, std::unord
     return texture;
 }
 
-text_ptr draw_text(cpt::font& font, std::string_view u8string, const glm::vec4& color, text_drawer_options options)
+text_ptr draw_text(cpt::font& font, std::string_view u8string, const color& color, text_drawer_options options)
 {
     text_drawer drawer{std::move(font), options};
     text_ptr text{drawer.draw(u8string, color)};
@@ -592,7 +591,7 @@ text_ptr draw_text(cpt::font& font, std::string_view u8string, const glm::vec4& 
     return text;
 }
 
-text_ptr draw_text(cpt::font&& font, std::string_view u8string, const glm::vec4& color, text_drawer_options options)
+text_ptr draw_text(cpt::font&& font, std::string_view u8string, const color& color, text_drawer_options options)
 {
     text_drawer drawer{std::move(font), options};
     text_ptr text{drawer.draw(u8string, color)};

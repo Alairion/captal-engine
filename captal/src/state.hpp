@@ -5,6 +5,7 @@
 
 #include <memory>
 #include <vector>
+#include <functional>
 
 namespace cpt
 {
@@ -54,6 +55,9 @@ std::shared_ptr<T> make_state(Args&&... args)
 class CAPTAL_API state_stack
 {
 public:
+    using post_update_callback_type = std::function<void(state_stack& stack)>;
+
+public:
     state_stack() = default;
     state_stack(state_ptr initial_state);
     ~state_stack() = default;
@@ -66,16 +70,17 @@ public:
     state_ptr pop();
     void reset(state_ptr initial_state);
 
-    void pop_until(state_ptr state);
+    void pop_until(const state_ptr& state);
     void pop_until(state* state);
-    void raise(state_ptr state);
+    void raise(const state_ptr& state);
     void raise(state* state);
 
     void update(float elapsed_time);
+    void add_post_update_callback(post_update_callback_type callback);
 
-    bool is_top(const state* state) const;
-    bool is_top(state_ptr state) const;
-    state_ptr current() const;
+    bool is_top(const state* state) const noexcept;
+    bool is_top(const state_ptr& state) const noexcept;
+    const state_ptr& current() const noexcept;
 
     bool empty() const noexcept
     {
@@ -84,6 +89,7 @@ public:
 
 private:
     std::vector<state_ptr> m_states{};
+    std::vector<post_update_callback_type> m_post_update_callbacks{};
 };
 
 }

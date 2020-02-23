@@ -17,6 +17,17 @@ class node
 {
 public:
     node() = default;
+
+    node(const glm::vec3& position, const glm::vec3& origin = glm::vec3{0.0f, 0.0f, 0.0f}, float scale = 1.0f, float angle = 0.0f)
+    :m_position{position}
+    ,m_origin{origin}
+    ,m_rotation{std::fmod(angle, pi<float> * 2.0f)}
+    ,m_scale{scale}
+    ,m_updated{true}
+    {
+
+    }
+
     ~node() = default;
     node(const node&) = default;
     node& operator=(const node&) = default;
@@ -103,6 +114,11 @@ public:
     const glm::vec3& origin() const noexcept
     {
         return m_origin;
+    }
+
+    glm::vec3 real_position() const noexcept
+    {
+        return m_position - m_origin;
     }
 
     float scale() const noexcept

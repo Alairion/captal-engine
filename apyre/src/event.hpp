@@ -32,8 +32,8 @@ struct window_event
 
     std::uint32_t type{};
     std::uint32_t window{};
-    std::uint32_t x{};
-    std::uint32_t y{};
+    std::int32_t x{};
+    std::int32_t y{};
     std::uint32_t width{};
     std::uint32_t height{};
 };

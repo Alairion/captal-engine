@@ -5,21 +5,30 @@ project(my_project VERSION 0.0.1)
 set(GLOBAL_INCLUDES "${PROJECT_SOURCE_DIR}/../libs/include")
 set(GLOBAL_LIBRARIES "${PROJECT_SOURCE_DIR}/../libs/external")
 
-add_definitions(-DMY_PROJECT_MAJOR_VERSION ${PROJECT_VERSION_MAJOR})
-add_definitions(-DMY_PROJECT_MINOR_VERSION ${PROJECT_VERSION_MINOR})
-add_definitions(-DMY_PROJECT_PATCH_VERSION ${PROJECT_VERSION_PATCH})
-
 set(HEADERS
     "src/config.hpp"
+    "src/viewport_compute.hpp"
+
+    "src/states/splash_screen.hpp"
+    "src/states/main_menu.hpp"
+    "src/states/game.hpp"
     )
 
 set(SOURCES
     "src/main.cpp"
+
+    "src/states/splash_screen.cpp"
+    "src/states/main_menu.cpp"
+    "src/states/game.cpp"
     )
 
 add_executable(${PROJECT_NAME} ${HEADERS} ${SOURCES})
 
-target_include_directories(${PROJECT_NAME} PUBLIC ${GLOBAL_INCLUDES})
+add_compile_definitions(MY_PROJECT_MAJOR_VERSION=${PROJECT_VERSION_MAJOR})
+add_compile_definitions(MY_PROJECT_MINOR_VERSION=${PROJECT_VERSION_MINOR})
+add_compile_definitions(MY_PROJECT_PATCH_VERSION=${PROJECT_VERSION_PATCH})
+
+target_include_directories(${PROJECT_NAME} PRIVATE ${GLOBAL_INCLUDES})
 
 if(CMAKE_BUILD_TYPE STREQUAL Debug)
     target_link_libraries(${PROJECT_NAME} "${PROJECT_SOURCE_DIR}/../libs/debug/libapyre.dll.a")

@@ -177,8 +177,8 @@ private:
     std::unordered_map<char32_t, std::shared_ptr<glyph>> m_cache{};
 };
 
-text_ptr CAPTAL_API draw_text(cpt::font& font, std::string_view u8string, const glm::vec4& color = glm::vec4{1.0f, 1.0f, 1.0f, 1.0f}, text_drawer_options options = text_drawer_options::kerning);
-text_ptr CAPTAL_API draw_text(cpt::font&& font, std::string_view u8string, const glm::vec4& color = glm::vec4{1.0f, 1.0f, 1.0f, 1.0f}, text_drawer_options options = text_drawer_options::kerning);
+text_ptr CAPTAL_API draw_text(cpt::font& font, std::string_view u8string, const color& color = colors::white, text_drawer_options options = text_drawer_options::kerning);
+text_ptr CAPTAL_API draw_text(cpt::font&& font, std::string_view u8string, const color& color = colors::white, text_drawer_options options = text_drawer_options::kerning);
 
 }
 

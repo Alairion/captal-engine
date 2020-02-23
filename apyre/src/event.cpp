@@ -79,16 +79,12 @@ static std::optional<event> translate(const SDL_Event& sdl_event)
 
         if(sdl_event.motion.state & SDL_BUTTON_LMASK)
             output.button |= mouse_button::left;
-
         if(sdl_event.motion.state & SDL_BUTTON_RMASK)
             output.button |= mouse_button::right;
-
         if(sdl_event.motion.state & SDL_BUTTON_MMASK)
             output.button |= mouse_button::middle;
-
         if(sdl_event.motion.state & SDL_BUTTON_X1MASK)
             output.button |= mouse_button::side1;
-
         if(sdl_event.motion.state & SDL_BUTTON_X2MASK)
             output.button |= mouse_button::side2;
 
@@ -103,19 +99,15 @@ static std::optional<event> translate(const SDL_Event& sdl_event)
         output.y = sdl_event.button.y;
         output.clicks = sdl_event.button.clicks;
 
-        if(sdl_event.button.state & SDL_BUTTON_LMASK)
+        if(sdl_event.button.button == SDL_BUTTON_LEFT)
             output.button |= mouse_button::left;
-
-        if(sdl_event.button.state & SDL_BUTTON_RMASK)
+        else if(sdl_event.button.button == SDL_BUTTON_RIGHT)
             output.button |= mouse_button::right;
-
-        if(sdl_event.button.state & SDL_BUTTON_MMASK)
+        else if(sdl_event.button.button == SDL_BUTTON_MIDDLE)
             output.button |= mouse_button::middle;
-
-        if(sdl_event.button.state & SDL_BUTTON_X1MASK)
+        else if(sdl_event.button.button == SDL_BUTTON_X1)
             output.button |= mouse_button::side1;
-
-        if(sdl_event.button.state & SDL_BUTTON_X2MASK)
+        else if(sdl_event.button.button == SDL_BUTTON_X2)
             output.button |= mouse_button::side2;
 
         return std::make_optional(event{output});
@@ -129,19 +121,15 @@ static std::optional<event> translate(const SDL_Event& sdl_event)
         output.y = sdl_event.button.y;
         output.clicks = sdl_event.button.clicks;
 
-        if(sdl_event.button.state & SDL_BUTTON_LMASK)
+        if(sdl_event.button.button == SDL_BUTTON_LEFT)
             output.button |= mouse_button::left;
-
-        if(sdl_event.button.state & SDL_BUTTON_RMASK)
+        else if(sdl_event.button.button == SDL_BUTTON_RIGHT)
             output.button |= mouse_button::right;
-
-        if(sdl_event.button.state & SDL_BUTTON_MMASK)
+        else if(sdl_event.button.button == SDL_BUTTON_MIDDLE)
             output.button |= mouse_button::middle;
-
-        if(sdl_event.button.state & SDL_BUTTON_X1MASK)
+        else if(sdl_event.button.button == SDL_BUTTON_X1)
             output.button |= mouse_button::side1;
-
-        if(sdl_event.button.state & SDL_BUTTON_X2MASK)
+        else if(sdl_event.button.button == SDL_BUTTON_X2)
             output.button |= mouse_button::side2;
 
         return std::make_optional(event{output});
