@@ -37,10 +37,9 @@ void main_menu::on_enter(cpt::state_stack& stack)
     {
         if(event.button == apr::mouse_button::left)
         {
-            m_play_button_pressed = true;
-
             if(above_play_button(event.x, event.y))
             {
+                m_play_button_pressed = true;
                 m_text->set_color(cpt::colors::dodgerblue);
             }
         }
@@ -78,7 +77,7 @@ void main_menu::on_enter(cpt::state_stack& stack)
         {
             m_text->set_color(cpt::colors::dodgerblue);
         }
-        else if(above_play_button(event.x, event.y))
+        else if(above_play_button(event.x, event.y) && !static_cast<bool>(event.button))
         {
             m_text->set_color(cpt::colors::deepskyblue);
         }
@@ -104,10 +103,13 @@ void main_menu::on_leave(cpt::state_stack& stack [[maybe_unused]])
     m_connections.clear();
 }
 
-void main_menu::on_update(cpt::state_stack& stack [[maybe_unused]], float elapsed_time [[maybe_unused]])
+void main_menu::on_update(cpt::state_stack& stack, float elapsed_time [[maybe_unused]])
 {
-    cpt::systems::render(m_world);
-    cpt::systems::end_frame(m_world);
+    if(stack.is_top(this))
+    {
+        cpt::systems::render(m_world);
+        cpt::systems::end_frame(m_world);
+    }
 }
 
 bool main_menu::above_play_button(std::int32_t x, std::int32_t y) const noexcept

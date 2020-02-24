@@ -52,24 +52,26 @@ void splash_screen::on_update(cpt::state_stack& stack [[maybe_unused]], float el
 {
     m_time += elapsed_time;
 
-    if(m_time >= 5.0f)
+    if(m_time >= 4.0f)
     {
-        cpt::systems::render(m_world);
-        cpt::systems::end_frame(m_world);
+        m_text->set_color(cpt::color{1.0f, 1.0f, 1.0f, 0.0f});
 
         stack.add_post_update_callback([this](cpt::state_stack& stack)
         {
             stack.reset(cpt::make_state<main_menu>(m_window));
         });
     }
+    else if(m_time >= 3.0f)
+    {
+        m_text->set_color(cpt::color{1.0f, 1.0f, 1.0f, (4.0f - m_time) / 1.0f});
+    }
     else
     {
-        const float opacity{m_time / 3.0f};
-        m_text->set_color(cpt::color{1.0f, 1.0f, 1.0f, opacity});
-
-        cpt::systems::render(m_world);
-        cpt::systems::end_frame(m_world);
+        m_text->set_color(cpt::color{1.0f, 1.0f, 1.0f, m_time / 1.0f});
     }
+
+    cpt::systems::render(m_world);
+    cpt::systems::end_frame(m_world);
 }
 
 }
