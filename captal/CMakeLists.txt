@@ -40,6 +40,7 @@ set(HEADERS
     "src/tileset.hpp"
     "src/tilemap.hpp"
     "src/sound.hpp"
+    "src/tiled_map.hpp"
     "src/physics.hpp"
 
     "src/components/node.hpp"
@@ -73,6 +74,7 @@ set(SOURCES
     "src/tileset.cpp"
     "src/tilemap.cpp"
     "src/sound.cpp"
+    "src/tiled_map.cpp"
     "src/physics.cpp"
 
     "src/systems/frame.cpp"

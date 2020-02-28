@@ -13,6 +13,8 @@ namespace cpt
 
 struct color
 {
+    constexpr color() noexcept = default;
+
     template<typename T, typename std::enable_if<std::is_floating_point<T>::value, int>::type = 0>
     constexpr color(T r, T g, T b, T a = static_cast<T>(1.0)) noexcept
     :red{static_cast<float>(r)}

@@ -10,6 +10,7 @@
 #include <captal/algorithm.hpp>
 
 #include "../viewport_compute.hpp"
+#include "game.hpp"
 
 namespace mpr
 {
@@ -53,8 +54,7 @@ void main_menu::on_enter(cpt::state_stack& stack)
             {
                 stack.add_post_update_callback([this](cpt::state_stack& stack)
                 {
-                    m_window->close();
-                    stack.pop();
+                    stack.reset(cpt::make_state<game>(m_window));
                 });
             }
         }
