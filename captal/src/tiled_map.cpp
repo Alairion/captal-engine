@@ -17,24 +17,6 @@ namespace tiled
 
 using namespace std::string_view_literals;
 
-static cpt::color parse_color(std::string_view attribute)
-{
-    if(std::size(attribute) == 9)
-    {
-        std::uint32_t rgba{};
-        if(auto [ptr, result] = std::from_chars(std::begin(attribute) + 1, std::end(attribute), rgba, 16); result == std::errc{})
-            return cpt::color{rgba};
-    }
-    else if(std::size(attribute) == 7)
-    {
-        std::uint32_t rgba{};
-        if(auto [ptr, result] = std::from_chars(std::begin(attribute) + 1, std::end(attribute), rgba, 16); result == std::errc{})
-            return cpt::color{0xFF000000 | rgba};
-    }
-
-    throw std::runtime_error{"Invalid color in tmx map."};
-}
-
 using tmx_data_t = std::variant<std::vector<std::uint8_t>, std::vector<std::uint32_t>>;
 
 static std::uint32_t from_base64(char value) noexcept
@@ -163,11 +145,118 @@ static tmx_data_t parse_data(const pugi::xml_node& node)
     return tmx_data_t{std::vector<std::uint8_t>{}};
 }
 
+static cpt::color parse_color(std::string_view attribute)
+{
+    if(std::size(attribute) == 9)
+    {
+        std::uint32_t rgba{};
+        if(auto [ptr, result] = std::from_chars(std::data(attribute) + 1, std::data(attribute) + std::size(attribute), rgba, 16); result == std::errc{})
+            return cpt::color{rgba};
+    }
+    else if(std::size(attribute) == 7)
+    {
+        std::uint32_t rgba{};
+        if(auto [ptr, result] = std::from_chars(std::data(attribute) + 1, std::data(attribute) + std::size(attribute), rgba, 16); result == std::errc{})
+            return cpt::color{0xFF000000 | rgba};
+    }
+
+    throw std::runtime_error{"Invalid color in tmx map."};
+}
+
 static tph::image parse_image(const pugi::xml_node& node, const std::filesystem::path& root, const external_load_callback_type& load_callback)
 {
-    const std::string file_data{load_callback(root / node.attribute("source").as_string())};
+    const std::string file_data{load_callback(root / node.attribute("source").as_string(), external_resource_type::image)};
 
     return tph::image{cpt::engine::instance().renderer(), file_data, tph::load_from_memory, tph::image_usage::transfer_source};
+}
+
+static properties_set parse_properties(const pugi::xml_node& node)
+{
+    properties_set output{};
+
+    for(auto&& child : node)
+    {
+        property& property{output[child.attribute("name").as_string()]};
+        const std::string_view type{child.attribute("type").as_string("string")};
+
+        std::string_view value{child.attribute("value").as_string()};
+        if(std::empty(value)) //future-proof
+            value = child.child_value();
+
+        if(type == "string")
+        {
+            property = std::string{value};
+        }
+        else if(type == "file")
+        {
+            property = std::filesystem::u8path(value);
+        }
+        else if(type == "int")
+        {
+            std::int32_t int_value{};
+            if(auto [ptr, result] = std::from_chars(std::data(value), std::data(value) + std::size(value), int_value); result != std::errc{})
+                throw std::runtime_error{"Can not parse integer property in txm file."};
+
+            property = int_value;
+        }
+        else if(type == "float")
+        {
+            property = std::stof(std::string{value});
+        }
+        else if(type == "bool")
+        {
+            property = (value == "true");
+        }
+        else if(type == "color")
+        {
+            property = parse_color(value);
+        }
+    }
+
+    return output;
+}
+
+static std::vector<tile::animation> parse_animation(const pugi::xml_node& node)
+{
+    std::vector<tile::animation> output{};
+
+    for(auto&& child : node)
+    {
+        if(child.name() == "frame"sv) //future-proof
+        {
+            tile::animation animation{};
+            animation.lid = child.attribute("tileid").as_uint();
+            animation.duration = child.attribute("duration").as_uint() / 1000.0f;
+
+            output.push_back(animation);
+        }
+    }
+
+    return output;
+}
+
+static tile parse_tile(const pugi::xml_node& node, const std::filesystem::path& root, const external_load_callback_type& load_callback)
+{
+    tile output{};
+    output.type = node.attribute("type").as_string();
+
+    for(auto&& child : node)
+    {
+        if(child.name() == "animation"sv)
+        {
+            output.animations = parse_animation(child);
+        }
+        else if(child.name() == "image"sv)
+        {
+            output.image = parse_image(child, root, load_callback);
+        }
+        else if(child.name() == "properties"sv)
+        {
+            output.properties = parse_properties(child);
+        }
+    }
+
+    return output;
 }
 
 static void parse_tileset(const pugi::xml_node& node, tileset& output, const std::filesystem::path& root, const external_load_callback_type& load_callback)
@@ -178,6 +267,7 @@ static void parse_tileset(const pugi::xml_node& node, tileset& output, const std
     output.height = node.attribute("tilecount").as_uint() / output.width;
     output.spacing = node.attribute("spacing").as_int();
     output.margin = node.attribute("margin").as_int();
+    output.tiles.resize(output.width * output.height);
 
     for(auto&& child : node)
     {
@@ -190,6 +280,14 @@ static void parse_tileset(const pugi::xml_node& node, tileset& output, const std
         {
             output.image = parse_image(child, root, load_callback);
         }
+        else if(child.name() == "tile"sv)
+        {
+            output.tiles[child.attribute("id").as_uint()] = parse_tile(child, root, load_callback);
+        }
+        else if(child.name() == "properties"sv)
+        {
+            output.properties = parse_properties(child);
+        }
     }
 }
 
@@ -201,7 +299,7 @@ static void parse_map_tileset(const pugi::xml_node& node, map& output, const ext
     if(auto&& attribute{node.attribute("source")}; !std::empty(attribute))
     {
         const auto path{std::filesystem::u8path(attribute.as_string())};
-        std::string data{load_callback(path)};
+        std::string data{load_callback(path, external_resource_type::tileset)};
 
         pugi::xml_document document{};
         if(auto result{document.load_buffer_inplace(std::data(data), std::size(data))}; !result)
@@ -231,7 +329,7 @@ map load_map(const std::filesystem::path& path)
 
     map output{};
 
-    const auto load_callback = [&path](const std::filesystem::path& other_path) -> std::string
+    const auto load_callback = [&path](const std::filesystem::path& other_path, external_resource_type resource_type [[maybe_unused]]) -> std::string
     {
         std::ifstream ifs{path / other_path, std::ios_base::binary};
         if(!ifs)
@@ -252,7 +350,13 @@ map load_map(const std::filesystem::path& path)
         for(auto&& child : map)
         {
             if(child.name() == "tileset"sv)
+            {
                 parse_map_tileset(child, output, load_callback);
+            }
+            else if(child.name() == "properties"sv)
+            {
+                output.properties = parse_properties(child);
+            }
         }
     }
 
@@ -261,55 +365,4 @@ map load_map(const std::filesystem::path& path)
 
 }
 
-/*
-tiled_map::tiled_map(std::string_view file, cpt::load_from_file_t)
-{
-    std::ifstream ifs{std::string{file}, std::ios_base::binary};
-    if(!ifs)
-        throw std::runtime_error{"Can not open file \"" + std::string{file} + "\"."};
-
-    const std::string data{std::istreambuf_iterator<char>{ifs}, std::istreambuf_iterator<char>{}};
-    m_map = tmx_load_buffer(std::data(data), static_cast<int>(std::size(data)));
-    if(!m_map)
-        throw std::runtime_error{"Invalid tmx map."};
-}
-
-tiled_map::tiled_map(std::string_view data, cpt::load_from_memory_t)
-{
-    m_map = tmx_load_buffer(std::data(data), static_cast<int>(std::size(data)));
-    if(!m_map)
-        throw std::runtime_error{"Invalid tmx map."};
-}
-
-tiled_map::~tiled_map()
-{
-    if(m_map)
-        tmx_map_free(reinterpret_cast<tmx_map*>(m_map));
-}
-
-std::uint32_t tiled_map::width() const noexcept
-{
-    assert(m_map);
-    return reinterpret_cast<const tmx_map*>(m_map)->width;
-}
-
-std::uint32_t tiled_map::height() const noexcept
-{
-    assert(m_map);
-    return reinterpret_cast<const tmx_map*>(m_map)->height;
-}
-
-std::uint32_t tiled_map::tile_width() const noexcept
-{
-    assert(m_map);
-    return reinterpret_cast<const tmx_map*>(m_map)->tile_width;
-}
-
-std::uint32_t tiled_map::tile_height() const noexcept
-{
-    assert(m_map);
-    return reinterpret_cast<const tmx_map*>(m_map)->tile_height;
-}
-
-*/
 }

@@ -23,6 +23,7 @@ namespace tiled
 {
 
 using property = std::variant<std::string, std::filesystem::path, std::int32_t, float, cpt::color, bool>;
+using properties_set = std::unordered_map<std::string, property>;
 
 struct object
 {
@@ -67,7 +68,7 @@ struct object
     std::string type{};
     bool visible{};
     content_type content{};
-    std::unordered_map<std::string, property> properties{};
+    properties_set properties{};
 };
 
 enum class objects_layer_draw_order : std::uint32_t
@@ -110,7 +111,7 @@ struct layer
     float opacity{};
     bool visible{};
     content_type content{};
-    std::unordered_map<std::string, property> properties{};
+    properties_set properties{};
 };
 
 struct tile
@@ -121,12 +122,11 @@ struct tile
         float duration{};
     };
 
-    std::uint32_t id{};
     std::string type{};
     std::optional<tph::image> image{};
     std::optional<object> hitbox{};
     std::vector<animation> animations{};
-    std::unordered_map<std::string, property> properties{};
+    properties_set properties{};
 };
 
 struct tileset
@@ -142,7 +142,7 @@ struct tileset
     glm::vec2 offset{};
     std::optional<tph::image> image{};
     std::vector<tile> tiles{};
-    std::unordered_map<std::string, property> properties{};
+    properties_set properties{};
 };
 
 struct map
@@ -155,10 +155,16 @@ struct map
     std::vector<tileset> tilesets{};
     std::vector<layer> layers{};
     std::vector<std::reference_wrapper<tile>> tiles{};
-    std::unordered_map<std::string, property> properties{};
+    properties_set properties{};
 };
 
-using external_load_callback_type = std::function<std::string(const std::filesystem::path& path)>;
+enum class external_resource_type : std::uint32_t
+{
+    tileset = 1,
+    image = 2
+};
+
+using external_load_callback_type = std::function<std::string(const std::filesystem::path& path, external_resource_type resource_type)>;
 
 map load_map(const std::filesystem::path& path);
 
