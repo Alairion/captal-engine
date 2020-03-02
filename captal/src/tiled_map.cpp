@@ -17,7 +17,7 @@ namespace tiled
 
 using namespace std::string_view_literals;
 
-using tmx_data_t = std::variant<std::vector<std::uint8_t>, std::vector<std::uint32_t>>;
+using tmx_data_t = std::vector<std::uint32_t>;
 
 static std::uint32_t from_base64(char value) noexcept
 {
@@ -47,6 +47,8 @@ static std::uint32_t from_base64(char value) noexcept
 
 static std::vector<std::uint8_t> parse_base64(std::string_view data)
 {
+    assert(std::size(data) % 4 == 0 && "Bad base64 string");
+
     std::vector<std::uint8_t> output{};
     output.reserve((std::size(data) / 4) * 3);
 
@@ -108,9 +110,9 @@ static tmx_data_t parse_data(const pugi::xml_node& node)
     const std::string_view compression{node.attribute("compression").as_string()};
     std::string data{node.child_value()};
 
-    if(encoding == "cvt")
+    if(encoding == "csv")
     {
-        data.erase(std::remove_if(std::begin(data), std::end(data), [](char c){return !std::isdigit(c) || c != ',';}), std::end(data));
+        data.erase(std::remove_if(std::begin(data), std::end(data), [](char c){return !std::isdigit(c) && c != ',';}), std::end(data));
 
         std::uint32_t value{};
         std::vector<std::uint32_t> output{};
@@ -130,19 +132,27 @@ static tmx_data_t parse_data(const pugi::xml_node& node)
             }
         }
 
-        return tmx_data_t{output};
+        return output;
     }
     else if(encoding == "base64")
     {
         std::vector<std::uint8_t> raw_data{parse_base64(data)};
 
         if(compression == "zlib" || compression == "gzip")
-            return tmx_data_t{uncompress(raw_data)};
+            raw_data = uncompress(raw_data);
 
-        return tmx_data_t{std::move(raw_data)};
+        std::vector<std::uint32_t> output{};
+        output.reserve(std::size(raw_data) / 4);
+
+        for(std::size_t i{}; i < std::size(data); i += 4)
+        {
+            output.push_back((static_cast<std::uint32_t>(data[i]) << 24) | (static_cast<std::uint32_t>(data[i + 1]) << 16) | (static_cast<std::uint32_t>(data[i + 2]) << 8) | (static_cast<std::uint32_t>(data[i + 3])));
+        }
+
+        return output;
     }
 
-    return tmx_data_t{std::vector<std::uint8_t>{}};
+    return tmx_data_t{};
 }
 
 static cpt::color parse_color(std::string_view attribute)
@@ -216,7 +226,7 @@ static properties_set parse_properties(const pugi::xml_node& node)
     return output;
 }
 
-static std::vector<tile::animation> parse_animation(const pugi::xml_node& node)
+static std::vector<tile::animation> parse_animations(const pugi::xml_node& node)
 {
     std::vector<tile::animation> output{};
 
@@ -235,6 +245,100 @@ static std::vector<tile::animation> parse_animation(const pugi::xml_node& node)
     return output;
 }
 
+static object parse_object(const pugi::xml_node& node)
+{
+    object output{};
+    output.id = node.attribute("id").as_uint();
+    output.name = node.attribute("name").as_string();
+    output.type = node.attribute("type").as_string();
+    output.visible = node.attribute("visible").as_uint(1) == 1;
+
+    for(auto&& child : node)
+    {
+        if(child.name() == "point"sv)
+        {
+            object::point point{};
+            point.position.x = node.attribute("x").as_float();
+            point.position.y = node.attribute("x").as_float();
+
+            output.content = point;
+        }
+        else if(child.name() == "text"sv)
+        {
+            object::text text{};
+            text.text = child.child_value();
+            text.font_family = child.attribute("fontfamily").as_string();
+            text.pixel_size = child.attribute("pixelsize").as_uint();
+            text.position.x = node.attribute("x").as_float();
+            text.position.y = node.attribute("x").as_float();
+            text.width = node.attribute("width").as_float();
+            text.height = node.attribute("height").as_float();
+            text.angle = node.attribute("rotation").as_float() * (pi<float> * 180.0f);
+            text.color = parse_color(child.attribute("color").as_string("#000000"));
+
+            if(child.attribute("bold").as_uint() != 0)
+                text.style |= font_style::bold;
+            if(child.attribute("italic").as_uint() != 0)
+                text.style |= font_style::italic;
+            if(child.attribute("underline").as_uint() != 0)
+                text.style |= font_style::underlined;
+            if(child.attribute("strikeout").as_uint() != 0)
+                text.style |= font_style::strikethrough;
+
+            if(child.attribute("kerning") != 0)
+                text.drawer_options |= text_drawer_options::kerning;
+
+            output.content = std::move(text);
+        }
+        else if(child.name() == "properties"sv)
+        {
+            output.properties = parse_properties(child);
+        }
+    }
+
+    if(const auto attribute{node.attribute("gid")}; !std::empty(attribute))
+    {
+        object::tile tile{};
+        tile.gid = attribute.as_uint();
+        tile.position.x = node.attribute("x").as_float();
+        tile.position.y = node.attribute("x").as_float();
+        tile.width = node.attribute("width").as_float();
+        tile.height = node.attribute("height").as_float();
+        tile.angle = node.attribute("rotation").as_float() * (pi<float> * 180.0f);
+
+        output.content = tile;
+    }
+
+    if(std::holds_alternative<std::monostate>(output.content))
+    {
+        object::square square{};
+        square.position.x = node.attribute("x").as_float();
+        square.position.y = node.attribute("x").as_float();
+        square.width = node.attribute("width").as_float();
+        square.height = node.attribute("height").as_float();
+        square.angle = node.attribute("rotation").as_float() * (pi<float> * 180.0f);
+
+        output.content = square;
+    }
+
+    return output;
+}
+
+static std::vector<object> parse_hitboxes(const pugi::xml_node& node)
+{
+    std::vector<object> output{};
+
+    for(auto&& child : node)
+    {
+        if(child.name() == "object"sv)
+        {
+            output.push_back(parse_object(child));
+        }
+    }
+
+    return output;
+}
+
 static tile parse_tile(const pugi::xml_node& node, const std::filesystem::path& root, const external_load_callback_type& load_callback)
 {
     tile output{};
@@ -244,11 +348,15 @@ static tile parse_tile(const pugi::xml_node& node, const std::filesystem::path& 
     {
         if(child.name() == "animation"sv)
         {
-            output.animations = parse_animation(child);
+            output.animations = parse_animations(child);
         }
         else if(child.name() == "image"sv)
         {
-            output.image = parse_image(child, root, load_callback);
+            output.image = parse_image(child, root.parent_path(), load_callback);
+        }
+        else if(child.name() == "objectgroup"sv)
+        {
+            output.hitboxes = parse_hitboxes(child);
         }
         else if(child.name() == "properties"sv)
         {
@@ -278,7 +386,7 @@ static void parse_tileset(const pugi::xml_node& node, tileset& output, const std
         }
         else if(child.name() == "image"sv)
         {
-            output.image = parse_image(child, root, load_callback);
+            output.image = parse_image(child, root.parent_path(), load_callback);
         }
         else if(child.name() == "tile"sv)
         {
@@ -291,10 +399,10 @@ static void parse_tileset(const pugi::xml_node& node, tileset& output, const std
     }
 }
 
-static void parse_map_tileset(const pugi::xml_node& node, map& output, const external_load_callback_type& load_callback)
+static tileset parse_map_tileset(const pugi::xml_node& node, const external_load_callback_type& load_callback)
 {
-    tileset item{};
-    item.first_gid = node.attribute("firstgid").as_uint();
+    tileset output{};
+    output.first_gid = node.attribute("firstgid").as_uint();
 
     if(auto&& attribute{node.attribute("source")}; !std::empty(attribute))
     {
@@ -305,14 +413,168 @@ static void parse_map_tileset(const pugi::xml_node& node, map& output, const ext
         if(auto result{document.load_buffer_inplace(std::data(data), std::size(data))}; !result)
             throw std::runtime_error{"Can not parse TMX file: " + std::string{result.description()}};
 
-       parse_tileset(document.root(), item, path, load_callback);
+       parse_tileset(document.child("tileset"), output, path, load_callback);
     }
     else
     {
-       parse_tileset(node, item, std::filesystem::u8path(u8"."), load_callback);
+       parse_tileset(node, output, std::filesystem::u8path(u8"."), load_callback);
     }
 
-    output.tilesets.push_back(std::move(item));
+    return output;
+}
+
+static layer parse_layer(const pugi::xml_node& node)
+{
+    layer output{};
+    output.name = node.attribute("name").as_string();
+    output.opacity = node.attribute("opacity").as_float(1.0f);
+    output.visible = node.attribute("visible").as_uint(1) == 1;
+    output.position.x = node.attribute("offsetx").as_float();
+    output.position.y = node.attribute("offsety").as_float();
+
+    for(auto&& child : node)
+    {
+        if(child.name() == "data"sv)
+        {
+            layer::tiles tiles{};
+            tiles.gid = parse_data(child);
+
+            output.content = std::move(tiles);
+        }
+        else if(child.name() == "properties"sv)
+        {
+            output.properties = parse_properties(child);
+        }
+    }
+
+    return output;
+}
+
+static layer parse_object_group(const pugi::xml_node& node)
+{
+    layer output{};
+    output.name = node.attribute("name").as_string();
+    output.opacity = node.attribute("opacity").as_float(1.0f);
+    output.visible = node.attribute("visible").as_uint(1) == 1;
+    output.position.x = node.attribute("offsetx").as_float();
+    output.position.y = node.attribute("offsety").as_float();
+
+    layer::objects objects{};
+    objects.draw_order = node.attribute("draworder").as_string("topdown") == "index"sv ? objects_layer_draw_order::index : objects_layer_draw_order::topdown;
+
+    for(auto&& child : node)
+    {
+        if(child.name() == "object"sv)
+        {
+            objects.objects.push_back(parse_object(child));
+        }
+        else if(child.name() == "properties"sv)
+        {
+            output.properties = parse_properties(child);
+        }
+    }
+
+    output.content = std::move(objects);
+
+    return output;
+}
+
+static layer parse_image_layer(const pugi::xml_node& node, const external_load_callback_type& load_callback)
+{
+    layer output{};
+    output.name = node.attribute("name").as_string();
+    output.opacity = node.attribute("opacity").as_float(1.0f);
+    output.visible = node.attribute("visible").as_uint(1) == 1;
+    output.position.x = node.attribute("offsetx").as_float();
+    output.position.y = node.attribute("offsety").as_float();
+
+    layer::image image{};
+    image.image = parse_image(node, "", load_callback);
+
+    output.content = std::move(image);
+
+    return output;
+}
+
+static layer parse_group_layer(const pugi::xml_node& node, const external_load_callback_type& load_callback)
+{
+    layer output{};
+    output.name = node.attribute("name").as_string();
+    output.opacity = node.attribute("opacity").as_float(1.0f);
+    output.visible = node.attribute("visible").as_uint(1) == 1;
+    output.position.x = node.attribute("offsetx").as_float();
+    output.position.y = node.attribute("offsety").as_float();
+
+    layer::group group{};
+    for(auto&& child : node)
+    {
+        if(child.name() == "layer"sv)
+        {
+            group.layers.push_back(parse_layer(child));
+        }
+        else if(child.name() == "objectgroup"sv)
+        {
+            group.layers.push_back(parse_object_group(child));
+        }
+        else if(child.name() == "imagelayer"sv)
+        {
+            group.layers.push_back(parse_image_layer(child, load_callback));
+        }
+        else if(child.name() == "group"sv)
+        {
+            group.layers.push_back(parse_group_layer(child, load_callback));
+        }
+        else if(child.name() == "properties"sv)
+        {
+            output.properties = parse_properties(child);
+        }
+    }
+
+    output.content = std::move(group);
+
+    return output;
+}
+
+static map parse_map(const pugi::xml_node& node, const external_load_callback_type& load_callback)
+{
+    map output{};
+
+    output.width = node.attribute("width").as_uint();
+    output.height = node.attribute("height").as_uint();
+    output.tile_width = node.attribute("tilewidth").as_uint();
+    output.tile_height = node.attribute("tileheight").as_uint();
+    if(const auto attribute{node.attribute("backgroundcolor")}; !std::empty(attribute))
+        output.background_color = parse_color(attribute.as_string());
+
+    for(auto&& child : node)
+    {
+        if(child.name() == "tileset"sv)
+        {
+            output.tilesets.push_back(parse_map_tileset(child, load_callback));
+        }
+        else if(child.name() == "layer"sv)
+        {
+            output.layers.push_back(parse_layer(child));
+        }
+        else if(child.name() == "objectgroup"sv)
+        {
+            output.layers.push_back(parse_object_group(child));
+        }
+        else if(child.name() == "imagelayer"sv)
+        {
+            output.layers.push_back(parse_image_layer(child, load_callback));
+        }
+        else if(child.name() == "group"sv)
+        {
+            output.layers.push_back(parse_group_layer(child, load_callback));
+        }
+        else if(child.name() == "properties"sv)
+        {
+            output.properties = parse_properties(child);
+        }
+    }
+
+    return output;
 }
 
 map load_map(const std::filesystem::path& path)
@@ -321,46 +583,21 @@ map load_map(const std::filesystem::path& path)
     if(!ifs)
         throw std::runtime_error{"Can not open file \"" + path.u8string() + "\"."};
 
-    std::string data{std::istreambuf_iterator<char>{ifs}, std::istreambuf_iterator<char>{}};
-
+    const std::string data{std::istreambuf_iterator<char>{ifs}, std::istreambuf_iterator<char>{}};
     pugi::xml_document document{};
-    if(auto result{document.load_buffer_inplace(std::data(data), std::size(data))}; !result)
+    if(auto result{document.load_string(std::data(data))}; !result)
         throw std::runtime_error{"Can not parse TMX file: " + std::string{result.description()}};
-
-    map output{};
 
     const auto load_callback = [&path](const std::filesystem::path& other_path, external_resource_type resource_type [[maybe_unused]]) -> std::string
     {
-        std::ifstream ifs{path / other_path, std::ios_base::binary};
+        std::ifstream ifs{path.parent_path() / other_path, std::ios_base::binary};
         if(!ifs)
             throw std::runtime_error{"Can not open file \"" + path.u8string() + "\"."};
 
         return std::string{std::istreambuf_iterator<char>{ifs}, std::istreambuf_iterator<char>{}};
     };
 
-    for(auto&& map : document)
-    {
-        output.width = map.attribute("width").as_uint();
-        output.height = map.attribute("height").as_uint();
-        output.tile_width = map.attribute("tilewidth").as_uint();
-        output.tile_height = map.attribute("tileheight").as_uint();
-        if(const auto attribute{map.attribute("backgroundcolor")}; !std::empty(attribute))
-            output.background_color = parse_color(attribute.as_string());
-
-        for(auto&& child : map)
-        {
-            if(child.name() == "tileset"sv)
-            {
-                parse_map_tileset(child, output, load_callback);
-            }
-            else if(child.name() == "properties"sv)
-            {
-                output.properties = parse_properties(child);
-            }
-        }
-    }
-
-    return output;
+    return parse_map(document.child("map"), load_callback);
 }
 
 }

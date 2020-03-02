@@ -22,11 +22,16 @@ namespace cpt
 namespace tiled
 {
 
-using property = std::variant<std::string, std::filesystem::path, std::int32_t, float, cpt::color, bool>;
+using property = std::variant<std::string, std::filesystem::path, std::int32_t, float, color, bool>;
 using properties_set = std::unordered_map<std::string, property>;
 
 struct object
 {
+    struct point
+    {
+        glm::vec2 position{};
+    };
+
     struct square
     {
         glm::vec2 position{};
@@ -38,6 +43,7 @@ struct object
     struct tile
     {
         std::uint32_t gid{};
+        glm::vec2 position{};
         float width{};
         float height{};
         float angle{};
@@ -45,23 +51,19 @@ struct object
 
     struct text
     {
+        std::string text{};
         std::string font_family{};
         std::uint32_t pixel_size{};
+        glm::vec2 position{};
         float width{};
         float height{};
         float angle{};
-        cpt::color color{};
+        color color{};
         font_style style{};
         text_drawer_options drawer_options{};
-        std::string text{};
     };
 
-    struct point
-    {
-        glm::vec2 position{};
-    };
-
-    using content_type = std::variant<std::monostate, square, tile, text, point>;
+    using content_type = std::variant<std::monostate, point, square, tile, text>;
 
     std::uint32_t id{};
     std::string name{};
@@ -74,8 +76,8 @@ struct object
 enum class objects_layer_draw_order : std::uint32_t
 {
     unknown,
+    topdown,
     index,
-    topdown
 };
 
 struct layer
@@ -87,16 +89,13 @@ struct layer
 
     struct objects
     {
-        color color{};
         objects_layer_draw_order draw_order{};
         std::vector<object> objects{};
     };
 
     struct image
     {
-        std::filesystem::path path{};
-        std::uint32_t width{};
-        std::uint32_t height{};
+        tph::image image{};
     };
 
     struct group
@@ -107,7 +106,7 @@ struct layer
     using content_type = std::variant<std::monostate, tiles, objects, image, group>;
 
     std::string name{};
-    glm::vec2 offset{};
+    glm::vec2 position{};
     float opacity{};
     bool visible{};
     content_type content{};
@@ -124,7 +123,7 @@ struct tile
 
     std::string type{};
     std::optional<tph::image> image{};
-    std::optional<object> hitbox{};
+    std::vector<object> hitboxes{};
     std::vector<animation> animations{};
     properties_set properties{};
 };
@@ -161,12 +160,13 @@ struct map
 enum class external_resource_type : std::uint32_t
 {
     tileset = 1,
-    image = 2
+    image = 2,
+    object_template = 3
 };
 
 using external_load_callback_type = std::function<std::string(const std::filesystem::path& path, external_resource_type resource_type)>;
 
-map load_map(const std::filesystem::path& path);
+map CAPTAL_API load_map(const std::filesystem::path& path);
 
 }
 
