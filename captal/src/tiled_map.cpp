@@ -113,6 +113,7 @@ static tmx_data_t parse_data(const pugi::xml_node& node)
     if(encoding == "csv")
     {
         data.erase(std::remove_if(std::begin(data), std::end(data), [](char c){return !std::isdigit(c) && c != ',';}), std::end(data));
+        data.push_back(',');
 
         std::uint32_t value{};
         std::vector<std::uint32_t> output{};
@@ -136,6 +137,7 @@ static tmx_data_t parse_data(const pugi::xml_node& node)
     }
     else if(encoding == "base64")
     {
+        data.erase(std::remove_if(std::begin(data), std::end(data), [](char c){return !std::isalnum(c) && c != '+' && c != '/' && c != '=';}), std::end(data));
         std::vector<std::uint8_t> raw_data{parse_base64(data)};
 
         if(compression == "zlib" || compression == "gzip")
@@ -489,7 +491,7 @@ static layer parse_image_layer(const pugi::xml_node& node, const external_load_c
     output.position.y = node.attribute("offsety").as_float();
 
     layer::image image{};
-    image.image = parse_image(node, "", load_callback);
+    image.image = parse_image(node.child("image"), "", load_callback);
 
     output.content = std::move(image);
 
