@@ -15,6 +15,7 @@
 
 #include "color.hpp"
 #include "text.hpp"
+#include "physics.hpp"
 
 namespace cpt
 {
@@ -167,18 +168,11 @@ enum class external_resource_type : std::uint32_t
 using external_load_callback_type = std::function<std::string(const std::filesystem::path& path, external_resource_type resource_type)>;
 
 map CAPTAL_API load_map(const std::filesystem::path& path);
+map CAPTAL_API load_map(const std::filesystem::path& path, const external_load_callback_type& load_callback);
+map CAPTAL_API load_map(std::string_view tmx_file, const external_load_callback_type& load_callback);
+map CAPTAL_API load_map(std::istream& tmx_file, const external_load_callback_type& load_callback);
 
 }
-
-class tiled_world
-{
-public:
-    tiled_world(std::filesystem::path tmx_path);
-    ~tiled_world() = default;
-
-private:
-
-};
 
 }
 

@@ -146,9 +146,15 @@ static tmx_data_t parse_data(const pugi::xml_node& node)
         std::vector<std::uint32_t> output{};
         output.reserve(std::size(raw_data) / 4);
 
-        for(std::size_t i{}; i < std::size(data); i += 4)
+        for(std::size_t i{}; i < std::size(raw_data); i += 4)
         {
-            output.push_back((data[i] << 0) | (data[i + 1] << 8) | (data[i + 2] << 16) | (data[i + 3] << 24));
+            std::uint32_t value{};
+            value |= raw_data[i + 0] << 0;
+            value |= raw_data[i + 1] << 8;
+            value |= raw_data[i + 2] << 16;
+            value |= raw_data[i + 3] << 24;
+
+            output.push_back(value);
         }
 
         return output;
@@ -406,20 +412,20 @@ static tileset parse_map_tileset(const pugi::xml_node& node, const external_load
     tileset output{};
     output.first_gid = node.attribute("firstgid").as_uint();
 
-    if(auto&& attribute{node.attribute("source")}; !std::empty(attribute))
+    if(const auto attribute{node.attribute("source")}; !std::empty(attribute))
     {
         const auto path{std::filesystem::u8path(attribute.as_string())};
-        std::string data{load_callback(path, external_resource_type::tileset)};
+        const std::string data{load_callback(path, external_resource_type::tileset)};
 
         pugi::xml_document document{};
-        if(auto result{document.load_buffer_inplace(std::data(data), std::size(data))}; !result)
+        if(auto result{document.load_string(std::data(data))}; !result)
             throw std::runtime_error{"Can not parse TMX file: " + std::string{result.description()}};
 
-       parse_tileset(document.child("tileset"), output, path, load_callback);
+        parse_tileset(document.child("tileset"), output, path, load_callback);
     }
     else
     {
-       parse_tileset(node, output, std::filesystem::u8path(u8"."), load_callback);
+        parse_tileset(node, output, "", load_callback);
     }
 
     return output;
@@ -581,14 +587,7 @@ static map parse_map(const pugi::xml_node& node, const external_load_callback_ty
 
 map load_map(const std::filesystem::path& path)
 {
-    std::ifstream ifs{path, std::ios_base::binary};
-    if(!ifs)
-        throw std::runtime_error{"Can not open file \"" + path.u8string() + "\"."};
-
-    const std::string data{std::istreambuf_iterator<char>{ifs}, std::istreambuf_iterator<char>{}};
-    pugi::xml_document document{};
-    if(auto result{document.load_string(std::data(data))}; !result)
-        throw std::runtime_error{"Can not parse TMX file: " + std::string{result.description()}};
+    assert(!std::empty(path) && "Invalid path.");
 
     const auto load_callback = [&path](const std::filesystem::path& other_path, external_resource_type resource_type [[maybe_unused]]) -> std::string
     {
@@ -599,7 +598,39 @@ map load_map(const std::filesystem::path& path)
         return std::string{std::istreambuf_iterator<char>{ifs}, std::istreambuf_iterator<char>{}};
     };
 
+    return load_map(path, load_callback);
+}
+
+map load_map(const std::filesystem::path& path, const external_load_callback_type& load_callback)
+{
+    assert(!std::empty(path) && "Invalid path.");
+
+    std::ifstream ifs{path, std::ios_base::binary};
+    if(!ifs)
+        throw std::runtime_error{"Can not open file \"" + path.u8string() + "\"."};
+
+    return load_map(ifs, load_callback);
+}
+
+map load_map(std::string_view tmx_file, const external_load_callback_type& load_callback)
+{
+    assert(!std::empty(tmx_file) && "Invalid tmx file.");
+
+    pugi::xml_document document{};
+    if(auto result{document.load_buffer(std::data(tmx_file), std::size(tmx_file))}; !result)
+        throw std::runtime_error{"Can not parse TMX file: " + std::string{result.description()}};
+
     return parse_map(document.child("map"), load_callback);
+}
+
+map load_map(std::istream& tmx_file, const external_load_callback_type& load_callback)
+{
+    assert(tmx_file && "Invalid stream");
+
+    const std::string data{std::istreambuf_iterator<char>{tmx_file}, std::istreambuf_iterator<char>{}};
+    assert(!std::empty(data) && "Invalid tmx file.");
+
+    return load_map(std::string_view{data}, load_callback);
 }
 
 }
