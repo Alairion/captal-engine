@@ -148,7 +148,7 @@ static tmx_data_t parse_data(const pugi::xml_node& node)
 
         for(std::size_t i{}; i < std::size(data); i += 4)
         {
-            output.push_back((static_cast<std::uint32_t>(data[i]) << 24) | (static_cast<std::uint32_t>(data[i + 1]) << 16) | (static_cast<std::uint32_t>(data[i + 2]) << 8) | (static_cast<std::uint32_t>(data[i + 3])));
+            output.push_back((static_cast<std::uint32_t>(data[i])) | (static_cast<std::uint32_t>(data[i + 1]) << 8) | (static_cast<std::uint32_t>(data[i + 2]) << 16) | (static_cast<std::uint32_t>(data[i + 3]) << 24));
         }
 
         return output;
