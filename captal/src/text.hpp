@@ -125,8 +125,7 @@ using text_weak_ptr = std::weak_ptr<text>;
 enum class text_drawer_options : std::uint32_t
 {
     none = 0x00,
-    cached = 0x01,
-    kerning = 0x02
+    kerning = 0x01
 };
 
 template<> struct enable_enum_operations<text_drawer_options> {static constexpr bool value{true};};
@@ -135,7 +134,7 @@ class CAPTAL_API text_drawer
 {
 public:
     text_drawer() = default;
-    text_drawer(cpt::font font, text_drawer_options options = text_drawer_options::cached | text_drawer_options::kerning);
+    text_drawer(cpt::font font, text_drawer_options options = text_drawer_options::kerning);
     ~text_drawer() = default;
     text_drawer(const text_drawer&) = delete;
     text_drawer& operator=(const text_drawer&) = delete;
@@ -146,6 +145,8 @@ public:
     void set_style(font_style style) noexcept;
     void resize(std::uint32_t pixels_size);
 
+    std::pair<std::uint32_t, std::uint32_t> bounds(std::string_view u8string);
+    std::pair<std::uint32_t, std::uint32_t> bounds(std::u32string u32string);
     text_ptr draw(std::string_view u8string, const color& color = colors::white);
     text_ptr draw(std::u32string u32string, const color& color = colors::white);
 
@@ -167,9 +168,7 @@ public:
 private:
     text_ptr draw_cached(std::u32string u32string, const glm::vec4& color);
     texture_ptr make_cached_texture(std::u32string u32string, std::unordered_map<char32_t, std::pair<std::shared_ptr<glyph>, glm::vec2>>& cache, tph::command_buffer& command_buffer);
-
-    text_ptr draw_uncached(std::u32string string, const glm::vec4& color);
-    texture_ptr make_uncached_texture(std::u32string string, std::unordered_map<char32_t, std::pair<glyph, glm::vec2>>& cache, tph::command_buffer& command_buffer);
+    const std::shared_ptr<glyph>& load_glyph(char32_t codepoint);
 
 private:
     cpt::font m_font{};
