@@ -23,7 +23,7 @@ std::vector<buffer_part> compute_buffer_parts(std::uint32_t index_count, std::ui
     return std::vector<buffer_part>
     {
         buffer_part{buffer_part_type::uniform, sizeof(renderable::uniform_data)},
-        buffer_part{buffer_part_type::index, index_count * sizeof(std::uint16_t)},
+        buffer_part{buffer_part_type::index, index_count * sizeof(std::uint32_t)},
         buffer_part{buffer_part_type::vertex, vertex_count * sizeof(vertex)}
     };
 }
@@ -43,11 +43,11 @@ renderable::renderable(std::uint32_t index_count, std::uint32_t vertex_count)
     update();
 }
 
-void renderable::set_indices(const std::vector<std::uint16_t>& indices) noexcept
+void renderable::set_indices(const std::vector<std::uint32_t>& indices) noexcept
 {
     assert(m_index_count > 0 && "cpt::renderable::set_indexes called on a renderable without index buffer");
 
-    std::memcpy(&m_buffer.get<std::uint16_t>(1), std::data(indices), std::size(indices) * sizeof(std::uint16_t));
+    std::memcpy(&m_buffer.get<std::uint32_t>(1), std::data(indices), std::size(indices) * sizeof(std::uint32_t));
     m_need_upload = true;
 }
 

@@ -86,13 +86,13 @@ void tilemap::set_relative_texture_rect(std::uint32_t row, std::uint32_t col, fl
 
 void tilemap::init()
 {
-    std::uint16_t* const indices{get_indices()};
+    std::uint32_t* const indices{get_indices()};
     for(std::uint32_t j{}; j < m_height; ++j)
     {
         for(std::uint32_t i{}; i < m_width; ++i)
         {
             const std::uint32_t shift{((j * m_width) + i) * 4};
-            std::uint16_t* const current{indices + ((j * m_width) + i) * 6};
+            std::uint32_t* const current{indices + ((j * m_width) + i) * 6};
 
             current[0] = shift + 0;
             current[1] = shift + 1;

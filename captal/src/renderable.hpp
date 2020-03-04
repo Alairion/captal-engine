@@ -36,7 +36,7 @@ public:
     renderable(renderable&&) noexcept = default;
     renderable& operator=(renderable&&) noexcept = default;
 
-    void set_indices(const std::vector<std::uint16_t>& indices) noexcept;
+    void set_indices(const std::vector<std::uint32_t>& indices) noexcept;
     void set_vertices(const std::vector<vertex>& vertices) noexcept;
     void set_texture(texture_ptr texture) noexcept;
     void set_view(const view_ptr& view);
@@ -188,14 +188,16 @@ public:
         return m_vertex_count;
     }
 
-    std::uint16_t* get_indices() noexcept
+    std::uint32_t* get_indices() noexcept
     {
-        return &m_buffer.get<std::uint16_t>(m_index_count > 0 ? 2 : 1);
+        return &m_buffer.get<std::uint32_t>(1);
     }
 
-    const std::uint16_t* get_indices() const noexcept
+    const std::uint32_t* get_indices() const noexcept
     {
-        return &m_buffer.get<const std::uint16_t>(m_index_count > 0 ? 2 : 1);
+        assert(m_index_count > 0 && "cpt::renderable::get_indices called on renderable with no index buffer");
+
+        return &m_buffer.get<const std::uint32_t>(1);
     }
 
     vertex* get_vertices() noexcept

@@ -91,7 +91,7 @@ class CAPTAL_API text : public renderable
 {
 public:
     text() = default;
-    text(const std::vector<std::uint16_t>& indices, const std::vector<vertex>& vertices, texture_ptr texture, std::uint32_t width, std::uint32_t height, std::size_t count);
+    text(const std::vector<std::uint32_t>& indices, const std::vector<vertex>& vertices, texture_ptr texture, std::uint32_t width, std::uint32_t height, std::size_t count);
 
     ~text() = default;
     text(const text&) = delete;
@@ -130,6 +130,14 @@ enum class text_drawer_options : std::uint32_t
 
 template<> struct enable_enum_operations<text_drawer_options> {static constexpr bool value{true};};
 
+enum class text_align : std::uint32_t
+{
+    left = 0,
+    right = 1,
+    center = 2,
+    justify = 3
+};
+
 class CAPTAL_API text_drawer
 {
 public:
@@ -146,9 +154,11 @@ public:
     void resize(std::uint32_t pixels_size);
 
     std::pair<std::uint32_t, std::uint32_t> bounds(std::string_view u8string);
-    std::pair<std::uint32_t, std::uint32_t> bounds(std::u32string u32string);
+    std::pair<std::uint32_t, std::uint32_t> bounds(std::u32string string);
     text_ptr draw(std::string_view u8string, const color& color = colors::white);
-    text_ptr draw(std::u32string u32string, const color& color = colors::white);
+    text_ptr draw(std::u32string string, const color& color = colors::white);
+    text_ptr draw(std::string_view u8string, std::uint32_t line_width, text_align align = text_align::left, const color& color = colors::white);
+    text_ptr draw(std::u32string string, std::uint32_t line_width, text_align align = text_align::left, const color& color = colors::white);
 
     cpt::font& font() noexcept
     {
@@ -166,9 +176,9 @@ public:
     }
 
 private:
-    text_ptr draw_cached(std::u32string u32string, const glm::vec4& color);
-    texture_ptr make_cached_texture(std::u32string u32string, std::unordered_map<char32_t, std::pair<std::shared_ptr<glyph>, glm::vec2>>& cache, tph::command_buffer& command_buffer);
+    texture_ptr make_texture(std::u32string string, std::unordered_map<char32_t, std::pair<std::shared_ptr<glyph>, glm::vec2>>& cache, tph::command_buffer& command_buffer);
     const std::shared_ptr<glyph>& load_glyph(char32_t codepoint);
+    std::vector<std::u32string> split_lines(const std::u32string& string);
 
 private:
     cpt::font m_font{};
