@@ -31,7 +31,6 @@ enum class font_style : std::uint32_t
 {
     regular = 0x00,
     bold = 0x01,
-    italic = 0x02,
     underlined = 0x04,
     strikethrough = 0x08,
 };
@@ -178,7 +177,7 @@ public:
 private:
     texture_ptr make_texture(std::u32string string, std::unordered_map<char32_t, std::pair<std::shared_ptr<glyph>, glm::vec2>>& cache, tph::command_buffer& command_buffer);
     const std::shared_ptr<glyph>& load_glyph(char32_t codepoint);
-    std::vector<std::u32string> split_lines(const std::u32string& string);
+    std::vector<std::u32string_view> split_words(std::u32string_view string);
 
 private:
     cpt::font m_font{};

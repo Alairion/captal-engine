@@ -587,11 +587,6 @@ const std::shared_ptr<glyph>& text_drawer::load_glyph(char32_t codepoint)
     return it->second;
 }
 
-std::vector<std::u32string> split_lines(const std::u32string& string)
-{
-    std::vector<std::u32string> output{};
-
-}
 
 text_ptr draw_text(cpt::font& font, std::string_view u8string, const color& color, text_drawer_options options)
 {
