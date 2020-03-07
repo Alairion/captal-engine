@@ -85,7 +85,7 @@ void renderable::set_view(const view_ptr& view)
     const auto write_bindings = [has_binding, write_binding, &view, this](const descriptor_set_ptr& set)
     {
         tph::write_descriptor(engine::instance().renderer(), set->set(), 0, view->buffer(), 0, view->buffer().size());
-        tph::write_descriptor(engine::instance().renderer(), set->set(), 1, m_buffer.buffer(), 0, sizeof(glm::mat4));
+        tph::write_descriptor(engine::instance().renderer(), set->set(), 1, m_buffer.buffer(), 0, m_buffer.size());
         tph::write_descriptor(engine::instance().renderer(), set->set(), 2, m_texture ? m_texture->get_texture() : engine::instance().dummy_texture().get_texture());
 
         for(auto&& [binding, data] : m_uniform_bindings)
