@@ -40,6 +40,7 @@ struct graphics_parameters
 
 using update_signal = sigslot::signal<float>;
 using transfer_ended_signal = sigslot::signal<>;
+using render_ended_signal = sigslot::signal<>;
 using frame_per_second_signal = sigslot::signal<std::uint32_t>;
 
 class CAPTAL_API engine
@@ -206,6 +207,7 @@ private:
     tph::renderer m_renderer;
 
     std::mutex m_queue_mutex{};
+
     tph::command_pool m_transfer_pool{};
     std::vector<transfer_buffer> m_transfer_buffers{};
     transfer_buffer* m_current_transfer_buffer{};

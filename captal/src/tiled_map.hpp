@@ -61,6 +61,7 @@ struct object
         float angle{};
         color color{};
         font_style style{};
+        bool italic{};
         text_drawer_options drawer_options{};
     };
 
@@ -154,7 +155,6 @@ struct map
     color background_color{};
     std::vector<tileset> tilesets{};
     std::vector<layer> layers{};
-    std::vector<std::reference_wrapper<tile>> tiles{};
     properties_set properties{};
 };
 

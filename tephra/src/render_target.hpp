@@ -209,7 +209,7 @@ inline VkFramebuffer underlying_cast(const render_target& render_target, const s
     assert((render_target.m_offscreen_target || render_target.m_surface_target) && "tph::underlying_cast<VkRenderPass>(const tph::render_target&) called with invalid render_target.");
 
     if(render_target.m_offscreen_target)
-        return 0;
+        return render_target.m_offscreen_target->framebuffer;
 
     return render_target.m_surface_target->render_pass_data[image_index].framebuffer;
 }

@@ -244,7 +244,7 @@ static std::vector<tile::animation> parse_animations(const pugi::xml_node& node)
         {
             tile::animation animation{};
             animation.lid = child.attribute("tileid").as_uint();
-            animation.duration = child.attribute("duration").as_uint() / 1000.0f;
+            animation.duration = static_cast<float>(child.attribute("duration").as_uint()) / 1000.0f;
 
             output.push_back(animation);
         }
@@ -286,12 +286,12 @@ static object parse_object(const pugi::xml_node& node)
 
             if(child.attribute("bold").as_uint() != 0)
                 text.style |= font_style::bold;
-            if(child.attribute("italic").as_uint() != 0)
-                text.style |= font_style::italic;
             if(child.attribute("underline").as_uint() != 0)
                 text.style |= font_style::underlined;
             if(child.attribute("strikeout").as_uint() != 0)
                 text.style |= font_style::strikethrough;
+
+            text.italic = child.attribute("italic").as_uint() != 0;
 
             if(child.attribute("kerning") != 0)
                 text.drawer_options |= text_drawer_options::kerning;

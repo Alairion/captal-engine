@@ -14,6 +14,7 @@
 #include "engine.hpp"
 #include "encoding.hpp"
 #include "texture.hpp"
+#include "algorithm.hpp"
 
 namespace cpt
 {
@@ -342,7 +343,7 @@ text_ptr text_drawer::draw(std::u32string string, const color& color)
     {
         if(c == U'\n')
         {
-            current_x = 0;
+            current_x = 0.0f;
             current_y += m_font.info().line_height;
             last = 0;
 
@@ -430,70 +431,28 @@ text_ptr text_drawer::draw(std::u32string string, std::uint32_t line_width, text
     auto&& [command_buffer, signal] = cpt::engine::instance().begin_transfer();
     std::unordered_map<char32_t, std::pair<std::shared_ptr<glyph>, glm::vec2>> cache{};
     texture_ptr texture{make_texture(string, cache, command_buffer)};
-    const float texture_width{static_cast<float>(texture->width())};
-    const float texture_height{static_cast<float>(texture->height())};
 
     std::vector<vertex> vertices{};
     vertices.reserve(std::size(string) * 4);
 
-    float current_x{};
-    float current_y{static_cast<float>(m_font.info().max_ascent)};
-    float lowest_x{static_cast<float>(m_font.info().max_glyph_width)};
-    float lowest_y{static_cast<float>(m_font.info().max_glyph_height)};
-    float greatest_x{};
-    float greatest_y{};
-    char32_t last{};
+    draw_line_state state{};
+    state.current_y = static_cast<float>(m_font.info().max_ascent);
+    state.lowest_x = static_cast<float>(m_font.info().max_glyph_width);
+    state.lowest_y = static_cast<float>(m_font.info().max_glyph_height);
+    state.texture_width = static_cast<float>(texture->width());
+    state.texture_height = static_cast<float>(texture->height());
 
-    for(auto c : string)
+    for(auto&& line : split(std::u32string_view{string}, U'\n'))
     {
-        if(c == U'\n')
-        {
-            current_x = 0;
-            current_y += m_font.info().line_height;
-            last = 0;
+        draw_line(line, line_width, align, state, vertices, cache, color);
 
-            vertices.push_back(vertex{});
-            vertices.push_back(vertex{});
-            vertices.push_back(vertex{});
-            vertices.push_back(vertex{});
-        }
-        else
-        {
-            auto& slot{cache.at(c)};
+        state.current_x = 0.0f;
+        state.current_y += m_font.info().line_height;
 
-            const glyph& glyph{*slot.first};
-            const glm::vec2& texture_pos{slot.second};
-
-            const float width {static_cast<float>(glyph.image.width())};
-            const float height{static_cast<float>(glyph.image.height())};
-
-            if(width > 0 && height > 0)
-            {
-                const float kerning{last != 0 && static_cast<bool>(m_options & text_drawer_options::kerning) ? m_font.kerning(last, c) : 0.0f};
-                const float x{current_x + glyph.origin.x + kerning};
-                const float y{current_y + glyph.origin.y};
-
-                vertices.push_back(vertex{{x, y, 0.0f}, static_cast<glm::vec4>(color), {(texture_pos.x) / texture_width, (texture_pos.y) / texture_height}});
-                vertices.push_back(vertex{{x + width, y, 0.0f}, static_cast<glm::vec4>(color), {(texture_pos.x + width) / texture_width, (texture_pos.y) / texture_height}});
-                vertices.push_back(vertex{{x + width, y + height, 0.0f}, static_cast<glm::vec4>(color), {(texture_pos.x + width) / texture_width, (texture_pos.y + height) / texture_height}});
-                vertices.push_back(vertex{{x, y + height, 0.0f}, static_cast<glm::vec4>(color), {(texture_pos.x) / texture_width, (texture_pos.y + height) / texture_height}});
-
-                lowest_x = std::min(lowest_x, x);
-                lowest_y = std::min(lowest_y, y);
-                greatest_x = std::max(greatest_x, x + width);
-                greatest_y = std::max(greatest_y, y + height);
-            }
-            else
-            {
-                vertices.push_back(vertex{});
-                vertices.push_back(vertex{});
-                vertices.push_back(vertex{});
-                vertices.push_back(vertex{});
-            }
-
-            current_x += glyph.advance;
-            last = c;
-       }
+        vertices.push_back(vertex{});
+        vertices.push_back(vertex{});
+        vertices.push_back(vertex{});
+        vertices.push_back(vertex{});
     }
 
     tph::cmd::prepare(command_buffer, texture->get_texture(), tph::pipeline_stage::fragment_shader);
@@ -514,11 +473,90 @@ text_ptr text_drawer::draw(std::u32string string, std::uint32_t line_width, text
         indices.push_back(static_cast<std::uint32_t>(shift + 0));
     }
 
-    const glm::vec3 shift{-lowest_x, -lowest_y, 0.0f};
+    const glm::vec3 shift{-state.lowest_x, -state.lowest_y, 0.0f};
     for(auto& vertex : vertices)
         vertex.position += shift;
 
-    return std::make_shared<text>(indices, vertices, std::move(texture), static_cast<std::uint32_t>(greatest_x - lowest_x), static_cast<std::uint32_t>(greatest_y - lowest_y), std::size(string));
+    const std::uint32_t text_width{static_cast<std::uint32_t>(state.greatest_x - state.lowest_x)};
+    const std::uint32_t text_height{static_cast<std::uint32_t>(state.greatest_y - state.lowest_y)};
+
+    return std::make_shared<text>(indices, vertices, std::move(texture), text_width, text_height, std::size(string));
+}
+
+void text_drawer::draw_line(std::u32string_view line, std::uint32_t line_width, text_align align, draw_line_state& state, std::vector<vertex>& vertices, const std::unordered_map<char32_t, std::pair<std::shared_ptr<glyph>, glm::vec2>>& cache, const color& color)
+{
+    if(align == text_align::left)
+    {
+        const std::shared_ptr<glyph>& space_glyph{load_glyph(U' ')};
+
+        for(auto word : split(line, U' '))
+        {
+            char32_t last{};
+
+            float word_advance{};
+            for(auto c : word)
+                word_advance += cache.at(c).first->advance;
+
+            if(static_cast<std::uint32_t>(state.current_x + word_advance) > line_width)
+            {
+                state.current_x = 0.0f;
+                state.current_y += m_font.info().line_height;
+                last = 0;
+            }
+
+            for(auto c : word)
+            {
+                auto& slot{cache.at(c)};
+
+                const glyph& glyph{*slot.first};
+                const glm::vec2& texture_pos{slot.second};
+
+                const float width {static_cast<float>(glyph.image.width())};
+                const float height{static_cast<float>(glyph.image.height())};
+
+                if(width > 0 && height > 0)
+                {
+                    const float kerning{last != 0 && static_cast<bool>(m_options & text_drawer_options::kerning) ? m_font.kerning(last, c) : 0.0f};
+                    const float x{state.current_x + glyph.origin.x + kerning};
+                    const float y{state.current_y + glyph.origin.y};
+
+                    vertices.push_back(vertex{{x, y, 0.0f}, static_cast<glm::vec4>(color), {(texture_pos.x) / state.texture_width, (texture_pos.y) / state.texture_height}});
+                    vertices.push_back(vertex{{x + width, y, 0.0f}, static_cast<glm::vec4>(color), {(texture_pos.x + width) / state.texture_width, (texture_pos.y) / state.texture_height}});
+                    vertices.push_back(vertex{{x + width, y + height, 0.0f}, static_cast<glm::vec4>(color), {(texture_pos.x + width) / state.texture_width, (texture_pos.y + height) / state.texture_height}});
+                    vertices.push_back(vertex{{x, y + height, 0.0f}, static_cast<glm::vec4>(color), {(texture_pos.x) / state.texture_width, (texture_pos.y + height) / state.texture_height}});
+
+                    state.lowest_x = std::min(state.lowest_x, x);
+                    state.lowest_y = std::min(state.lowest_y, y);
+                    state.greatest_x = std::max(state.greatest_x, x + width);
+                    state.greatest_y = std::max(state.greatest_y, y + height);
+                }
+                else
+                {
+                    vertices.push_back(vertex{});
+                    vertices.push_back(vertex{});
+                    vertices.push_back(vertex{});
+                    vertices.push_back(vertex{});
+                }
+
+                state.current_x += glyph.advance;
+                last = c;
+            }
+
+            vertices.push_back(vertex{});
+            vertices.push_back(vertex{});
+            vertices.push_back(vertex{});
+            vertices.push_back(vertex{});
+
+            state.current_x += space_glyph->advance;
+        }
+
+        //There is an additionnal space at the end, so we remove it
+        vertices.erase(std::end(vertices) - 4, std::end(vertices));
+    }
+    else
+    {
+        assert(false && "only cpt::text_align::left is supported yet");
+    }
 }
 
 texture_ptr text_drawer::make_texture(std::u32string string, std::unordered_map<char32_t, std::pair<std::shared_ptr<glyph>, glm::vec2>>& cache, tph::command_buffer& command_buffer)
@@ -587,7 +625,6 @@ const std::shared_ptr<glyph>& text_drawer::load_glyph(char32_t codepoint)
     return it->second;
 }
 
-
 text_ptr draw_text(cpt::font& font, std::string_view u8string, const color& color, text_drawer_options options)
 {
     text_drawer drawer{std::move(font), options};
@@ -601,6 +638,24 @@ text_ptr draw_text(cpt::font&& font, std::string_view u8string, const color& col
 {
     text_drawer drawer{std::move(font), options};
     text_ptr text{drawer.draw(u8string, color)};
+
+    font = std::move(drawer.font());
+    return text;
+}
+
+text_ptr draw_text(cpt::font& font, std::string_view u8string, std::uint32_t line_width, text_align align, const color& color, text_drawer_options options)
+{
+    text_drawer drawer{std::move(font), options};
+    text_ptr text{drawer.draw(u8string, line_width, align, color)};
+
+    font = std::move(drawer.font());
+    return text;
+}
+
+text_ptr draw_text(cpt::font&& font, std::string_view u8string, std::uint32_t line_width, text_align align, const color& color, text_drawer_options options)
+{
+    text_drawer drawer{std::move(font), options};
+    text_ptr text{drawer.draw(u8string, line_width, align, color)};
 
     font = std::move(drawer.font());
     return text;

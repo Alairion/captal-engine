@@ -9,6 +9,8 @@ set(HEADERS
     "src/config.hpp"
     "src/viewport_compute.hpp"
 
+    "src/map.hpp"
+
     "src/states/splash_screen.hpp"
     "src/states/main_menu.hpp"
     "src/states/game.hpp"
@@ -16,6 +18,8 @@ set(HEADERS
 
 set(SOURCES
     "src/main.cpp"
+
+    "src/map.cpp"
 
     "src/states/splash_screen.cpp"
     "src/states/main_menu.cpp"

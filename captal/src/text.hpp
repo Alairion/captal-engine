@@ -175,9 +175,23 @@ public:
     }
 
 private:
+    struct draw_line_state
+    {
+        float current_x{};
+        float current_y{};
+        float lowest_x{};
+        float lowest_y{};
+        float greatest_x{};
+        float greatest_y{};
+        float texture_width{};
+        float texture_height{};
+    };
+
+    void draw_line(std::u32string_view line, std::uint32_t line_width, text_align align, draw_line_state& state, std::vector<vertex>& vertices, const std::unordered_map<char32_t, std::pair<std::shared_ptr<glyph>, glm::vec2>>& cache, const color& color);
+
+private:
     texture_ptr make_texture(std::u32string string, std::unordered_map<char32_t, std::pair<std::shared_ptr<glyph>, glm::vec2>>& cache, tph::command_buffer& command_buffer);
     const std::shared_ptr<glyph>& load_glyph(char32_t codepoint);
-    std::vector<std::u32string_view> split_words(std::u32string_view string);
 
 private:
     cpt::font m_font{};
@@ -185,8 +199,10 @@ private:
     std::unordered_map<char32_t, std::shared_ptr<glyph>> m_cache{};
 };
 
-text_ptr CAPTAL_API draw_text(cpt::font& font, std::string_view u8string, const color& color = colors::white, text_drawer_options options = text_drawer_options::kerning);
+text_ptr CAPTAL_API draw_text(cpt::font& font, std::string_view u8string,  const color& color = colors::white, text_drawer_options options = text_drawer_options::kerning);
 text_ptr CAPTAL_API draw_text(cpt::font&& font, std::string_view u8string, const color& color = colors::white, text_drawer_options options = text_drawer_options::kerning);
+text_ptr CAPTAL_API draw_text(cpt::font& font, std::string_view u8string,  std::uint32_t line_width, text_align align = text_align::left, const color& color = colors::white, text_drawer_options options = text_drawer_options::kerning);
+text_ptr CAPTAL_API draw_text(cpt::font&& font, std::string_view u8string, std::uint32_t line_width, text_align align = text_align::left, const color& color = colors::white, text_drawer_options options = text_drawer_options::kerning);
 
 }
 

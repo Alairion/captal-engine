@@ -21,7 +21,7 @@ namespace states
 main_menu::main_menu(cpt::render_window_ptr window)
 :m_window{std::move(window)}
 ,m_font{"fonts/pcsenior.ttf", cpt::load_from_file, 32}
-,m_text{cpt::draw_text(m_font, u8"Jouer", cpt::color{1.0f, 1.0f, 1.0f, 1.0f})}
+,m_text{cpt::draw_text(m_font, u8"Jouer")}
 {
     m_text_entity = m_world.create();
     m_world.assign<cpt::components::node>(m_text_entity, scaled_window_center(m_window), glm::vec3{m_text->width() / 2, m_text->height() / 2, 0}, static_cast<float>(window_scale(m_window)));

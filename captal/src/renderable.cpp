@@ -149,7 +149,7 @@ void renderable::draw(tph::command_buffer& buffer)
 {
     if(m_index_count > 0)
     {
-        tph::cmd::bind_index_buffer(buffer, m_buffer.buffer(), m_buffer.compute_offset(1), tph::index_type::uint16);
+        tph::cmd::bind_index_buffer(buffer, m_buffer.buffer(), m_buffer.compute_offset(1), tph::index_type::uint32);
         tph::cmd::bind_vertex_buffer(buffer, m_buffer.buffer(), m_buffer.compute_offset(2));
         tph::cmd::bind_descriptor_set(buffer, m_current_set->set(), m_current_set->pool().technique().pipeline_layout());
         tph::cmd::draw_indexed(buffer, m_index_count, 1, 0, 0, 0);

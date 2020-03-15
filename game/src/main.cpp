@@ -12,8 +12,6 @@ void run()
     cpt::render_window_ptr window{cpt::engine::instance().make_window("My project, the real one", cpt::video_mode{860, 480}, apr::window_options::resizable)};
     window->change_limits(640, 360, std::numeric_limits<std::uint32_t>::max(), std::numeric_limits<std::uint32_t>::max());
 
-    cpt::tiled::map map{cpt::tiled::load_map("maps/test.tmx")};
-
     cpt::state_stack states{cpt::make_state<mpr::states::splash_screen>(window)};
 
     while(cpt::engine::instance().run())

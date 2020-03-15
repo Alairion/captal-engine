@@ -12,7 +12,7 @@ namespace mpr
 
 inline std::uint32_t window_scale(const cpt::render_window_ptr& window) noexcept
 {
-    return (window->height() + 180) / 360;
+    return (window->height() + 180u) / 360u;
 }
 
 template<typename T>

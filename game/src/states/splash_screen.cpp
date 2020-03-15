@@ -19,7 +19,7 @@ namespace states
 splash_screen::splash_screen(cpt::render_window_ptr window)
 :m_window{std::move(window)}
 ,m_font{"fonts/basis33.ttf", cpt::load_from_file, 16}
-,m_text{cpt::draw_text(m_font, u8"Ceci est un splash screen...\n Ou plus si affinité...", cpt::color{1.0f, 1.0f, 1.0f, 0.0f})}
+,m_text{cpt::draw_text(m_font, u8"Ceci est un splash screen...\nOu plus si affinité...", cpt::color{1.0f, 1.0f, 1.0f, 0.0f})}
 {
     m_text_entity = m_world.create();
     m_world.assign<cpt::components::node>(m_text_entity, scaled_window_center(m_window), glm::vec3{m_text->width() / 2, m_text->height() / 2, 0}, static_cast<float>(window_scale(m_window)));

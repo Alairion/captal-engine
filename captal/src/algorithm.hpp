@@ -5,6 +5,7 @@
 
 #include <string_view>
 #include <vector>
+#include <algorithm>
 
 #include <glm/vec2.hpp>
 
@@ -65,14 +66,17 @@ bool bounding_box_query(T&& point_x, U&& point_y, V&& box_x, W&& box_y, X&& box_
     return bounding_box_query(glm::vec2{point_x, point_y}, glm::vec2{box_x, box_y}, glm::vec2{box_width, box_height});
 }
 
-template<typename CharT, typename Traits, typename DelimT>
+template<typename CharT, typename Traits>
 std::vector<std::basic_string_view<CharT, Traits>> split(std::basic_string_view<CharT, Traits> string, CharT delimiter)
 {
     std::vector<std::basic_string_view<CharT, Traits>> substrings{};
+    substrings.reserve(std::count(std::begin(string), std::end(string), delimiter));
 
+    std::size_t position{};
     std::size_t last{};
-    for(std::size_t position{string.find(delimiter, last)}; position != std::u32string_view::npos; position = string.find(delimiter, last))
+    while(position != std::u32string_view::npos)
     {
+        position = string.find(delimiter, last);
         substrings.push_back(string.substr(last, position - last));
         last = position + 1;
     }
@@ -85,9 +89,11 @@ std::vector<std::basic_string_view<CharT, Traits>> split(std::basic_string_view<
 {
     std::vector<std::basic_string_view<CharT, Traits>> substrings{};
 
+    std::size_t position{};
     std::size_t last{};
-    for(std::size_t position{string.find(delimiter, last)}; position != std::u32string_view::npos; position = string.find(delimiter, last))
+    while(position != std::u32string_view::npos)
     {
+        position = string.find(delimiter, last);
         substrings.push_back(string.substr(last, position - last));
         last = position + std::size(delimiter);
     }
