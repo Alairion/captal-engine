@@ -125,21 +125,6 @@ static std::uint32_t choose_graphics_family(const std::vector<VkQueueFamilyPrope
 
     std::terminate();
 }
-/*
-static std::uint32_t choose_transfer_family(const std::vector<VkQueueFamilyProperties>& queue_families)
-{
-    for(std::size_t i{}; i < std::size(queue_families); ++i)
-    {
-        const bool support_transfer{(queue_families[i].queueFlags & VK_QUEUE_TRANSFER_BIT )!= 0};
-        const bool support_other{(queue_families[i].queueFlags & (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT)) != 0};
-        const bool has_no_granularity{queue_families[i].minImageTransferGranularity.width == 1 && queue_families[i].minImageTransferGranularity.height == 1};
-
-        if(support_transfer && !support_other && has_no_granularity)
-            return static_cast<std::uint32_t>(i);
-    }
-
-    return choose_graphics_family(queue_families);
-}*/
 
 static std::uint32_t choose_present_family(VkPhysicalDevice physical_device, const std::vector<VkQueueFamilyProperties>& queue_families)
 {
@@ -213,8 +198,21 @@ static std::uint32_t choose_present_family(VkPhysicalDevice physical_device, con
     return choose_graphics_family(queue_families);
 }
 
+static std::uint32_t choose_transfer_family(const std::vector<VkQueueFamilyProperties>& queue_families)
+{
+    for(std::size_t i{}; i < std::size(queue_families); ++i)
+    {
+        const bool support_transfer{(queue_families[i].queueFlags & VK_QUEUE_TRANSFER_BIT) != 0};
+        const bool support_other{(queue_families[i].queueFlags & (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT)) != 0};
 
-static std::array<std::uint32_t, 2> choose_queue_families(VkPhysicalDevice physical_device)
+        if(support_transfer && !support_other)
+            return static_cast<std::uint32_t>(i);
+    }
+
+    return choose_graphics_family(queue_families);
+}
+
+static std::array<std::uint32_t, static_cast<std::size_t>(queue::count)> choose_queue_families(VkPhysicalDevice physical_device, renderer_options options, renderer::transfer_granularity& granularity)
 {
     std::uint32_t count{};
     vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &count, nullptr);
@@ -223,12 +221,57 @@ static std::array<std::uint32_t, 2> choose_queue_families(VkPhysicalDevice physi
     queue_family_properties.resize(count);
     vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &count, std::data(queue_family_properties));
 
-    return {choose_graphics_family(queue_family_properties), choose_present_family(physical_device, queue_family_properties)};
+    std::array<std::uint32_t, static_cast<std::size_t>(queue::count)> output{};
+    output[static_cast<std::size_t>(queue::graphics)] = choose_graphics_family(queue_family_properties);
+    output[static_cast<std::size_t>(queue::present)] = choose_present_family(physical_device, queue_family_properties);
+
+    if(static_cast<bool>(options & renderer_options::transfer_queue))
+    {
+        output[static_cast<std::size_t>(queue::transfer)] = choose_transfer_family(queue_family_properties);
+
+        const VkExtent3D native_granularity{queue_family_properties[output[static_cast<std::size_t>(queue::transfer)]].minImageTransferGranularity};
+        granularity.width = native_granularity.width;
+        granularity.height = native_granularity.height;
+        granularity.depth = native_granularity.depth;
+    }
+    else
+    {
+        output[static_cast<std::size_t>(queue::transfer)] = output[static_cast<std::size_t>(queue::graphics)];
+    }
+
+    return output;
+}
+
+static std::vector<VkDeviceQueueCreateInfo> make_queue_create_info(const std::array<std::uint32_t, static_cast<std::size_t>(queue::count)>& families, renderer_options options)
+{
+    std::vector<std::uint32_t> unique_families{};
+    unique_families.push_back(families[static_cast<std::size_t>(queue::graphics)]);
+    unique_families.push_back(families[static_cast<std::size_t>(queue::present)]);
+    if(static_cast<bool>(options & renderer_options::transfer_queue))
+        unique_families.push_back(families[static_cast<std::size_t>(queue::transfer)]);
+
+    std::sort(std::begin(unique_families), std::end(unique_families));
+    unique_families.erase(std::unique(std::begin(unique_families), std::end(unique_families)), std::end(unique_families));
+
+    std::vector<VkDeviceQueueCreateInfo> queues{};
+    queues.reserve(std::size(unique_families));
+
+    for(auto family : unique_families)
+    {
+        VkDeviceQueueCreateInfo create_info{};
+        create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        create_info.queueFamilyIndex = family;
+        create_info.queueCount = 1;
+
+        queues.push_back(create_info);
+    }
+
+    return queues;
 }
 
 static std::uint64_t upper_power_of_two(std::uint64_t value) noexcept
 {
-    value--;
+    --value;
 
     value |= value >> 1;
     value |= value >> 2;
@@ -237,7 +280,7 @@ static std::uint64_t upper_power_of_two(std::uint64_t value) noexcept
     value |= value >> 16;
     value |= value >> 32;
 
-    value++;
+    ++value;
 
     return value;
 }
@@ -245,38 +288,16 @@ static std::uint64_t upper_power_of_two(std::uint64_t value) noexcept
 renderer::renderer(application& app, const physical_device& physical_device, renderer_options options, const physical_device_features& enabled_features)
 {
     m_physical_device = underlying_cast<VkPhysicalDevice>(physical_device);
-    m_queue_families = choose_queue_families(m_physical_device);
+    m_queue_families = choose_queue_families(m_physical_device, options, m_transfer_queue_granularity);
 
     const std::vector<const char*> layers{required_device_layers(m_physical_device, app.options())};
     const std::vector<const char*> extensions{required_device_extensions(m_physical_device, app.options(), layers)};
     const VkPhysicalDeviceFeatures features{parse_enabled_features(enabled_features)};
 
-    std::vector<VkDeviceQueueCreateInfo> queues{};
+    std::vector<VkDeviceQueueCreateInfo> queues{make_queue_create_info(m_queue_families, options)};
     const float priority{1.0f};
-
-    if(m_queue_families[0] == m_queue_families[1])
-    {
-        queues.resize(1);
-
-        queues[0].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-        queues[0].queueFamilyIndex = m_queue_families[0];
-        queues[0].queueCount = 1;
-        queues[0].pQueuePriorities = &priority;
-    }
-    else
-    {
-        queues.resize(2);
-
-        queues[0].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-        queues[0].queueFamilyIndex = m_queue_families[0];
-        queues[0].queueCount = 1;
-        queues[0].pQueuePriorities = &priority;
-
-        queues[1].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-        queues[1].queueFamilyIndex = m_queue_families[1];
-        queues[1].queueCount = 1;
-        queues[1].pQueuePriorities = &priority;
-    }
+    for(auto& queue : queues)
+        queue.pQueuePriorities = &priority;
 
     m_device = vulkan::device{m_physical_device, extensions, layers, queues, features};
     tph::vulkan::functions::load_device_level_functions(m_device);

@@ -198,6 +198,14 @@ private:
         transfer_ended_signal signal{};
     };
 
+    struct render_buffer
+    {
+        std::uint64_t frame_id{};
+        tph::command_buffer buffer{};
+        tph::fence fence{};
+        render_ended_signal signal{};
+    };
+
 private:
     cpt::application m_application;
     const swl::physical_device& m_audio_device;
@@ -211,6 +219,10 @@ private:
     tph::command_pool m_transfer_pool{};
     std::vector<transfer_buffer> m_transfer_buffers{};
     transfer_buffer* m_current_transfer_buffer{};
+
+    tph::command_pool m_render_pool{};
+    std::vector<render_buffer> m_render_buffers{};
+    render_buffer* m_current_render_buffer{};
 
     tph::shader m_default_vertex_shader{};
     tph::shader m_default_fragment_shader{};

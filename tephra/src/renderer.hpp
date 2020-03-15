@@ -22,7 +22,8 @@ enum class renderer_options
     tiny_memory_heaps = 0x01,
     small_memory_heaps = 0x02,
     large_memory_heaps = 0x04,
-    giant_memory_heaps = 0x08
+    giant_memory_heaps = 0x08,
+    transfer_queue = 0x10,
 };
 
 template<> struct enable_enum_operations<renderer_options> {static constexpr bool value{true};};
@@ -31,12 +32,22 @@ enum class queue : std::size_t
 {
     graphics = 0,
     present = 1,
+    transfer = 2,
+    count = 3
 };
 
 class renderer
 {
     template<typename VulkanObject, typename... Args>
     friend VulkanObject underlying_cast(const Args&...) noexcept;
+
+public:
+    struct transfer_granularity
+    {
+        std::uint32_t width{1};
+        std::uint32_t height{1};
+        std::uint32_t depth{1};
+    };
 
 public:
     constexpr renderer() = default;
@@ -67,11 +78,17 @@ public:
         return m_queue_families[static_cast<std::size_t>(queue)];
     }
 
+    bool is_same_queue(queue first, queue second) const noexcept
+    {
+        return queue_family_index(first) == queue_family_index(second);
+    }
+
 private:
     VkPhysicalDevice m_physical_device{};
     vulkan::device m_device{};
-    std::array<std::uint32_t, 2> m_queue_families{};
-    std::array<VkQueue, 2> m_queues{};
+    std::array<std::uint32_t, static_cast<std::size_t>(queue::count)> m_queue_families{};
+    std::array<VkQueue, static_cast<std::size_t>(queue::count)> m_queues{};
+    transfer_granularity m_transfer_queue_granularity{};
     std::unique_ptr<vulkan::memory_allocator> m_allocator{};
 };
 

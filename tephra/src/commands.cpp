@@ -668,28 +668,38 @@ void execute(command_buffer& buffer, const std::vector<std::reference_wrapper<co
 
 }
 
-void submit(renderer& renderer, const submit_info& submit, optional_ref<fence> fence)
+void submit(renderer& renderer, const submit_info& info, optional_ref<fence> fence)
 {
-    assert(std::size(submit.wait_semaphores) == std::size(submit.wait_stages) && "tph::submit_info::wait_semaphores and tph::submit_info::wait_stages must have the same size.");
+    submit(renderer, queue::graphics, info, fence);
+}
+
+void submit(renderer& renderer, const std::vector<submit_info>& submits, optional_ref<fence> fence)
+{
+    submit(renderer, queue::graphics, submits, fence);
+}
+
+void submit(renderer& renderer, queue queue, const submit_info& info, optional_ref<fence> fence)
+{
+    assert(std::size(info.wait_semaphores) == std::size(info.wait_stages) && "tph::submit_info::wait_semaphores and tph::submit_info::wait_stages must have the same size.");
 
     std::vector<VkSemaphore> wait_semaphores{};
-    wait_semaphores.reserve(std::size(submit.wait_semaphores));
-    for(const semaphore& semaphore : submit.wait_semaphores)
+    wait_semaphores.reserve(std::size(info.wait_semaphores));
+    for(const semaphore& semaphore : info.wait_semaphores)
         wait_semaphores.push_back(underlying_cast<VkSemaphore>(semaphore));
 
     std::vector<VkPipelineStageFlags> wait_stages{};
-    wait_stages.reserve(std::size(submit.wait_stages));
-    for(auto wait_stage : submit.wait_stages)
+    wait_stages.reserve(std::size(info.wait_stages));
+    for(auto wait_stage : info.wait_stages)
         wait_stages.push_back(static_cast<VkPipelineStageFlags>(wait_stage));
 
     std::vector<VkCommandBuffer> command_buffers{};
-    command_buffers.reserve(std::size(submit.command_buffers));
-    for(const command_buffer& command_buffer : submit.command_buffers)
+    command_buffers.reserve(std::size(info.command_buffers));
+    for(const command_buffer& command_buffer : info.command_buffers)
         command_buffers.push_back(underlying_cast<VkCommandBuffer>(command_buffer));
 
     std::vector<VkSemaphore> signal_semaphores{};
-    signal_semaphores.reserve(std::size(submit.signal_semaphores));
-    for(const semaphore& signal_semaphore : submit.signal_semaphores)
+    signal_semaphores.reserve(std::size(info.signal_semaphores));
+    for(const semaphore& signal_semaphore : info.signal_semaphores)
         signal_semaphores.push_back(underlying_cast<VkSemaphore>(signal_semaphore));
 
     VkSubmitInfo native_submit{};
@@ -704,11 +714,11 @@ void submit(renderer& renderer, const submit_info& submit, optional_ref<fence> f
 
     VkFence native_fence{fence.has_value() ? underlying_cast<VkFence>(fence.value()) : VkFence{}};
 
-    if(auto result{vkQueueSubmit(underlying_cast<VkQueue>(renderer, queue::graphics), 1, &native_submit, native_fence)}; result != VK_SUCCESS)
+    if(auto result{vkQueueSubmit(underlying_cast<VkQueue>(renderer, queue), 1, &native_submit, native_fence)}; result != VK_SUCCESS)
         throw vulkan::error{result};
 }
 
-void submit(renderer& renderer, const std::vector<submit_info>& submits, optional_ref<fence> fence)
+void submit(renderer& renderer, queue queue, const std::vector<submit_info>& submits, optional_ref<fence> fence)
 {
     struct temp_submit_info
     {
@@ -766,7 +776,7 @@ void submit(renderer& renderer, const std::vector<submit_info>& submits, optiona
 
     VkFence native_fence{fence.has_value() ? underlying_cast<VkFence>(fence.value()) : VkFence{}};
 
-    if(auto result{vkQueueSubmit(underlying_cast<VkQueue>(renderer, queue::graphics), std::size(native_submits), std::data(native_submits), native_fence)}; result != VK_SUCCESS)
+    if(auto result{vkQueueSubmit(underlying_cast<VkQueue>(renderer, queue), std::size(native_submits), std::data(native_submits), native_fence)}; result != VK_SUCCESS)
         throw vulkan::error{result};
 }
 

@@ -5,13 +5,13 @@
 
 #include "vulkan/vulkan.hpp"
 
+#include "renderer.hpp"
 #include "enumerations.hpp"
 #include "render_target.hpp"
 
 namespace tph
 {
 
-class renderer;
 class render_target;
 class pipeline;
 class pipeline_layout;
@@ -223,8 +223,10 @@ void execute(command_buffer& buffer, const std::vector<std::reference_wrapper<co
 
 }
 
-void submit(renderer& renderer, const submit_info& submit, optional_ref<fence> fence);
+void submit(renderer& renderer, const submit_info& info, optional_ref<fence> fence);
 void submit(renderer& renderer, const std::vector<submit_info>& submits, optional_ref<fence> fence);
+void submit(renderer& renderer, queue queue, const submit_info& info, optional_ref<fence> fence);
+void submit(renderer& renderer, queue queue, const std::vector<submit_info>& submits, optional_ref<fence> fence);
 
 }
 
