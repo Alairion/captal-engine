@@ -144,6 +144,7 @@ public:
     void set_render_technique(render_technique_ptr technique) noexcept
     {
         m_render_technique = std::move(technique);
+        m_need_descriptor_update = true;
     }
 
     void set_target(const render_target_ptr& target, const render_technique_info& info = render_technique_info{});
@@ -157,6 +158,24 @@ public:
     }
 
     void upload();
+
+    template<typename T>
+    T& get_push_constant(std::size_t index) noexcept
+    {
+        return m_render_technique->get_push_constant<T>(index);
+    }
+
+    template<typename T>
+    const T& get_push_constant(std::size_t index) const noexcept
+    {
+        return m_render_technique->get_push_constant<T>(index);
+    }
+
+    template<typename T>
+    void set_push_constant(std::size_t index, T&& value) noexcept
+    {
+        m_render_technique->set_push_constant(index, std::forward<T>(value));
+    }
 
     const tph::viewport& viewport() const noexcept
     {

@@ -44,6 +44,7 @@ struct physical_device_limits
 {
     sample_count sample_count{};
     std::uint32_t max_texture_size{};
+    std::uint32_t max_push_constant_size{};
     std::uint64_t min_uniform_buffer_alignment{};
 };
 

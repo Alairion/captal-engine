@@ -31,6 +31,7 @@ class command_pool
 public:
     constexpr command_pool() = default;
     command_pool(renderer& renderer);
+    command_pool(renderer& renderer, queue queue);
     ~command_pool() = default;
     command_pool(const command_pool&) = delete;
     command_pool& operator=(const command_pool&) = delete;
@@ -197,7 +198,8 @@ void blit(command_buffer& command_buffer, texture& source, texture& destination,
 
 void pipeline_barrier(command_buffer& command_buffer, pipeline_stage source_stage, pipeline_stage destination_stage);
 void prepare(command_buffer& command_buffer, texture& texture, pipeline_stage stage);
-void prepare(command_buffer& command_buffer, texture& texture);
+
+void push_constants(command_buffer& command_buffer, pipeline_layout& layout, shader_stage stages, std::uint32_t offset, std::uint32_t size, const void* data);
 
 void begin_render_pass(command_buffer& command_buffer, render_target& target, std::uint32_t image_index, render_pass_content content = render_pass_content::inlined);
 void next_subpass(command_buffer& command_buffer, render_pass_content content = render_pass_content::inlined);

@@ -66,6 +66,11 @@ static void draw(entt::registry& world)
             tph::cmd::set_scissor(buffer, view->scissor());
             tph::cmd::bind_pipeline(buffer, technique->pipeline());
 
+            for(auto&& range : view->render_technique()->ranges())
+            {
+                tph::cmd::push_constants(buffer, technique->pipeline_layout(), range.stages, range.offset, range.size, std::data(view->render_technique()->push_constant_buffer()) + range.offset);
+            }
+
             std::vector<std::shared_ptr<asynchronous_resource>> to_keep_alive{};
             to_keep_alive.reserve(world.size<components::drawable>() + 1);
             to_keep_alive.push_back(view);

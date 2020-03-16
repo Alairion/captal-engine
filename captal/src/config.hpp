@@ -26,6 +26,16 @@ static constexpr load_from_file_t load_from_file{};
 struct load_from_memory_t{};
 static constexpr load_from_memory_t load_from_memory{};
 
+template<class T>
+struct is_unbounded_array: std::false_type {};
+template<class T>
+struct is_unbounded_array<T[]> : std::true_type {};
+
+template<class T>
+struct is_bounded_array: std::false_type {};
+template<class T, std::size_t N>
+struct is_bounded_array<T[N]> : std::true_type {};
+
 inline namespace enum_operations
 {
 

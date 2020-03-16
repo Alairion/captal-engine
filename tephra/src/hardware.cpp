@@ -51,8 +51,9 @@ static physical_device_limits make_limits(VkPhysicalDevice physical_device) noex
     physical_device_limits output{};
 
     output.sample_count = static_cast<sample_count>(properties.limits.framebufferColorSampleCounts & properties.limits.framebufferDepthSampleCounts);
-    output.min_uniform_buffer_alignment = properties.limits.minUniformBufferOffsetAlignment;
     output.max_texture_size = properties.limits.maxImageDimension2D;
+    output.max_push_constant_size = properties.limits.maxPushConstantsSize;
+    output.min_uniform_buffer_alignment = properties.limits.minUniformBufferOffsetAlignment;
 
     return output;
 }

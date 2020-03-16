@@ -83,6 +83,11 @@ public:
         return queue_family_index(first) == queue_family_index(second);
     }
 
+    const transfer_granularity& transfer_queue_granularity() const noexcept
+    {
+        return m_transfer_queue_granularity;
+    }
+
 private:
     VkPhysicalDevice m_physical_device{};
     vulkan::device m_device{};

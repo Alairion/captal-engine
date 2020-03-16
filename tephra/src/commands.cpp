@@ -16,8 +16,14 @@ namespace tph
 {
 
 command_pool::command_pool(renderer& renderer)
+:command_pool{renderer, queue::graphics}
+{
+
+}
+
+command_pool::command_pool(renderer& renderer, queue queue)
 :m_device{underlying_cast<VkDevice>(renderer)}
-,m_pool{m_device, renderer.queue_family_index(queue::graphics), 0}
+,m_pool{m_device, renderer.queue_family_index(queue), 0}
 {
 
 }
@@ -573,6 +579,11 @@ void prepare(command_buffer& command_buffer, texture& texture, pipeline_stage st
         texture.transition(command_buffer, resource_access::transfer_write, resource_access::shader_read, pipeline_stage::transfer, stage, image_layout::shader_read_only_optimal);
     else
         texture.transition(command_buffer, resource_access::none, resource_access::shader_read, pipeline_stage::top_of_pipe, stage, image_layout::shader_read_only_optimal);
+}
+
+void push_constants(command_buffer& command_buffer, pipeline_layout& layout, shader_stage stages, std::uint32_t offset, std::uint32_t size, const void* data)
+{
+    vkCmdPushConstants(underlying_cast<VkCommandBuffer>(command_buffer), underlying_cast<VkPipelineLayout>(layout), static_cast<VkShaderStageFlags>(stages), offset, size, data);
 }
 
 void begin_render_pass(command_buffer& command_buffer, render_target& target, uint32_t image_index, render_pass_content content)

@@ -95,7 +95,6 @@ tph::pipeline_info make_info(const render_technique_info& info)
     return output;
 }
 
-
 render_technique::render_technique(const render_target_ptr& target, const render_technique_info& info)
 :m_bindings{make_bindings(info.stages_bindings)}
 ,m_ranges{info.push_constant_ranges}
@@ -106,6 +105,8 @@ render_technique::render_technique(const render_target_ptr& target, const render
     m_sizes.reserve(std::size(m_bindings));
     for(auto&& binding : m_bindings)
         m_sizes.push_back(tph::descriptor_pool_size{binding.type, static_cast<std::uint32_t>(binding.count * descriptor_pool::pool_size)});
+
+    m_push_constant_buffer.resize(static_cast<std::size_t>(engine::instance().graphics_device().limits().max_push_constant_size));
 }
 
 descriptor_set_ptr render_technique::make_set()
