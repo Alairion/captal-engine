@@ -118,10 +118,8 @@ std::pair<tph::command_buffer&, transfer_ended_signal&> engine::begin_transfer()
 {
     if(!m_current_transfer_buffer)
     {
-        m_transfer_buffers.push_back(transfer_buffer{m_frame_id, tph::cmd::begin(m_transfer_pool, tph::command_buffer_level::primary, tph::command_buffer_flags::one_time_submit), tph::fence{m_renderer}});
+        m_transfer_buffers.push_back(transfer_buffer{m_frame_id, tph::cmd::begin(m_transfer_pool, tph::command_buffer_level::primary, tph::command_buffer_flags::one_time_submit), tph::fence{m_renderer}, tph::semaphore{m_renderer}, tph::semaphore{m_renderer}});
         m_current_transfer_buffer = &m_transfer_buffers.back();
-
-        tph::cmd::pipeline_barrier(m_current_transfer_buffer->buffer, tph::pipeline_stage::color_attachment_output, tph::pipeline_stage::transfer);
     }
 
     return {m_current_transfer_buffer->buffer, m_current_transfer_buffer->signal};
@@ -185,7 +183,7 @@ void engine::init()
     m_audio_mixer.set_listener_direction(0.0f, 1.0f, 0.0f);
     m_audio_stream.start();
 
-    m_transfer_pool = tph::command_pool{m_renderer};
+    m_transfer_pool = tph::command_pool{m_renderer, tph::queue::transfer};
 
     m_default_vertex_shader = tph::shader{m_renderer, tph::shader_stage::vertex, std::string_view{default_vertex_shader_spv, std::size(default_vertex_shader_spv) - 1}, tph::load_from_memory};
     m_default_fragment_shader = tph::shader{m_renderer, tph::shader_stage::fragment, std::string_view{default_fragment_shader_spv, std::size(default_fragment_shader_spv) - 1}, tph::load_from_memory};
