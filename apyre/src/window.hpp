@@ -94,7 +94,7 @@ public:
     bool is_maximized() const noexcept;
     const monitor& current_monitor() const noexcept;
 
-    VkSurfaceKHR_T* make_surface(VkInstance_T* instance);
+    VkSurfaceKHR make_surface(VkInstance instance);
 
 private:
     SDL_Window* m_window{};

@@ -278,7 +278,7 @@ const monitor& window::current_monitor() const noexcept
     return m_monitors[SDL_GetWindowDisplayIndex(m_window)];
 }
 
-VkSurfaceKHR_T* window::make_surface(VkInstance_T* instance)
+VkSurfaceKHR window::make_surface(VkInstance instance)
 {
     VkSurfaceKHR surface{};
 

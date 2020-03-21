@@ -201,22 +201,22 @@ std::string image::write(image_format format, std::int32_t quality) const
     if(format == image_format::png)
     {
         if(!stbi_write_png_to_func(&write_func, &output, static_cast<int>(m_width), static_cast<int>(m_height), 4, input, m_width * 4))
-            throw std::runtime_error{"Can not format image file. "};
+            throw std::runtime_error{"Can not format image file."};
     }
     else if(format == image_format::bmp)
     {
         if(!stbi_write_bmp_to_func(&write_func, &output, static_cast<int>(m_width), static_cast<int>(m_height), 4, input))
-            throw std::runtime_error{"Can not format image file. "};
+            throw std::runtime_error{"Can not format image file."};
     }
     else if(format == image_format::tga)
     {
         if(!stbi_write_tga_to_func(&write_func, &output, static_cast<int>(m_width), static_cast<int>(m_height), 4, input))
-            throw std::runtime_error{"Can not format image file. "};
+            throw std::runtime_error{"Can not format image file."};
     }
     else if(format == image_format::jpg)
     {
         if(!stbi_write_jpg_to_func(&write_func, &output, static_cast<int>(m_width), static_cast<int>(m_height), 4, input, quality))
-            throw std::runtime_error{"Can not format image file. "};
+            throw std::runtime_error{"Can not format image file."};
     }
 
     return output;
