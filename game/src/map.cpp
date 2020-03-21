@@ -195,9 +195,9 @@ cpt::tilemap_ptr map::parse_tiles(const cpt::tiled::layer::tiles& tiles, cpt::co
         }
 
         tilemap->set_texture(std::move(tileset));
-        tilemap->add_uniform_binding(height_map_binding, load_height_map(map_tileset.properties));/*
-        tilemap->add_uniform_binding(normal_map_binding, load_normal_map());
-        tilemap->add_uniform_binding(specular_map_binding, cpt::make_texture("assets/specular.png", cpt::load_from_file));*/
+        tilemap->add_uniform_binding(height_map_binding, load_height_map(map_tileset.properties));
+        tilemap->add_uniform_binding(normal_map_binding, load_normal_map(map_tileset.properties));
+        tilemap->add_uniform_binding(specular_map_binding, load_specular_map(map_tileset.properties));
     }
 
     return tilemap;
@@ -238,20 +238,32 @@ cpt::texture_ptr map::load_height_map(const cpt::tiled::properties_set& properti
     const auto it{properties.find("height_map")};
     if(it != std::end(properties))
     {
-        return cpt::make_texture(std::get<std::filesystem::path>(it->second).string(), cpt::load_from_file);
+        return cpt::make_texture(std::get<std::filesystem::path>(it->second));
+    }
+
+    return cpt::make_texture(2, 2, std::data(dummy_height_map_data), tph::sampling_options{tph::filter::nearest, tph::filter::nearest, tph::address_mode::repeat});
+}
+
+cpt::texture_ptr map::load_normal_map(const cpt::tiled::properties_set& properties) const
+{
+    const auto it{properties.find("normal_map")};
+    if(it != std::end(properties))
+    {
+        return cpt::make_texture(std::get<std::filesystem::path>(it->second));
     }
 
     return cpt::make_texture(2, 2, std::data(dummy_normal_map_data), tph::sampling_options{tph::filter::nearest, tph::filter::nearest, tph::address_mode::repeat});
 }
 
-cpt::texture_ptr map::load_normal_map(const cpt::tiled::properties_set& properties) const
-{
-
-}
-
 cpt::texture_ptr map::load_specular_map(const cpt::tiled::properties_set& properties) const
 {
+    const auto it{properties.find("specular_map")};
+    if(it != std::end(properties))
+    {
+        return cpt::make_texture(std::get<std::filesystem::path>(it->second));
+    }
 
+    return cpt::make_texture(2, 2, std::data(dummy_specular_map_data), tph::sampling_options{tph::filter::nearest, tph::filter::nearest, tph::address_mode::repeat});
 }
 
 }
