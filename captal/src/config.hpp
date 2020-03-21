@@ -20,12 +20,6 @@ namespace cpt
 template<typename T>
 static constexpr T pi{static_cast<T>(3.141592653589793238462643383279)};
 
-struct load_from_file_t{};
-static constexpr load_from_file_t load_from_file{};
-
-struct load_from_memory_t{};
-static constexpr load_from_memory_t load_from_memory{};
-
 inline namespace enum_operations
 {
 

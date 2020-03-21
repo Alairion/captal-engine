@@ -5,15 +5,22 @@
 namespace cpt
 {
 
-sound::sound(std::string_view file, swl::load_from_file_t, swl::sound_reader_options options)
-:swl::sound_file_reader{file, swl::load_from_file, options}
+sound::sound(const std::filesystem::path& file, swl::sound_reader_options options)
+:swl::sound_file_reader{file, options}
 ,swl::sound{engine::instance().audio_mixer(), *this}
 {
 
 }
 
-sound::sound(std::string_view data, swl::load_from_memory_t, swl::sound_reader_options options)
-:swl::sound_file_reader{data, swl::load_from_memory, options}
+sound::sound(std::string_view data, swl::sound_reader_options options)
+:swl::sound_file_reader{data, options}
+,swl::sound{engine::instance().audio_mixer(), *this}
+{
+
+}
+
+sound::sound(std::istream& stream, swl::sound_reader_options options)
+:swl::sound_file_reader{stream, options}
 ,swl::sound{engine::instance().audio_mixer(), *this}
 {
 

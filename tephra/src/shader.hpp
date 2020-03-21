@@ -4,6 +4,8 @@
 #include "config.hpp"
 
 #include <string_view>
+#include <istream>
+#include <filesystem>
 
 #include "vulkan/vulkan.hpp"
 
@@ -21,8 +23,9 @@ class shader
 
 public:
     constexpr shader() = default;
-    shader(renderer& renderer, shader_stage stage, std::string_view file, load_from_file_t);
-    shader(renderer& renderer, shader_stage stage, std::string_view spirv, load_from_memory_t);
+    shader(renderer& renderer, shader_stage stage, const std::filesystem::path& file);
+    shader(renderer& renderer, shader_stage stage, std::string_view spirv);
+    shader(renderer& renderer, shader_stage stage, std::istream& stream);
 
     ~shader() = default;
 

@@ -6,6 +6,7 @@
 #include <memory>
 #include <filesystem>
 #include <string_view>
+#include <istream>
 
 #include "mixer.hpp"
 

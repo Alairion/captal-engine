@@ -45,22 +45,31 @@ pipeline_cache::pipeline_cache(renderer& renderer)
 
 }
 
-pipeline_cache::pipeline_cache(renderer& renderer, std::string_view data, load_from_memory_t)
+pipeline_cache::pipeline_cache(renderer& renderer, std::string_view data)
 :m_device{underlying_cast<VkDevice>(renderer)}
 ,m_pipeline_cache{m_device, std::data(data), std::size(data)}
 {
 
 }
 
-pipeline_cache::pipeline_cache(renderer& renderer, std::string_view file, load_from_file_t)
+pipeline_cache::pipeline_cache(renderer& renderer, const std::filesystem::path& file)
 :m_device{underlying_cast<VkDevice>(renderer)}
 {
-    std::ifstream ifs{std::string{file}, std::ios_base::binary};
+    std::ifstream ifs{file, std::ios_base::binary};
     if(!ifs)
-        throw std::runtime_error{"Can not open file \"" + std::string{file} + "\"."};
+        throw std::runtime_error{"Can not open file \"" + file.string() + "\"."};
 
     const std::string initial_data{std::istreambuf_iterator<char>{ifs}, std::istreambuf_iterator<char>{}};
 
+    m_pipeline_cache = vulkan::pipeline_cache{m_device, std::data(initial_data), std::size(initial_data)};
+}
+
+pipeline_cache::pipeline_cache(renderer& renderer, std::istream& stream)
+:m_device{underlying_cast<VkDevice>(renderer)}
+{
+    assert(stream && "Invalid stream.");
+
+    const std::string initial_data{std::istreambuf_iterator<char>{stream}, std::istreambuf_iterator<char>{}};
     m_pipeline_cache = vulkan::pipeline_cache{m_device, std::data(initial_data), std::size(initial_data)};
 }
 

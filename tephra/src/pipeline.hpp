@@ -5,6 +5,8 @@
 
 #include <array>
 #include <functional>
+#include <filesystem>
+#include <istream>
 
 #include "vulkan/vulkan.hpp"
 
@@ -58,8 +60,9 @@ class pipeline_cache
 public:
     constexpr pipeline_cache() = default;
     pipeline_cache(renderer& renderer);
-    pipeline_cache(renderer& renderer, std::string_view data, load_from_memory_t);
-    pipeline_cache(renderer& renderer, std::string_view file, load_from_file_t);
+    pipeline_cache(renderer& renderer, const std::filesystem::path& file);
+    pipeline_cache(renderer& renderer, std::string_view data);
+    pipeline_cache(renderer& renderer, std::istream& stream);
 
     ~pipeline_cache() = default;
     pipeline_cache(const pipeline_cache&) = delete;

@@ -20,12 +20,6 @@ VulkanObject underlying_cast(const Args&...) noexcept
     static_assert(!std::is_same<VulkanObject, VulkanObject>::value, "tph::underlying_cast called with incompatible arguments.");
 }
 
-struct load_from_file_t{};
-static constexpr load_from_file_t load_from_file{};
-
-struct load_from_memory_t{};
-static constexpr load_from_memory_t load_from_memory{};
-
 struct version
 {
     std::uint16_t major{};

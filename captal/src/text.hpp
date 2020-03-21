@@ -5,6 +5,8 @@
 
 #include <memory>
 #include <string_view>
+#include <filesystem>
+#include <istream>
 #include <unordered_map>
 
 #include <glm/vec2.hpp>
@@ -62,8 +64,9 @@ class CAPTAL_API font
 
 public:
     font() = default;
-    font(std::string_view data, load_from_memory_t, std::uint32_t initial_size = 16);
-    font(std::string_view file, load_from_file_t, std::uint32_t initial_size = 16);
+    font(const std::filesystem::path& file, std::uint32_t initial_size = 16);
+    font(std::string_view data, std::uint32_t initial_size = 16);
+    font(std::istream& stream, std::uint32_t initial_size = 16);
     ~font() = default;
     font(const font&) = delete;
     font& operator=(const font&) = delete;

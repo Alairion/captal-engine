@@ -5,9 +5,10 @@
 namespace cpt
 {
 
-static tph::texture make_texture(std::string_view file, tph::load_from_file_t, const tph::sampling_options& sampling)
+template<typename... Args>
+static tph::texture make_texture(const tph::sampling_options& sampling, Args&&... args)
 {
-    tph::image image{cpt::engine::instance().renderer(), file, tph::load_from_file, tph::image_usage::transfer_source};
+    tph::image image{cpt::engine::instance().renderer(), std::forward<Args>(args)..., tph::image_usage::transfer_source};
     tph::texture texture{cpt::engine::instance().renderer(), static_cast<std::uint32_t>(image.width()), static_cast<std::uint32_t>(image.height()), sampling, tph::texture_usage::sampled | tph::texture_usage::transfer_destination};
 
     auto&& [command_buffer, signal] = cpt::engine::instance().begin_transfer();
@@ -20,37 +21,7 @@ static tph::texture make_texture(std::string_view file, tph::load_from_file_t, c
     return texture;
 }
 
-static tph::texture make_texture(std::string_view data, tph::load_from_memory_t, const tph::sampling_options& sampling)
-{
-    tph::image image{cpt::engine::instance().renderer(), data, tph::load_from_memory, tph::image_usage::transfer_source};
-    tph::texture texture{cpt::engine::instance().renderer(), static_cast<std::uint32_t>(image.width()), static_cast<std::uint32_t>(image.height()), sampling, tph::texture_usage::sampled | tph::texture_usage::transfer_destination};
-
-    auto&& [command_buffer, signal] = cpt::engine::instance().begin_transfer();
-
-    tph::cmd::copy(command_buffer, image, texture);
-    tph::cmd::prepare(command_buffer, texture, tph::pipeline_stage::fragment_shader);
-
-    signal.connect([image = std::move(image)](){});
-
-    return texture;
-}
-
-static tph::texture make_texture(std::uint32_t width, std::uint32_t height, const std::uint8_t* rgba, const tph::sampling_options& sampling)
-{
-    tph::image image{cpt::engine::instance().renderer(), width, height, rgba, tph::image_usage::transfer_source};
-    tph::texture texture{cpt::engine::instance().renderer(), static_cast<std::uint32_t>(image.width()), static_cast<std::uint32_t>(image.height()), sampling, tph::texture_usage::sampled | tph::texture_usage::transfer_destination};
-
-    auto&& [command_buffer, signal] = cpt::engine::instance().begin_transfer();
-
-    tph::cmd::copy(command_buffer, image, texture);
-    tph::cmd::prepare(command_buffer, texture, tph::pipeline_stage::fragment_shader);
-
-    signal.connect([image = std::move(image)](){});
-
-    return texture;
-}
-
-static tph::texture make_texture(tph::image image, const tph::sampling_options& sampling)
+static tph::texture make_texture(const tph::sampling_options& sampling, tph::image image)
 {
     tph::texture texture{cpt::engine::instance().renderer(), static_cast<std::uint32_t>(image.width()), static_cast<std::uint32_t>(image.height()), sampling, tph::texture_usage::sampled | tph::texture_usage::transfer_destination};
 
@@ -94,26 +65,32 @@ texture::texture(tph::texture other)
 
 }
 
-texture::texture(std::string_view file, cpt::load_from_file_t, const tph::sampling_options& sampling)
-:m_texture{make_texture(file, tph::load_from_file, sampling)}
+texture::texture(const std::filesystem::path& file, const tph::sampling_options& sampling)
+:m_texture{make_texture(sampling, file)}
 {
 
 }
 
-texture::texture(std::string_view data, cpt::load_from_memory_t, const tph::sampling_options& sampling)
-:m_texture{make_texture(data, tph::load_from_memory, sampling)}
+texture::texture(std::string_view data, const tph::sampling_options& sampling)
+:m_texture{make_texture(sampling, data)}
+{
+
+}
+
+texture::texture(std::istream& stream, const tph::sampling_options& sampling)
+:m_texture{make_texture(sampling, stream)}
 {
 
 }
 
 texture::texture(std::uint32_t width, std::uint32_t height, const std::uint8_t* rgba, const tph::sampling_options& sampling)
-:m_texture{make_texture(width, height, rgba, sampling)}
+:m_texture{make_texture(sampling, width, height, rgba)}
 {
 
 }
 
 texture::texture(tph::image image, const tph::sampling_options& sampling)
-:m_texture{make_texture(std::move(image), sampling)}
+:m_texture{make_texture(sampling, std::move(image))}
 {
 
 }

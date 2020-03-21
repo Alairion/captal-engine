@@ -185,7 +185,7 @@ static tph::image parse_image(const pugi::xml_node& node, const std::filesystem:
 {
     const std::string file_data{load_callback(root / node.attribute("source").as_string(), external_resource_type::image)};
 
-    return tph::image{cpt::engine::instance().renderer(), file_data, tph::load_from_memory, tph::image_usage::transfer_source};
+    return tph::image{cpt::engine::instance().renderer(), std::string_view{file_data}, tph::image_usage::transfer_source};
 }
 
 static properties_set parse_properties(const pugi::xml_node& node)

@@ -23,8 +23,9 @@ public:
 
 public:
     tileset(tph::texture other, std::uint32_t tile_width, std::uint32_t tile_height);
-    tileset(std::string_view file, cpt::load_from_file_t, std::uint32_t tile_width, std::uint32_t tile_height, const tph::sampling_options& sampling = tph::sampling_options{});
-    tileset(std::string_view data, cpt::load_from_memory_t, std::uint32_t tile_width, std::uint32_t tile_height, const tph::sampling_options& sampling = tph::sampling_options{});
+    tileset(const std::filesystem::path& file, std::uint32_t tile_width, std::uint32_t tile_height, const tph::sampling_options& sampling = tph::sampling_options{});
+    tileset(std::string_view data, std::uint32_t tile_width, std::uint32_t tile_height, const tph::sampling_options& sampling = tph::sampling_options{});
+    tileset(std::istream& stream, std::uint32_t tile_width, std::uint32_t tile_height, const tph::sampling_options& sampling = tph::sampling_options{});
     tileset(std::uint32_t width, std::uint32_t height, const std::uint8_t* rgba, std::uint32_t tile_width, std::uint32_t tile_height, const tph::sampling_options& sampling = tph::sampling_options{});
     tileset(tph::image image, std::uint32_t tile_width, std::uint32_t tile_height, const tph::sampling_options& sampling = tph::sampling_options{});
 

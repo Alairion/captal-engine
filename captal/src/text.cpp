@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <algorithm>
+#include <fstream>
 
 #include <ft2build.h>
 #include FT_FREETYPE_H
@@ -33,7 +34,7 @@ void font::freetype_deleter::operator()(freetype_info* ptr) noexcept
         FT_Done_FreeType(ptr->library);
 }
 
-font::font(std::string_view data, load_from_memory_t, std::uint32_t initial_size)
+font::font(std::string_view data, std::uint32_t initial_size)
 :m_loader{new freetype_info{}, freetype_deleter{}}
 {
     if(FT_Init_FreeType(&m_loader->library))
@@ -50,14 +51,39 @@ font::font(std::string_view data, load_from_memory_t, std::uint32_t initial_size
     resize(initial_size);
 }
 
-font::font(std::string_view file, load_from_file_t, std::uint32_t initial_size)
+font::font(const std::filesystem::path& file, std::uint32_t initial_size)
 :m_loader{new freetype_info{}, freetype_deleter{}}
 {
-    const std::string cfile{file};
+    std::ifstream ifs{file, std::ios_base::binary};
+    if(!ifs)
+        throw std::runtime_error{"Can not read file \"" + file.string() + "\"."};
+
+    const std::string data{std::istreambuf_iterator<char>{ifs}, std::istreambuf_iterator<char>{}};
 
     if(FT_Init_FreeType(&m_loader->library))
         throw std::runtime_error{"Can not init freetype library."};
-    if(FT_New_Face(m_loader->library, std::data(cfile), 0, &m_loader->face))
+    if(FT_New_Memory_Face(m_loader->library, reinterpret_cast<const FT_Byte*>(std::data(data)), static_cast<FT_Long>(std::size(data)), 0, &m_loader->face))
+        throw std::runtime_error{"Can not init freetype font face."};
+    if(FT_Select_Charmap(m_loader->face, FT_ENCODING_UNICODE))
+        throw std::runtime_error{"Can not set font charmap."};
+
+    m_info.family = std::string{m_loader->face->family_name};
+    m_info.glyph_count = m_loader->face->num_glyphs;
+    m_info.style = font_style::regular;
+
+    resize(initial_size);
+}
+
+font::font(std::istream& stream, std::uint32_t initial_size)
+:m_loader{new freetype_info{}, freetype_deleter{}}
+{
+    assert(stream && "Invalid stream.");
+
+    const std::string data{std::istreambuf_iterator<char>{stream}, std::istreambuf_iterator<char>{}};
+
+    if(FT_Init_FreeType(&m_loader->library))
+        throw std::runtime_error{"Can not init freetype library."};
+    if(FT_New_Memory_Face(m_loader->library, reinterpret_cast<const FT_Byte*>(std::data(data)), static_cast<FT_Long>(std::size(data)), 0, &m_loader->face))
         throw std::runtime_error{"Can not init freetype font face."};
     if(FT_Select_Charmap(m_loader->face, FT_ENCODING_UNICODE))
         throw std::runtime_error{"Can not set font charmap."};

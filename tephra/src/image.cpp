@@ -30,12 +30,12 @@ static VkMemoryPropertyFlags optimal_memory_types(image_usage usage)
     return optimal;
 }
 
-image::image(renderer& renderer, std::string_view file, load_from_file_t, image_usage usage)
+image::image(renderer& renderer, const std::filesystem::path& file, image_usage usage)
 :m_usage{usage}
 {
-    std::ifstream ifs{std::string{file}, std::ios_base::binary};
+    std::ifstream ifs{file, std::ios_base::binary};
     if(!ifs)
-        throw std::runtime_error{"Can not open file \"" + std::string{file} + "\"."};
+        throw std::runtime_error{"Can not open file \"" + file.string() + "\"."};
 
     const std::string data{std::istreambuf_iterator<char>{ifs}, std::istreambuf_iterator<char>{}};
 
@@ -59,13 +59,40 @@ image::image(renderer& renderer, std::string_view file, load_from_file_t, image_
     m_height = static_cast<size_type>(height);
 }
 
-image::image(renderer& renderer, std::string_view data, load_from_memory_t, image_usage usage)
+image::image(renderer& renderer, std::string_view data, image_usage usage)
 :m_usage{usage}
 {
     int width{};
     int height{};
     int channels{};
 
+    std::unique_ptr<stbi_uc, void(*)(void*)> pixels{stbi_load_from_memory(reinterpret_cast<const stbi_uc*>(std::data(data)), static_cast<int>(std::size(data)), &width, &height, &channels, STBI_rgb_alpha), &stbi_image_free};
+    if(!pixels)
+        throw std::runtime_error{"Can not load image. " + std::string{stbi_failure_reason()}};
+
+    m_buffer = vulkan::buffer{underlying_cast<VkDevice>(renderer), static_cast<std::uint64_t>(width * height * 4), static_cast<VkBufferUsageFlags>(usage & not_extension)};
+    m_memory = renderer.allocator().allocate_bound(m_buffer, vulkan::memory_resource_type::linear, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, optimal_memory_types(usage));
+
+    m_map = m_memory.map();
+    std::memcpy(m_map, pixels.get(), static_cast<std::size_t>(width * height * 4));
+
+    if(!static_cast<bool>(usage & image_usage::persistant_mapping))
+        m_memory.unmap();
+
+    m_width = static_cast<size_type>(width);
+    m_height = static_cast<size_type>(height);
+}
+
+image::image(renderer& renderer, std::istream& stream, image_usage usage)
+:m_usage{usage}
+{
+    assert(stream && "Invalid stream.");
+
+    const std::string data{std::istreambuf_iterator<char>{stream}, std::istreambuf_iterator<char>{}};
+
+    int width{};
+    int height{};
+    int channels{};
     std::unique_ptr<stbi_uc, void(*)(void*)> pixels{stbi_load_from_memory(reinterpret_cast<const stbi_uc*>(std::data(data)), static_cast<int>(std::size(data)), &width, &height, &channels, STBI_rgb_alpha), &stbi_image_free};
     if(!pixels)
         throw std::runtime_error{"Can not load image. " + std::string{stbi_failure_reason()}};
