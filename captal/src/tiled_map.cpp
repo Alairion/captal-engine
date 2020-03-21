@@ -267,7 +267,7 @@ static object parse_object(const pugi::xml_node& node)
         {
             object::point point{};
             point.position.x = node.attribute("x").as_float();
-            point.position.y = node.attribute("x").as_float();
+            point.position.y = node.attribute("y").as_float();
 
             output.content = point;
         }
@@ -278,7 +278,7 @@ static object parse_object(const pugi::xml_node& node)
             text.font_family = child.attribute("fontfamily").as_string();
             text.pixel_size = child.attribute("pixelsize").as_uint();
             text.position.x = node.attribute("x").as_float();
-            text.position.y = node.attribute("x").as_float();
+            text.position.y = node.attribute("y").as_float();
             text.width = node.attribute("width").as_float();
             text.height = node.attribute("height").as_float();
             text.angle = node.attribute("rotation").as_float() * (pi<float> * 180.0f);
@@ -309,7 +309,7 @@ static object parse_object(const pugi::xml_node& node)
         object::tile tile{};
         tile.gid = attribute.as_uint();
         tile.position.x = node.attribute("x").as_float();
-        tile.position.y = node.attribute("x").as_float();
+        tile.position.y = node.attribute("y").as_float();
         tile.width = node.attribute("width").as_float();
         tile.height = node.attribute("height").as_float();
         tile.angle = node.attribute("rotation").as_float() * (pi<float> * 180.0f);
@@ -321,7 +321,7 @@ static object parse_object(const pugi::xml_node& node)
     {
         object::square square{};
         square.position.x = node.attribute("x").as_float();
-        square.position.y = node.attribute("x").as_float();
+        square.position.y = node.attribute("y").as_float();
         square.width = node.attribute("width").as_float();
         square.height = node.attribute("height").as_float();
         square.angle = node.attribute("rotation").as_float() * (pi<float> * 180.0f);

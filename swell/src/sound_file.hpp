@@ -4,6 +4,7 @@
 #include "config.hpp"
 
 #include <memory>
+#include <filesystem>
 #include <string_view>
 
 #include "mixer.hpp"
@@ -15,8 +16,9 @@ class sound_file_reader : public sound_reader
 {
 public:
     constexpr sound_file_reader() = default;
-    sound_file_reader(std::string_view file, load_from_file_t, sound_reader_options options = sound_reader_options::none);
-    sound_file_reader(std::string_view data, load_from_memory_t, sound_reader_options options = sound_reader_options::none);
+    sound_file_reader(const std::filesystem::path& file, sound_reader_options options = sound_reader_options::none);
+    sound_file_reader(std::string_view data, sound_reader_options options = sound_reader_options::none);
+    sound_file_reader(std::istream& stream, sound_reader_options options = sound_reader_options::none);
 
     ~sound_file_reader() = default;
     sound_file_reader(const sound_file_reader&) = delete;

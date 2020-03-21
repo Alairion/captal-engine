@@ -1,5 +1,7 @@
 #include "ogg.hpp"
 
+#include <cassert>
+
 #define OV_EXCLUDE_STATIC_CALLBACKS
 #include <vorbis/vorbisfile.h>
 
@@ -12,7 +14,7 @@ void ogg_reader::vorbis_deleter::operator()(OggVorbis_File* file)
     delete file;
 }
 
-static std::size_t file_read(void* ptr, std::size_t size, std::size_t nmemb, void* datasource)
+static std::size_t stream_read(void* ptr, std::size_t size, std::size_t nmemb, void* datasource)
 {
     std::istream& stream = *static_cast<std::istream*>(datasource);
 
@@ -22,7 +24,7 @@ static std::size_t file_read(void* ptr, std::size_t size, std::size_t nmemb, voi
     return static_cast<std::size_t>(stream.gcount());
 }
 
-static int file_seek(void* datasource, ogg_int64_t offset, int whence)
+static int stream_seek(void* datasource, ogg_int64_t offset, int whence)
 {
     std::istream& stream = *static_cast<std::istream*>(datasource);
 
@@ -38,7 +40,7 @@ static int file_seek(void* datasource, ogg_int64_t offset, int whence)
     return static_cast<int>(stream.tellg());
 }
 
-static long file_tell(void* datasource)
+static long stream_tell(void* datasource)
 {
     std::istream& stream = *static_cast<std::istream*>(datasource);
 
@@ -78,18 +80,18 @@ long memory_tell(void* datasource)
     return static_cast<long>(stream.pos);
 }
 
-static constexpr ov_callbacks file_callbacks{file_read, file_seek, nullptr, file_tell};
+static constexpr ov_callbacks stream_callbacks{stream_read, stream_seek, nullptr, stream_tell};
 static constexpr ov_callbacks memory_callbacks{memory_read, memory_seek, nullptr, memory_tell};
 
-ogg_reader::ogg_reader(std::string_view file, load_from_file_t, sound_reader_options options)
+ogg_reader::ogg_reader(const std::filesystem::path& file, sound_reader_options options)
 :m_options{options}
 ,m_vorbis{new OggVorbis_File{}, vorbis_deleter{}}
-,m_file{std::string{file}, std::ios_base::binary}
+,m_file{file, std::ios_base::binary}
 {
     if(!m_file)
-        throw std::runtime_error{"Can not open file \"" + std::string{file} + "\"."};
+        throw std::runtime_error{"Can not open file \"" + file.string() + "\"."};
 
-    if(const auto error{ov_open_callbacks(&m_file, m_vorbis.get(), nullptr, 0, file_callbacks)}; error < 0)
+    if(const auto error{ov_open_callbacks(&m_file, m_vorbis.get(), nullptr, 0, stream_callbacks)}; error < 0)
         throw std::runtime_error{"Can not open the ogg file. #" + std::to_string(error)};
 
     m_frame_count = static_cast<std::uint64_t>(ov_pcm_total(m_vorbis.get(), -1));
@@ -106,13 +108,36 @@ ogg_reader::ogg_reader(std::string_view file, load_from_file_t, sound_reader_opt
     }
 }
 
-ogg_reader::ogg_reader(std::string_view data, load_from_memory_t, sound_reader_options options)
+ogg_reader::ogg_reader(std::string_view data, sound_reader_options options)
 :m_options{options}
 ,m_vorbis{new OggVorbis_File{}, vorbis_deleter{}}
 ,m_source{data}
 {
     if(auto error = ov_open_callbacks(&m_source, m_vorbis.get(), nullptr, 0, memory_callbacks); error < 0)
         throw std::runtime_error{"Can not open the audio file. #" + std::to_string(error)};
+
+    m_frame_count = static_cast<std::uint64_t>(ov_pcm_total(m_vorbis.get(), -1));
+
+    const vorbis_info* info{ov_info(m_vorbis.get(), 0)};
+    m_channel_count = static_cast<std::uint32_t>(info->channels);
+    m_frequency = static_cast<std::uint32_t>(info->rate);
+
+    if(static_cast<bool>(m_options & sound_reader_options::buffered))
+    {
+        fill_buffer();
+        close();
+    }
+}
+
+ogg_reader::ogg_reader(std::istream& stream, sound_reader_options options)
+:m_options{options}
+,m_vorbis{new OggVorbis_File{}, vorbis_deleter{}}
+,m_stream{&stream}
+{
+    assert(stream && "Invalid stream.");
+
+    if(const auto error{ov_open_callbacks(m_stream, m_vorbis.get(), nullptr, 0, stream_callbacks)}; error < 0)
+        throw std::runtime_error{"Can not open the ogg file. #" + std::to_string(error)};
 
     m_frame_count = static_cast<std::uint64_t>(ov_pcm_total(m_vorbis.get(), -1));
 

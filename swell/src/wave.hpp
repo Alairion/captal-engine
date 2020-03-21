@@ -4,6 +4,7 @@
 #include "config.hpp"
 
 #include <fstream>
+#include <filesystem>
 #include <string_view>
 
 #include "mixer.hpp"
@@ -32,8 +33,9 @@ class wave_reader : public sound_reader
 
 public:
     wave_reader() = default;
-    wave_reader(std::string_view file, load_from_file_t, sound_reader_options options = sound_reader_options::none);
-    wave_reader(std::string_view data, load_from_memory_t, sound_reader_options options = sound_reader_options::none);
+    wave_reader(const std::filesystem::path& file, sound_reader_options options = sound_reader_options::none);
+    wave_reader(std::string_view data, sound_reader_options options = sound_reader_options::none);
+    wave_reader(std::istream& stream, sound_reader_options options = sound_reader_options::none);
 
     ~wave_reader() = default;
     wave_reader(const wave_reader&) = delete;
@@ -56,8 +58,8 @@ private:
     std::size_t byte_size(std::size_t frame_count);
 
     bool read_samples_from_buffer(float* output, std::size_t frame_count);
-    bool read_samples_from_file(float* output, std::size_t frame_count);
     bool read_samples_from_memory(float* output, std::size_t frame_count);
+    bool read_samples_from_stream(float* output, std::size_t frame_count);
 
 private:
     header m_header{};
@@ -66,6 +68,7 @@ private:
     std::vector<float> m_buffer{};
     std::ifstream m_file{};
     std::string_view m_source{};
+    std::istream* m_stream{};
 };
 
 }

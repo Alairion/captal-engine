@@ -43,6 +43,7 @@ set(HEADERS
 
     "src/components/node.hpp"
     "src/components/drawable.hpp"
+    "src/components/draw_index.hpp"
     "src/components/camera.hpp"
     "src/components/listener.hpp"
     "src/components/audio_emiter.hpp"

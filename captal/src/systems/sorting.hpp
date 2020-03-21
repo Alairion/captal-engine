@@ -12,6 +12,8 @@ namespace systems
 {
 
 void CAPTAL_API z_sorting(entt::registry& world);
+void CAPTAL_API index_sorting(entt::registry& world);
+void CAPTAL_API index_z_sorting(entt::registry& world);
 
 }
 

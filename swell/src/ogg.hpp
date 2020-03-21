@@ -4,6 +4,7 @@
 #include "config.hpp"
 
 #include <fstream>
+#include <filesystem>
 #include <string_view>
 
 #include "mixer.hpp"
@@ -28,8 +29,9 @@ class ogg_reader : public sound_reader
 
 public:
     ogg_reader() = default;
-    ogg_reader(std::string_view file, load_from_file_t, sound_reader_options options = sound_reader_options::none);
-    ogg_reader(std::string_view data, load_from_memory_t, sound_reader_options options = sound_reader_options::none);
+    ogg_reader(const std::filesystem::path& file, sound_reader_options options = sound_reader_options::none);
+    ogg_reader(std::string_view data, sound_reader_options options = sound_reader_options::none);
+    ogg_reader(std::istream& stream, sound_reader_options options = sound_reader_options::none);
 
     ~ogg_reader();
     ogg_reader(const ogg_reader&) = delete;
@@ -63,6 +65,7 @@ private:
     std::vector<float> m_buffer{};
     std::ifstream m_file{};
     memory_stream m_source{};
+    std::istream* m_stream{};
 };
 
 }
