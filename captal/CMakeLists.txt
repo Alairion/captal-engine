@@ -40,6 +40,7 @@ set(HEADERS
     "src/sound.hpp"
     "src/tiled_map.hpp"
     "src/physics.hpp"
+    "src/texture_pool.hpp"
 
     "src/components/node.hpp"
     "src/components/drawable.hpp"
@@ -75,6 +76,7 @@ set(SOURCES
     "src/sound.cpp"
     "src/tiled_map.cpp"
     "src/physics.cpp"
+    "src/texture_pool.cpp"
 
     "src/systems/frame.cpp"
     "src/systems/sorting.cpp"
