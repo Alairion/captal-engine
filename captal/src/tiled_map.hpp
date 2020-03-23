@@ -75,6 +75,13 @@ struct object
     properties_set properties{};
 };
 
+struct image
+{
+    std::filesystem::path source{};
+    std::uint32_t width{};
+    std::uint32_t height{};
+};
+
 enum class objects_layer_draw_order : std::uint32_t
 {
     unknown,
@@ -93,11 +100,6 @@ struct layer
     {
         objects_layer_draw_order draw_order{};
         std::vector<object> objects{};
-    };
-
-    struct image
-    {
-        tph::image image{};
     };
 
     struct group
@@ -124,7 +126,7 @@ struct tile
     };
 
     std::string type{};
-    std::optional<tph::image> image{};
+    image image{};
     std::vector<object> hitboxes{};
     std::vector<animation> animations{};
     properties_set properties{};
@@ -141,7 +143,7 @@ struct tileset
     std::int32_t spacing{};
     std::int32_t margin{};
     glm::vec2 offset{};
-    std::optional<tph::image> image{};
+    image image{};
     std::vector<tile> tiles{};
     properties_set properties{};
 };
@@ -161,8 +163,9 @@ struct map
 enum class external_resource_type : std::uint32_t
 {
     tileset = 1,
-    image = 2,
-    object_template = 3
+    object_template = 2,
+    image = 3,
+    file = 4
 };
 
 using external_load_callback_type = std::function<std::string(const std::filesystem::path& path, external_resource_type resource_type)>;

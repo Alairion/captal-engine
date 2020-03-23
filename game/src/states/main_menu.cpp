@@ -20,7 +20,7 @@ namespace states
 
 main_menu::main_menu(cpt::render_window_ptr window)
 :m_window{std::move(window)}
-,m_font{"fonts/pcsenior.ttf", cpt::load_from_file, 32}
+,m_font{std::filesystem::u8path("fonts/pcsenior.ttf"), 32}
 ,m_text{cpt::draw_text(m_font, u8"Jouer")}
 {
     m_text_entity = m_world.create();

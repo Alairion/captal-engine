@@ -181,14 +181,17 @@ static cpt::color parse_color(std::string_view attribute)
     throw std::runtime_error{"Invalid color in tmx map."};
 }
 
-static tph::image parse_image(const pugi::xml_node& node, const std::filesystem::path& root, const external_load_callback_type& load_callback)
+static image parse_image(const pugi::xml_node& node, const std::filesystem::path& root, const external_load_callback_type& load_callback)
 {
-    const std::string file_data{load_callback(root / node.attribute("source").as_string(), external_resource_type::image)};
+    image output{};
+    output.source = std::filesystem::u8path(load_callback(root / node.attribute("source").as_string(), external_resource_type::image));
+    output.width = node.attribute("width").as_uint();
+    output.width = node.attribute("height").as_uint();
 
-    return tph::image{cpt::engine::instance().renderer(), std::string_view{file_data}, tph::image_usage::transfer_source};
+    return output;
 }
 
-static properties_set parse_properties(const pugi::xml_node& node)
+static properties_set parse_properties(const pugi::xml_node& node, const std::filesystem::path& root, const external_load_callback_type& load_callback)
 {
     properties_set output{};
 
@@ -207,7 +210,7 @@ static properties_set parse_properties(const pugi::xml_node& node)
         }
         else if(type == "file")
         {
-            property = std::filesystem::u8path(value);
+            property = std::filesystem::u8path(load_callback(root / value, external_resource_type::file));
         }
         else if(type == "int")
         {
@@ -253,7 +256,7 @@ static std::vector<tile::animation> parse_animations(const pugi::xml_node& node)
     return output;
 }
 
-static object parse_object(const pugi::xml_node& node)
+static object parse_object(const pugi::xml_node& node, const std::filesystem::path& root, const external_load_callback_type& load_callback)
 {
     object output{};
     output.id = node.attribute("id").as_uint();
@@ -300,7 +303,7 @@ static object parse_object(const pugi::xml_node& node)
         }
         else if(child.name() == "properties"sv)
         {
-            output.properties = parse_properties(child);
+            output.properties = parse_properties(child, root, load_callback);
         }
     }
 
@@ -332,7 +335,7 @@ static object parse_object(const pugi::xml_node& node)
     return output;
 }
 
-static std::vector<object> parse_hitboxes(const pugi::xml_node& node)
+static std::vector<object> parse_hitboxes(const pugi::xml_node& node, const std::filesystem::path& root, const external_load_callback_type& load_callback)
 {
     std::vector<object> output{};
 
@@ -340,7 +343,7 @@ static std::vector<object> parse_hitboxes(const pugi::xml_node& node)
     {
         if(child.name() == "object"sv)
         {
-            output.push_back(parse_object(child));
+            output.push_back(parse_object(child, root, load_callback));
         }
     }
 
@@ -364,11 +367,11 @@ static tile parse_tile(const pugi::xml_node& node, const std::filesystem::path& 
         }
         else if(child.name() == "objectgroup"sv)
         {
-            output.hitboxes = parse_hitboxes(child);
+            output.hitboxes = parse_hitboxes(child, root, load_callback);
         }
         else if(child.name() == "properties"sv)
         {
-            output.properties = parse_properties(child);
+            output.properties = parse_properties(child, root, load_callback);
         }
     }
 
@@ -402,7 +405,7 @@ static void parse_tileset(const pugi::xml_node& node, tileset& output, const std
         }
         else if(child.name() == "properties"sv)
         {
-            output.properties = parse_properties(child);
+            output.properties = parse_properties(child, root, load_callback);
         }
     }
 }
@@ -431,7 +434,7 @@ static tileset parse_map_tileset(const pugi::xml_node& node, const external_load
     return output;
 }
 
-static layer parse_layer(const pugi::xml_node& node)
+static layer parse_layer(const pugi::xml_node& node, const std::filesystem::path& root, const external_load_callback_type& load_callback)
 {
     layer output{};
     output.name = node.attribute("name").as_string();
@@ -451,14 +454,14 @@ static layer parse_layer(const pugi::xml_node& node)
         }
         else if(child.name() == "properties"sv)
         {
-            output.properties = parse_properties(child);
+            output.properties = parse_properties(child, root, load_callback);
         }
     }
 
     return output;
 }
 
-static layer parse_object_group(const pugi::xml_node& node)
+static layer parse_object_group(const pugi::xml_node& node, const std::filesystem::path& root, const external_load_callback_type& load_callback)
 {
     layer output{};
     output.name = node.attribute("name").as_string();
@@ -474,11 +477,11 @@ static layer parse_object_group(const pugi::xml_node& node)
     {
         if(child.name() == "object"sv)
         {
-            objects.objects.push_back(parse_object(child));
+            objects.objects.push_back(parse_object(child, root, load_callback));
         }
         else if(child.name() == "properties"sv)
         {
-            output.properties = parse_properties(child);
+            output.properties = parse_properties(child, root, load_callback);
         }
     }
 
@@ -487,7 +490,7 @@ static layer parse_object_group(const pugi::xml_node& node)
     return output;
 }
 
-static layer parse_image_layer(const pugi::xml_node& node, const external_load_callback_type& load_callback)
+static layer parse_image_layer(const pugi::xml_node& node, const std::filesystem::path& root, const external_load_callback_type& load_callback)
 {
     layer output{};
     output.name = node.attribute("name").as_string();
@@ -496,15 +499,22 @@ static layer parse_image_layer(const pugi::xml_node& node, const external_load_c
     output.position.x = node.attribute("offsetx").as_float();
     output.position.y = node.attribute("offsety").as_float();
 
-    layer::image image{};
-    image.image = parse_image(node.child("image"), "", load_callback);
-
-    output.content = std::move(image);
+    for(auto&& child : node)
+    {
+        if(child.name() == "group"sv)
+        {
+            output.content = parse_image(node.child("image"), "", load_callback);
+        }
+        else if(child.name() == "properties"sv)
+        {
+            output.properties = parse_properties(child, root, load_callback);
+        }
+    }
 
     return output;
 }
 
-static layer parse_group_layer(const pugi::xml_node& node, const external_load_callback_type& load_callback)
+static layer parse_group_layer(const pugi::xml_node& node, const std::filesystem::path& root, const external_load_callback_type& load_callback)
 {
     layer output{};
     output.name = node.attribute("name").as_string();
@@ -518,23 +528,23 @@ static layer parse_group_layer(const pugi::xml_node& node, const external_load_c
     {
         if(child.name() == "layer"sv)
         {
-            group.layers.push_back(parse_layer(child));
+            group.layers.push_back(parse_layer(child, root, load_callback));
         }
         else if(child.name() == "objectgroup"sv)
         {
-            group.layers.push_back(parse_object_group(child));
+            group.layers.push_back(parse_object_group(child, root, load_callback));
         }
         else if(child.name() == "imagelayer"sv)
         {
-            group.layers.push_back(parse_image_layer(child, load_callback));
+            group.layers.push_back(parse_image_layer(child, root, load_callback));
         }
         else if(child.name() == "group"sv)
         {
-            group.layers.push_back(parse_group_layer(child, load_callback));
+            group.layers.push_back(parse_group_layer(child, root, load_callback));
         }
         else if(child.name() == "properties"sv)
         {
-            output.properties = parse_properties(child);
+            output.properties = parse_properties(child, root, load_callback);
         }
     }
 
@@ -562,23 +572,23 @@ static map parse_map(const pugi::xml_node& node, const external_load_callback_ty
         }
         else if(child.name() == "layer"sv)
         {
-            output.layers.push_back(parse_layer(child));
+            output.layers.push_back(parse_layer(child, "", load_callback));
         }
         else if(child.name() == "objectgroup"sv)
         {
-            output.layers.push_back(parse_object_group(child));
+            output.layers.push_back(parse_object_group(child, "", load_callback));
         }
         else if(child.name() == "imagelayer"sv)
         {
-            output.layers.push_back(parse_image_layer(child, load_callback));
+            output.layers.push_back(parse_image_layer(child, "", load_callback));
         }
         else if(child.name() == "group"sv)
         {
-            output.layers.push_back(parse_group_layer(child, load_callback));
+            output.layers.push_back(parse_group_layer(child, "", load_callback));
         }
         else if(child.name() == "properties"sv)
         {
-            output.properties = parse_properties(child);
+            output.properties = parse_properties(child, "", load_callback);
         }
     }
 
@@ -589,13 +599,21 @@ map load_map(const std::filesystem::path& path)
 {
     assert(!std::empty(path) && "Invalid path.");
 
-    const auto load_callback = [&path](const std::filesystem::path& other_path, external_resource_type resource_type [[maybe_unused]]) -> std::string
+    const auto load_callback = [&path](const std::filesystem::path& other_path, external_resource_type resource_type) -> std::string
     {
-        std::ifstream ifs{path.parent_path() / other_path, std::ios_base::binary};
-        if(!ifs)
-            throw std::runtime_error{"Can not open file \"" + path.u8string() + "\"."};
+        if(resource_type == external_resource_type::image || resource_type == external_resource_type::file)
+        {
+            const std::filesystem::path output{path.parent_path() / other_path};
+            return output.u8string();
+        }
+        else
+        {
+            std::ifstream ifs{path.parent_path() / other_path, std::ios_base::binary};
+            if(!ifs)
+                throw std::runtime_error{"Can not open file \"" + path.u8string() + "\"."};
 
-        return std::string{std::istreambuf_iterator<char>{ifs}, std::istreambuf_iterator<char>{}};
+            return std::string{std::istreambuf_iterator<char>{ifs}, std::istreambuf_iterator<char>{}};
+        }
     };
 
     return load_map(path, load_callback);

@@ -22,10 +22,11 @@ map::map(const std::filesystem::path& path)
 :m_tiled_map{cpt::tiled::load_map(path)}
 {
     init_render();
+    init_entities();
 
     for(auto&& tileset : m_tiled_map.tilesets)
     {
-        m_tilesets.emplace_back(tileset.first_gid, cpt::make_tileset(std::move(tileset.image.value()), m_tiled_map.tile_width, m_tiled_map.tile_height));
+        m_tilesets.emplace_back(tileset.first_gid, cpt::make_tileset(tileset.image.source, m_tiled_map.tile_width, m_tiled_map.tile_height));
     }
 
     parse_layers(m_tiled_map.layers, 0);
@@ -33,13 +34,16 @@ map::map(const std::filesystem::path& path)
 
 void map::render()
 {
-    m_world.get<cpt::components::camera>(m_camera).attach(m_height_map_view);
+    const auto camera_entity{m_entities.at(camera_name)};
+    auto& camera{m_world.get<cpt::components::camera>(camera_entity)};
+
+    camera.attach(m_height_map_view);
     cpt::systems::render(m_world);
 
     cpt::systems::render(m_shadow_world);
     cpt::systems::end_frame(m_shadow_world);
 
-    m_world.get<cpt::components::camera>(m_camera).attach(m_diffuse_map_view);
+    camera.attach(m_diffuse_map_view);
     cpt::systems::render(m_world);
 
     m_height_map->present();
@@ -53,6 +57,16 @@ void map::view(float x, float y, std::uint32_t width, std::uint32_t height)
     m_shadow_map_view->resize(static_cast<float>(width), static_cast<float>(height));
     m_shadow_map_view->set_viewport(0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f);
     m_shadow_map_view->set_scissor(0, 0, width, height);
+
+    const auto camera_entity{m_entities.at(camera_name)};
+
+    auto& camera_node{m_world.assign<cpt::components::node>(camera_entity)};
+    camera_node.move_to(x, y);
+
+    const auto& camera{m_world.assign<cpt::components::camera>(camera_entity).attachment()};
+    camera->resize(static_cast<float>(width), static_cast<float>(height));
+    camera->set_viewport(0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f);
+    camera->set_scissor(0, 0, width, height);
 }
 
 void map::init_render()
@@ -60,8 +74,8 @@ void map::init_render()
     m_directional_light_buffer = cpt::make_framed_buffer(directional_light{});
 
     //Height map
-    tph::shader height_vertex_shader{cpt::engine::instance().renderer(), tph::shader_stage::vertex, "shaders/height.vert.spv", tph::load_from_file};
-    tph::shader height_fragment_shader{cpt::engine::instance().renderer(), tph::shader_stage::fragment, "shaders/height.frag.spv", tph::load_from_file};
+    tph::shader height_vertex_shader{cpt::engine::instance().renderer(), tph::shader_stage::vertex, std::filesystem::u8path(u8"shaders/height.vert.spv")};
+    tph::shader height_fragment_shader{cpt::engine::instance().renderer(), tph::shader_stage::fragment, std::filesystem::u8path(u8"shaders/height.frag.spv")};
     cpt::render_technique_info height_info{};
     height_info.stages.push_back(tph::pipeline_shader_stage{height_vertex_shader});
     height_info.stages.push_back(tph::pipeline_shader_stage{height_fragment_shader});
@@ -73,8 +87,8 @@ void map::init_render()
     m_height_map_view->fit_to(m_height_map);
 
     //Shadow map
-    tph::shader shadow_vertex_shader{cpt::engine::instance().renderer(), tph::shader_stage::vertex, "shaders/shadow.vert.spv", tph::load_from_file};
-    tph::shader shadow_fragment_shader{cpt::engine::instance().renderer(), tph::shader_stage::fragment, "shaders/shadow.frag.spv", tph::load_from_file};
+    tph::shader shadow_vertex_shader{cpt::engine::instance().renderer(), tph::shader_stage::vertex, std::filesystem::u8path(u8"shaders/shadow.vert.spv")};
+    tph::shader shadow_fragment_shader{cpt::engine::instance().renderer(), tph::shader_stage::fragment, std::filesystem::u8path(u8"shaders/shadow.frag.spv")};
     cpt::render_technique_info shadow_info{};
     shadow_info.stages.push_back(tph::pipeline_shader_stage{shadow_vertex_shader});
     shadow_info.stages.push_back(tph::pipeline_shader_stage{shadow_fragment_shader});
@@ -97,8 +111,8 @@ void map::init_render()
     m_shadow_world.get<cpt::components::drawable>(shadow_sprite).attachment()->add_uniform_binding(height_map_binding, m_height_map);
 
     //Color "diffuse" map
-    tph::shader diffuse_vertex_shader{cpt::engine::instance().renderer(), tph::shader_stage::vertex, "shaders/lighting.vert.spv", tph::load_from_file};
-    tph::shader diffuse_fragment_shader{cpt::engine::instance().renderer(), tph::shader_stage::fragment, "shaders/lighting.frag.spv", tph::load_from_file};
+    tph::shader diffuse_vertex_shader{cpt::engine::instance().renderer(), tph::shader_stage::vertex, std::filesystem::u8path(u8"shaders/lighting.vert.spv")};
+    tph::shader diffuse_fragment_shader{cpt::engine::instance().renderer(), tph::shader_stage::fragment, std::filesystem::u8path(u8"shaders/lighting.frag.spv")};
     cpt::render_technique_info diffuse_info{};
     diffuse_info.stages.push_back(tph::pipeline_shader_stage{diffuse_vertex_shader});
     diffuse_info.stages.push_back(tph::pipeline_shader_stage{diffuse_fragment_shader});
@@ -112,11 +126,23 @@ void map::init_render()
     m_diffuse_map_view->fit_to(m_diffuse_map);
     m_diffuse_map_view->add_uniform_binding(directional_light_binding, m_directional_light_buffer);
     m_diffuse_map_view->add_uniform_binding(shadow_map_binding, m_shadow_map);
+}
 
-    m_camera = m_world.create();
-    m_world.assign<cpt::components::node>(m_camera);
-    m_world.assign<cpt::components::camera>(m_camera);
-    m_world.assign<cpt::components::listener>(m_camera);
+void map::init_entities()
+{
+    const auto camera_entity{m_world.create()};
+    m_entities.emplace(camera_name, camera_entity);
+
+    m_world.assign<cpt::components::node>(camera_entity);
+    m_world.assign<cpt::components::camera>(camera_entity);
+    m_world.assign<cpt::components::listener>(camera_entity);
+
+    const auto player_entity{m_world.create()};
+    m_entities.emplace(player_name, player_entity);
+
+    m_world.assign<cpt::components::node>(player_entity, m_spawn_point, glm::vec3{8.0f, 8.0f, 0.0f});
+    m_world.assign<cpt::components::physical_body>(player_entity, cpt::make_physical_body(m_physical_world, cpt::physical_body_type::dynamic, 1.0f, std::numeric_limits<float>::infinity()));
+    m_world.assign<cpt::components::drawable>(player_entity, cpt::make_sprite(16, 16));
 }
 
 std::uint64_t map::parse_layers(const std::vector<cpt::tiled::layer>& layers, std::uint64_t index)
@@ -207,7 +233,7 @@ void map::parse_object(const cpt::tiled::object& object, std::uint64_t index [[m
 {
     if(object.type == "spawn")
     {
-
+        m_spawn_point = glm::vec3{std::get<cpt::tiled::object::point>(object.content).position, 0.0f};
     }
 }
 

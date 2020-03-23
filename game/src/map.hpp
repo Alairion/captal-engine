@@ -27,6 +27,11 @@ struct directional_light
 class map
 {
 public:
+    static constexpr const char* camera_name{"camera"};
+    static constexpr const char* player_name{"player"};
+    static constexpr const char* player_controller_name{"playerctrlr"};
+
+public:
     map(const std::filesystem::path& path);
 
     const cpt::render_texture_ptr& texture() const noexcept
@@ -39,6 +44,7 @@ public:
 
 private:
     void init_render();
+    void init_entities();
     std::uint64_t parse_layers(const std::vector<cpt::tiled::layer>& layers, std::uint64_t index);
     cpt::tilemap_ptr parse_tiles(const cpt::tiled::layer::tiles& tiles, cpt::components::physical_body& body);
     void parse_object(const cpt::tiled::object& object, std::uint64_t index);
@@ -49,13 +55,14 @@ private:
     cpt::texture_ptr load_specular_map(const cpt::tiled::properties_set& properties) const;
 
 private:
+    //Core:
     cpt::tiled::map m_tiled_map{};
     entt::registry m_world{};
-    entt::entity m_camera{};
     std::unordered_map<std::string, entt::entity> m_entities{};
     std::vector<std::pair<std::uint32_t, cpt::tileset_ptr>> m_tilesets{};
     cpt::physical_world m_physical_world{};
 
+    //Render:
     cpt::framed_buffer_ptr m_directional_light_buffer{};
     cpt::render_texture_ptr m_height_map{};
     cpt::view_ptr m_height_map_view{};
@@ -64,6 +71,9 @@ private:
     cpt::view_ptr m_shadow_map_view{};
     cpt::render_texture_ptr m_diffuse_map{};
     cpt::view_ptr m_diffuse_map_view{};
+
+    //Data:
+    glm::vec3 m_spawn_point{};
 };
 
 }

@@ -18,7 +18,7 @@ namespace states
 
 splash_screen::splash_screen(cpt::render_window_ptr window)
 :m_window{std::move(window)}
-,m_font{"fonts/basis33.ttf", cpt::load_from_file, 16}
+,m_font{std::filesystem::u8path("fonts/basis33.ttf"), 16}
 ,m_text{cpt::draw_text(m_font, u8"Ceci est un splash screen...\nOu plus si affinité...", cpt::color{1.0f, 1.0f, 1.0f, 0.0f})}
 {
     m_text_entity = m_world.create();
