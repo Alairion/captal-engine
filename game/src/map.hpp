@@ -60,7 +60,7 @@ private:
     entt::registry m_world{};
     std::unordered_map<std::string, entt::entity> m_entities{};
     std::vector<std::pair<std::uint32_t, cpt::tileset_ptr>> m_tilesets{};
-    cpt::physical_world m_physical_world{};
+    cpt::physical_world_ptr m_physical_world{};
 
     //Render:
     cpt::framed_buffer_ptr m_directional_light_buffer{};

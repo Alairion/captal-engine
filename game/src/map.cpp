@@ -20,6 +20,7 @@ namespace mpr
 
 map::map(const std::filesystem::path& path)
 :m_tiled_map{cpt::tiled::load_map(path)}
+,m_physical_world{cpt::make_physical_world()}
 {
     init_render();
     init_entities();

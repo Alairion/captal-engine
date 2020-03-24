@@ -16,7 +16,7 @@ class texture_pool
 {
     struct path_hash
     {
-        std::size_t operator()(const std::filesystem::path& path) noexcept
+        std::size_t operator()(const std::filesystem::path& path) const noexcept
         {
             return std::filesystem::hash_value(path);
         }
@@ -37,6 +37,30 @@ public:
     cpt::texture_ptr load(const std::filesystem::path& path, const tph::sampling_options& sampling = tph::sampling_options{});
     cpt::texture_ptr load(const std::filesystem::path& path, const load_callback& load_callback, const tph::sampling_options& sampling = tph::sampling_options{});
     cpt::texture_weak_ptr weak_load(const std::filesystem::path& path);
+
+    std::pair<cpt::texture_ptr, bool> emplace(std::filesystem::path path, texture_ptr texture);
+
+    void clear(std::size_t threshold = 1);
+
+    template<typename Predicate>
+    void clear_if(Predicate predicate)
+    {
+        auto it = std::begin(m_pool);
+        while(it != std::end(m_pool))
+        {
+            if(predicate(it->first, it->second))
+            {
+                it = m_pool.erase(it);
+            }
+            else
+            {
+                ++it;
+            }
+        }
+    }
+
+    void remove(const std::filesystem::path& path);
+    void remove(const texture_ptr& texture);
 
 private:
     std::unordered_map<std::filesystem::path, texture_ptr, path_hash> m_pool{};

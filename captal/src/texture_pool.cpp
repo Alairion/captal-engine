@@ -43,4 +43,46 @@ cpt::texture_weak_ptr texture_pool::weak_load(const std::filesystem::path& path)
     return cpt::texture_weak_ptr{};
 }
 
+std::pair<cpt::texture_ptr, bool> texture_pool::emplace(std::filesystem::path path, texture_ptr texture)
+{
+    auto [it, success] = m_pool.emplace(std::make_pair(std::move(path), std::move(texture)));
+
+    return std::make_pair(it->second, success);
+}
+
+void texture_pool::clear(std::size_t threshold)
+{
+    auto it = std::begin(m_pool);
+    while(it != std::end(m_pool))
+    {
+        if(static_cast<std::size_t>(it->second.use_count()) <= threshold)
+        {
+            it = m_pool.erase(it);
+        }
+        else
+        {
+            ++it;
+        }
+    }
+}
+
+void texture_pool::remove(const std::filesystem::path& path)
+{
+    const auto it{m_pool.find(path)};
+    if(it != std::end(m_pool))
+        m_pool.erase(it);
+}
+
+void texture_pool::remove(const texture_ptr& texture)
+{
+    const auto predicate = [&texture](const std::pair<std::filesystem::path, texture_ptr>& pair)
+    {
+        return pair.second == texture;
+    };
+
+    const auto it{std::find_if(std::begin(m_pool), std::end(m_pool), predicate)};
+    if(it != std::end(m_pool))
+        m_pool.erase(it);
+}
+
 }
