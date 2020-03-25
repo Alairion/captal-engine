@@ -35,20 +35,10 @@ void font::freetype_deleter::operator()(freetype_info* ptr) noexcept
 }
 
 font::font(std::string_view data, std::uint32_t initial_size)
-:m_loader{new freetype_info{}, freetype_deleter{}}
+:m_data{std::begin(data), std::end(data)}
+,m_loader{new freetype_info{}, freetype_deleter{}}
 {
-    if(FT_Init_FreeType(&m_loader->library))
-        throw std::runtime_error{"Can not init freetype library."};
-    if(FT_New_Memory_Face(m_loader->library, reinterpret_cast<const FT_Byte*>(std::data(data)), static_cast<FT_Long>(std::size(data)), 0, &m_loader->face))
-        throw std::runtime_error{"Can not init freetype font face."};
-    if(FT_Select_Charmap(m_loader->face, FT_ENCODING_UNICODE))
-        throw std::runtime_error{"Can not set font charmap."};
-
-    m_info.family = std::string{m_loader->face->family_name};
-    m_info.glyph_count = m_loader->face->num_glyphs;
-    m_info.style = font_style::regular;
-
-    resize(initial_size);
+    init(initial_size);
 }
 
 font::font(const std::filesystem::path& file, std::uint32_t initial_size)
@@ -58,20 +48,9 @@ font::font(const std::filesystem::path& file, std::uint32_t initial_size)
     if(!ifs)
         throw std::runtime_error{"Can not read file \"" + file.string() + "\"."};
 
-    const std::string data{std::istreambuf_iterator<char>{ifs}, std::istreambuf_iterator<char>{}};
+    m_data = std::string{std::istreambuf_iterator<char>{ifs}, std::istreambuf_iterator<char>{}};
 
-    if(FT_Init_FreeType(&m_loader->library))
-        throw std::runtime_error{"Can not init freetype library."};
-    if(FT_New_Memory_Face(m_loader->library, reinterpret_cast<const FT_Byte*>(std::data(data)), static_cast<FT_Long>(std::size(data)), 0, &m_loader->face))
-        throw std::runtime_error{"Can not init freetype font face."};
-    if(FT_Select_Charmap(m_loader->face, FT_ENCODING_UNICODE))
-        throw std::runtime_error{"Can not set font charmap."};
-
-    m_info.family = std::string{m_loader->face->family_name};
-    m_info.glyph_count = m_loader->face->num_glyphs;
-    m_info.style = font_style::regular;
-
-    resize(initial_size);
+    init(initial_size);
 }
 
 font::font(std::istream& stream, std::uint32_t initial_size)
@@ -79,20 +58,9 @@ font::font(std::istream& stream, std::uint32_t initial_size)
 {
     assert(stream && "Invalid stream.");
 
-    const std::string data{std::istreambuf_iterator<char>{stream}, std::istreambuf_iterator<char>{}};
+    m_data = std::string{std::istreambuf_iterator<char>{stream}, std::istreambuf_iterator<char>{}};
 
-    if(FT_Init_FreeType(&m_loader->library))
-        throw std::runtime_error{"Can not init freetype library."};
-    if(FT_New_Memory_Face(m_loader->library, reinterpret_cast<const FT_Byte*>(std::data(data)), static_cast<FT_Long>(std::size(data)), 0, &m_loader->face))
-        throw std::runtime_error{"Can not init freetype font face."};
-    if(FT_Select_Charmap(m_loader->face, FT_ENCODING_UNICODE))
-        throw std::runtime_error{"Can not set font charmap."};
-
-    m_info.family = std::string{m_loader->face->family_name};
-    m_info.glyph_count = m_loader->face->num_glyphs;
-    m_info.style = font_style::regular;
-
-    resize(initial_size);
+    init(initial_size);
 }
 
 void font::set_style(font_style style) noexcept
@@ -204,6 +172,22 @@ float font::kerning(char32_t left, char32_t right)
         return 0.0f;
 
     return output.x / (FT_IS_SCALABLE(m_loader->face) ? 64.0f : 1.0f);
+}
+
+void font::init(std::uint32_t initial_size)
+{
+    if(FT_Init_FreeType(&m_loader->library))
+        throw std::runtime_error{"Can not init freetype library."};
+    if(FT_New_Memory_Face(m_loader->library, reinterpret_cast<const FT_Byte*>(std::data(m_data)), static_cast<FT_Long>(std::size(m_data)), 0, &m_loader->face))
+        throw std::runtime_error{"Can not init freetype font face."};
+    if(FT_Select_Charmap(m_loader->face, FT_ENCODING_UNICODE))
+        throw std::runtime_error{"Can not set font charmap."};
+
+    m_info.family = std::string{m_loader->face->family_name};
+    m_info.glyph_count = m_loader->face->num_glyphs;
+    m_info.style = font_style::regular;
+
+    resize(initial_size);
 }
 
 text::text(const std::vector<std::uint32_t>& indices, const std::vector<vertex>& vertices, texture_ptr texture, std::uint32_t width, std::uint32_t height, std::size_t count)

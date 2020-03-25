@@ -85,6 +85,10 @@ public:
     }
 
 private:
+    void init(std::uint32_t initial_size);
+
+private:
+    std::string m_data{};
     std::unique_ptr<freetype_info, freetype_deleter> m_loader{};
     font_info m_info{};
 };

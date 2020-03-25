@@ -24,6 +24,14 @@ struct directional_light
     glm::vec4 specular{};
 };
 
+class chunk
+{
+public:
+
+private:
+
+};
+
 class map
 {
 public:
