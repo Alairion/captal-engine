@@ -8,6 +8,7 @@
 #include <captal/render_texture.hpp>
 #include <captal/tileset.hpp>
 #include <captal/tilemap.hpp>
+#include <captal/texture_pool.hpp>
 
 #include <captal/components/physical_body.hpp>
 
@@ -16,59 +17,122 @@
 namespace mpr
 {
 
-struct directional_light
-{
-    glm::vec4 direction{};
-    glm::vec4 ambiant{};
-    glm::vec4 diffuse{};
-    glm::vec4 specular{};
-};
+static constexpr std::uint32_t chunk_size{32};
+static constexpr std::uint32_t tile_size{16};
+
+static constexpr const char* camera_entity_name{"camera"};
+static constexpr const char* player_entity_name{"player"};
+static constexpr const char* player_controller_entity_name{"playerctrlr"};
+
+class map;
 
 class chunk
 {
 public:
+    chunk() = default;
+    chunk(map& map, std::uint32_t x, std::uint32_t y);
+    ~chunk() = default;
+    chunk(const chunk&) = delete;
+    chunk& operator=(const chunk&) = delete;
+    chunk(chunk&&) noexcept = default;
+    chunk& operator=(chunk&&) noexcept = default;
 
-private:
+    std::pair<std::string, entt::entity> drain(std::string entity_name);
+    void add_entity(std::pair<std::string, entt::entity> entity);
 
-};
-
-class map
-{
-public:
-    static constexpr const char* camera_name{"camera"};
-    static constexpr const char* player_name{"player"};
-    static constexpr const char* player_controller_name{"playerctrlr"};
-
-public:
-    map(const std::filesystem::path& path);
-
-    const cpt::render_texture_ptr& texture() const noexcept
+    std::uint32_t x() const noexcept
     {
-        return m_diffuse_map;
+        return m_x;
     }
 
-    void render();
-    void view(float x, float y, std::uint32_t width, std::uint32_t height);
+    std::uint32_t y() const noexcept
+    {
+        return m_y;
+    }
+
+    glm::vec3 chunk_offset() const noexcept
+    {
+        return glm::vec3{m_x * chunk_size * tile_size, m_y * chunk_size * tile_size, 0};
+    }
 
 private:
-    void init_render();
-    void init_entities();
+    std::filesystem::path file_path();
     std::uint64_t parse_layers(const std::vector<cpt::tiled::layer>& layers, std::uint64_t index);
     cpt::tilemap_ptr parse_tiles(const cpt::tiled::layer::tiles& tiles, cpt::components::physical_body& body);
     void parse_object(const cpt::tiled::object& object, std::uint64_t index);
-    const std::pair<std::uint32_t, cpt::tileset_ptr>& tileset_from_gid(std::uint32_t gid);
+    const std::pair<std::uint32_t, cpt::tileset>& tileset_from_gid(std::uint32_t gid);
     std::size_t tileset_index(std::uint32_t gid);
     cpt::texture_ptr load_height_map(const cpt::tiled::properties_set& properties) const;
     cpt::texture_ptr load_normal_map(const cpt::tiled::properties_set& properties) const;
     cpt::texture_ptr load_specular_map(const cpt::tiled::properties_set& properties) const;
 
 private:
-    //Core:
+    map* m_map{};
+    std::uint32_t m_x{};
+    std::uint32_t m_y{};
     cpt::tiled::map m_tiled_map{};
+    std::unordered_map<std::string, entt::entity> m_entities{};
+    std::vector<std::pair<std::uint32_t, cpt::tileset>> m_tilesets{};
+};
+
+class map
+{
+public:
+    map();
+    ~map() = default;
+    map(const map&) = delete;
+    map& operator=(const map&) = delete;
+    map(map&&) noexcept = delete;
+    map& operator=(map&&) noexcept = delete;
+
+    void render();
+    void view(float x, float y, std::uint32_t width, std::uint32_t height);
+
+    const cpt::render_texture_ptr& texture() const noexcept
+    {
+        return m_diffuse_map;
+    }
+
+    entt::registry& world() noexcept
+    {
+        return m_world;
+    }
+
+    const entt::registry& world() const noexcept
+    {
+        return m_world;
+    }
+
+    cpt::physical_world& physical_world() noexcept
+    {
+        return *m_physical_world;
+    }
+
+    const cpt::physical_world& physical_world() const noexcept
+    {
+        return *m_physical_world;
+    }
+
+    cpt::texture_pool& texture_pool() noexcept
+    {
+        return m_texture_pool;
+    }
+
+    const cpt::texture_pool& texture_pool() const noexcept
+    {
+        return m_texture_pool;
+    }
+
+private:
+    void init_render();
+    void init_entities();
+
+private:
+    //Core:
     entt::registry m_world{};
     std::unordered_map<std::string, entt::entity> m_entities{};
-    std::vector<std::pair<std::uint32_t, cpt::tileset_ptr>> m_tilesets{};
     cpt::physical_world_ptr m_physical_world{};
+    cpt::texture_pool m_texture_pool{};
 
     //Render:
     cpt::framed_buffer_ptr m_directional_light_buffer{};
@@ -79,9 +143,6 @@ private:
     cpt::view_ptr m_shadow_map_view{};
     cpt::render_texture_ptr m_diffuse_map{};
     cpt::view_ptr m_diffuse_map_view{};
-
-    //Data:
-    glm::vec3 m_spawn_point{};
 };
 
 }

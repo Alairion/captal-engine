@@ -10,7 +10,7 @@
 namespace cpt
 {
 
-class CAPTAL_API tileset : public texture
+class tileset
 {
 public:
     struct texture_rect
@@ -22,14 +22,17 @@ public:
     };
 
 public:
-    tileset(tph::texture other, std::uint32_t tile_width, std::uint32_t tile_height);
-    tileset(const std::filesystem::path& file, std::uint32_t tile_width, std::uint32_t tile_height, const tph::sampling_options& sampling = tph::sampling_options{});
-    tileset(std::string_view data, std::uint32_t tile_width, std::uint32_t tile_height, const tph::sampling_options& sampling = tph::sampling_options{});
-    tileset(std::istream& stream, std::uint32_t tile_width, std::uint32_t tile_height, const tph::sampling_options& sampling = tph::sampling_options{});
-    tileset(std::uint32_t width, std::uint32_t height, const std::uint8_t* rgba, std::uint32_t tile_width, std::uint32_t tile_height, const tph::sampling_options& sampling = tph::sampling_options{});
-    tileset(tph::image image, std::uint32_t tile_width, std::uint32_t tile_height, const tph::sampling_options& sampling = tph::sampling_options{});
+    tileset() = default;
 
-    virtual ~tileset() = default;
+    tileset(texture_ptr texture, std::uint32_t tile_width, std::uint32_t tile_height)
+    :m_texture{std::move(texture)}
+    ,m_tile_width{tile_width}
+    ,m_tile_height{tile_height}
+    {
+
+    }
+
+    ~tileset() = default;
     tileset(const tileset&) = delete;
     tileset& operator=(const tileset&) = delete;
     tileset(tileset&&) noexcept = default;
@@ -44,10 +47,10 @@ public:
     {
         texture_rect output{};
 
-        output.top_left     = glm::vec2{static_cast<float>(( col      * m_tile_width) / width()), static_cast<float>(( row * m_tile_height) / height())};
-        output.top_right    = glm::vec2{static_cast<float>(((col + 1) * m_tile_width) / width()), static_cast<float>(( row * m_tile_height) / height())};
-        output.bottom_right = glm::vec2{static_cast<float>(((col + 1) * m_tile_width) / width()), static_cast<float>(((row + 1) * m_tile_height) / height())};
-        output.bottom_left  = glm::vec2{static_cast<float>(( col      * m_tile_width) / width()), static_cast<float>(((row + 1) * m_tile_height) / height())};
+        output.top_left     = glm::vec2{static_cast<float>(( col      * m_tile_width) / m_texture->width()), static_cast<float>(( row      * m_tile_height) / m_texture->height())};
+        output.top_right    = glm::vec2{static_cast<float>(((col + 1) * m_tile_width) / m_texture->width()), static_cast<float>(( row      * m_tile_height) / m_texture->height())};
+        output.bottom_right = glm::vec2{static_cast<float>(((col + 1) * m_tile_width) / m_texture->width()), static_cast<float>(((row + 1) * m_tile_height) / m_texture->height())};
+        output.bottom_left  = glm::vec2{static_cast<float>(( col      * m_tile_width) / m_texture->width()), static_cast<float>(((row + 1) * m_tile_height) / m_texture->height())};
 
         return output;
     }
@@ -64,27 +67,24 @@ public:
 
     std::uint32_t col_count() const noexcept
     {
-        return width() / m_tile_width;
+        return m_texture->width() / m_tile_width;
     }
 
     std::uint32_t row_count() const noexcept
     {
-        return height() / m_tile_height;
+        return m_texture->height() / m_tile_height;
+    }
+
+    const texture_ptr& texture() const noexcept
+    {
+        return m_texture;
     }
 
 private:
+    texture_ptr m_texture{};
     std::uint32_t m_tile_width{};
     std::uint32_t m_tile_height{};
 };
-
-using tileset_ptr = std::shared_ptr<tileset>;
-using tileset_weak_ptr = std::weak_ptr<tileset>;
-
-template<typename... Args>
-tileset_ptr make_tileset(Args&&... args)
-{
-    return std::make_shared<tileset>(std::forward<Args>(args)...);
-}
 
 }
 

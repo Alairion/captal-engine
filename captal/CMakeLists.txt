@@ -71,7 +71,6 @@ set(SOURCES
     "src/view.cpp"
     "src/text.cpp"
     "src/sprite.cpp"
-    "src/tileset.cpp"
     "src/tilemap.cpp"
     "src/sound.cpp"
     "src/tiled_map.cpp"

@@ -15,7 +15,7 @@ class CAPTAL_API tilemap : public renderable
 public:
     tilemap() = default;
     tilemap(std::uint32_t width, std::uint32_t height, std::uint32_t tile_width, std::uint32_t tile_height);
-    tilemap(std::uint32_t width, std::uint32_t height, tileset_ptr tileset);
+    tilemap(std::uint32_t width, std::uint32_t height, const tileset& tileset);
 
     ~tilemap() = default;
     tilemap(const tilemap&) = delete;

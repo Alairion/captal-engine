@@ -1,6 +1,7 @@
 #include "map.hpp"
 
 #include <iostream>
+#include <sstream>
 
 #include <captal/sprite.hpp>
 #include <captal/tilemap.hpp>
@@ -18,24 +19,208 @@
 namespace mpr
 {
 
-map::map(const std::filesystem::path& path)
-:m_tiled_map{cpt::tiled::load_map(path)}
-,m_physical_world{cpt::make_physical_world()}
+chunk::chunk(map& map, std::uint32_t x, std::uint32_t y)
+:m_map{&map}
+,m_x{x}
+,m_y{y}
+,m_tiled_map{cpt::tiled::load_map(file_path())}
+{
+    for(auto&& tileset : m_tiled_map.tilesets)
+        m_tilesets.emplace_back(tileset.first_gid, cpt::tileset{map.texture_pool().load(tileset.image.source), m_tiled_map.tile_width, m_tiled_map.tile_height});
+
+    if(std::empty(m_tiled_map.layers))
+    {
+
+    }
+    else
+    {
+        parse_layers(m_tiled_map.layers, 0);
+    }
+}
+
+std::pair<std::string, entt::entity> chunk::drain(std::string entity_name)
+{
+    const auto it{m_entities.find(entity_name)};
+    if(it != std::end(m_entities))
+    {
+        auto output{std::move(*it)};
+        m_entities.erase(it);
+        return output;
+    }
+
+    return {};
+}
+
+void chunk::add_entity(std::pair<std::string, entt::entity> entity)
+{
+    m_entities.emplace(std::move(entity));
+}
+
+std::filesystem::path chunk::file_path()
+{
+    std::stringstream ss{};
+    ss << std::setfill('0') << "maps/chunk_" << std::setw(3) << m_x << "_" << std::setw(3) << m_y << ".tmx";
+
+    return std::filesystem::u8path(ss.str());
+}
+
+std::uint64_t chunk::parse_layers(const std::vector<cpt::tiled::layer>& layers, std::uint64_t index)
+{
+    for(auto&& layer : layers)
+    {
+        const auto entity{m_map->world().create()};
+        m_entities[layer.name] = entity;
+
+        m_map->world().assign<cpt::components::node>(entity).move_to(chunk_offset() + glm::vec3{layer.position, 0.0f});
+        m_map->world().assign<cpt::components::draw_index>(entity).index = index;
+        m_map->world().assign<cpt::components::drawable>(entity);
+        auto& layer_body = m_map->world().assign<cpt::components::physical_body>(entity, cpt::make_physical_body(m_map->physical_world(), cpt::physical_body_type::steady));
+
+        if(std::holds_alternative<cpt::tiled::layer::tiles>(layer.content))
+        {
+            const cpt::tiled::layer::tiles& tiles{std::get<cpt::tiled::layer::tiles>(layer.content)};
+            parse_tiles(tiles, layer_body);
+
+            ++index;
+        }
+        else if(std::holds_alternative<cpt::tiled::layer::objects>(layer.content))
+        {
+            const cpt::tiled::layer::objects& objects{std::get<cpt::tiled::layer::objects>(layer.content)};
+
+            for(auto&& object : objects.objects)
+            {
+                parse_object(object, index);
+            }
+
+            ++index;
+        }
+        else if(std::holds_alternative<cpt::tiled::layer::group>(layer.content))
+        {
+            const cpt::tiled::layer::group& group{std::get<cpt::tiled::layer::group>(layer.content)};
+            index = parse_layers(group.layers, index);
+        }
+    }
+
+    return index;
+}
+
+cpt::tilemap_ptr chunk::parse_tiles(const cpt::tiled::layer::tiles& tiles, cpt::components::physical_body& body)
+{
+    cpt::tilemap_ptr tilemap{cpt::make_tilemap(m_tiled_map.width, m_tiled_map.height, m_tiled_map.tile_width, m_tiled_map.tile_height)};
+
+    const auto it{std::find_if(std::begin(tiles.gid), std::end(tiles.gid), [](std::uint32_t value){return value != 0;})};
+    if(it != std::end(tiles.gid))
+    {
+        const cpt::tiled::tileset& map_tileset{m_tiled_map.tilesets[tileset_index(*it)]};
+        auto&& [first_gid, tileset] = tileset_from_gid(*it);
+
+        for(std::size_t i{}; i < m_tiled_map.width * m_tiled_map.height; ++i)
+        {
+            const std::uint32_t lid{tiles.gid[i] - first_gid};
+
+            if(lid != 0)
+            {
+                tilemap->set_texture_rect(i / m_tiled_map.width, i % m_tiled_map.width, tileset.compute_rect(lid));
+
+                for(auto&& hitbox : map_tileset.tiles[lid].hitboxes)
+                {
+                    if(std::holds_alternative<cpt::tiled::object::square>(hitbox.content))
+                    {
+                        const auto& square{std::get<cpt::tiled::object::square>(hitbox.content)};
+                        const float x{static_cast<float>((i % m_tiled_map.width) * m_tiled_map.tile_width) + square.position.x};
+                        const float y{static_cast<float>((i / m_tiled_map.width) * m_tiled_map.tile_height) + square.position.y};
+
+                        body.add_shape(glm::vec2{x, y}, glm::vec2{x + square.width, y});
+                        body.add_shape(glm::vec2{x + square.width, y}, glm::vec2{x + square.width, y + square.height});
+                        body.add_shape(glm::vec2{x + square.width, y + square.height}, glm::vec2{x, y + square.height});
+                        body.add_shape(glm::vec2{x, y + square.height}, glm::vec2{x, y});
+                    }
+                }
+            }
+        }
+
+        tilemap->set_texture(tileset.texture());
+        tilemap->add_uniform_binding(height_map_binding, load_height_map(map_tileset.properties));
+        tilemap->add_uniform_binding(normal_map_binding, load_normal_map(map_tileset.properties));
+        tilemap->add_uniform_binding(specular_map_binding, load_specular_map(map_tileset.properties));
+    }
+
+    return tilemap;
+}
+
+void chunk::parse_object(const cpt::tiled::object& object, std::uint64_t index [[maybe_unused]])
+{
+    if(object.type == "spawn")
+    {
+
+    }
+}
+
+const std::pair<uint32_t, cpt::tileset>& chunk::tileset_from_gid(std::uint32_t gid)
+{
+    for(const auto& tileset : m_tilesets)
+    {
+        if(tileset.first >= gid)
+            return tileset;
+    }
+
+    throw std::runtime_error{"Invalid layer data (missing tileset)."};
+}
+
+std::size_t chunk::tileset_index(std::uint32_t gid)
+{
+    for(std::size_t i{}; i < std::size(m_tilesets); ++i)
+    {
+        if(m_tilesets[i].first >= gid)
+            return i;
+    }
+
+    throw std::runtime_error{"Invalid layer data (missing tileset)."};
+}
+
+cpt::texture_ptr chunk::load_height_map(const cpt::tiled::properties_set& properties) const
+{
+    const auto it{properties.find("height_map")};
+    if(it != std::end(properties))
+    {
+        return cpt::make_texture(std::get<std::filesystem::path>(it->second));
+    }
+
+    return cpt::make_texture(2, 2, std::data(dummy_height_map_data), tph::sampling_options{tph::filter::nearest, tph::filter::nearest, tph::address_mode::repeat});
+}
+
+cpt::texture_ptr chunk::load_normal_map(const cpt::tiled::properties_set& properties) const
+{
+    const auto it{properties.find("normal_map")};
+    if(it != std::end(properties))
+    {
+        return cpt::make_texture(std::get<std::filesystem::path>(it->second));
+    }
+
+    return cpt::make_texture(2, 2, std::data(dummy_normal_map_data), tph::sampling_options{tph::filter::nearest, tph::filter::nearest, tph::address_mode::repeat});
+}
+
+cpt::texture_ptr chunk::load_specular_map(const cpt::tiled::properties_set& properties) const
+{
+    const auto it{properties.find("specular_map")};
+    if(it != std::end(properties))
+    {
+        return cpt::make_texture(std::get<std::filesystem::path>(it->second));
+    }
+
+    return cpt::make_texture(2, 2, std::data(dummy_specular_map_data), tph::sampling_options{tph::filter::nearest, tph::filter::nearest, tph::address_mode::repeat});
+}
+
+map::map()
+:m_physical_world{cpt::make_physical_world()}
 {
     init_render();
     init_entities();
-
-    for(auto&& tileset : m_tiled_map.tilesets)
-    {
-        m_tilesets.emplace_back(tileset.first_gid, cpt::make_tileset(tileset.image.source, m_tiled_map.tile_width, m_tiled_map.tile_height));
-    }
-
-    parse_layers(m_tiled_map.layers, 0);
 }
 
 void map::render()
 {
-    const auto camera_entity{m_entities.at(camera_name)};
+    const auto camera_entity{m_entities.at(camera_entity_name)};
     auto& camera{m_world.get<cpt::components::camera>(camera_entity)};
 
     camera.attach(m_height_map_view);
@@ -59,7 +244,7 @@ void map::view(float x, float y, std::uint32_t width, std::uint32_t height)
     m_shadow_map_view->set_viewport(0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f);
     m_shadow_map_view->set_scissor(0, 0, width, height);
 
-    const auto camera_entity{m_entities.at(camera_name)};
+    const auto camera_entity{m_entities.at(camera_entity_name)};
 
     auto& camera_node{m_world.assign<cpt::components::node>(camera_entity)};
     camera_node.move_to(x, y);
@@ -132,165 +317,18 @@ void map::init_render()
 void map::init_entities()
 {
     const auto camera_entity{m_world.create()};
-    m_entities.emplace(camera_name, camera_entity);
+    m_entities.emplace(camera_entity_name, camera_entity);
 
     m_world.assign<cpt::components::node>(camera_entity);
     m_world.assign<cpt::components::camera>(camera_entity);
     m_world.assign<cpt::components::listener>(camera_entity);
 
     const auto player_entity{m_world.create()};
-    m_entities.emplace(player_name, player_entity);
+    m_entities.emplace(player_entity_name, player_entity);
 
-    m_world.assign<cpt::components::node>(player_entity, m_spawn_point, glm::vec3{8.0f, 8.0f, 0.0f});
+    m_world.assign<cpt::components::node>(player_entity, glm::vec3{}, glm::vec3{8.0f, 8.0f, 0.0f});
     m_world.assign<cpt::components::physical_body>(player_entity, cpt::make_physical_body(m_physical_world, cpt::physical_body_type::dynamic, 1.0f, std::numeric_limits<float>::infinity()));
     m_world.assign<cpt::components::drawable>(player_entity, cpt::make_sprite(16, 16));
-}
-
-std::uint64_t map::parse_layers(const std::vector<cpt::tiled::layer>& layers, std::uint64_t index)
-{
-    for(auto&& layer : layers)
-    {
-        const auto entity{m_world.create()};
-        m_entities[layer.name] = entity;
-
-        m_world.assign<cpt::components::node>(entity).move_to(glm::vec3{layer.position, 0.0f});
-        m_world.assign<cpt::components::draw_index>(entity).index = index;
-        m_world.assign<cpt::components::drawable>(entity);
-        auto& layer_body = m_world.assign<cpt::components::physical_body>(entity, cpt::make_physical_body(m_physical_world, cpt::physical_body_type::steady));
-
-        if(std::holds_alternative<cpt::tiled::layer::tiles>(layer.content))
-        {
-            const cpt::tiled::layer::tiles& tiles{std::get<cpt::tiled::layer::tiles>(layer.content)};
-            parse_tiles(tiles, layer_body);
-
-            ++index;
-        }
-        else if(std::holds_alternative<cpt::tiled::layer::objects>(layer.content))
-        {
-            const cpt::tiled::layer::objects& objects{std::get<cpt::tiled::layer::objects>(layer.content)};
-
-            for(auto&& object : objects.objects)
-            {
-                parse_object(object, index);
-            }
-
-            ++index;
-        }
-        else if(std::holds_alternative<cpt::tiled::layer::group>(layer.content))
-        {
-            const cpt::tiled::layer::group& group{std::get<cpt::tiled::layer::group>(layer.content)};
-            index = parse_layers(group.layers, index);
-        }
-    }
-
-    return index;
-}
-
-cpt::tilemap_ptr map::parse_tiles(const cpt::tiled::layer::tiles& tiles, cpt::components::physical_body& body)
-{
-    cpt::tilemap_ptr tilemap{cpt::make_tilemap(m_tiled_map.width, m_tiled_map.height, m_tiled_map.tile_width, m_tiled_map.tile_height)};
-
-    const auto it{std::find_if(std::begin(tiles.gid), std::end(tiles.gid), [](std::uint32_t value){return value != 0;})};
-    if(it != std::end(tiles.gid))
-    {
-        const cpt::tiled::tileset& map_tileset{m_tiled_map.tilesets[tileset_index(*it)]};
-        auto&& [first_gid, tileset] = tileset_from_gid(*it);
-
-        for(std::size_t i{}; i < m_tiled_map.width * m_tiled_map.height; ++i)
-        {
-            const std::uint32_t lid{tiles.gid[i] - first_gid};
-
-            if(lid != 0)
-            {
-                tilemap->set_texture_rect(i / m_tiled_map.width, i % m_tiled_map.width, tileset->compute_rect(lid));
-
-                for(auto&& hitbox : map_tileset.tiles[lid].hitboxes)
-                {
-                    if(std::holds_alternative<cpt::tiled::object::square>(hitbox.content))
-                    {
-                        const auto& square{std::get<cpt::tiled::object::square>(hitbox.content)};
-                        const float x{static_cast<float>((i % m_tiled_map.width) * m_tiled_map.tile_width) + square.position.x};
-                        const float y{static_cast<float>((i / m_tiled_map.width) * m_tiled_map.tile_height) + square.position.y};
-
-                        body.add_shape(glm::vec2{x, y}, glm::vec2{x + square.width, y});
-                        body.add_shape(glm::vec2{x + square.width, y}, glm::vec2{x + square.width, y + square.height});
-                        body.add_shape(glm::vec2{x + square.width, y + square.height}, glm::vec2{x, y + square.height});
-                        body.add_shape(glm::vec2{x, y + square.height}, glm::vec2{x, y});
-                    }
-                }
-            }
-        }
-
-        tilemap->set_texture(std::move(tileset));
-        tilemap->add_uniform_binding(height_map_binding, load_height_map(map_tileset.properties));
-        tilemap->add_uniform_binding(normal_map_binding, load_normal_map(map_tileset.properties));
-        tilemap->add_uniform_binding(specular_map_binding, load_specular_map(map_tileset.properties));
-    }
-
-    return tilemap;
-}
-
-void map::parse_object(const cpt::tiled::object& object, std::uint64_t index [[maybe_unused]])
-{
-    if(object.type == "spawn")
-    {
-        m_spawn_point = glm::vec3{std::get<cpt::tiled::object::point>(object.content).position, 0.0f};
-    }
-}
-
-const std::pair<uint32_t, cpt::tileset_ptr>& map::tileset_from_gid(std::uint32_t gid)
-{
-    for(const auto& tileset : m_tilesets)
-    {
-        if(tileset.first >= gid)
-            return tileset;
-    }
-
-    throw std::runtime_error{"Invalid layer data (missing tileset)."};
-}
-
-std::size_t map::tileset_index(std::uint32_t gid)
-{
-    for(std::size_t i{}; i < std::size(m_tilesets); ++i)
-    {
-        if(m_tilesets[i].first >= gid)
-            return i;
-    }
-
-    throw std::runtime_error{"Invalid layer data (missing tileset)."};
-}
-
-cpt::texture_ptr map::load_height_map(const cpt::tiled::properties_set& properties) const
-{
-    const auto it{properties.find("height_map")};
-    if(it != std::end(properties))
-    {
-        return cpt::make_texture(std::get<std::filesystem::path>(it->second));
-    }
-
-    return cpt::make_texture(2, 2, std::data(dummy_height_map_data), tph::sampling_options{tph::filter::nearest, tph::filter::nearest, tph::address_mode::repeat});
-}
-
-cpt::texture_ptr map::load_normal_map(const cpt::tiled::properties_set& properties) const
-{
-    const auto it{properties.find("normal_map")};
-    if(it != std::end(properties))
-    {
-        return cpt::make_texture(std::get<std::filesystem::path>(it->second));
-    }
-
-    return cpt::make_texture(2, 2, std::data(dummy_normal_map_data), tph::sampling_options{tph::filter::nearest, tph::filter::nearest, tph::address_mode::repeat});
-}
-
-cpt::texture_ptr map::load_specular_map(const cpt::tiled::properties_set& properties) const
-{
-    const auto it{properties.find("specular_map")};
-    if(it != std::end(properties))
-    {
-        return cpt::make_texture(std::get<std::filesystem::path>(it->second));
-    }
-
-    return cpt::make_texture(2, 2, std::data(dummy_specular_map_data), tph::sampling_options{tph::filter::nearest, tph::filter::nearest, tph::address_mode::repeat});
 }
 
 }

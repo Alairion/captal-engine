@@ -5,6 +5,8 @@
 
 #include <array>
 
+#include <glm/vec4.hpp>
+
 namespace mpr
 {
 
@@ -19,6 +21,14 @@ static constexpr std::uint32_t shadow_map_binding{7};
 static constexpr std::array<std::uint8_t, 16> dummy_normal_map_data{128, 128, 255, 255, 128, 128, 255, 255, 128, 128, 255, 255, 128, 128, 255, 255};
 static constexpr std::array<std::uint8_t, 16> dummy_height_map_data{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 static constexpr std::array<std::uint8_t, 16> dummy_specular_map_data{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+
+struct directional_light
+{
+    glm::vec4 direction{};
+    glm::vec4 ambiant{};
+    glm::vec4 diffuse{};
+    glm::vec4 specular{};
+};
 
 }
 

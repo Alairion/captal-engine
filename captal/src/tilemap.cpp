@@ -13,15 +13,15 @@ tilemap::tilemap(std::uint32_t width, std::uint32_t height, std::uint32_t tile_w
     init();
 }
 
-tilemap::tilemap(std::uint32_t width, std::uint32_t height, tileset_ptr tileset)
+tilemap::tilemap(std::uint32_t width, std::uint32_t height, const tileset& tileset)
 :renderable{width * height * 6, width * height * 4}
 ,m_width{width}
 ,m_height{height}
-,m_tile_width{tileset->tile_width()}
-,m_tile_height{tileset->tile_height()}
+,m_tile_width{tileset.tile_width()}
+,m_tile_height{tileset.tile_height()}
 {
     init();
-    set_texture(std::move(tileset));
+    set_texture(tileset.texture());
 }
 
 void tilemap::set_color(std::uint32_t row, std::uint32_t col, const color& color) noexcept

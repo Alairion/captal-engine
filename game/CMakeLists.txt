@@ -10,6 +10,7 @@ set(HEADERS
     "src/viewport_compute.hpp"
 
     "src/map.hpp"
+    "src/clock.hpp"
 
     "src/states/splash_screen.hpp"
     "src/states/main_menu.hpp"
@@ -22,6 +23,7 @@ set(SOURCES
     "src/main.cpp"
 
     "src/map.cpp"
+    "src/clock.cpp"
 
     "src/states/splash_screen.cpp"
     "src/states/main_menu.cpp"
