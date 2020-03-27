@@ -132,6 +132,30 @@ public:
 
     descriptor_set_ptr make_set();
 
+    template<typename T>
+    T& get_push_constant(std::size_t index) noexcept
+    {
+        assert(m_ranges[index].size == sizeof(T) && "Size of T does not match range size.");
+
+        return *reinterpret_cast<T*>(std::data(m_push_constant_buffer) + m_ranges[index].offset);
+    }
+
+    template<typename T>
+    const T& get_push_constant(std::size_t index) const noexcept
+    {
+        assert(m_ranges[index].size == sizeof(T) && "Size of T does not match range size.");
+
+        return *reinterpret_cast<const T*>(std::data(m_push_constant_buffer) + m_ranges[index].offset);
+    }
+
+    template<typename T>
+    void set_push_constant(std::size_t index, T&& value) noexcept
+    {
+        assert(m_ranges[index].size == sizeof(T) && "Size of T does not match range size.");
+
+        get_push_constant<T>(index) = std::forward<T>(value);
+    }
+
     const std::vector<tph::descriptor_set_layout_binding>& bindings() const noexcept
     {
         return m_bindings;
@@ -172,6 +196,11 @@ public:
         return m_pipeline;
     }
 
+    const std::vector<std::uint8_t>& push_constant_buffer() const noexcept
+    {
+        return m_push_constant_buffer;
+    }
+
 private:
     std::vector<tph::descriptor_set_layout_binding> m_bindings{};
     std::vector<tph::push_constant_range> m_ranges{};
@@ -181,6 +210,7 @@ private:
     tph::pipeline m_pipeline{};
     std::mutex m_mutex{};
     std::vector<std::unique_ptr<descriptor_pool>> m_pools{};
+    std::vector<std::uint8_t> m_push_constant_buffer{};
 };
 
 using render_technique_ptr = std::shared_ptr<render_technique>;

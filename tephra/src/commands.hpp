@@ -5,13 +5,13 @@
 
 #include "vulkan/vulkan.hpp"
 
+#include "renderer.hpp"
 #include "enumerations.hpp"
 #include "render_target.hpp"
 
 namespace tph
 {
 
-class renderer;
 class render_target;
 class pipeline;
 class pipeline_layout;
@@ -31,6 +31,7 @@ class command_pool
 public:
     constexpr command_pool() = default;
     command_pool(renderer& renderer);
+    command_pool(renderer& renderer, queue queue);
     ~command_pool() = default;
     command_pool(const command_pool&) = delete;
     command_pool& operator=(const command_pool&) = delete;
@@ -197,7 +198,8 @@ void blit(command_buffer& command_buffer, texture& source, texture& destination,
 
 void pipeline_barrier(command_buffer& command_buffer, pipeline_stage source_stage, pipeline_stage destination_stage);
 void prepare(command_buffer& command_buffer, texture& texture, pipeline_stage stage);
-void prepare(command_buffer& command_buffer, texture& texture);
+
+void push_constants(command_buffer& command_buffer, pipeline_layout& layout, shader_stage stages, std::uint32_t offset, std::uint32_t size, const void* data);
 
 void begin_render_pass(command_buffer& command_buffer, render_target& target, std::uint32_t image_index, render_pass_content content = render_pass_content::inlined);
 void next_subpass(command_buffer& command_buffer, render_pass_content content = render_pass_content::inlined);
@@ -223,8 +225,10 @@ void execute(command_buffer& buffer, const std::vector<std::reference_wrapper<co
 
 }
 
-void submit(renderer& renderer, const submit_info& submit, optional_ref<fence> fence);
+void submit(renderer& renderer, const submit_info& info, optional_ref<fence> fence);
 void submit(renderer& renderer, const std::vector<submit_info>& submits, optional_ref<fence> fence);
+void submit(renderer& renderer, queue queue, const submit_info& info, optional_ref<fence> fence);
+void submit(renderer& renderer, queue queue, const std::vector<submit_info>& submits, optional_ref<fence> fence);
 
 }
 

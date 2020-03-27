@@ -57,6 +57,8 @@ constexpr bool operator<=(version left, version right) noexcept
     return left < right || left == right;
 }
 
+using bool32_t = std::uint32_t;
+
 struct nullref_t{};
 static constexpr nullref_t nullref{};
 
