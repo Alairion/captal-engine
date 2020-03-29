@@ -38,7 +38,7 @@ constexpr To daytime(const std::chrono::duration<Rep, Period>& total_time)
 //7 -> 19: day
 //19 -> 20: sunset
 //20 -> 21: moonrise
-//21 -> 4: night
+//21 -> 5: night
 //5 -> 6: moonset
 
 //zangle = 0.16 + t*π - 0.16*2t
@@ -48,30 +48,38 @@ constexpr To daytime(const std::chrono::duration<Rep, Period>& total_time)
 template<typename Rep, typename Period>
 std::pair<directional_light, directional_light> compute_lights(const std::chrono::duration<Rep, Period>& total_time)
 {
-    const time::hour time{daytime<time::hour>(total_time)};
+    const float time{daytime<time::hour>(total_time).count()};
     std::pair<directional_light, directional_light> output{};
 
-    if(time.count() >= 6.0f && time.count() <= 7.0f)
+    if(time >= 6.0f && time <= 7.0f) //sunrise
     {
 
     }
-    else if(time.count() >= 7.0f && time.count() <= 19.0f)
+    else if(time >= 7.0f && time <= 19.0f) //day
+    {
+        const float normalized_time{(time - 7.0f) * (19.0f - 7.0f)};
+        const float z_angle{0.16f + (normalized_time * cpt::pi<float>) - (0.16f * normalized_time)};
+        const float xy_angle{(-cpt::pi<float> / 16.0f) + (2 * cpt::pi<float> * normalized_time / 16.0f)};
+        const glm::vec4 sun_position{std::cos(z_angle) * std::cos(xy_angle), std::sin(xy_angle), std::sin(z_angle) * std::cos(xy_angle), 0.0f};
+
+        output.first.direction = -sun_position;
+        output.first.ambiant   = glm::vec4{0.35f, 0.35f, 0.35f, 1.0f};
+        output.first.diffuse   = glm::vec4{0.65f, 0.65f, 0.65f, 1.0f};
+        output.first.specular  = glm::vec4{0.50f, 0.50f, 0.50f, 1.0f};
+    }
+    else if(time >= 19.0f && time <= 20.0f) //sunset
     {
 
     }
-    else if(time.count() >= 19.0f && time.count() <= 20.0f)
+    else if(time >= 20.0f && time <= 21.0f) //moonrise
     {
 
     }
-    else if(time.count() >= 20.0f && time.count() <= 21.0f)
+    else if(time >= 21.0f && time <= 5.0f) //night
     {
 
     }
-    else if(time.count() >= 21.0f && time.count() <= 4.0f)
-    {
-
-    }
-    else if(time.count() >= 5.0f && time.count() <= 6.0f)
+    else if(time >= 5.0f && time <= 6.0f) //moonset
     {
 
     }

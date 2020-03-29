@@ -2,6 +2,7 @@
 #define MY_PROJECT_CONFIG_HPP_INCLUDED
 
 #include <tephra/config.hpp>
+#include <captal/config.hpp>
 
 #include <array>
 
