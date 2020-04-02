@@ -3,6 +3,8 @@
 
 #include "config.hpp"
 
+#include <captal/color.hpp>
+
 #include <chrono>
 #include <cmath>
 
@@ -34,52 +36,120 @@ constexpr To daytime(const std::chrono::duration<Rep, Period>& total_time)
     return std::chrono::duration_cast<To>(std::chrono::duration_cast<time::day>(total_time) - std::chrono::floor<time::day_t<std::uint64_t>>>(total_time));
 }
 
-//6 -> 7: sunrise
 //7 -> 19: day
 //19 -> 20: sunset
 //20 -> 21: moonrise
 //21 -> 5: night
 //5 -> 6: moonset
+//6 -> 7: sunrise
 
 //zangle = 0.16 + t*π - 0.16*2t
 //xyangle = (-π)/(16) + (2*π*t)/(16)
 //sunpos = cos(zangle) * cos(xyangle), sin(xyangle), sin(zangle) * cos(xyangle)
 
-template<typename Rep, typename Period>
-std::pair<directional_light, directional_light> compute_lights(const std::chrono::duration<Rep, Period>& total_time)
+static constexpr time::hour day_begin{7.0f};
+static constexpr time::hour sunset_begin{19.0f};
+static constexpr time::hour moonrise_begin{20.0f};
+static constexpr time::hour night_begin{21.0f};
+static constexpr time::hour moonset_begin{5.0f};
+static constexpr time::hour sunrise_begin{6.0f};
+
+enum class weather : std::uint32_t
 {
-    const float time{daytime<time::hour>(total_time).count()};
-    std::pair<directional_light, directional_light> output{};
+    clear
+};
 
-    if(time >= 6.0f && time <= 7.0f) //sunrise
+template<typename Rep, typename Period>
+std::array<directional_light, 2> compute_lights(const std::chrono::duration<Rep, Period>& total_time, weather weather [[maybe_unused]] = weather::clear)
+{
+    const auto sun_direction = [](float normalized_time) -> glm::vec4
     {
-
-    }
-    else if(time >= 7.0f && time <= 19.0f) //day
-    {
-        const float normalized_time{(time - 7.0f) * (19.0f - 7.0f)};
-        const float z_angle{0.16f + (normalized_time * cpt::pi<float>) - (0.16f * normalized_time)};
+        const float z_angle{0.09f + (normalized_time * cpt::pi<float>) - (0.09f * 2.0f * normalized_time)};
         const float xy_angle{(-cpt::pi<float> / 16.0f) + (2 * cpt::pi<float> * normalized_time / 16.0f)};
-        const glm::vec4 sun_position{std::cos(z_angle) * std::cos(xy_angle), std::sin(xy_angle), std::sin(z_angle) * std::cos(xy_angle), 0.0f};
 
-        output.first.direction = -sun_position;
-        output.first.ambiant   = glm::vec4{0.35f, 0.35f, 0.35f, 1.0f};
-        output.first.diffuse   = glm::vec4{0.65f, 0.65f, 0.65f, 1.0f};
-        output.first.specular  = glm::vec4{0.50f, 0.50f, 0.50f, 1.0f};
+        return -glm::vec4{std::cos(z_angle) * std::cos(xy_angle), std::sin(xy_angle), std::sin(z_angle) * std::cos(xy_angle), 0.0f};
+    };
+
+    const auto moon_direction = [](float normalized_time) -> glm::vec4
+    {
+        const float z_angle{0.09f + (normalized_time * cpt::pi<float>) - (0.09f * 2.0f * normalized_time)};
+        const float xy_angle{-cpt::pi<float> / 16.0f};
+
+        return -glm::vec4{std::cos(z_angle) * std::cos(xy_angle), std::sin(xy_angle), std::sin(z_angle) * std::cos(xy_angle), 0.0f};
+    };
+
+    const auto second_moon_direction = [](float normalized_time) -> glm::vec4
+    {
+        normalized_time = 1.0f - normalized_time;
+
+        const float z_angle{0.5f + (normalized_time * cpt::pi<float>) - (0.5f * 2.0f * normalized_time)};
+        const float xy_angle{cpt::pi<float> / 8.0f};
+
+        return -glm::vec4{std::cos(z_angle) * std::cos(xy_angle), std::sin(xy_angle), std::sin(z_angle) * std::cos(xy_angle), 0.0f};
+    };
+
+    const auto normalize_time = [](const time::hour& time, const time::hour& begin, const time::hour& end) -> float
+    {
+        return (time - begin).count() * (end - begin).count();
+    };
+
+    static constexpr glm::vec4 sunset_color{cpt::colors::orange}; //#FFA500
+    static constexpr glm::vec4 moon_color{cpt::colors::darkslateblue}; //#48408B
+    static constexpr glm::vec4 second_moon_color{cpt::colors::dodgerblue}; //#1E90FF
+
+    //[0] = sun or second moon; [1] = moon
+    std::array<directional_light, 2> output{};
+    const time::hour time{daytime<time::hour>(total_time)};
+
+    if(time >= day_begin && time < sunset_begin) //Day
+    {
+        output[0].direction = sun_direction(normalize_time(time, day_begin, sunset_begin));
+        output[0].ambiant = glm::vec4{0.35f, 0.35f, 0.35f, 1.0f};
+        output[0].diffuse = glm::vec4{0.65f, 0.65f, 0.65f, 1.0f};
+        output[0].specular = glm::vec4{0.50f, 0.50f, 0.50f, 1.0f};
     }
-    else if(time >= 19.0f && time <= 20.0f) //sunset
+    else if(time >= sunset_begin && time < moonrise_begin) //Sunset
+    {
+        const float advance{normalize_time(time, day_begin, sunset_begin)};
+
+        output[0].direction = sun_direction(1.0f);
+        output[0].ambiant = glm::vec4{0.25f, 0.25f, 0.25f, 1.0f} + glm::vec4{0.10f, 0.10f, 0.10f, 1.0f} * (1.0f - advance);
+        output[0].diffuse = static_cast<glm::vec4>(cpt::gradient(glm::vec4{0.65f, 0.65f, 0.65f, 1.0f}, sunset_color * glm::vec4{0.65f, 0.65f, 0.65f, 1.0f}, advance));
+        output[0].specular = static_cast<glm::vec4>(cpt::gradient(glm::vec4{0.50f, 0.50f, 0.50f, 1.0f}, sunset_color * glm::vec4{0.50f, 0.50f, 0.50f, 1.0f}, advance));
+    }
+    else if(time >= moonrise_begin && time < night_begin) //Moonrise
+    {
+        const float advance{normalize_time(time, moonrise_begin, night_begin)};
+
+        output[0].direction = sun_direction(1.0f);
+        output[0].ambiant = glm::vec4{0.25f, 0.25f, 0.25f, 1.0f} * (1.0f - advance);
+        output[0].diffuse = sunset_color * glm::vec4{0.65f, 0.65f, 0.65f, 1.0f} * (1.0f - advance);
+        output[0].specular = sunset_color * glm::vec4{0.50f, 0.50f, 0.50f, 1.0f} * (1.0f - advance);
+
+        output[1].direction = moon_direction(0.0f);
+        output[1].ambiant = glm::vec4{0.15f, 0.15f, 0.15f, 1.0f} * advance;
+        output[1].diffuse = moon_color * glm::vec4{0.35f, 0.35f, 0.35f, 1.0f} * advance;
+        output[1].specular = moon_color * glm::vec4{0.25f, 0.25f, 0.25f, 1.0f} * advance;
+    }
+    else if(time >= night_begin && time < moonset_begin)
+    {
+        const float advance{normalize_time(time, night_begin, moonset_begin)};
+
+        output[0].direction = second_moon_direction(advance);
+        output[0].ambiant = glm::vec4{0.05f, 0.05f, 0.05f, 1.0f};
+        output[0].diffuse = second_moon_color * glm::vec4{0.15f, 0.15f, 0.15f, 1.0f};
+        output[0].specular = second_moon_color * glm::vec4{0.10f, 0.10f, 0.10f, 1.0f};
+
+        output[1].direction = moon_direction(advance);
+        output[1].ambiant = glm::vec4{0.15f, 0.15f, 0.15f, 1.0f};
+        output[1].diffuse = moon_color * glm::vec4{0.35f, 0.35f, 0.35f, 1.0f};
+        output[1].specular = moon_color * glm::vec4{0.25f, 0.25f, 0.25f, 1.0f};
+    }
+    else if(time >= moonset_begin && time < sunrise_begin)
     {
 
     }
-    else if(time >= 20.0f && time <= 21.0f) //moonrise
-    {
-
-    }
-    else if(time >= 21.0f && time <= 5.0f) //night
-    {
-
-    }
-    else if(time >= 5.0f && time <= 6.0f) //moonset
+    else if(time >= sunrise_begin && time < day_begin)
     {
 
     }

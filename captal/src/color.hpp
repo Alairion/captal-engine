@@ -16,7 +16,7 @@ struct color
     constexpr color() noexcept = default;
 
     template<typename T, typename std::enable_if<std::is_floating_point<T>::value, int>::type = 0>
-    constexpr color(T r, T g, T b, T a = static_cast<T>(1.0)) noexcept
+    constexpr color(T r, T g, T b, T a = static_cast<T>(1)) noexcept
     :red{static_cast<float>(r)}
     ,green{static_cast<float>(g)}
     ,blue{static_cast<float>(b)}
@@ -65,6 +65,27 @@ struct color
     float blue{};
     float alpha{};
 };
+
+constexpr color gradient(const color& first, const color& second, float advance) noexcept
+{
+    assert((0.0f <= advance && advance <= 1.0f) && "advance must be in the range [0; 1].");
+
+    const auto compute = [advance](float first, float second) -> float
+    {
+        if(first < second)
+            return first + (second - first) * advance;
+
+        return first - (first - second) * advance;
+    };
+
+    color output{};
+    output.red = compute(first.red, second.red);
+    output.green = compute(first.green, second.green);
+    output.blue = compute(first.blue, second.blue);
+    output.alpha = compute(first.alpha, second.alpha);
+
+    return output;
+}
 
 namespace colors
 {
