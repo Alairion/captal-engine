@@ -94,6 +94,7 @@ std::array<directional_light, 2> compute_lights(const std::chrono::duration<Rep,
     };
 
     static constexpr glm::vec4 sunset_color{cpt::colors::orange}; //#FFA500
+    static constexpr glm::vec4 sunrise_color{cpt::colors::powderblue}; //#B0E0E6
     static constexpr glm::vec4 moon_color{cpt::colors::darkslateblue}; //#48408B
     static constexpr glm::vec4 second_moon_color{cpt::colors::dodgerblue}; //#1E90FF
 
@@ -103,6 +104,7 @@ std::array<directional_light, 2> compute_lights(const std::chrono::duration<Rep,
 
     if(time >= day_begin && time < sunset_begin) //Day
     {
+        //Sun
         output[0].direction = sun_direction(normalize_time(time, day_begin, sunset_begin));
         output[0].ambiant = glm::vec4{0.35f, 0.35f, 0.35f, 1.0f};
         output[0].diffuse = glm::vec4{0.65f, 0.65f, 0.65f, 1.0f};
@@ -112,6 +114,7 @@ std::array<directional_light, 2> compute_lights(const std::chrono::duration<Rep,
     {
         const float advance{normalize_time(time, day_begin, sunset_begin)};
 
+        //Sun
         output[0].direction = sun_direction(1.0f);
         output[0].ambiant = glm::vec4{0.25f, 0.25f, 0.25f, 1.0f} + glm::vec4{0.10f, 0.10f, 0.10f, 1.0f} * (1.0f - advance);
         output[0].diffuse = static_cast<glm::vec4>(cpt::gradient(glm::vec4{0.65f, 0.65f, 0.65f, 1.0f}, sunset_color * glm::vec4{0.65f, 0.65f, 0.65f, 1.0f}, advance));
@@ -121,11 +124,28 @@ std::array<directional_light, 2> compute_lights(const std::chrono::duration<Rep,
     {
         const float advance{normalize_time(time, moonrise_begin, night_begin)};
 
-        output[0].direction = sun_direction(1.0f);
-        output[0].ambiant = glm::vec4{0.25f, 0.25f, 0.25f, 1.0f} * (1.0f - advance);
-        output[0].diffuse = sunset_color * glm::vec4{0.65f, 0.65f, 0.65f, 1.0f} * (1.0f - advance);
-        output[0].specular = sunset_color * glm::vec4{0.50f, 0.50f, 0.50f, 1.0f} * (1.0f - advance);
+        if(advance < 0.5f)
+        {
+            const float half_advance{(0.5f - advance) * 2.0f};
 
+            //Sun
+            output[0].direction = sun_direction(1.0f);
+            output[0].ambiant = glm::vec4{0.05f, 0.05f, 0.05f, 1.0f} + glm::vec4{0.20f, 0.20f, 0.20f, 1.0f} * half_advance;
+            output[0].diffuse = sunset_color * glm::vec4{0.65f, 0.65f, 0.65f, 1.0f} * half_advance;
+            output[0].specular = sunset_color * glm::vec4{0.50f, 0.50f, 0.50f, 1.0f} * half_advance;
+        }
+        else
+        {
+            const float half_advance{(advance - 0.5f) * 2.0f};
+
+            //Second moon
+            output[0].direction = second_moon_direction(0.0f);
+            output[0].ambiant = glm::vec4{0.05f, 0.05f, 0.05f, 1.0f};
+            output[0].diffuse = second_moon_color * glm::vec4{0.10f, 0.10f, 0.10f, 1.0f} * half_advance;
+            output[0].specular = second_moon_color * glm::vec4{0.075f, 0.075f, 0.075f, 1.0f} * half_advance;
+        }
+
+        //Moon
         output[1].direction = moon_direction(0.0f);
         output[1].ambiant = glm::vec4{0.15f, 0.15f, 0.15f, 1.0f} * advance;
         output[1].diffuse = moon_color * glm::vec4{0.35f, 0.35f, 0.35f, 1.0f} * advance;
@@ -135,11 +155,13 @@ std::array<directional_light, 2> compute_lights(const std::chrono::duration<Rep,
     {
         const float advance{normalize_time(time, night_begin, moonset_begin)};
 
+        //Second moon
         output[0].direction = second_moon_direction(advance);
         output[0].ambiant = glm::vec4{0.05f, 0.05f, 0.05f, 1.0f};
         output[0].diffuse = second_moon_color * glm::vec4{0.15f, 0.15f, 0.15f, 1.0f};
         output[0].specular = second_moon_color * glm::vec4{0.10f, 0.10f, 0.10f, 1.0f};
 
+        //Moon
         output[1].direction = moon_direction(advance);
         output[1].ambiant = glm::vec4{0.15f, 0.15f, 0.15f, 1.0f};
         output[1].diffuse = moon_color * glm::vec4{0.35f, 0.35f, 0.35f, 1.0f};
@@ -147,11 +169,44 @@ std::array<directional_light, 2> compute_lights(const std::chrono::duration<Rep,
     }
     else if(time >= moonset_begin && time < sunrise_begin)
     {
+        const float advance{normalize_time(time, moonset_begin, sunrise_begin)};
 
+        if(advance < 0.5f)
+        {
+            const float half_advance{(0.5f - advance) * 2.0f};
+
+            //Second moon
+            output[0].direction = second_moon_direction(0.0f);
+            output[0].ambiant = glm::vec4{0.05f, 0.05f, 0.05f, 1.0f};
+            output[0].diffuse = second_moon_color * glm::vec4{0.10f, 0.10f, 0.10f, 1.0f} * half_advance;
+            output[0].specular = second_moon_color * glm::vec4{0.075f, 0.075f, 0.075f, 1.0f} * half_advance;
+        }
+        else
+        {
+            const float half_advance{(advance - 0.5f) * 2.0f};
+
+            //Sun
+            output[0].direction = sun_direction(1.0f);
+            output[0].ambiant = glm::vec4{0.05f, 0.05f, 0.05f, 1.0f} + glm::vec4{0.20f, 0.20f, 0.20f, 1.0f} * half_advance;
+            output[0].diffuse = sunrise_color * glm::vec4{0.65f, 0.65f, 0.65f, 1.0f} * half_advance;
+            output[0].specular = sunrise_color * glm::vec4{0.50f, 0.50f, 0.50f, 1.0f} * half_advance;
+        }
+
+        //Moon
+        output[1].direction = moon_direction(1.0f);
+        output[1].ambiant = glm::vec4{0.15f, 0.15f, 0.15f, 1.0f} * (1.0f - advance);
+        output[1].diffuse = moon_color * glm::vec4{0.35f, 0.35f, 0.35f, 1.0f} * (1.0f - advance);
+        output[1].specular = moon_color * glm::vec4{0.25f, 0.25f, 0.25f, 1.0f} * (1.0f - advance);
     }
     else if(time >= sunrise_begin && time < day_begin)
     {
+        const float advance{normalize_time(time, day_begin, sunset_begin)};
 
+        //Sun
+        output[0].direction = sun_direction(1.0f);
+        output[0].ambiant = glm::vec4{0.25f, 0.25f, 0.25f, 1.0f} + glm::vec4{0.10f, 0.10f, 0.10f, 1.0f} * advance;
+        output[0].diffuse = static_cast<glm::vec4>(cpt::gradient(sunrise_color * glm::vec4{0.65f, 0.65f, 0.65f, 1.0f}, glm::vec4{0.65f, 0.65f, 0.65f, 1.0f}, advance));
+        output[0].specular = static_cast<glm::vec4>(cpt::gradient(sunrise_color * glm::vec4{0.50f, 0.50f, 0.50f, 1.0f}, glm::vec4{0.50f, 0.50f, 0.50f, 1.0f}, advance));
     }
 
     return output;
