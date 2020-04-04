@@ -19,21 +19,22 @@
 namespace mpr
 {
 
+//use texture pool
+
 chunk::chunk(map& map, std::uint32_t x, std::uint32_t y)
 :m_map{&map}
 ,m_x{x}
 ,m_y{y}
-,m_tiled_map{cpt::tiled::load_map(file_path())}
 {
-    for(auto&& tileset : m_tiled_map.tilesets)
-        m_tilesets.emplace_back(tileset.first_gid, cpt::tileset{map.texture_pool().load(tileset.image.source), m_tiled_map.tile_width, m_tiled_map.tile_height});
+    const std::filesystem::path path{file_path()};
 
-    if(std::empty(m_tiled_map.layers))
+    if(std::filesystem::exists(path))
     {
+        m_tiled_map = cpt::tiled::load_map(path);
 
-    }
-    else
-    {
+        for(auto&& tileset : m_tiled_map.tilesets)
+            m_tilesets.emplace_back(tileset.first_gid, cpt::tileset{map.texture_pool().load(tileset.image.source), m_tiled_map.tile_width, m_tiled_map.tile_height});
+
         parse_layers(m_tiled_map.layers, 0);
     }
 }
@@ -143,6 +144,7 @@ cpt::tilemap_ptr chunk::parse_tiles(const cpt::tiled::layer::tiles& tiles, cpt::
         tilemap->add_uniform_binding(height_map_binding, load_height_map(map_tileset.properties));
         tilemap->add_uniform_binding(normal_map_binding, load_normal_map(map_tileset.properties));
         tilemap->add_uniform_binding(specular_map_binding, load_specular_map(map_tileset.properties));
+        tilemap->add_uniform_binding(emission_map_binding, load_emission_map(map_tileset.properties));
     }
 
     return tilemap;
@@ -209,6 +211,17 @@ cpt::texture_ptr chunk::load_specular_map(const cpt::tiled::properties_set& prop
     }
 
     return cpt::make_texture(2, 2, std::data(dummy_specular_map_data), tph::sampling_options{tph::filter::nearest, tph::filter::nearest, tph::address_mode::repeat});
+}
+
+cpt::texture_ptr chunk::load_emission_map(const cpt::tiled::properties_set& properties) const
+{
+    const auto it{properties.find("emission_map")};
+    if(it != std::end(properties))
+    {
+        return cpt::make_texture(std::get<std::filesystem::path>(it->second));
+    }
+
+    return cpt::make_texture(2, 2, std::data(dummy_emission_map_data), tph::sampling_options{tph::filter::nearest, tph::filter::nearest, tph::address_mode::repeat});
 }
 
 map::map()
@@ -304,6 +317,7 @@ void map::init_render()
     diffuse_info.stages.push_back(tph::pipeline_shader_stage{diffuse_fragment_shader});
     diffuse_info.stages_bindings.push_back(tph::descriptor_set_layout_binding{tph::shader_stage::fragment, normal_map_binding, tph::descriptor_type::image_sampler});
     diffuse_info.stages_bindings.push_back(tph::descriptor_set_layout_binding{tph::shader_stage::fragment, specular_map_binding, tph::descriptor_type::image_sampler});
+    diffuse_info.stages_bindings.push_back(tph::descriptor_set_layout_binding{tph::shader_stage::fragment, emission_map_binding, tph::descriptor_type::image_sampler});
     diffuse_info.stages_bindings.push_back(tph::descriptor_set_layout_binding{tph::shader_stage::fragment, directional_light_binding, tph::descriptor_type::uniform_buffer});
     diffuse_info.stages_bindings.push_back(tph::descriptor_set_layout_binding{tph::shader_stage::fragment, shadow_map_binding, tph::descriptor_type::image_sampler});
 

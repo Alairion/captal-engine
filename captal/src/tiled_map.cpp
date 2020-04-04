@@ -19,7 +19,7 @@ using namespace std::string_view_literals;
 
 using tmx_data_t = std::vector<std::uint32_t>;
 
-static std::uint32_t from_base64(char value) noexcept
+static constexpr std::uint32_t from_base64(char value) noexcept
 {
     if(value >= 'A' && value <= 'Z')
     {

@@ -23,6 +23,9 @@ enum class texture_usage : std::uint32_t
     sampled = VK_IMAGE_USAGE_SAMPLED_BIT,
     storage = VK_IMAGE_USAGE_STORAGE_BIT,
     color_attachment = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+    depth_stencil_attachment = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+    transient_attachment = VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT,
+    input_attachment = VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT,
 };
 
 template<> struct enable_enum_operations<texture_usage> {static constexpr bool value{true};};
@@ -67,10 +70,21 @@ public:
 
 public:
     constexpr texture() = default;
+
+    texture(renderer& renderer, size_type width, texture_usage usage);
+    texture(renderer& renderer, size_type width, texture_format format, texture_usage usage);
+    texture(renderer& renderer, size_type width, const sampling_options& options, texture_usage usage);
+    texture(renderer& renderer, size_type width, const sampling_options& options, texture_format format, texture_usage usage);
+
     texture(renderer& renderer, size_type width, size_type height, texture_usage usage);
+    texture(renderer& renderer, size_type width, size_type height, texture_format format, texture_usage usage);
     texture(renderer& renderer, size_type width, size_type height, const sampling_options& options, texture_usage usage);
+    texture(renderer& renderer, size_type width, size_type height, const sampling_options& options, texture_format format, texture_usage usage);
+
     texture(renderer& renderer, size_type width, size_type height, size_type depth, texture_usage usage);
+    texture(renderer& renderer, size_type width, size_type height, size_type depth, texture_format format, texture_usage usage);
     texture(renderer& renderer, size_type width, size_type height, size_type depth, const sampling_options& options, texture_usage usage);
+    texture(renderer& renderer, size_type width, size_type height, size_type depth, const sampling_options& options, texture_format format, texture_usage usage);
 
     ~texture() = default;
     texture(const texture&) = delete;

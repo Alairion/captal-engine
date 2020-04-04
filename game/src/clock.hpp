@@ -90,7 +90,7 @@ std::array<directional_light, 2> compute_lights(const std::chrono::duration<Rep,
 
     const auto normalize_time = [](const time::hour& time, const time::hour& begin, const time::hour& end) -> float
     {
-        return (time - begin).count() * (end - begin).count();
+        return (time - begin).count() / (end - begin).count();
     };
 
     static constexpr glm::vec4 sunset_color{cpt::colors::orange}; //#FFA500

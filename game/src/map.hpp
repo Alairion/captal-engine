@@ -18,7 +18,7 @@ namespace mpr
 {
 
 static constexpr std::uint32_t chunk_size{32};
-static constexpr std::uint32_t tile_size{16};
+static constexpr std::uint32_t tile_size{24};
 
 static constexpr const char* camera_entity_name{"camera"};
 static constexpr const char* player_entity_name{"player"};
@@ -65,6 +65,7 @@ private:
     cpt::texture_ptr load_height_map(const cpt::tiled::properties_set& properties) const;
     cpt::texture_ptr load_normal_map(const cpt::tiled::properties_set& properties) const;
     cpt::texture_ptr load_specular_map(const cpt::tiled::properties_set& properties) const;
+    cpt::texture_ptr load_emission_map(const cpt::tiled::properties_set& properties) const;
 
 private:
     map* m_map{};
