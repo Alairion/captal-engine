@@ -24,47 +24,12 @@ if(MINGW)
     set(SDL_LIBRARIES ${SDL_LIBRARIES} imagehlp dinput8 dxguid dxerr8 user32 gdi32 winmm imm32 ole32 oleaut32 shell32 version uuid)
 endif()
 
-
-if(TEPHRA_USE_PLATFORM_ANDROID)
-    add_definitions(-DTPH_PLATFORM_ANDROID)
-    add_definitions(-DVK_USE_PLATFORM_ANDROID_KHR)
-endif()
-
-if(TEPHRA_USE_PLATFORM_IOS)
-    add_definitions(-DTPH_PLATFORM_IOS)
-    add_definitions(-DVK_USE_PLATFORM_IOS_MVK)
-endif()
-
-if(TEPHRA_USE_PLATFORM_WIN32)
-    add_definitions(-DTPH_PLATFORM_WIN32)
-    add_definitions(-DVK_USE_PLATFORM_WIN32_KHR)
-endif()
-
-if(TEPHRA_USE_PLATFORM_MACOS)
-    add_definitions(-DTPH_PLATFORM_MACOS)
-    add_definitions(-DVK_USE_PLATFORM_MACOS_MVK)
-endif()
-
-if(TEPHRA_USE_PLATFORM_XLIB)
-    add_definitions(-DTPH_PLATFORM_XLIB)
-    add_definitions(-DVK_USE_PLATFORM_XLIB_KHR)
-endif()
-
-if(TEPHRA_USE_PLATFORM_XCB)
-    add_definitions(-DTPH_PLATFORM_XCB)
-    add_definitions(-DVK_USE_PLATFORM_XCB_KHR)
-endif()
-
-if(TEPHRA_USE_PLATFORM_WAYLAND)
-    add_definitions(-DTPH_PLATFORM_WAYLAND)
-    add_definitions(-DVK_USE_PLATFORM_WAYLAND_KHR)
-endif()
-
 set(HEADERS
     "src/vulkan/vulkan.hpp"
     "src/vulkan/vulkan_functions.hpp"
     "src/vulkan/memory.hpp"
     "src/vulkan/helper.hpp"
+    "src/vulkan/render_target.hpp"
 
     "src/config.hpp"
     "src/enumerations.hpp"
@@ -88,6 +53,7 @@ set(SOURCES
     "src/vulkan/vulkan_functions.cpp"
     "src/vulkan/memory.cpp"
     "src/vulkan/helper.cpp"
+    "src/vulkan/render_target.cpp"
 
     "src/hardware.cpp"
     "src/surface.cpp"
@@ -106,6 +72,41 @@ set(SOURCES
 
 add_library(${PROJECT_NAME} SHARED ${HEADERS} ${SOURCES})
 set_target_properties(${PROJECT_NAME} PROPERTIES PREFIX "")
+
+if(TEPHRA_USE_PLATFORM_ANDROID)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE TPH_PLATFORM_ANDROID)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE VK_USE_PLATFORM_ANDROID_KHR)
+endif()
+
+if(TEPHRA_USE_PLATFORM_IOS)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE TPH_PLATFORM_IOS)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE VK_USE_PLATFORM_IOS_MVK)
+endif()
+
+if(TEPHRA_USE_PLATFORM_WIN32)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE TPH_PLATFORM_WIN32)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE VK_USE_PLATFORM_WIN32_KHR)
+endif()
+
+if(TEPHRA_USE_PLATFORM_MACOS)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE TPH_PLATFORM_MACOS)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE VK_USE_PLATFORM_MACOS_MVK)
+endif()
+
+if(TEPHRA_USE_PLATFORM_XLIB)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE TPH_PLATFORM_XLIB)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE VK_USE_PLATFORM_XLIB_KHR)
+endif()
+
+if(TEPHRA_USE_PLATFORM_XCB)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE TPH_PLATFORM_XCB)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE VK_USE_PLATFORM_XCB_KHR)
+endif()
+
+if(TEPHRA_USE_PLATFORM_WAYLAND)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE TPH_PLATFORM_WAYLAND)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE VK_USE_PLATFORM_WAYLAND_KHR)
+endif()
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${GLOBAL_INCLUDES})
 

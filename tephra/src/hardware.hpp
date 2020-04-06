@@ -62,6 +62,13 @@ struct physical_device_surface_capabilities
     std::vector<present_mode> present_modes{};
 };
 
+struct physical_device_format_properties
+{
+    format_feature linear{};
+    format_feature optimal{};
+    format_feature buffer{};
+};
+
 class physical_device;
 
 namespace vulkan
@@ -84,12 +91,13 @@ public:
 
     physical_device(const physical_device&) = delete;
     physical_device& operator=(const physical_device&) = delete;
-
     physical_device(physical_device&&) noexcept = default;
     physical_device& operator=(physical_device&&) noexcept = default;
 
     bool support_presentation(const surface& surface) const;
     physical_device_surface_capabilities surface_capabilities(const surface& surface) const;
+    physical_device_format_properties format_properties(texture_format format) const noexcept;
+    bool support_texture_format(texture_format format, format_feature features) const;
 
     const physical_device_properties& properties() const noexcept
     {

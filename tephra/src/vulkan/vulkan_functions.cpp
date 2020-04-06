@@ -31,19 +31,19 @@ void load_external_level_functions()
 
 void load_global_level_functions()
 {
-    #define TEPHRA_GLOBAL_LEVEL_FUNCTION(function) function = reinterpret_cast<PFN_##function>(reinterpret_cast<void*>(vkGetInstanceProcAddr(nullptr, #function)));
+    #define TEPHRA_GLOBAL_LEVEL_FUNCTION(function) function = reinterpret_cast<PFN_##function>(vkGetInstanceProcAddr(nullptr, #function));
     #include "vulkan_functions_list"
 }
 
 void load_instance_level_functions(VkInstance instance)
 {
-    #define TEPHRA_INSTANCE_LEVEL_FUNCTION(function) function = reinterpret_cast<PFN_##function>(reinterpret_cast<void*>(vkGetInstanceProcAddr(instance, #function)));
+    #define TEPHRA_INSTANCE_LEVEL_FUNCTION(function) function = reinterpret_cast<PFN_##function>(vkGetInstanceProcAddr(instance, #function));
     #include "vulkan_functions_list"
 }
 
 void load_device_level_functions(VkDevice device)
 {
-    #define TEPHRA_DEVICE_LEVEL_FUNCTION(function) function = reinterpret_cast<PFN_##function>(reinterpret_cast<void*>(vkGetDeviceProcAddr(device, #function)));
+    #define TEPHRA_DEVICE_LEVEL_FUNCTION(function) function = reinterpret_cast<PFN_##function>(vkGetDeviceProcAddr(device, #function));
     #include "vulkan_functions_list"
 }
 

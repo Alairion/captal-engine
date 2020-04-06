@@ -118,7 +118,7 @@ public:
 
     const char* error_name() const noexcept;
     const char* error_description() const noexcept;
-    const char* what() const noexcept;
+    const char* what() const noexcept override;
 
 private:
     VkResult m_result{};

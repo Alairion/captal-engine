@@ -150,18 +150,39 @@ physical_device_surface_capabilities physical_device::surface_capabilities(const
     return output;
 }
 
+physical_device_format_properties physical_device::format_properties(texture_format format) const noexcept
+{
+    VkFormatProperties properties{};
+    vkGetPhysicalDeviceFormatProperties(m_physical_device, static_cast<VkFormat>(format), &properties);
+
+    physical_device_format_properties output{};
+    output.linear = static_cast<format_feature>(properties.linearTilingFeatures);
+    output.optimal = static_cast<format_feature>(properties.optimalTilingFeatures);
+    output.buffer = static_cast<format_feature>(properties.bufferFeatures);
+
+    return output;
+}
+
+bool physical_device::support_texture_format(texture_format format, format_feature features) const
+{
+    VkFormatProperties properties{};
+    vkGetPhysicalDeviceFormatProperties(m_physical_device, static_cast<VkFormat>(format), &properties);
+
+    return (static_cast<format_feature>(properties.optimalTilingFeatures) & features) == features;
+}
+
 bool default_physical_device_comparator(const physical_device& left, const physical_device& right) noexcept
 {
     const auto physical_device_score = [](const physical_device& device) noexcept -> std::int64_t
     {
         std::int64_t score{};
 
-        if(device.properties().type == physical_device_type::discrete)
-            score += 8192;
-
         score += device.memory_properties().device_shared / 1048576;
         score += device.memory_properties().device_local / 1048576;
         score += device.memory_properties().host_shared / 1048576;
+
+        if(device.properties().type == physical_device_type::discrete)
+            score *= 2;
 
         return score;
     };

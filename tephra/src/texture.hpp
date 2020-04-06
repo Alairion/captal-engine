@@ -92,7 +92,7 @@ public:
     texture(texture&& other) noexcept = default;
     texture& operator=(texture&& other) noexcept = default;
 
-    image_layout layout() const noexcept
+    texture_layout layout() const noexcept
     {
         return m_layout;
     }
@@ -112,15 +112,15 @@ public:
         return m_depth;
     }
 
-    void transition(command_buffer& command_buffer, resource_access source_access, resource_access destination_access, pipeline_stage source_stage, pipeline_stage destination_stage, image_layout layout);
-    void transition(command_buffer& command_buffer, resource_access source_access, resource_access destination_access, pipeline_stage source_stage, pipeline_stage destination_stage, image_layout current_layout, image_layout next_layout);
+    void transition(command_buffer& command_buffer, resource_access source_access, resource_access destination_access, pipeline_stage source_stage, pipeline_stage destination_stage, texture_layout layout);
+    void transition(command_buffer& command_buffer, resource_access source_access, resource_access destination_access, pipeline_stage source_stage, pipeline_stage destination_stage, texture_layout current_layout, texture_layout next_layout);
 
 private:
     vulkan::image m_image{};
     vulkan::memory_heap_chunk m_memory{};
     vulkan::image_view m_image_view{};
     vulkan::sampler m_sampler{};
-    image_layout m_layout{image_layout::undefined};
+    texture_layout m_layout{texture_layout::undefined};
     size_type m_width{};
     size_type m_height{};
     size_type m_depth{};

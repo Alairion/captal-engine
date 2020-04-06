@@ -217,7 +217,7 @@ enum class resource_access
 
 template<> struct enable_enum_operations<resource_access> {static constexpr bool value{true};};
 
-enum class image_layout : std::uint32_t
+enum class texture_layout : std::uint32_t
 {
     undefined = VK_IMAGE_LAYOUT_UNDEFINED,
     general = VK_IMAGE_LAYOUT_GENERAL,
@@ -400,11 +400,48 @@ enum class texture_format : std::uint32_t
     d16_unorm = VK_FORMAT_D16_UNORM,
     x8_d24_unorm_pack = VK_FORMAT_X8_D24_UNORM_PACK32,
     d32_sfloat = VK_FORMAT_D32_SFLOAT,
-    S8_uint = VK_FORMAT_S8_UINT,
+    s8_uint = VK_FORMAT_S8_UINT,
     d16_unorm_S8_uint = VK_FORMAT_D16_UNORM_S8_UINT,
     d24_unorm_S8_uint = VK_FORMAT_D24_UNORM_S8_UINT,
     d32_sfloat_S8_uint = VK_FORMAT_D32_SFLOAT_S8_UINT,
 };
+
+enum class format_feature : std::uint32_t
+{
+    sampled_image = VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT,
+    storage_image = VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT,
+    storage_image_atomic = VK_FORMAT_FEATURE_STORAGE_IMAGE_ATOMIC_BIT,
+    unifom_texel_buffer = VK_FORMAT_FEATURE_UNIFORM_TEXEL_BUFFER_BIT,
+    storage_texel_buffer = VK_FORMAT_FEATURE_STORAGE_TEXEL_BUFFER_BIT,
+    storage_texel_buffer_atomic = VK_FORMAT_FEATURE_STORAGE_TEXEL_BUFFER_ATOMIC_BIT,
+    vertex_buffer = VK_FORMAT_FEATURE_VERTEX_BUFFER_BIT,
+    color_attachment = VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT,
+    color_attachment_blend = VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT,
+    depth_stencil_attachment = VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT,
+    blit_source = VK_FORMAT_FEATURE_BLIT_SRC_BIT,
+    blit_destination = VK_FORMAT_FEATURE_BLIT_DST_BIT,
+    sampled_image_filter_linear = VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT,
+    transfer_source = VK_FORMAT_FEATURE_TRANSFER_SRC_BIT,
+    transfer_destination = VK_FORMAT_FEATURE_TRANSFER_DST_BIT,
+};
+
+template<> struct enable_enum_operations<format_feature> {static constexpr bool value{true};};
+
+enum class attachment_load_op : std::uint32_t
+{
+    load = VK_ATTACHMENT_LOAD_OP_LOAD,
+    clear = VK_ATTACHMENT_LOAD_OP_CLEAR,
+    dont_care = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+};
+
+enum class dependency_flags : std::uint32_t
+{
+    by_region = VK_DEPENDENCY_BY_REGION_BIT,
+    device_group = VK_DEPENDENCY_DEVICE_GROUP_BIT,
+    view_local = VK_DEPENDENCY_VIEW_LOCAL_BIT,
+};
+
+template<> struct enable_enum_operations<dependency_flags> {static constexpr bool value{true};};
 
 enum class filter : std::uint32_t
 {

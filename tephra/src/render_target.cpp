@@ -78,7 +78,7 @@ render_target::render_target(renderer& renderer, tph::texture& texture, render_t
     build_offscreen_target_render_pass();
     build_offscreen_target_render_pass_data();
 
-    texture.m_layout = m_offscreen_target->has_sampling ? tph::image_layout::shader_read_only_optimal :  tph::image_layout::transfer_source_optimal;
+    texture.m_layout = m_offscreen_target->has_sampling ? tph::texture_layout::shader_read_only_optimal :  tph::texture_layout::transfer_source_optimal;
 }
 
 void render_target::build_offscreen_target_depth_images()

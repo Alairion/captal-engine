@@ -5,6 +5,7 @@
 
 #include <vector>
 #include <memory>
+#include <variant>
 #include <cassert>
 
 #include "vulkan/vulkan.hpp"
@@ -43,6 +44,64 @@ enum class render_target_status : std::uint32_t
     suboptimal = 1,
     out_of_date = 2,
     surface_lost = 3,
+};
+
+struct attachment_description
+{
+    texture_format format{texture_format::undefined};
+    tph::sample_count sample_count{tph::sample_count::msaa_x1};
+    attachment_load_op load_op{attachment_load_op::dont_care};
+    attachment_load_op store_op{attachment_load_op::dont_care};
+    attachment_load_op stencil_load_op{attachment_load_op::dont_care};
+    attachment_load_op stencil_store_op{attachment_load_op::dont_care};
+    texture_layout initial_layout{texture_layout::undefined};
+    texture_layout final_layout{texture_layout::undefined};
+};
+
+static constexpr std::uint32_t unused_attachment{VK_ATTACHMENT_UNUSED};
+
+struct attachment_reference
+{
+    std::uint32_t attachment{unused_attachment};
+    texture_layout layout{texture_layout::undefined};
+};
+
+struct subpass_description
+{
+    std::vector<attachment_reference> input_attachments{};
+    std::vector<attachment_reference> color_attachments{};
+    std::vector<attachment_reference> resolve_attachments{};
+    attachment_reference depth_attachment{};
+    std::vector<std::uint32_t> preserve_attachments{};
+};
+
+static constexpr std::uint32_t external_subpass{VK_SUBPASS_EXTERNAL};
+
+struct subpass_dependency
+{
+    std::uint32_t source_subpass{external_subpass};
+    std::uint32_t destination_subpass{external_subpass};
+    pipeline_stage source_stage{};
+    pipeline_stage destination_stage{};
+    resource_access source_access{};
+    resource_access destination_access{};
+    dependency_flags dependency_flags{};
+};
+
+struct render_target_framebuffer
+{
+    std::vector<std::variant<std::reference_wrapper<texture>, std::uint32_t>> attachments{};
+    std::uint32_t width{};
+    std::uint32_t height{};
+    std::uint32_t layers{};
+};
+
+struct render_pass_info
+{
+    std::vector<attachment_description> attachments{};
+    std::vector<subpass_description> subpasses{};
+    std::vector<subpass_dependency> dependencies{};
+    std::vector<render_target_framebuffer> framebuffers{};
 };
 
 class render_target
@@ -140,10 +199,53 @@ private:
         VkClearDepthStencilValue clear_depth{};
     };
 
+    struct complex_surface_target
+    {
+        struct render_pass_data
+        {
+            //Presentation
+            VkImage swapchain_image{};
+            vulkan::image_view swapchain_image_view{};
+            vulkan::framebuffer framebuffer{};
+        };
+
+        //Links
+        VkPhysicalDevice physical_device{};
+        VkDevice device{};
+        VkSurfaceKHR surface{};
+        vulkan::memory_allocator* allocator{};
+        std::uint32_t graphics_family{};
+        VkQueue present_queue{};
+
+        //User parameters
+        render_pass_info info{};
+        std::uint32_t image_count{};
+        VkPresentModeKHR present_mode{};
+
+        //Swapchain
+        VkSurfaceCapabilitiesKHR surface_capabilities{};
+        VkSurfaceFormatKHR swapchain_format{};
+        VkExtent2D swapchain_extent{};
+        vulkan::swapchain swapchain{};
+
+        //Renderpass
+        vulkan::render_pass render_pass{};
+        std::vector<render_pass_data> render_pass_data{};
+
+        //Runtime
+        std::uint32_t image_index{};
+
+        //Dynamic user parameters
+        VkClearColorValue clear_color{};
+        VkClearDepthStencilValue clear_depth{};
+    };
+
 public:
     constexpr render_target() = default;
     render_target(renderer& renderer, texture& texture, render_target_options options = render_target_options::none, tph::sample_count sample_count = sample_count::msaa_x1);
     render_target(renderer& renderer, surface& surface, present_mode mode, std::uint32_t image_count, render_target_options options = render_target_options::none, tph::sample_count sample_count = sample_count::msaa_x1);
+    render_target(renderer& renderer, surface& surface, present_mode mode, std::uint32_t image_count, render_pass_info info, render_target_options options = render_target_options::none);
+
 
     ~render_target() = default;
     render_target(const render_target&) = delete;

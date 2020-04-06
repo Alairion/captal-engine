@@ -1,6 +1,7 @@
 #include "texture.hpp"
 
 #include "vulkan/vulkan_functions.hpp"
+#include "vulkan/helper.hpp"
 
 #include "renderer.hpp"
 #include "commands.hpp"
@@ -10,105 +11,188 @@ using namespace tph::vulkan::functions;
 namespace tph
 {
 
-static VkFormat format_from_usage(renderer& renderer, texture_usage usage)
+static vulkan::sampler make_sampler(renderer& renderer, const sampling_options& options)
 {
+    return vulkan::sampler
+    {
+        underlying_cast<VkDevice>(renderer),
+        static_cast<VkFilter>(options.magnification_filter),
+        static_cast<VkFilter>(options.minification_filter),
+        static_cast<VkSamplerAddressMode>(options.address_mode),
+        static_cast<VkBool32>(options.compare),
+        static_cast<VkCompareOp>(options.compare_op),
+        static_cast<VkBool32>(!options.normalized_coordinates),
+        static_cast<float>(options.anisotropy_level)
+    };
+}
 
+
+static texture_format format_from_usage(renderer& renderer, texture_usage usage)
+{
+    if(static_cast<bool>(usage & texture_usage::depth_stencil_attachment))
+    {
+        return static_cast<texture_format>(vulkan::find_format(
+            underlying_cast<VkPhysicalDevice>(renderer),
+            {
+                VK_FORMAT_D24_UNORM_S8_UINT,
+                VK_FORMAT_D32_SFLOAT_S8_UINT,
+                VK_FORMAT_D16_UNORM_S8_UINT,
+                VK_FORMAT_D32_SFLOAT,
+                VK_FORMAT_X8_D24_UNORM_PACK32,
+                VK_FORMAT_D16_UNORM
+            },
+            VK_IMAGE_TILING_OPTIMAL,
+            VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
+        ));
+    }
+
+    return texture_format::r8g8b8a8_unorm;
+}
+
+static bool need_image_view(texture_usage usage) noexcept
+{
+    return static_cast<bool>(usage & texture_usage::sampled)
+        || static_cast<bool>(usage & texture_usage::color_attachment)
+        || static_cast<bool>(usage & texture_usage::depth_stencil_attachment)
+        || static_cast<bool>(usage & texture_usage::input_attachment);
 }
 
 texture::texture(renderer& renderer, size_type width, texture_usage usage)
+:texture{renderer, width, format_from_usage(renderer, usage), usage}
 {
 
 }
 
 texture::texture(renderer& renderer, size_type width, texture_format format, texture_usage usage)
+:m_width{width}
+,m_height{1}
+,m_depth{1}
 {
+    m_image = vulkan::image{underlying_cast<VkDevice>(renderer), VkExtent3D{width, 1, 1}, VK_IMAGE_TYPE_1D, static_cast<VkFormat>(format), static_cast<VkImageUsageFlags>(usage)};
+    m_memory = renderer.allocator().allocate_bound(m_image, vulkan::memory_resource_type::non_linear, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
+    if(need_image_view(usage))
+    {
+        m_image_view = vulkan::image_view{underlying_cast<VkDevice>(renderer), m_image, VK_IMAGE_VIEW_TYPE_1D, static_cast<VkFormat>(format), VK_IMAGE_ASPECT_COLOR_BIT};
+    }
 }
 
 texture::texture(renderer& renderer, size_type width, const sampling_options& options, texture_usage usage)
+:texture{renderer, width, options, format_from_usage(renderer, usage), usage}
 {
 
 }
 
 texture::texture(renderer& renderer, size_type width, const sampling_options& options, texture_format format, texture_usage usage)
+:m_width{width}
+,m_height{1}
+,m_depth{1}
 {
+    m_image = vulkan::image{underlying_cast<VkDevice>(renderer), VkExtent3D{width, 1, 1}, VK_IMAGE_TYPE_1D, static_cast<VkFormat>(format), static_cast<VkImageUsageFlags>(usage)};
+    m_memory = renderer.allocator().allocate_bound(m_image, vulkan::memory_resource_type::non_linear, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
+    if(need_image_view(usage))
+    {
+        m_image_view = vulkan::image_view{underlying_cast<VkDevice>(renderer), m_image, VK_IMAGE_VIEW_TYPE_1D, static_cast<VkFormat>(format), VK_IMAGE_ASPECT_COLOR_BIT};
+    }
+
+    if(static_cast<bool>(usage & texture_usage::sampled))
+    {
+        m_sampler = make_sampler(renderer, options);
+    }
 }
 
 texture::texture(renderer& renderer, size_type width, size_type height, texture_usage usage)
+:texture{renderer, width, height, format_from_usage(renderer, usage), usage}
 {
 
 }
 
 texture::texture(renderer& renderer, size_type width, size_type height, texture_format format, texture_usage usage)
+:m_width{width}
+,m_height{height}
+,m_depth{1}
 {
+    m_image = vulkan::image{underlying_cast<VkDevice>(renderer), VkExtent3D{width, height, 1}, VK_IMAGE_TYPE_2D, static_cast<VkFormat>(format), static_cast<VkImageUsageFlags>(usage)};
+    m_memory = renderer.allocator().allocate_bound(m_image, vulkan::memory_resource_type::non_linear, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
+    if(need_image_view(usage))
+    {
+        m_image_view = vulkan::image_view{underlying_cast<VkDevice>(renderer), m_image, VK_IMAGE_VIEW_TYPE_2D, static_cast<VkFormat>(format), VK_IMAGE_ASPECT_COLOR_BIT};
+    }
 }
 
 texture::texture(renderer& renderer, size_type width, size_type height, const sampling_options& options, texture_usage usage)
+:texture{renderer, width, height, options, format_from_usage(renderer, usage), usage}
 {
 
 }
 
 texture::texture(renderer& renderer, size_type width, size_type height, const sampling_options& options, texture_format format, texture_usage usage)
-{
-
-}
-
-texture::texture(renderer& renderer, size_type width, size_type height, size_type depth, texture_usage usage)
 :m_width{width}
 ,m_height{height}
-,m_depth{depth}
+,m_depth{1}
 {
-    m_image = vulkan::image{underlying_cast<VkDevice>(renderer), VkExtent3D{width, height, depth}, VK_IMAGE_TYPE_3D, VK_FORMAT_R8G8B8A8_UNORM, static_cast<VkImageUsageFlags>(usage)};
+    m_image = vulkan::image{underlying_cast<VkDevice>(renderer), VkExtent3D{width, height, 1}, VK_IMAGE_TYPE_2D, static_cast<VkFormat>(format), static_cast<VkImageUsageFlags>(usage)};
     m_memory = renderer.allocator().allocate_bound(m_image, vulkan::memory_resource_type::non_linear, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-    if(static_cast<bool>(usage & texture_usage::sampled) || static_cast<bool>(usage & texture_usage::color_attachment))
+    if(need_image_view(usage))
     {
-        m_image_view = vulkan::image_view{underlying_cast<VkDevice>(renderer), m_image, VK_IMAGE_VIEW_TYPE_3D,  VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT};
-    }
-}
-
-texture::texture(renderer& renderer, size_type width, size_type height, size_type depth, texture_format format, texture_usage usage)
-{
-
-}
-
-texture::texture(renderer& renderer, size_type width, size_type height, size_type depth, const sampling_options& options, texture_usage usage)
-:m_width{width}
-,m_height{height}
-,m_depth{depth}
-{
-    m_image = vulkan::image{underlying_cast<VkDevice>(renderer), VkExtent3D{width, height, depth}, VK_IMAGE_TYPE_3D, VK_FORMAT_R8G8B8A8_UNORM, static_cast<VkImageUsageFlags>(usage)};
-    m_memory = renderer.allocator().allocate_bound(m_image, vulkan::memory_resource_type::non_linear, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-    if(static_cast<bool>(usage & texture_usage::sampled) || static_cast<bool>(usage & texture_usage::color_attachment))
-    {
-        m_image_view = vulkan::image_view{underlying_cast<VkDevice>(renderer), m_image, VK_IMAGE_VIEW_TYPE_3D, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT};
+        m_image_view = vulkan::image_view{underlying_cast<VkDevice>(renderer), m_image, VK_IMAGE_VIEW_TYPE_2D, static_cast<VkFormat>(format), VK_IMAGE_ASPECT_COLOR_BIT};
     }
 
     if(static_cast<bool>(usage & texture_usage::sampled))
     {
-        m_sampler = vulkan::sampler
-        {
-            underlying_cast<VkDevice>(renderer),
-            static_cast<VkFilter>(options.magnification_filter),
-            static_cast<VkFilter>(options.minification_filter),
-            static_cast<VkSamplerAddressMode>(options.address_mode),
-            static_cast<VkBool32>(options.compare),
-            static_cast<VkCompareOp>(options.compare_op),
-            static_cast<VkBool32>(!options.normalized_coordinates),
-            static_cast<float>(options.anisotropy_level)
-        };
+        m_sampler = make_sampler(renderer, options);
     }
 }
 
-texture::texture(renderer& renderer, size_type width, size_type height, size_type depth, const sampling_options& options, texture_format format, texture_usage usage)
+texture::texture(renderer& renderer, size_type width, size_type height, size_type depth, texture_usage usage)
+:texture{renderer, width, height, depth, format_from_usage(renderer, usage), usage}
 {
 
 }
 
-void texture::transition(command_buffer& command_buffer, resource_access source_access, resource_access destination_access, pipeline_stage source_stage, pipeline_stage destination_stage, image_layout layout)
+texture::texture(renderer& renderer, size_type width, size_type height, size_type depth, texture_format format, texture_usage usage)
+:m_width{width}
+,m_height{height}
+,m_depth{depth}
+{
+    m_image = vulkan::image{underlying_cast<VkDevice>(renderer), VkExtent3D{width, height, depth}, VK_IMAGE_TYPE_3D, static_cast<VkFormat>(format), static_cast<VkImageUsageFlags>(usage)};
+    m_memory = renderer.allocator().allocate_bound(m_image, vulkan::memory_resource_type::non_linear, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+    if(need_image_view(usage))
+    {
+        m_image_view = vulkan::image_view{underlying_cast<VkDevice>(renderer), m_image, VK_IMAGE_VIEW_TYPE_3D, static_cast<VkFormat>(format), VK_IMAGE_ASPECT_COLOR_BIT};
+    }
+}
+
+texture::texture(renderer& renderer, size_type width, size_type height, size_type depth, const sampling_options& options, texture_usage usage)
+:texture{renderer, width, height, depth, options, format_from_usage(renderer, usage), usage}
+{
+
+}
+
+texture::texture(renderer& renderer, size_type width, size_type height, size_type depth, const sampling_options& options, texture_format format, texture_usage usage)
+:m_width{width}
+,m_height{height}
+,m_depth{depth}
+{
+    m_image = vulkan::image{underlying_cast<VkDevice>(renderer), VkExtent3D{width, height, depth}, VK_IMAGE_TYPE_3D, static_cast<VkFormat>(format), static_cast<VkImageUsageFlags>(usage)};
+    m_memory = renderer.allocator().allocate_bound(m_image, vulkan::memory_resource_type::non_linear, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+    if(need_image_view(usage))
+    {
+        m_image_view = vulkan::image_view{underlying_cast<VkDevice>(renderer), m_image, VK_IMAGE_VIEW_TYPE_3D, static_cast<VkFormat>(format), VK_IMAGE_ASPECT_COLOR_BIT};
+    }
+
+    if(static_cast<bool>(usage & texture_usage::sampled))
+    {
+        m_sampler = make_sampler(renderer, options);
+    }
+}
+
+void texture::transition(command_buffer& command_buffer, resource_access source_access, resource_access destination_access, pipeline_stage source_stage, pipeline_stage destination_stage, texture_layout layout)
 {
     if(m_layout != layout)
     {
@@ -135,7 +219,7 @@ void texture::transition(command_buffer& command_buffer, resource_access source_
     }
 }
 
-void texture::transition(command_buffer& command_buffer, resource_access source_access, resource_access destination_access, pipeline_stage source_stage, pipeline_stage destination_stage, image_layout current_layout, image_layout next_layout)
+void texture::transition(command_buffer& command_buffer, resource_access source_access, resource_access destination_access, pipeline_stage source_stage, pipeline_stage destination_stage, texture_layout current_layout, texture_layout next_layout)
 {
     VkImageMemoryBarrier barrier{};
     barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;

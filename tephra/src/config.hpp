@@ -20,7 +20,7 @@ VulkanObject underlying_cast(const Args&...) noexcept
     static_assert(!std::is_same<VulkanObject, VulkanObject>::value, "tph::underlying_cast called with incompatible arguments.");
 }
 
-struct version
+struct alignas(std::uint64_t) version
 {
     std::uint16_t major{};
     std::uint16_t minor{};
