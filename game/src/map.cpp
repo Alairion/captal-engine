@@ -19,8 +19,6 @@
 namespace mpr
 {
 
-//use texture pool
-
 chunk::chunk(map& map, std::uint32_t x, std::uint32_t y)
 :m_map{&map}
 ,m_x{x}
@@ -76,6 +74,7 @@ std::uint64_t chunk::parse_layers(const std::vector<cpt::tiled::layer>& layers, 
         m_map->world().assign<cpt::components::draw_index>(entity).index = index;
         m_map->world().assign<cpt::components::drawable>(entity);
         auto& layer_body = m_map->world().assign<cpt::components::physical_body>(entity, cpt::make_physical_body(m_map->physical_world(), cpt::physical_body_type::steady));
+        layer_body.attachment()->set_position(glm::vec2{chunk_offset()} + layer.position);
 
         if(std::holds_alternative<cpt::tiled::layer::tiles>(layer.content))
         {
@@ -180,26 +179,26 @@ std::size_t chunk::tileset_index(std::uint32_t gid)
     throw std::runtime_error{"Invalid layer data (missing tileset)."};
 }
 
-cpt::texture_ptr chunk::load_height_map(const cpt::tiled::properties_set& properties) const
-{
-    const auto it{properties.find("height_map")};
-    if(it != std::end(properties))
-    {
-        return cpt::make_texture(std::get<std::filesystem::path>(it->second));
-    }
-
-    return cpt::make_texture(2, 2, std::data(dummy_height_map_data), tph::sampling_options{tph::filter::nearest, tph::filter::nearest, tph::address_mode::repeat});
-}
-
 cpt::texture_ptr chunk::load_normal_map(const cpt::tiled::properties_set& properties) const
 {
     const auto it{properties.find("normal_map")};
     if(it != std::end(properties))
     {
-        return cpt::make_texture(std::get<std::filesystem::path>(it->second));
+        return m_map->texture_pool().load(std::get<std::filesystem::path>(it->second));
     }
 
-    return cpt::make_texture(2, 2, std::data(dummy_normal_map_data), tph::sampling_options{tph::filter::nearest, tph::filter::nearest, tph::address_mode::repeat});
+    return m_map->texture_pool().load(dummy_normal_map_name);
+}
+
+cpt::texture_ptr chunk::load_height_map(const cpt::tiled::properties_set& properties) const
+{
+    const auto it{properties.find("height_map")};
+    if(it != std::end(properties))
+    {
+        return m_map->texture_pool().load(std::get<std::filesystem::path>(it->second));
+    }
+
+    return m_map->texture_pool().load(dummy_height_map_name);
 }
 
 cpt::texture_ptr chunk::load_specular_map(const cpt::tiled::properties_set& properties) const
@@ -207,10 +206,10 @@ cpt::texture_ptr chunk::load_specular_map(const cpt::tiled::properties_set& prop
     const auto it{properties.find("specular_map")};
     if(it != std::end(properties))
     {
-        return cpt::make_texture(std::get<std::filesystem::path>(it->second));
+        return m_map->texture_pool().load(std::get<std::filesystem::path>(it->second));
     }
 
-    return cpt::make_texture(2, 2, std::data(dummy_specular_map_data), tph::sampling_options{tph::filter::nearest, tph::filter::nearest, tph::address_mode::repeat});
+    return m_map->texture_pool().load(dummy_specular_map_name);
 }
 
 cpt::texture_ptr chunk::load_emission_map(const cpt::tiled::properties_set& properties) const
@@ -218,10 +217,10 @@ cpt::texture_ptr chunk::load_emission_map(const cpt::tiled::properties_set& prop
     const auto it{properties.find("emission_map")};
     if(it != std::end(properties))
     {
-        return cpt::make_texture(std::get<std::filesystem::path>(it->second));
+        return m_map->texture_pool().load(std::get<std::filesystem::path>(it->second));
     }
 
-    return cpt::make_texture(2, 2, std::data(dummy_emission_map_data), tph::sampling_options{tph::filter::nearest, tph::filter::nearest, tph::address_mode::repeat});
+    return m_map->texture_pool().load(dummy_emission_map_name);
 }
 
 map::map()
@@ -229,6 +228,18 @@ map::map()
 {
     init_render();
     init_entities();
+
+    m_physical_world->set_damping(0.1f);
+
+    m_texture_pool.emplace(dummy_normal_map_name, cpt::make_texture(1, 1, std::data(dummy_normal_map_data), tph::sampling_options{tph::filter::nearest, tph::filter::nearest, tph::address_mode::repeat}));
+    m_texture_pool.emplace(dummy_height_map_name, cpt::make_texture(1, 1, std::data(dummy_height_map_data), tph::sampling_options{tph::filter::nearest, tph::filter::nearest, tph::address_mode::repeat}));
+    m_texture_pool.emplace(dummy_specular_map_name, cpt::make_texture(1, 1, std::data(dummy_specular_map_data), tph::sampling_options{tph::filter::nearest, tph::filter::nearest, tph::address_mode::repeat}));
+    m_texture_pool.emplace(dummy_emission_map_name, cpt::make_texture(1, 1, std::data(dummy_emission_map_data), tph::sampling_options{tph::filter::nearest, tph::filter::nearest, tph::address_mode::repeat}));
+}
+
+void map::update(float time)
+{
+    m_physical_world->update(time);
 }
 
 void map::render()

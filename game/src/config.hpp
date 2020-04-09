@@ -20,16 +20,16 @@ static constexpr std::uint32_t emission_map_binding{6};
 static constexpr std::uint32_t directional_light_binding{7};
 static constexpr std::uint32_t shadow_map_binding{8};
 
-static constexpr std::array<std::uint8_t, 16> dummy_normal_map_data{128, 128, 255, 255, 128, 128, 255, 255, 128, 128, 255, 255, 128, 128, 255, 255};
-static constexpr std::array<std::uint8_t, 16> dummy_height_map_data{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-static constexpr std::array<std::uint8_t, 16> dummy_specular_map_data{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-static constexpr std::array<std::uint8_t, 16> dummy_emission_map_data{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+static constexpr std::array<std::uint8_t, 4> dummy_normal_map_data{128, 128, 255, 255};
+static constexpr std::array<std::uint8_t, 4> dummy_height_map_data{0, 0, 0, 0};
+static constexpr std::array<std::uint8_t, 4> dummy_specular_map_data{0, 0, 0, 0};
+static constexpr std::array<std::uint8_t, 4> dummy_emission_map_data{0, 0, 0, 0};
 
 //For texture pools
-static constexpr const char* dummy_normal_map_name = "__normal_map";
-static constexpr const char* dummy_height_map_name = "__height_map";
-static constexpr const char* dummy_specular_map_name = "__specular_map";
-static constexpr const char* dummy_emission_map_name = "__emission_map";
+static constexpr const char* dummy_normal_map_name = "VIRTUAL/normal_map";
+static constexpr const char* dummy_height_map_name = "VIRTUAL/height_map";
+static constexpr const char* dummy_specular_map_name = "VIRTUAL/specular_map";
+static constexpr const char* dummy_emission_map_name = "VIRTUAL/emission_map";
 
 struct directional_light
 {

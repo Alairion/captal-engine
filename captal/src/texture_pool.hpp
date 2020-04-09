@@ -12,7 +12,7 @@
 namespace cpt
 {
 
-class texture_pool
+class CAPTAL_API texture_pool
 {
     struct path_hash
     {
@@ -36,7 +36,7 @@ public:
 
     cpt::texture_ptr load(const std::filesystem::path& path, const tph::sampling_options& sampling = tph::sampling_options{});
     cpt::texture_ptr load(const std::filesystem::path& path, const load_callback& load_callback, const tph::sampling_options& sampling = tph::sampling_options{});
-    cpt::texture_weak_ptr weak_load(const std::filesystem::path& path);
+    cpt::texture_weak_ptr weak_load(const std::filesystem::path& path) const;
     std::pair<cpt::texture_ptr, bool> emplace(std::filesystem::path path, texture_ptr texture);
 
     void clear(std::size_t threshold = 1);

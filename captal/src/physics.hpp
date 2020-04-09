@@ -85,16 +85,30 @@ public:
     };
 
 public:
+    struct point_hit
+    {
+        physical_shape& shape;
+        glm::vec2 position{};
+        float distance{};
+        glm::vec2 gradient{};
+    };
+
+    struct region_hit
+    {
+        physical_shape& shape;
+    };
+
     struct raycast_hit
     {
-        physical_body& body;
+        physical_shape& shape;
         glm::vec2 position{};
         glm::vec2 normal{};
         float distance{};
     };
 
 public:
-    using region_query_callback_type = std::function<void(physical_body& body)>;
+    using point_query_callback_type = std::function<void(point_hit hit)>;
+    using region_query_callback_type = std::function<void(region_hit hit)>;
     using raycast_callback_type = std::function<void(raycast_hit hit)>;
 
 public:
@@ -108,9 +122,12 @@ public:
     void add_collision(std::uint32_t first_id, std::uint32_t second_type, collision_handler handler);
     void add_wildcard(std::uint32_t type, collision_handler handler);
 
+    void point_query(const glm::vec2& point, float max_distance, std::uint64_t group, std::uint32_t id, std::uint32_t mask, point_query_callback_type callback);
     void region_query(float x, float y, float width, float height, std::uint64_t group, std::uint32_t id, std::uint32_t mask, region_query_callback_type callback);
-    void raycast(const glm::vec2& from, const glm::vec2& to, float thickness, std::uint64_t group, std::uint32_t id, std::uint32_t mask, raycast_callback_type callback);
-    std::optional<raycast_hit> raycast_first(const glm::vec2& from, const glm::vec2& to, float thickness, std::uint64_t group, std::uint32_t id, std::uint32_t mask);
+    void raycast_query(const glm::vec2& from, const glm::vec2& to, float thickness, std::uint64_t group, std::uint32_t id, std::uint32_t mask, raycast_callback_type callback);
+
+    std::optional<point_hit> point_query_nearest(const glm::vec2& point, float max_distance, std::uint64_t group, std::uint32_t id, std::uint32_t mask);
+    std::optional<raycast_hit> raycast_query_first(const glm::vec2& from, const glm::vec2& to, float thickness, std::uint64_t group, std::uint32_t id, std::uint32_t mask);
 
     void update(float time);
 

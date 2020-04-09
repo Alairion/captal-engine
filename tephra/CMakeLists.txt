@@ -21,7 +21,7 @@ set(SDL_LIBRARIES "${GLOBAL_LIBRARIES}/libSDL2main.a"
                   "${GLOBAL_LIBRARIES}/libSDL2-static.a")
 
 if(MINGW)
-    set(SDL_LIBRARIES ${SDL_LIBRARIES} imagehlp dinput8 dxguid dxerr8 user32 gdi32 winmm imm32 ole32 oleaut32 shell32 version uuid)
+     set(SDL_LIBRARIES ${SDL_LIBRARIES} imagehlp dinput8 dxguid dxerr8 user32 gdi32 winmm imm32 ole32 oleaut32 shell32 version uuid)
 endif()
 
 set(HEADERS

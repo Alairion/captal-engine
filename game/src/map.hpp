@@ -62,8 +62,8 @@ private:
     void parse_object(const cpt::tiled::object& object, std::uint64_t index);
     const std::pair<std::uint32_t, cpt::tileset>& tileset_from_gid(std::uint32_t gid);
     std::size_t tileset_index(std::uint32_t gid);
-    cpt::texture_ptr load_height_map(const cpt::tiled::properties_set& properties) const;
     cpt::texture_ptr load_normal_map(const cpt::tiled::properties_set& properties) const;
+    cpt::texture_ptr load_height_map(const cpt::tiled::properties_set& properties) const;
     cpt::texture_ptr load_specular_map(const cpt::tiled::properties_set& properties) const;
     cpt::texture_ptr load_emission_map(const cpt::tiled::properties_set& properties) const;
 
@@ -86,6 +86,7 @@ public:
     map(map&&) noexcept = delete;
     map& operator=(map&&) noexcept = delete;
 
+    void update(float time);
     void render();
     void view(float x, float y, std::uint32_t width, std::uint32_t height);
 
@@ -104,14 +105,9 @@ public:
         return m_world;
     }
 
-    cpt::physical_world& physical_world() noexcept
+    const cpt::physical_world_ptr& physical_world() const noexcept
     {
-        return *m_physical_world;
-    }
-
-    const cpt::physical_world& physical_world() const noexcept
-    {
-        return *m_physical_world;
+        return m_physical_world;
     }
 
     cpt::texture_pool& texture_pool() noexcept

@@ -119,30 +119,47 @@ void physical_world::add_wildcard(std::uint32_t type, collision_handler handler)
     add_callback(cpSpaceAddWildcardHandler(m_world, type), std::move(handler));
 }
 
+void physical_world::point_query(const glm::vec2& point, float max_distance, std::uint64_t group, std::uint32_t id, std::uint32_t mask, point_query_callback_type callback)
+{
+    const cpShapeFilter filter{cpShapeFilterNew(static_cast<cpGroup>(group), id, mask)};
+
+    const auto native_callback = [](cpShape* native_shape, cpVect point, cpFloat distance, cpVect gradient, void *data)
+    {
+        const point_query_callback_type& callback{*reinterpret_cast<const point_query_callback_type*>(data)};
+        physical_shape& shape{*reinterpret_cast<physical_shape*>(cpShapeGetUserData(native_shape))};
+        const point_hit info{shape, fromcp(point), fromcp(distance), fromcp(gradient)};
+
+        callback(info);
+    };
+
+    cpSpacePointQuery(m_world, tocp(point), tocp(max_distance), filter, native_callback, &callback);
+}
+
 void physical_world::region_query(float x, float y, float width, float height, std::uint64_t group, std::uint32_t id, std::uint32_t mask, region_query_callback_type callback)
 {
     const cpShapeFilter filter{cpShapeFilterNew(static_cast<cpGroup>(group), id, mask)};
 
-    const auto native_callback = [](cpShape* shape, void* data)
+    const auto native_callback = [](cpShape* native_shape, void* data)
     {
         const region_query_callback_type& callback{*reinterpret_cast<const region_query_callback_type*>(data)};
-        physical_body& body{*reinterpret_cast<physical_body*>(cpShapeGetUserData(shape))};
+        physical_shape& shape{*reinterpret_cast<physical_shape*>(cpShapeGetUserData(native_shape))};
+        const region_hit info{shape};
 
-        callback(body);
+        callback(info);
     };
 
     cpSpaceBBQuery(m_world, cpBBNew(tocp(x), tocp(y), tocp(x + width), tocp(y + height)), filter, native_callback, &callback);
 }
 
-void physical_world::raycast(const glm::vec2& from, const glm::vec2& to, float thickness, std::uint64_t group, std::uint32_t id, std::uint32_t mask, raycast_callback_type callback)
+void physical_world::ray_query(const glm::vec2& from, const glm::vec2& to, float thickness, std::uint64_t group, std::uint32_t id, std::uint32_t mask, ray_callback_type callback)
 {
     const cpShapeFilter filter{cpShapeFilterNew(static_cast<cpGroup>(group), id, mask)};
 
-    const auto native_callback = [](cpShape* shape, cpVect point, cpVect normal, cpFloat alpha, void* data)
+    const auto native_callback = [](cpShape* native_shape, cpVect point, cpVect normal, cpFloat alpha, void* data)
     {
-        const raycast_callback_type& callback{*reinterpret_cast<const raycast_callback_type*>(data)};
-        physical_body& body{*reinterpret_cast<physical_body*>(cpShapeGetUserData(shape))};
-        const raycast_hit info{body, fromcp(point), fromcp(normal), fromcp(alpha)};
+        const ray_callback_type& callback{*reinterpret_cast<const ray_callback_type*>(data)};
+        physical_shape& shape{*reinterpret_cast<physical_shape*>(cpShapeGetUserData(native_shape))};
+        const ray_hit info{shape, fromcp(point), fromcp(normal), fromcp(alpha)};
 
         callback(info);
     };
@@ -150,15 +167,29 @@ void physical_world::raycast(const glm::vec2& from, const glm::vec2& to, float t
     cpSpaceSegmentQuery(m_world, tocp(from), tocp(to), thickness, filter, native_callback, &callback);
 }
 
-std::optional<physical_world::raycast_hit> physical_world::raycast_first(const glm::vec2& from, const glm::vec2& to, float thickness, std::uint64_t group, std::uint32_t id, std::uint32_t mask)
+std::optional<physical_world::point_hit> physical_world::point_query_nearest(const glm::vec2& point, float max_distance, std::uint64_t group, std::uint32_t id, std::uint32_t mask)
+{
+    const cpShapeFilter filter{cpShapeFilterNew(static_cast<cpGroup>(group), id, mask)};
+
+    cpPointQueryInfo info{};
+    if(cpSpacePointQueryNearest(m_world, tocp(point), tocp(max_distance), filter, &info))
+    {
+        physical_shape& shape{*reinterpret_cast<physical_shape*>(cpShapeGetUserData(info.shape))};
+        return point_hit{shape, fromcp(info.point), fromcp(info.distance), fromcp(info.gradient)};
+    }
+
+    return std::nullopt;
+}
+
+std::optional<physical_world::ray_hit> physical_world::ray_query_first(const glm::vec2& from, const glm::vec2& to, float thickness, std::uint64_t group, std::uint32_t id, std::uint32_t mask)
 {
     const cpShapeFilter filter{cpShapeFilterNew(static_cast<cpGroup>(group), id, mask)};
 
     cpSegmentQueryInfo info{};
     if(cpSpaceSegmentQueryFirst(m_world, tocp(from), tocp(to), thickness, filter, &info))
     {
-        physical_body& body{*reinterpret_cast<physical_body*>(cpShapeGetUserData(info.shape))};
-        return raycast_hit{body, fromcp(info.point), fromcp(info.normal), fromcp(info.alpha)};
+        physical_shape& shape{*reinterpret_cast<physical_shape*>(cpShapeGetUserData(info.shape))};
+        return ray_hit{shape, fromcp(info.point), fromcp(info.normal), fromcp(info.alpha)};
     }
 
     return std::nullopt;
@@ -374,9 +405,8 @@ physical_shape::physical_shape(physical_body_ptr body, float radius, const glm::
     if(!m_shape)
         throw std::runtime_error{"Can not allocate physical shape."};
 
+    cpShapeSetUserData(m_shape, this);
     cpSpaceAddShape(m_body->world()->handle(), m_shape);
-
-    cpSpaceSetUserData(m_body->world()->handle(), this);
     m_body->register_shape(this);
 }
 
@@ -387,9 +417,8 @@ physical_shape::physical_shape(physical_body_ptr body, const glm::vec2& first, c
     if(!m_shape)
         throw std::runtime_error{"Can not allocate physical shape."};
 
+    cpShapeSetUserData(m_shape, this);
     cpSpaceAddShape(m_body->world()->handle(), m_shape);
-
-    cpSpaceSetUserData(m_body->world()->handle(), this);
     m_body->register_shape(this);
 }
 
@@ -405,9 +434,8 @@ physical_shape::physical_shape(physical_body_ptr body, const std::vector<glm::ve
     if(!m_shape)
         throw std::runtime_error{"Can not allocate physical shape."};
 
+    cpShapeSetUserData(m_shape, this);
     cpSpaceAddShape(m_body->world()->handle(), m_shape);
-
-    cpSpaceSetUserData(m_body->world()->handle(), this);
     m_body->register_shape(this);
 }
 
@@ -420,7 +448,7 @@ physical_shape::physical_shape(physical_body_ptr body, float width, float height
 
     cpSpaceAddShape(m_body->world()->handle(), m_shape);
 
-    cpSpaceSetUserData(m_body->world()->handle(), this);
+    cpShapeSetUserData(m_shape, this);
     m_body->register_shape(this);
 }
 

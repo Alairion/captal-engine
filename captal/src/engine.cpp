@@ -15,7 +15,7 @@ static constexpr const char default_fragment_shader_spv[]
     #include "data/default.frag.spv.str"
 };
 
-static constexpr std::array<std::uint8_t, 16> dummy_texture_data{255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255};
+static constexpr std::array<std::uint8_t, 4> dummy_texture_data{255, 255, 255, 255};
 
 using clock = std::chrono::steady_clock;
 
@@ -190,7 +190,7 @@ void engine::init()
     m_default_vertex_shader = tph::shader{m_renderer, tph::shader_stage::vertex, std::string_view{default_vertex_shader_spv, std::size(default_vertex_shader_spv) - 1}};
     m_default_fragment_shader = tph::shader{m_renderer, tph::shader_stage::fragment, std::string_view{default_fragment_shader_spv, std::size(default_fragment_shader_spv) - 1}};
 
-    m_dummy_texture = texture{2, 2, std::data(dummy_texture_data), tph::sampling_options{tph::filter::nearest, tph::filter::nearest, tph::address_mode::repeat}};
+    m_dummy_texture = texture{1, 1, std::data(dummy_texture_data), tph::sampling_options{tph::filter::nearest, tph::filter::nearest, tph::address_mode::repeat}};
 }
 
 void engine::update_window()
