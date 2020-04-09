@@ -98,7 +98,7 @@ public:
         physical_shape& shape;
     };
 
-    struct raycast_hit
+    struct ray_hit
     {
         physical_shape& shape;
         glm::vec2 position{};
@@ -109,7 +109,7 @@ public:
 public:
     using point_query_callback_type = std::function<void(point_hit hit)>;
     using region_query_callback_type = std::function<void(region_hit hit)>;
-    using raycast_callback_type = std::function<void(raycast_hit hit)>;
+    using ray_callback_type = std::function<void(ray_hit hit)>;
 
 public:
     physical_world();
@@ -124,10 +124,10 @@ public:
 
     void point_query(const glm::vec2& point, float max_distance, std::uint64_t group, std::uint32_t id, std::uint32_t mask, point_query_callback_type callback);
     void region_query(float x, float y, float width, float height, std::uint64_t group, std::uint32_t id, std::uint32_t mask, region_query_callback_type callback);
-    void raycast_query(const glm::vec2& from, const glm::vec2& to, float thickness, std::uint64_t group, std::uint32_t id, std::uint32_t mask, raycast_callback_type callback);
+    void ray_query(const glm::vec2& from, const glm::vec2& to, float thickness, std::uint64_t group, std::uint32_t id, std::uint32_t mask, ray_callback_type callback);
 
     std::optional<point_hit> point_query_nearest(const glm::vec2& point, float max_distance, std::uint64_t group, std::uint32_t id, std::uint32_t mask);
-    std::optional<raycast_hit> raycast_query_first(const glm::vec2& from, const glm::vec2& to, float thickness, std::uint64_t group, std::uint32_t id, std::uint32_t mask);
+    std::optional<ray_hit> ray_query_first(const glm::vec2& from, const glm::vec2& to, float thickness, std::uint64_t group, std::uint32_t id, std::uint32_t mask);
 
     void update(float time);
 
