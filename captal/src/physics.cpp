@@ -2,6 +2,12 @@
 
 #include <stdexcept>
 
+//Chipmunk2D must have been compiled with the same definitions:
+#define CP_COLLISION_TYPE_TYPE uint64_t
+#define CP_GROUP_TYPE uint64_t
+#define CP_BITMASK_TYPE uint64_t
+#define CP_TIMESTAMP_TYPE uint64_t
+
 #include <chipmunk/chipmunk.h>
 
 namespace cpt
@@ -109,19 +115,19 @@ physical_world::~physical_world()
     cpSpaceFree(m_world);
 }
 
-void physical_world::add_collision(std::uint32_t first_type, std::uint32_t second_type, collision_handler handler)
+void physical_world::add_collision(collision_type_t first_type, collision_type_t second_type, collision_handler handler)
 {
     add_callback(cpSpaceAddCollisionHandler(m_world, first_type, second_type), std::move(handler));
 }
 
-void physical_world::add_wildcard(std::uint32_t type, collision_handler handler)
+void physical_world::add_wildcard(collision_type_t type, collision_handler handler)
 {
     add_callback(cpSpaceAddWildcardHandler(m_world, type), std::move(handler));
 }
 
-void physical_world::point_query(const glm::vec2& point, float max_distance, std::uint64_t group, std::uint32_t id, std::uint32_t mask, point_query_callback_type callback)
+void physical_world::point_query(const glm::vec2& point, float max_distance, group_t group, collision_id_t id, collision_id_t mask, point_query_callback_type callback)
 {
-    const cpShapeFilter filter{cpShapeFilterNew(static_cast<cpGroup>(group), id, mask)};
+    const cpShapeFilter filter{cpShapeFilterNew(group, id, mask)};
 
     const auto native_callback = [](cpShape* native_shape, cpVect point, cpFloat distance, cpVect gradient, void *data)
     {
@@ -135,9 +141,9 @@ void physical_world::point_query(const glm::vec2& point, float max_distance, std
     cpSpacePointQuery(m_world, tocp(point), tocp(max_distance), filter, native_callback, &callback);
 }
 
-void physical_world::region_query(float x, float y, float width, float height, std::uint64_t group, std::uint32_t id, std::uint32_t mask, region_query_callback_type callback)
+void physical_world::region_query(float x, float y, float width, float height, group_t group, collision_id_t id, collision_id_t mask, region_query_callback_type callback)
 {
-    const cpShapeFilter filter{cpShapeFilterNew(static_cast<cpGroup>(group), id, mask)};
+    const cpShapeFilter filter{cpShapeFilterNew(group, id, mask)};
 
     const auto native_callback = [](cpShape* native_shape, void* data)
     {
@@ -151,9 +157,9 @@ void physical_world::region_query(float x, float y, float width, float height, s
     cpSpaceBBQuery(m_world, cpBBNew(tocp(x), tocp(y), tocp(x + width), tocp(y + height)), filter, native_callback, &callback);
 }
 
-void physical_world::ray_query(const glm::vec2& from, const glm::vec2& to, float thickness, std::uint64_t group, std::uint32_t id, std::uint32_t mask, ray_callback_type callback)
+void physical_world::ray_query(const glm::vec2& from, const glm::vec2& to, float thickness, group_t group, collision_id_t id, collision_id_t mask, ray_callback_type callback)
 {
-    const cpShapeFilter filter{cpShapeFilterNew(static_cast<cpGroup>(group), id, mask)};
+    const cpShapeFilter filter{cpShapeFilterNew(group, id, mask)};
 
     const auto native_callback = [](cpShape* native_shape, cpVect point, cpVect normal, cpFloat alpha, void* data)
     {
@@ -167,9 +173,46 @@ void physical_world::ray_query(const glm::vec2& from, const glm::vec2& to, float
     cpSpaceSegmentQuery(m_world, tocp(from), tocp(to), thickness, filter, native_callback, &callback);
 }
 
-std::optional<physical_world::point_hit> physical_world::point_query_nearest(const glm::vec2& point, float max_distance, std::uint64_t group, std::uint32_t id, std::uint32_t mask)
+
+std::vector<physical_world::point_hit> physical_world::point_query(const glm::vec2& point, float max_distance, group_t group, collision_id_t id, collision_id_t mask)
 {
-    const cpShapeFilter filter{cpShapeFilterNew(static_cast<cpGroup>(group), id, mask)};
+    std::vector<point_hit> output{};
+
+    point_query(point, max_distance, group, id, mask, [&output](point_hit hit)
+    {
+        output.push_back(hit);
+    });
+
+    return output;
+}
+
+std::vector<physical_world::region_hit> physical_world::region_query(float x, float y, float width, float height, group_t group, collision_id_t id, collision_id_t mask)
+{
+    std::vector<region_hit> output{};
+
+    region_query(x, y, width, height, group, id, mask, [&output](region_hit hit)
+    {
+        output.push_back(hit);
+    });
+
+    return output;
+}
+
+std::vector<physical_world::ray_hit> physical_world::ray_query(const glm::vec2& from, const glm::vec2& to, float thickness, group_t group, collision_id_t id, collision_id_t mask)
+{
+    std::vector<ray_hit> output{};
+
+    ray_query(from, to, thickness, group, id, mask, [&output](ray_hit hit)
+    {
+        output.push_back(hit);
+    });
+
+    return output;
+}
+
+std::optional<physical_world::point_hit> physical_world::point_query_nearest(const glm::vec2& point, float max_distance, group_t group, collision_id_t id, collision_id_t mask)
+{
+    const cpShapeFilter filter{cpShapeFilterNew(group, id, mask)};
 
     cpPointQueryInfo info{};
     if(cpSpacePointQueryNearest(m_world, tocp(point), tocp(max_distance), filter, &info))
@@ -181,9 +224,9 @@ std::optional<physical_world::point_hit> physical_world::point_query_nearest(con
     return std::nullopt;
 }
 
-std::optional<physical_world::ray_hit> physical_world::ray_query_first(const glm::vec2& from, const glm::vec2& to, float thickness, std::uint64_t group, std::uint32_t id, std::uint32_t mask)
+std::optional<physical_world::ray_hit> physical_world::ray_query_first(const glm::vec2& from, const glm::vec2& to, float thickness, group_t group, collision_id_t id, collision_id_t mask)
 {
-    const cpShapeFilter filter{cpShapeFilterNew(static_cast<cpGroup>(group), id, mask)};
+    const cpShapeFilter filter{cpShapeFilterNew(group, id, mask)};
 
     cpSegmentQueryInfo info{};
     if(cpSpaceSegmentQueryFirst(m_world, tocp(from), tocp(to), thickness, filter, &info))
@@ -237,9 +280,9 @@ void physical_world::set_collision_bias(float collision_bias) noexcept
     cpSpaceSetCollisionBias(m_world, tocp(collision_bias));
 }
 
-void physical_world::set_collision_persistence(std::uint32_t collision_persistance) noexcept
+void physical_world::set_collision_persistence(uint64_t collision_persistance) noexcept
 {
-    cpSpaceSetCollisionPersistence(m_world, static_cast<cpTimestamp>(collision_persistance));
+    cpSpaceSetCollisionPersistence(m_world, collision_persistance);
 }
 
 void physical_world::set_iteration_count(std::uint32_t count) noexcept
@@ -277,9 +320,9 @@ float physical_world::collision_bias() const noexcept
     return fromcp(cpSpaceGetCollisionBias(m_world));
 }
 
-std::uint32_t physical_world::collision_persistence() const noexcept
+std::uint64_t physical_world::collision_persistence() const noexcept
 {
-    return static_cast<std::uint32_t>(cpSpaceGetCollisionPersistence(m_world));
+    return cpSpaceGetCollisionPersistence(m_world);
 }
 
 void physical_world::add_callback(cpCollisionHandler *cphandler, collision_handler handler)
@@ -479,14 +522,14 @@ void physical_shape::set_surface_velocity(const glm::vec2& surface_velocity) noe
     cpShapeSetSurfaceVelocity(m_shape, tocp(surface_velocity));
 }
 
-void physical_shape::set_collision_type(std::uint64_t type) noexcept
+void physical_shape::set_collision_type(collision_type_t type) noexcept
 {
-    cpShapeSetCollisionType(m_shape, static_cast<cpCollisionType>(type));
+    cpShapeSetCollisionType(m_shape, type);
 }
 
-void physical_shape::set_filter(std::uint64_t group, std::uint32_t categories, std::uint32_t collision_mask) noexcept
+void physical_shape::set_filter(group_t group, collision_id_t categories, collision_id_t collision_mask) noexcept
 {
-    cpShapeSetFilter(m_shape, cpShapeFilterNew(static_cast<cpGroup>(group), categories, collision_mask));
+    cpShapeSetFilter(m_shape, cpShapeFilterNew(group, categories, collision_mask));
 }
 
 bool physical_shape::is_sensor() const noexcept
@@ -509,24 +552,24 @@ glm::vec2 physical_shape::surface_velocity() const noexcept
     return fromcp(cpShapeGetSurfaceVelocity(m_shape));
 }
 
-std::uint64_t physical_shape::collision_type() const noexcept
+collision_type_t physical_shape::collision_type() const noexcept
 {
-    return static_cast<std::uint64_t>(cpShapeGetCollisionType(m_shape));
+    return cpShapeGetCollisionType(m_shape);
 }
 
-std::uint64_t physical_shape::group() const noexcept
+group_t physical_shape::group() const noexcept
 {
-    return static_cast<std::uint64_t>(cpShapeGetFilter(m_shape).group);
+    return cpShapeGetFilter(m_shape).group;
 }
 
-std::uint32_t physical_shape::categories() const noexcept
+collision_id_t physical_shape::categories() const noexcept
 {
-    return static_cast<std::uint32_t>(cpShapeGetFilter(m_shape).categories);
+    return cpShapeGetFilter(m_shape).categories;
 }
 
-std::uint32_t physical_shape::collision_mask() const noexcept
+collision_id_t physical_shape::collision_mask() const noexcept
 {
-    return static_cast<std::uint32_t>(cpShapeGetFilter(m_shape).mask);
+    return cpShapeGetFilter(m_shape).mask;
 }
 
 physical_body::physical_body(physical_world_ptr world, physical_body_type type, float mass, float inertia)

@@ -31,6 +31,15 @@ struct bounding_box
     float height{};
 };
 
+using collision_type_t = std::uint64_t;
+using group_t = std::uint64_t;
+using collision_id_t = std::uint64_t;
+
+static constexpr group_t no_group{};
+static constexpr group_t all_groups{std::numeric_limits<collision_id_t>::max()};
+static constexpr collision_id_t no_collision_id{};
+static constexpr collision_id_t all_collision_ids{std::numeric_limits<collision_id_t>::max()};
+
 class CAPTAL_API physical_collision_arbiter
 {
 public:
@@ -119,15 +128,19 @@ public:
     physical_world(physical_world&&) noexcept = delete;
     physical_world& operator=(physical_world&&) noexcept = delete;
 
-    void add_collision(std::uint32_t first_id, std::uint32_t second_type, collision_handler handler);
-    void add_wildcard(std::uint32_t type, collision_handler handler);
+    void add_collision(collision_type_t first_type, collision_type_t second_type, collision_handler handler);
+    void add_wildcard(collision_type_t type, collision_handler handler);
 
-    void point_query(const glm::vec2& point, float max_distance, std::uint64_t group, std::uint32_t id, std::uint32_t mask, point_query_callback_type callback);
-    void region_query(float x, float y, float width, float height, std::uint64_t group, std::uint32_t id, std::uint32_t mask, region_query_callback_type callback);
-    void ray_query(const glm::vec2& from, const glm::vec2& to, float thickness, std::uint64_t group, std::uint32_t id, std::uint32_t mask, ray_callback_type callback);
+    void point_query(const glm::vec2& point, float max_distance, group_t group, collision_id_t id, collision_id_t mask, point_query_callback_type callback);
+    void region_query(float x, float y, float width, float height, group_t group, collision_id_t id, collision_id_t mask, region_query_callback_type callback);
+    void ray_query(const glm::vec2& from, const glm::vec2& to, float thickness, group_t group, collision_id_t id, collision_id_t mask, ray_callback_type callback);
 
-    std::optional<point_hit> point_query_nearest(const glm::vec2& point, float max_distance, std::uint64_t group, std::uint32_t id, std::uint32_t mask);
-    std::optional<ray_hit> ray_query_first(const glm::vec2& from, const glm::vec2& to, float thickness, std::uint64_t group, std::uint32_t id, std::uint32_t mask);
+    std::vector<point_hit> point_query(const glm::vec2& point, float max_distance, group_t group, collision_id_t id, collision_id_t mask);
+    std::vector<region_hit> region_query(float x, float y, float width, float height, group_t group, collision_id_t id, collision_id_t mask);
+    std::vector<ray_hit> ray_query(const glm::vec2& from, const glm::vec2& to, float thickness, group_t group, collision_id_t id, collision_id_t mask);
+
+    std::optional<point_hit> point_query_nearest(const glm::vec2& point, float max_distance, group_t group, collision_id_t id, collision_id_t mask);
+    std::optional<ray_hit> ray_query_first(const glm::vec2& from, const glm::vec2& to, float thickness, group_t group, collision_id_t id, collision_id_t mask);
 
     void update(float time);
 
@@ -137,7 +150,7 @@ public:
     void set_sleep_threshold(float speed_threshold) noexcept;
     void set_collision_slop(float collision_slop) noexcept;
     void set_collision_bias(float collision_bias) noexcept;
-    void set_collision_persistence(std::uint32_t collision_persistance) noexcept;
+    void set_collision_persistence(std::uint64_t collision_persistance) noexcept;
     void set_iteration_count(std::uint32_t count) noexcept;
 
     void set_step(float step) noexcept
@@ -156,7 +169,7 @@ public:
     float sleep_threshold() const noexcept;
     float collision_slop() const noexcept;
     float collision_bias() const noexcept;
-    std::uint32_t collision_persistence() const noexcept;
+    std::uint64_t collision_persistence() const noexcept;
 
     float step() const noexcept
     {
@@ -213,8 +226,8 @@ public:
     void set_elasticity(float elasticity) noexcept;
     void set_friction(float friction) noexcept;
     void set_surface_velocity(const glm::vec2& surface_velocity) noexcept;
-    void set_collision_type(std::uint64_t type) noexcept;
-    void set_filter(std::uint64_t group, std::uint32_t categories, std::uint32_t collision_mask) noexcept;
+    void set_collision_type(collision_type_t type) noexcept;
+    void set_filter(group_t group, collision_id_t categories, collision_id_t collision_mask) noexcept;
 
     void set_user_data(void* userdata) noexcept
     {
@@ -225,10 +238,10 @@ public:
     float elasticity() const noexcept;
     float friction() const noexcept;
     glm::vec2 surface_velocity() const noexcept;
-    std::uint64_t collision_type() const noexcept;
-    std::uint64_t group() const noexcept;
-    std::uint32_t categories() const noexcept;
-    std::uint32_t collision_mask() const noexcept;
+    collision_type_t collision_type() const noexcept;
+    group_t group() const noexcept;
+    collision_id_t categories() const noexcept;
+    collision_id_t collision_mask() const noexcept;
 
     const physical_body_ptr& body() const noexcept
     {
