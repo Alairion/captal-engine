@@ -20,6 +20,19 @@ namespace cpt
 template<typename T>
 static constexpr T pi{static_cast<T>(3.141592653589793238462643383279)};
 
+enum class endian : std::uint32_t
+{
+#ifdef _WIN32
+    little = 0,
+    big    = 1,
+    native = little
+#else
+    little = __ORDER_LITTLE_ENDIAN__,
+    big    = __ORDER_BIG_ENDIAN__,
+    native = __BYTE_ORDER__
+#endif
+};
+
 inline namespace enum_operations
 {
 

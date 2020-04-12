@@ -13,7 +13,7 @@ namespace cpt
 {
 
 template<typename InputIt>
-std::size_t unique_count(InputIt first, InputIt last)
+constexpr std::size_t unique_count(InputIt first, InputIt last)
 {
     if(first == last)
         return 0;
@@ -35,7 +35,7 @@ std::size_t unique_count(InputIt first, InputIt last)
 
 
 template<typename InputIt, typename Predicate>
-std::size_t unique_count(InputIt first, InputIt last, Predicate pred)
+constexpr std::size_t unique_count(InputIt first, InputIt last, Predicate pred)
 {
     if(first == last)
         return 0;
@@ -55,13 +55,13 @@ std::size_t unique_count(InputIt first, InputIt last, Predicate pred)
     return result;
 }
 
-inline bool bounding_box_query(const glm::vec2& point, const glm::vec2& box_position, const glm::vec2& box_size) noexcept
+constexpr bool bounding_box_query(const glm::vec2& point, const glm::vec2& box_position, const glm::vec2& box_size) noexcept
 {
     return point.x >= box_position.x && point.x < box_position.x + box_size.x && point.y >= box_position.y && point.y < box_position.y + box_size.y;
 }
 
 template<typename T, typename U, typename V, typename W, typename X, typename Y>
-bool bounding_box_query(T&& point_x, U&& point_y, V&& box_x, W&& box_y, X&& box_width, Y&& box_height) noexcept
+constexpr bool bounding_box_query(T&& point_x, U&& point_y, V&& box_x, W&& box_y, X&& box_width, Y&& box_height) noexcept
 {
     return bounding_box_query(glm::vec2{point_x, point_y}, glm::vec2{box_x, box_y}, glm::vec2{box_width, box_height});
 }
@@ -101,6 +101,31 @@ std::vector<std::basic_string_view<CharT, Traits>> split(std::basic_string_view<
     return substrings;
 }
 
+constexpr std::uint8_t bswap(std::uint8_t value) noexcept
+{
+    return value;
+}
+
+constexpr std::uint16_t bswap(std::uint16_t value) noexcept
+{
+    return (value << 8) | (value >> 8);
+}
+
+constexpr std::uint32_t bswap(std::uint32_t value) noexcept
+{
+    value = ((value << 8) & 0xFF00FF00) | ((value >> 8) & 0x00FF00FF);
+
+    return (value << 16) | (value >> 16);
+}
+
+constexpr std::uint64_t bswap(std::uint64_t value) noexcept
+{
+    value = ((value & 0x00000000FFFFFFFFull) << 32) | ((value & 0xFFFFFFFF00000000ull) >> 32);
+    value = ((value & 0x0000FFFF0000FFFFull) << 16) | ((value & 0xFFFF0000FFFF0000ull) >> 16);
+    value = ((value & 0x00FF00FF00FF00FFull) << 8)  | ((value & 0xFF00FF00FF00FF00ull) >> 8);
+
+    return value;
+}
 
 }
 

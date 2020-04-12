@@ -504,21 +504,35 @@ See enumerations in translation.hpp: "cpt::language"; "cpt::country", "cpt::tran
 These enumerations are all unsigned 32-bits interger values written as is in the files.
 
 Format:
+Translation data are stored in sections, sections are defined by the context data and the first character of the string.
+The context data and the first character are hashed with FNV-1a hash algorithm (https://en.wikipedia.org/wiki/Fowler%E2%80%93Noll%E2%80%93Vo_hash_function)
+then combined into a single 16-bytes array, stating with the context data hash followed by the first character hash, which is rehashed using FNV-1a.
+The 64-bit integer is then used as a unique identifier for the section.
 
--Header:
---File format detection
-[8 bytes: "CPTTRANS"] magic word to detect file format
---
-[uint32: cpt::language value] the source language
-[uint32: cpt::country value] the source language country
-[uint32: cpt::translation_encoding] the source language encoding
-[uint32: cpt::language value] the target language
-[uint32: cpt::country value] the target language country
-[uint32: cpt::translation_encoding] the target language encoding
-[uint64: std::size_t value] the number of translated sentences/strings
--Data
+Header:
+    File format detection:
+        [8 bytes: "CPTTRANS"] magic word to detect file format
+        [tph::version: file_version] the file version (tph::version is an uint64 composed of 3 fields: [uint16: major][uint16: minor][uint32: patch])
+    General informations:
+        [cpt::language: source_language]the source language
+        [cpt::country: source_country] the source language country
+        [cpt::translation_encoding: source_encoding] the source language encoding
+        [cpt::language: target_language] the target language
+        [cpt::country: target_country] the target language country
+        [cpt::translation_encoding: target_encoding] the target language encoding
+        [std::uint64_t: translation_count] the number of translated sentences/strings
+    Parse informations:
+        [std::uint64_t: section_count] the total number of sections
+        [section_count occurencies] array of section
+        {
+            [std::uint64_t: section_id] the id is the hash value associated with this
+            [std::uint64_t: section_begin] the begin of the section data in the file (in bytes)
+        }
+Data:
+    Sections:
+        [std::uint64_t section_size] number of translations in this section
 
-std::size_t is assumed 64 bits wide
+
 */
 
 class translator
