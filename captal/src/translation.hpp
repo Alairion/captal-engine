@@ -482,8 +482,8 @@ The country code is used as a disambiguation marker for more accurate translatio
 Some languages are spread all around the world (English, French, Spanish, Portuguese, ...) and each region has its own expressions and words.
 Metropolitan French can be slightly different from Canadian French, same for Portugal and Brazil Protuguese, or USA and UK English, ...
 
-You may think that country + language is enought, but no. Another disambiguation marker,
-a "context" is a string that give information about the translation.
+You may think that country + language is enough, but no.
+Another disambiguation marker, a "context" is a 16-bytes (128-bits) value.
 Languages are complex, so translations are, and sometimes the sense of the exact same phrase or sentence
 can be translated differently in another language depending on the context where it is written/pronounced.
 Example: "Voilà !"
@@ -505,7 +505,7 @@ These enumerations are all unsigned 32-bits interger values written as is in the
 
 Format:
 Translation data are stored in sections, sections are defined by the context data and the first character of the string.
-The context data and the first character are hashed with FNV-1a hash algorithm (https://en.wikipedia.org/wiki/Fowler%E2%80%93Noll%E2%80%93Vo_hash_function)
+The context data and the first character UTF-32-LE codepoint are hashed with FNV-1a hash algorithm (https://en.wikipedia.org/wiki/Fowler%E2%80%93Noll%E2%80%93Vo_hash_function)
 then combined into a single 16-bytes array, stating with the context data hash followed by the first character hash, which is rehashed using FNV-1a.
 The 64-bit integer is then used as a unique identifier for the section.
 
@@ -523,15 +523,24 @@ Header:
         [std::uint64_t: translation_count] the number of translated sentences/strings
     Parse informations:
         [std::uint64_t: section_count] the total number of sections
-        [section_count occurencies] array of section
+        [section_count occurencies] array of section description
         {
-            [std::uint64_t: section_id] the id is the hash value associated with this
+            [std::uint64_t: section_id] the id is the hash value associated with this section
             [std::uint64_t: section_begin] the begin of the section data in the file (in bytes)
         }
 Data:
     Sections:
-        [std::uint64_t section_size] number of translations in this section
-
+        [section_count occurencies] array of section
+        {
+            [16 bytes: section_context_data] the section context
+            [std::uint64_t section_translation_count] number of translations in this section
+            [section_translation_count occurencies]
+            {
+                [std::uint64_t: text_hash] hash value of the string (in case of UTF-16 or UTF-32 the string is interpreted as
+                [std::uint64_t: text_size] unicode string size in bytes
+                [text_size bytes: text data] the text
+            }
+        }
 
 */
 
