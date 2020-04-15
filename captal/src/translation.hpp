@@ -3,8 +3,104 @@
 
 #include "config.hpp"
 
+#include <array>
+#include <unordered_map>
+#include <istream>
+#include <filesystem>
+#include <variant>
+
+#include <tephra/config.hpp>
+
 namespace cpt
 {
+
+/*
+Captal translation files:
+The format supports 3 encoding: UTF-8, UTF-16, UTF-32
+All words are little-endian
+The file is based on a source language, the source language is the language used in your workspace (C++ code, Game Editor, whatever),
+and a target language, the one referred by the file. According to convention, the translation files should be named:
+"{iso_language_code}_{iso_country_code}[.cpt].trans" where {iso_language_code} is the 3-letters language code as defined by the ISO-639-3 standard,
+and where {iso_country_code} is the 3-letters country code as defined by the ISO-3166-3 standard. Part in square brackets ([]) is optional.
+The source and the target languages can be represented by different encoding, and this can be used to optimize the file size:
+UTF-8 is usually the lightest encoding for most languages that use latin alphabet. But it will generally be heavier than UTF-16 for Japanese, example:
+
+For the word こんにちは (Konnichiwa) (~= Hello):
+In UTF-8, it will be encoded into: [0xe3|0x81|0x93] [0xe3|0x82|0x93] [0xe3|0x81|0xab] [0xe3|0x81|0xa1] [0xe3|0x81|0xaf]
+for a total of 15 octets
+In UTF-16, it will be encoded into: [0x53|0x30] [0x93|0x30] [0x6b|0x30] [0x61|0x30] [0x6f|0x30]
+for a total of 10 octets
+
+For the word Voilà (a very common French preposition)
+In UTF-8, it will be encoded into: [0x56][0x6f][0x69][0x6c][0xc3|0xa0]
+for a total of 6 octets
+In UTF-16, it will be encoded into: [0x56|0x00][0x6f|0x00][0x69|0x00][0x6c|0x00][0xe0|0x00]
+for a total of 10 octets (you can see that 5 bytes are null)
+
+The country code is used as a disambiguation marker for more accurate translation.
+Some languages are spread all around the world (English, French, Spanish, Portuguese, ...) and each region has its own expressions and words.
+Metropolitan French can be slightly different from Canadian French, same for Portugal and Brazil Protuguese, or USA and UK English, ...
+
+You may think that country + language is enough, but no.
+Another disambiguation marker, a "context" is a 16-bytes (128-bits) value.
+Languages are complex, so translations are, and sometimes the sense of the exact same phrase or sentence
+can be translated differently in another language depending on the context where it is written/pronounced.
+Example: "Voilà !"
+You may have noticed that I didn't give a translation for Voilà in the encoding example. It's because it can be translated in more than 10 words in English.
+That's why context is important.
+The sense of the simple sentence "Voilà !" can be translated differently, based on the context:
+"Voilà !" may mean:
+-"Here it is!" if you present something
+-"That's it!" if you want to indicate that something is done or to confirm an information
+-"There you go!" if you want to indicate an exclamation
+-"That's why!" if you want to confirm the reason of something
+-And many more...
+Voilà ! Now you know why :)
+(Note that "Voilà" is usually preceded by another word (such as "et", "ben", ...) to precise it's meaning)
+
+Constants:
+See enumerations in translation.hpp: "cpt::language"; "cpt::country", "cpt::translation_encoding"
+These enumerations are all unsigned 32-bits interger values written as is in the files.
+
+Format:
+Translation data are stored in sections, sections are defined by the context data and the first character of the string.
+The context data and the first character UTF-32-LE codepoint are hashed with FNV-1a hash algorithm (https://en.wikipedia.org/wiki/Fowler%E2%80%93Noll%E2%80%93Vo_hash_function)
+as an array of 20 bytes, stating with the context data followed by the first character.
+The 64-bit integer is then used as a unique identifier for the section.
+
+Header:
+    File format detection:
+        [8 bytes: "CPTTRANS"] magic word to detect file format
+        [tph::version: file_version] the file version (tph::version is an uint64 composed of 3 fields: [uint16: major][uint16: minor][uint32: patch])
+    General informations:
+        [cpt::language: source_language]the source language
+        [cpt::country: source_country] the source language country
+        [cpt::translation_encoding: source_encoding] the source language encoding
+        [cpt::language: target_language] the target language
+        [cpt::country: target_country] the target language country
+        [cpt::translation_encoding: target_encoding] the target language encoding
+        [std::uint64_t: translation_count] the number of translated sentences/strings
+    Parse informations:
+        [std::uint64_t: section_count] the total number of sections
+        [section_count occurencies] array of section description
+        {
+            [std::uint64_t: section_id] the id is the hash value associated with this section
+            [std::uint64_t: section_begin] the begin of the section data in the file (in bytes)
+        }
+Data:
+    Sections:
+        [section_count occurencies] array of section
+        {
+            [16 bytes: section_context_data] the section context
+            [std::uint64_t section_translation_count] number of translations in this section
+            [section_translation_count occurencies]
+            {
+                [std::uint64_t: text_hash] hash value of the string (in case of UTF-16 or UTF-32 the string is hashed as an array of bytes)
+                [std::uint64_t: text_size] unicode string size in bytes
+                [text_size bytes: text data] the text
+            }
+        }
+*/
 
 enum class language : std::uint32_t
 {
@@ -454,102 +550,68 @@ enum class translation_encoding : std::uint32_t
     utf32 = 3,
 };
 
-/*
+enum class translator_options : std::uint32_t
+{
+    none = 0x00,
+    buffered = 0x01
+};
 
-Captal translation files:
-The format supports 3 encoding: UTF-8, UTF-16, UTF-32
-All words are little-endian
-The file is based on a source language, the source language is the language used in your workspace (C++ code, Game Editor, whatever),
-and a target language, the one referred by the file. According to convention, the translation files should be named:
-"{iso_language_code}_{iso_country_code}[.cpt].trans" where {iso_language_code} is the 3-letters language code as defined by the ISO-639-3 standard,
-and where {iso_country_code} is the 3-letters country code as defined by the ISO-3166-3 standard. Part in square brackets ([]) is optional.
-The source and the target languages can be represented by different encoding, and this can be used to optimize the file size:
-UTF-8 is usually the lightest encoding for most languages that use latin alphabet. But it will generally be heavier than UTF-16 for Japanese, example:
+template<> struct enable_enum_operations<translator_options>{static constexpr bool value{true};};
 
-For the word こんにちは (Konnichiwa) (~= Hello):
-In UTF-8, it will be encoded into: [0xe3|0x81|0x93] [0xe3|0x82|0x93] [0xe3|0x81|0xab] [0xe3|0x81|0xa1] [0xe3|0x81|0xaf]
-for a total of 15 octets
-In UTF-16, it will be encoded into: [0x53|0x30] [0x93|0x30] [0x6b|0x30] [0x61|0x30] [0x6f|0x30]
-for a total of 10 octets
+enum class translate_options : std::uint32_t
+{
+    none = 0x00,
+    context_fallback = 0x01,
+    input_fallback = 0x02,
+};
 
-For the word Voilà (a very common French preposition)
-In UTF-8, it will be encoded into: [0x56][0x6f][0x69][0x6c][0xc3|0xa0]
-for a total of 6 octets
-In UTF-16, it will be encoded into: [0x56|0x00][0x6f|0x00][0x69|0x00][0x6c|0x00][0xe0|0x00]
-for a total of 10 octets (you can see that 5 bytes are null)
+template<> struct enable_enum_operations<translate_options>{static constexpr bool value{true};};
 
-The country code is used as a disambiguation marker for more accurate translation.
-Some languages are spread all around the world (English, French, Spanish, Portuguese, ...) and each region has its own expressions and words.
-Metropolitan French can be slightly different from Canadian French, same for Portugal and Brazil Protuguese, or USA and UK English, ...
+using translation_magic_word_t = std::array<std::uint8_t, 8>;
+using translation_context_data_t = std::array<std::uint8_t, 16>;
 
-You may think that country + language is enough, but no.
-Another disambiguation marker, a "context" is a 16-bytes (128-bits) value.
-Languages are complex, so translations are, and sometimes the sense of the exact same phrase or sentence
-can be translated differently in another language depending on the context where it is written/pronounced.
-Example: "Voilà !"
-You may have noticed that I didn't give a translation for Voilà in the encoding example. It's because it can be translated in more than 10 words in English.
-That's why context is important.
-The sense of the simple sentence "Voilà !" can be translated differently, based on the context:
-"Voilà !" may mean:
--"Here it is!" if you present something
--"That's it!" if you want to indicate that something is done or to confirm an information
--"There you go!" if you want to indicate an exclamation
--"That's why!" if you want to confirm the reason of something
--And many more...
-Voilà ! Now you know why :)
-(Note that "Voilà" is usually preceded by another word (such as "et", "ben", ...) to precise it's meaning)
-
-Constants:
-See enumerations in translation.hpp: "cpt::language"; "cpt::country", "cpt::translation_encoding"
-These enumerations are all unsigned 32-bits interger values written as is in the files.
-
-Format:
-Translation data are stored in sections, sections are defined by the context data and the first character of the string.
-The context data and the first character UTF-32-LE codepoint are hashed with FNV-1a hash algorithm (https://en.wikipedia.org/wiki/Fowler%E2%80%93Noll%E2%80%93Vo_hash_function)
-then combined into a single 16-bytes array, stating with the context data hash followed by the first character hash, which is rehashed using FNV-1a.
-The 64-bit integer is then used as a unique identifier for the section.
-
-Header:
-    File format detection:
-        [8 bytes: "CPTTRANS"] magic word to detect file format
-        [tph::version: file_version] the file version (tph::version is an uint64 composed of 3 fields: [uint16: major][uint16: minor][uint32: patch])
-    General informations:
-        [cpt::language: source_language]the source language
-        [cpt::country: source_country] the source language country
-        [cpt::translation_encoding: source_encoding] the source language encoding
-        [cpt::language: target_language] the target language
-        [cpt::country: target_country] the target language country
-        [cpt::translation_encoding: target_encoding] the target language encoding
-        [std::uint64_t: translation_count] the number of translated sentences/strings
-    Parse informations:
-        [std::uint64_t: section_count] the total number of sections
-        [section_count occurencies] array of section description
-        {
-            [std::uint64_t: section_id] the id is the hash value associated with this section
-            [std::uint64_t: section_begin] the begin of the section data in the file (in bytes)
-        }
-Data:
-    Sections:
-        [section_count occurencies] array of section
-        {
-            [16 bytes: section_context_data] the section context
-            [std::uint64_t section_translation_count] number of translations in this section
-            [section_translation_count occurencies]
-            {
-                [std::uint64_t: text_hash] hash value of the string (in case of UTF-16 or UTF-32 the string is interpreted as
-                [std::uint64_t: text_size] unicode string size in bytes
-                [text_size bytes: text data] the text
-            }
-        }
-
-*/
+static constexpr translation_context_data_t no_translation_context{};
+static constexpr translation_magic_word_t translation_magic_word{0x43, 0x50, 0x54, 0x54, 0x52, 0x41, 0x4e, 0x53};
 
 class translator
 {
-public:
-
+    using source_t = std::variant<std::monostate, std::ifstream, std::string_view, std::reference_wrapper<std::istream>, std::string>;
 
 private:
+    struct header
+    {
+        std::array<std::uint8_t, 8> magic_word{};
+        tph::version version{};
+        cpt::language source_language{};
+        cpt::country source_country{};
+        cpt::translation_encoding source_encoding{};
+        cpt::language target_language{};
+        cpt::country target_country{};
+        cpt::translation_encoding target_encoding{};
+        std::uint64_t translation_count{};
+    };
+
+public:
+    translator() = default;
+    translator(const std::filesystem::path& path, translator_options options = translator_options::none);
+    translator(std::string_view data, translator_options options = translator_options::none);
+    translator(std::istream& stream, translator_options options = translator_options::none);
+
+    ~translator() = default;
+    translator(const translator&) = delete;
+    translator& operator=(const translator&) = delete;
+    translator(translator&&) = default;
+    translator& operator=(translator&&) = default;
+
+    std::string translate(std::string_view text, const translation_context_data_t& context = no_translation_context, translate_options options = translate_options::none);
+
+private:
+    void read_header();
+
+private:
+    source_t m_source{};
+    header m_header{};
+    std::unordered_map<std::uint64_t, std::streamoff> m_sections{};
 };
 
 }
