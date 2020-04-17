@@ -21,7 +21,7 @@ struct header
 static constexpr std::array<char, 4> file_type_block_id{0x52, 0x49, 0x46, 0x46};
 static constexpr std::array<char, 4> file_format_id{0x57, 0x41, 0x56, 0x45};
 
-bool is_valid(std::string_view data)
+bool is_valid(const std::string_view& data)
 {
     const header header_data{*reinterpret_cast<const header*>(std::data(data))};
 
@@ -60,7 +60,7 @@ bool is_valid(std::istream& stream)
     return header_data == file_header;
 }
 
-bool is_valid(std::string_view data)
+bool is_valid(const std::string_view& data)
 {
     const std::array<char, 4> header_data{*reinterpret_cast<const std::array<char, 4>*>(std::data(data))};
 
@@ -94,7 +94,7 @@ sound_file_reader::sound_file_reader(const std::filesystem::path& file, sound_re
     }
 }
 
-sound_file_reader::sound_file_reader(std::string_view data, sound_reader_options options)
+sound_file_reader::sound_file_reader(const std::string_view& data, sound_reader_options options)
 {
     if(wave::is_valid(data))
     {

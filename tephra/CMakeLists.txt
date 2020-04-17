@@ -108,7 +108,7 @@ if(TEPHRA_USE_PLATFORM_WAYLAND)
     target_compile_definitions(${PROJECT_NAME} PRIVATE VK_USE_PLATFORM_WAYLAND_KHR)
 endif()
 
-target_include_directories(${PROJECT_NAME} PUBLIC ${GLOBAL_INCLUDES})
+target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ${GLOBAL_INCLUDES})
 
 if(TEPHRA_BUILD_EXAMPLE)
     add_executable(${PROJECT_NAME}_test "main.cpp" "window.hpp" "vertex.hpp")

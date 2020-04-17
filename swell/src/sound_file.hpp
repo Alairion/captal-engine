@@ -18,7 +18,7 @@ class sound_file_reader : public sound_reader
 public:
     constexpr sound_file_reader() = default;
     sound_file_reader(const std::filesystem::path& file, sound_reader_options options = sound_reader_options::none);
-    sound_file_reader(std::string_view data, sound_reader_options options = sound_reader_options::none);
+    sound_file_reader(const std::string_view& data, sound_reader_options options = sound_reader_options::none);
     sound_file_reader(std::istream& stream, sound_reader_options options = sound_reader_options::none);
 
     ~sound_file_reader() = default;

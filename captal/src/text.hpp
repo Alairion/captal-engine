@@ -65,7 +65,7 @@ class CAPTAL_API font
 public:
     font() = default;
     font(const std::filesystem::path& file, std::uint32_t initial_size = 16);
-    font(std::string_view data, std::uint32_t initial_size = 16);
+    font(const std::string_view& data, std::uint32_t initial_size = 16);
     font(std::istream& stream, std::uint32_t initial_size = 16);
     ~font() = default;
     font(const font&) = delete;

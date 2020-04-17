@@ -45,7 +45,7 @@ static constexpr std::uint32_t from_base64(char value) noexcept
     return 0;
 }
 
-static std::vector<std::uint8_t> parse_base64(std::string_view data)
+static std::vector<std::uint8_t> parse_base64(const std::string_view& data)
 {
     assert(std::size(data) % 4 == 0 && "Bad base64 string");
 

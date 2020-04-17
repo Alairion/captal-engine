@@ -71,7 +71,7 @@ texture::texture(const std::filesystem::path& file, const tph::sampling_options&
 
 }
 
-texture::texture(std::string_view data, const tph::sampling_options& sampling)
+texture::texture(const std::string_view& data, const tph::sampling_options& sampling)
 :m_texture{make_texture(sampling, data)}
 {
 

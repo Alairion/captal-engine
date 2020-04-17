@@ -59,7 +59,7 @@ image::image(renderer& renderer, const std::filesystem::path& file, image_usage 
     m_height = static_cast<size_type>(height);
 }
 
-image::image(renderer& renderer, std::string_view data, image_usage usage)
+image::image(renderer& renderer, const std::string_view& data, image_usage usage)
 :m_usage{usage}
 {
     int width{};

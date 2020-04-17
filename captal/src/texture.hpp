@@ -26,7 +26,7 @@ public:
     texture(std::uint32_t width, std::uint32_t height, std::uint32_t depth, const tph::sampling_options& options, tph::texture_usage usage);
     texture(tph::texture other);
     texture(const std::filesystem::path& file, const tph::sampling_options& sampling = tph::sampling_options{});
-    texture(std::string_view data, const tph::sampling_options& sampling = tph::sampling_options{});
+    texture(const std::string_view& data, const tph::sampling_options& sampling = tph::sampling_options{});
     texture(std::istream& stream, const tph::sampling_options& sampling = tph::sampling_options{});
     texture(std::uint32_t width, std::uint32_t height, const std::uint8_t* rgba, const tph::sampling_options& sampling = tph::sampling_options{});
     texture(tph::image image, const tph::sampling_options& sampling = tph::sampling_options{});

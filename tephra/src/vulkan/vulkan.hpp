@@ -395,7 +395,7 @@ class shader
 {
 public:
     constexpr shader() = default;
-    shader(VkDevice device, std::size_t size, const std::uint8_t* code);
+    shader(VkDevice device, std::size_t size, const std::uint32_t* code);
     ~shader();
 
     shader(const shader&) = delete;

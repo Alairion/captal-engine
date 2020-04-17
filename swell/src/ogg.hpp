@@ -30,7 +30,7 @@ class ogg_reader : public sound_reader
 public:
     ogg_reader() = default;
     ogg_reader(const std::filesystem::path& file, sound_reader_options options = sound_reader_options::none);
-    ogg_reader(std::string_view data, sound_reader_options options = sound_reader_options::none);
+    ogg_reader(const std::string_view& data, sound_reader_options options = sound_reader_options::none);
     ogg_reader(std::istream& stream, sound_reader_options options = sound_reader_options::none);
 
     ~ogg_reader();

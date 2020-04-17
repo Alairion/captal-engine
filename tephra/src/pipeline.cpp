@@ -45,7 +45,7 @@ pipeline_cache::pipeline_cache(renderer& renderer)
 
 }
 
-pipeline_cache::pipeline_cache(renderer& renderer, std::string_view data)
+pipeline_cache::pipeline_cache(renderer& renderer, const std::string_view& data)
 :m_device{underlying_cast<VkDevice>(renderer)}
 ,m_pipeline_cache{m_device, std::data(data), std::size(data)}
 {

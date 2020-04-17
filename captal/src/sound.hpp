@@ -14,7 +14,7 @@ class CAPTAL_API sound : swl::sound_file_reader, swl::sound
 public:
     sound();
     sound(const std::filesystem::path& file, swl::sound_reader_options options = swl::sound_reader_options::none);
-    sound(std::string_view data, swl::sound_reader_options options = swl::sound_reader_options::none);
+    sound(const std::string_view& data, swl::sound_reader_options options = swl::sound_reader_options::none);
     sound(std::istream& stream, swl::sound_reader_options options = swl::sound_reader_options::none);
     ~sound() = default;
     sound(const sound&) = delete;

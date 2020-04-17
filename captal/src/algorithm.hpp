@@ -127,6 +127,12 @@ constexpr std::uint64_t bswap(std::uint64_t value) noexcept
     return value;
 }
 
+template<typename Enum, typename = std::enable_if_t<std::is_enum_v<Enum> && std::is_unsigned_v<std::underlying_type_t<Enum>>>>
+constexpr Enum bswap(Enum value) noexcept
+{
+    return static_cast<Enum>(bswap(static_cast<std::underlying_type_t<Enum>>(value)));
+}
+
 }
 
 #endif

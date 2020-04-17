@@ -34,7 +34,7 @@ void font::freetype_deleter::operator()(freetype_info* ptr) noexcept
         FT_Done_FreeType(ptr->library);
 }
 
-font::font(std::string_view data, std::uint32_t initial_size)
+font::font(const std::string_view& data, std::uint32_t initial_size)
 :m_data{std::begin(data), std::end(data)}
 ,m_loader{new freetype_info{}, freetype_deleter{}}
 {

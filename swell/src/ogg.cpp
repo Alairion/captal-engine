@@ -108,7 +108,7 @@ ogg_reader::ogg_reader(const std::filesystem::path& file, sound_reader_options o
     }
 }
 
-ogg_reader::ogg_reader(std::string_view data, sound_reader_options options)
+ogg_reader::ogg_reader(const std::string_view& data, sound_reader_options options)
 :m_options{options}
 ,m_vorbis{new OggVorbis_File{}, vorbis_deleter{}}
 ,m_source{data}

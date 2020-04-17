@@ -105,7 +105,7 @@ wave_reader::wave_reader(const std::filesystem::path& file, sound_reader_options
     }
 }
 
-wave_reader::wave_reader(std::string_view data, sound_reader_options options)
+wave_reader::wave_reader(const std::string_view& data, sound_reader_options options)
 :m_options{options}
 {
     if(std::size(data) < 44)

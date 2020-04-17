@@ -34,7 +34,7 @@ class wave_reader : public sound_reader
 public:
     wave_reader() = default;
     wave_reader(const std::filesystem::path& file, sound_reader_options options = sound_reader_options::none);
-    wave_reader(std::string_view data, sound_reader_options options = sound_reader_options::none);
+    wave_reader(const std::string_view& data, sound_reader_options options = sound_reader_options::none);
     wave_reader(std::istream& stream, sound_reader_options options = sound_reader_options::none);
 
     ~wave_reader() = default;

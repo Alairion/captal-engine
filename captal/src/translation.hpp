@@ -5,7 +5,7 @@
 
 #include <array>
 #include <unordered_map>
-#include <istream>
+#include <fstream>
 #include <filesystem>
 #include <variant>
 
@@ -23,7 +23,7 @@ and a target language, the one referred by the file. According to convention, th
 "{iso_language_code}_{iso_country_code}[.cpt].trans" where {iso_language_code} is the 3-letters language code as defined by the ISO-639-3 standard,
 and where {iso_country_code} is the 3-letters country code as defined by the ISO-3166-3 standard. Part in square brackets ([]) is optional.
 The source and the target languages can be represented by different encoding, and this can be used to optimize the file size:
-UTF-8 is usually the lightest encoding for most languages that use latin alphabet. But it will generally be heavier than UTF-16 for Japanese, example:
+UTF-8 is usually the lightest encoding for most languages that use latin alphabet. But it will generally be heavier than UTF-16 for Japanese, examples:
 
 For the word こんにちは (Konnichiwa) (~= Hello):
 In UTF-8, it will be encoded into: [0xe3|0x81|0x93] [0xe3|0x82|0x93] [0xe3|0x81|0xab] [0xe3|0x81|0xa1] [0xe3|0x81|0xaf]
@@ -63,10 +63,8 @@ See enumerations in translation.hpp: "cpt::language"; "cpt::country", "cpt::tran
 These enumerations are all unsigned 32-bits interger values written as is in the files.
 
 Format:
-Translation data are stored in sections, sections are defined by the context data and the first character of the string.
-The context data and the first character UTF-32-LE codepoint are hashed with FNV-1a hash algorithm (https://en.wikipedia.org/wiki/Fowler%E2%80%93Noll%E2%80%93Vo_hash_function)
-as an array of 20 bytes, stating with the context data followed by the first character.
-The 64-bit integer is then used as a unique identifier for the section.
+Translation data are stored in sections, sections are defined by the context data.
+Each translations are preceded by the hash value of the source FNV-1a hash algorithm (https://en.wikipedia.org/wiki/Fowler%E2%80%93Noll%E2%80%93Vo_hash_function)
 
 Header:
     File format detection:
@@ -79,25 +77,26 @@ Header:
         [cpt::language: target_language] the target language
         [cpt::country: target_country] the target language country
         [cpt::translation_encoding: target_encoding] the target language encoding
-        [std::uint64_t: translation_count] the number of translated sentences/strings
+        [std::uint32_t: translation_count] the number of translated sentences/strings
     Parse informations:
-        [std::uint64_t: section_count] the total number of sections
+        [std::uint32_t: section_count] the total number of sections
         [section_count occurencies] array of section description
         {
-            [std::uint64_t: section_id] the id is the hash value associated with this section
+            [16 bytes: section_context] the context of this section
             [std::uint64_t: section_begin] the begin of the section data in the file (in bytes)
         }
 Data:
     Sections:
         [section_count occurencies] array of section
         {
-            [16 bytes: section_context_data] the section context
-            [std::uint64_t section_translation_count] number of translations in this section
-            [section_translation_count occurencies]
+            [std::uint32_t section_translation_count] number of translations in this section
+            [section_translation_count occurencies] array of translations
             {
-                [std::uint64_t: text_hash] hash value of the string (in case of UTF-16 or UTF-32 the string is hashed as an array of bytes)
-                [std::uint64_t: text_size] unicode string size in bytes
-                [text_size bytes: text data] the text
+                [std::uint64_t: source_text_hash] hash value of the source string (in case of UTF-16 or UTF-32 the string is hashed as an array of bytes)
+                [std::uint32_t: source_text_size] source text size in bytes
+                [std::uint32_t: destination_text_size] destination text size in bytes
+                [text_size bytes: source_text] source text
+                [text_size bytes: destination_text] destination text
             }
         }
 */
@@ -552,8 +551,7 @@ enum class translation_encoding : std::uint32_t
 
 enum class translator_options : std::uint32_t
 {
-    none = 0x00,
-    buffered = 0x01
+    none = 0x00
 };
 
 template<> struct enable_enum_operations<translator_options>{static constexpr bool value{true};};
@@ -575,26 +573,30 @@ static constexpr translation_magic_word_t translation_magic_word{0x43, 0x50, 0x5
 
 class translator
 {
-    using source_t = std::variant<std::monostate, std::ifstream, std::string_view, std::reference_wrapper<std::istream>, std::string>;
+    using source_t = std::variant<std::monostate, std::ifstream, std::string_view, std::reference_wrapper<std::istream>>;
 
 private:
-    struct header
+    struct file_format
     {
         std::array<std::uint8_t, 8> magic_word{};
         tph::version version{};
+    };
+
+    struct header
+    {
         cpt::language source_language{};
         cpt::country source_country{};
         cpt::translation_encoding source_encoding{};
         cpt::language target_language{};
         cpt::country target_country{};
         cpt::translation_encoding target_encoding{};
-        std::uint64_t translation_count{};
+        std::uint32_t translation_count{};
     };
 
 public:
     translator() = default;
     translator(const std::filesystem::path& path, translator_options options = translator_options::none);
-    translator(std::string_view data, translator_options options = translator_options::none);
+    translator(const std::string_view& data, translator_options options = translator_options::none);
     translator(std::istream& stream, translator_options options = translator_options::none);
 
     ~translator() = default;
@@ -603,13 +605,15 @@ public:
     translator(translator&&) = default;
     translator& operator=(translator&&) = default;
 
-    std::string translate(std::string_view text, const translation_context_data_t& context = no_translation_context, translate_options options = translate_options::none);
+    std::string translate(std::string_view text, translate_options options) const;
+    std::string translate(std::string_view text, const translation_context_data_t& context = no_translation_context, translate_options options = translate_options::none) const;
 
 private:
-    void read_header();
+    void read_version();
 
 private:
     source_t m_source{};
+    file_format m_file_format{};
     header m_header{};
     std::unordered_map<std::uint64_t, std::streamoff> m_sections{};
 };

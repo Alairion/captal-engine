@@ -499,13 +499,13 @@ framebuffer& framebuffer::operator=(framebuffer&& other) noexcept
 
 /////////////////////////////////////////////////////////////////////
 
-shader::shader(VkDevice device, std::size_t size, const std::uint8_t* code)
+shader::shader(VkDevice device, std::size_t size, const std::uint32_t* code)
 :m_device{device}
 {
     VkShaderModuleCreateInfo create_info{};
     create_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
     create_info.codeSize = static_cast<std::uint32_t>(size);
-    create_info.pCode = reinterpret_cast<const std::uint32_t*>(code);
+    create_info.pCode = code;
 
     if(auto result{vkCreateShaderModule(m_device, &create_info, nullptr, &m_shader)}; result != VK_SUCCESS)
         throw error{result};

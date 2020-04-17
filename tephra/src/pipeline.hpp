@@ -61,7 +61,7 @@ public:
     constexpr pipeline_cache() = default;
     pipeline_cache(renderer& renderer);
     pipeline_cache(renderer& renderer, const std::filesystem::path& file);
-    pipeline_cache(renderer& renderer, std::string_view data);
+    pipeline_cache(renderer& renderer, const std::string_view& data);
     pipeline_cache(renderer& renderer, std::istream& stream);
 
     ~pipeline_cache() = default;
