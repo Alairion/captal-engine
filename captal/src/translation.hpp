@@ -77,28 +77,29 @@ Header:
         [cpt::language: target_language] the target language
         [cpt::country: target_country] the target language country
         [cpt::translation_encoding: target_encoding] the target language encoding
-        [std::uint32_t: translation_count] the number of translated sentences/strings
+        [std::uint64_t: translation_count] the number of translated sentences/strings
     Parse informations:
-        [std::uint32_t: section_count] the total number of sections
+        [std::uint64_t: section_count] the total number of sections
         [section_count occurencies] array of section description
         {
-            [16 bytes: section_context] the context of this section
-            [std::uint64_t: section_begin] the begin of the section data in the file (in bytes)
+            [16 bytes: context] the context of this section
+            [std::uint64_t: begin] the begin of the section data in the file (in bytes)
+            [std::uint64_t translation_count] number of translations in this section
         }
 Data:
     Sections:
         [section_count occurencies] array of section
         {
-            [std::uint32_t section_translation_count] number of translations in this section
             [section_translation_count occurencies] array of translations
             {
                 [std::uint64_t: source_text_hash] hash value of the source string (in case of UTF-16 or UTF-32 the string is hashed as an array of bytes)
-                [std::uint32_t: source_text_size] source text size in bytes
-                [std::uint32_t: destination_text_size] destination text size in bytes
+                [std::uint64_t: source_text_size] source text size in bytes
+                [std::uint64_t: destination_text_size] destination text size in bytes
                 [text_size bytes: source_text] source text
                 [text_size bytes: destination_text] destination text
             }
         }
+        [??? bytes: padding] potential padding of unknown size
 */
 
 enum class language : std::uint32_t
@@ -571,9 +572,11 @@ using translation_context_data_t = std::array<std::uint8_t, 16>;
 static constexpr translation_context_data_t no_translation_context{};
 static constexpr translation_magic_word_t translation_magic_word{0x43, 0x50, 0x54, 0x54, 0x52, 0x41, 0x4e, 0x53};
 
-class translator
+class CAPTAL_API translator
 {
-    using source_t = std::variant<std::monostate, std::ifstream, std::string_view, std::reference_wrapper<std::istream>>;
+    using source_type = std::variant<std::monostate, std::ifstream, std::string_view, std::reference_wrapper<std::istream>>;
+    using translation_set_type = std::unordered_map<std::uint64_t, std::string>;
+    using section_type = std::unordered_map<std::uint64_t, translation_set_type>;
 
 private:
     struct file_format
@@ -590,8 +593,26 @@ private:
         cpt::language target_language{};
         cpt::country target_country{};
         cpt::translation_encoding target_encoding{};
-        std::uint32_t translation_count{};
+        std::uint64_t translation_count{};
     };
+
+    struct parse_information
+    {
+        std::uint64_t section_count{};
+    };
+
+    struct section_description
+    {
+        translation_context_data_t context{};
+        std::uint64_t begin{};
+        std::uint64_t translation_count{};
+    };
+
+private:
+    static constexpr std::size_t file_format_begin{};
+    static constexpr std::size_t header_begin{sizeof(file_format)};
+    static constexpr std::size_t parse_information_begin{sizeof(file_format) + sizeof(header)};
+    static constexpr std::size_t section_description_begin{sizeof(file_format) + sizeof(header) + sizeof(parse_information)};
 
 public:
     translator() = default;
@@ -605,17 +626,68 @@ public:
     translator(translator&&) = default;
     translator& operator=(translator&&) = default;
 
-    std::string translate(std::string_view text, translate_options options) const;
-    std::string translate(std::string_view text, const translation_context_data_t& context = no_translation_context, translate_options options = translate_options::none) const;
+    std::string translate(std::string_view text, translate_options options = translate_options::none) const;
+    std::string translate(std::string_view text, const translation_context_data_t& context, translate_options options = translate_options::none) const;
+
+    tph::version version() const noexcept
+    {
+        return m_file_format.version;
+    }
+
+    cpt::language source_language() const noexcept
+    {
+        return m_header.source_language;
+    }
+
+    cpt::country source_country() const noexcept
+    {
+        return m_header.source_country;
+    }
+
+    cpt::translation_encoding source_encoding() const noexcept
+    {
+        return m_header.source_encoding;
+    }
+
+    cpt::language target_language() const noexcept
+    {
+        return m_header.target_language;
+    }
+
+    cpt::country target_country() const noexcept
+    {
+        return m_header.target_country;
+    }
+
+    cpt::translation_encoding target_encoding() const noexcept
+    {
+        return m_header.target_encoding;
+    }
+
+    std::uint64_t translation_count() const noexcept
+    {
+        return m_header.translation_count;
+    }
+
+    std::uint64_t section_count() const noexcept
+    {
+        return m_parse_informations.section_count;
+    }
 
 private:
-    void read_version();
+    void read_from_source(char* output, std::size_t begin, std::size_t size);
+    void parse_file_format();
+    void parse_header();
+    void parse_parse_information();
+    void parse_section_descriptions();
+    void parse_sections(section_description* buffer, std::size_t count);
 
 private:
-    source_t m_source{};
+    source_type m_source{};
     file_format m_file_format{};
     header m_header{};
-    std::unordered_map<std::uint64_t, std::streamoff> m_sections{};
+    parse_information m_parse_informations{};
+    section_type m_sections{};
 };
 
 }
