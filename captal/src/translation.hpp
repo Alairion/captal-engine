@@ -567,9 +567,9 @@ enum class translate_options : std::uint32_t
 template<> struct enable_enum_operations<translate_options>{static constexpr bool value{true};};
 
 using translation_magic_word_t = std::array<std::uint8_t, 8>;
-using translation_context_data_t = std::array<std::uint8_t, 16>;
+using translation_context_t = std::array<std::uint8_t, 16>;
 
-static constexpr translation_context_data_t no_translation_context{};
+static constexpr translation_context_t no_translation_context{};
 static constexpr translation_magic_word_t translation_magic_word{0x43, 0x50, 0x54, 0x54, 0x52, 0x41, 0x4e, 0x53};
 
 class CAPTAL_API translator
@@ -603,9 +603,16 @@ private:
 
     struct section_description
     {
-        translation_context_data_t context{};
+        translation_context_t context{};
         std::uint64_t begin{};
         std::uint64_t translation_count{};
+    };
+
+    struct translation_information
+    {
+        std::uint64_t source_text_hash{};
+        std::uint64_t source_text_size{};
+        std::uint64_t destination_text_size{};
     };
 
 private:
@@ -627,7 +634,7 @@ public:
     translator& operator=(translator&&) = default;
 
     std::string translate(std::string_view text, translate_options options = translate_options::none) const;
-    std::string translate(std::string_view text, const translation_context_data_t& context, translate_options options = translate_options::none) const;
+    std::string translate(std::string_view text, const translation_context_t& context, translate_options options = translate_options::none) const;
 
     tph::version version() const noexcept
     {
@@ -675,12 +682,14 @@ public:
     }
 
 private:
-    void read_from_source(char* output, std::size_t begin, std::size_t size);
+    void read_from_source(char* output, std::size_t begin, std::size_t size, bool stream_jump);
     void parse_file_format();
     void parse_header();
     void parse_parse_information();
     void parse_section_descriptions();
-    void parse_sections(section_description* buffer, std::size_t count);
+    void parse_sections(const section_description* buffer, std::size_t count);
+    std::pair<std::uint64_t, std::string> parse_translation(std::uint64_t& position);
+    std::string parse_destination_text(const translation_information& info, std::uint64_t position);
 
 private:
     source_type m_source{};
