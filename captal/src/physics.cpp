@@ -35,12 +35,12 @@ static inline float fromcp(cpFloat value) noexcept
 
 void physical_collision_arbiter::set_restitution(float restitution) noexcept
 {
-    cpArbiterSetRestitution(m_arbiter, restitution);
+    cpArbiterSetRestitution(m_arbiter, tocp(restitution));
 }
 
 void physical_collision_arbiter::set_friction(float friction) noexcept
 {
-    cpArbiterSetFriction(m_arbiter, friction);
+    cpArbiterSetFriction(m_arbiter, tocp(friction));
 }
 
 void physical_collision_arbiter::set_surface_velocity(const glm::vec2& surface_velocity) noexcept
@@ -83,12 +83,12 @@ glm::vec2 physical_collision_arbiter::normal() const noexcept
 
 std::pair<glm::vec2, glm::vec2> physical_collision_arbiter::points(std::size_t contact_index) const noexcept
 {
-    return std::make_pair(fromcp(cpArbiterGetPointA(m_arbiter, contact_index)), fromcp(cpArbiterGetPointB(m_arbiter, contact_index)));
+    return std::make_pair(fromcp(cpArbiterGetPointA(m_arbiter, static_cast<int>(contact_index))), fromcp(cpArbiterGetPointB(m_arbiter, static_cast<int>(contact_index))));
 }
 
 float physical_collision_arbiter::depth(std::size_t contact_index) const noexcept
 {
-    return fromcp(cpArbiterGetDepth(m_arbiter, contact_index));
+    return fromcp(cpArbiterGetDepth(m_arbiter, static_cast<int>(contact_index)));
 }
 
 bool physical_collision_arbiter::is_first_contact() const noexcept
@@ -170,7 +170,7 @@ void physical_world::ray_query(const glm::vec2& from, const glm::vec2& to, float
         callback(info);
     };
 
-    cpSpaceSegmentQuery(m_world, tocp(from), tocp(to), thickness, filter, native_callback, &callback);
+    cpSpaceSegmentQuery(m_world, tocp(from), tocp(to), tocp(thickness), filter, native_callback, &callback);
 }
 
 
@@ -229,7 +229,7 @@ std::optional<physical_world::ray_hit> physical_world::ray_query_first(const glm
     const cpShapeFilter filter{cpShapeFilterNew(group, id, mask)};
 
     cpSegmentQueryInfo info{};
-    if(cpSpaceSegmentQueryFirst(m_world, tocp(from), tocp(to), thickness, filter, &info))
+    if(cpSpaceSegmentQueryFirst(m_world, tocp(from), tocp(to), tocp(thickness), filter, &info))
     {
         physical_shape& shape{*reinterpret_cast<physical_shape*>(cpShapeGetUserData(info.shape))};
         return ray_hit{shape, fromcp(info.point), fromcp(info.normal), fromcp(info.alpha)};
@@ -245,7 +245,7 @@ void physical_world::update(float time)
 
     for(std::uint32_t i{}; i < steps; ++i)
     {
-        cpSpaceStep(m_world, m_step);
+        cpSpaceStep(m_world, tocp(m_step));
         m_time -= m_step;
     }
 }
@@ -760,7 +760,7 @@ physical_constraint::physical_constraint(pin_joint_t, physical_body_ptr first, p
 }
 
 physical_constraint::physical_constraint(slide_joint_t, physical_body_ptr first, physical_body_ptr second, const glm::vec2& first_anchor, const glm::vec2& second_anchor, float min, float max)
-:m_constaint{cpSlideJointNew(first->handle(), second->handle(), tocp(first_anchor), tocp(second_anchor), fromcp(min), fromcp(max))}
+:m_constaint{cpSlideJointNew(first->handle(), second->handle(), tocp(first_anchor), tocp(second_anchor), tocp(min), tocp(max))}
 ,m_type{physical_constraint_type::slide_joint}
 ,m_first_body{std::move(first)}
 ,m_second_body{std::move(second)}
@@ -917,17 +917,17 @@ void physical_constraint::set_collide_bodies(bool enable) noexcept
 
 float physical_constraint::max_force() const noexcept
 {
-    return tocp(cpConstraintGetMaxForce(m_constaint));
+    return fromcp(cpConstraintGetMaxForce(m_constaint));
 }
 
 float physical_constraint::error_bias() const noexcept
 {
-    return tocp(cpConstraintGetErrorBias(m_constaint));
+    return fromcp(cpConstraintGetErrorBias(m_constaint));
 }
 
 float physical_constraint::max_bias() const noexcept
 {
-    return tocp(cpConstraintGetMaxBias(m_constaint));
+    return fromcp(cpConstraintGetMaxBias(m_constaint));
 }
 
 bool physical_constraint::collide_bodies() const noexcept

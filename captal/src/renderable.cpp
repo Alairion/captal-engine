@@ -9,7 +9,7 @@
 namespace cpt
 {
 
-std::vector<buffer_part> compute_buffer_parts(std::uint32_t vertex_count)
+static std::vector<buffer_part> compute_buffer_parts(std::uint32_t vertex_count)
 {
     return std::vector<buffer_part>
     {
@@ -18,7 +18,7 @@ std::vector<buffer_part> compute_buffer_parts(std::uint32_t vertex_count)
     };
 }
 
-std::vector<buffer_part> compute_buffer_parts(std::uint32_t index_count, std::uint32_t vertex_count)
+static std::vector<buffer_part> compute_buffer_parts(std::uint32_t index_count, std::uint32_t vertex_count)
 {
     return std::vector<buffer_part>
     {

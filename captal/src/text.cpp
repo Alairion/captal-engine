@@ -161,7 +161,7 @@ std::optional<glyph> font::load(char32_t codepoint)
         output.image.unmap();
     }
 
-    return output;
+    return std::make_optional(std::move(output));
 }
 
 float font::kerning(char32_t left, char32_t right)
@@ -614,8 +614,8 @@ texture_ptr text_drawer::make_texture(std::u32string string, std::unordered_map<
             tph::image_texture_copy copy_region{};
             copy_region.texture_offset.x = static_cast<std::int32_t>(texture_pos.x);
             copy_region.texture_offset.y = static_cast<std::int32_t>(texture_pos.y);
-            copy_region.texture_size.width = glyph.image.width();
-            copy_region.texture_size.height = glyph.image.height();
+            copy_region.texture_size.width = static_cast<std::uint32_t>(glyph.image.width());
+            copy_region.texture_size.height = static_cast<std::uint32_t>(glyph.image.height());
 
             tph::cmd::copy(command_buffer, glyph.image, texture->get_texture(), copy_region);
         }

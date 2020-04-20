@@ -40,7 +40,7 @@ bool descriptor_pool::unused() const noexcept
     return std::all_of(std::begin(m_sets), std::end(m_sets), [](const descriptor_set_ptr& data){return data.use_count() == 1;});
 }
 
-std::vector<tph::descriptor_set_layout_binding> make_bindings(const std::vector<tph::descriptor_set_layout_binding>& info)
+static std::vector<tph::descriptor_set_layout_binding> make_bindings(const std::vector<tph::descriptor_set_layout_binding>& info)
 {
     std::vector<tph::descriptor_set_layout_binding> output{};
 
@@ -56,7 +56,7 @@ std::vector<tph::descriptor_set_layout_binding> make_bindings(const std::vector<
     return output;
 }
 
-tph::pipeline_info make_info(const render_technique_info& info)
+static tph::pipeline_info make_info(const render_technique_info& info)
 {
     tph::pipeline_info output{};
 

@@ -100,7 +100,7 @@ public:
     const_pointer data() const noexcept
     {
         return reinterpret_cast<const_pointer>(m_map);
-    };
+    }
 
     iterator begin() noexcept
     {

@@ -235,15 +235,38 @@ struct is_encoding<T, std::void_t<
 
 struct utf8
 {
+private:
+    static constexpr std::array<std::uint32_t, 256> trailing
+    {
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+        2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+        3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5
+    };
+
+    static constexpr std::array<std::uint32_t, 6> offsets{0x00000000, 0x00003080, 0x000E2080, 0x03C82080, 0xFA082080, 0x82082080};
+    static constexpr std::array<std::uint8_t, 7> first_bytes{0x00, 0x00, 0xC0, 0xE0, 0xF0, 0xF8, 0xFC};
+
+public:
     using char_type = char;
 
     template<typename InputIt, typename T>
     static constexpr InputIt decode(InputIt begin, InputIt end, T& out) noexcept
     {
-        constexpr std::array trailing{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5};
-        constexpr std::array offsets{0x00000000u, 0x00003080u, 0x000E2080u, 0x03C82080u, 0xFA082080u, 0x82082080u};
+        const std::uint32_t trailing_bytes = trailing[static_cast<std::size_t>(*begin)];
 
-        const std::int32_t trailing_bytes = trailing[static_cast<std::uint8_t>(*begin)];
         if(begin + trailing_bytes < end)
         {
             out = 0;
@@ -272,8 +295,6 @@ struct utf8
     template<typename OutputIt, typename T>
     static constexpr OutputIt encode(T code, OutputIt out) noexcept
     {
-        constexpr std::array<std::uint8_t, 7> first_bytes{0x00, 0x00, 0xC0, 0xE0, 0xF0, 0xF8, 0xFC};
-
         if((code > 0x0010FFFF) || ((code >= 0xD800) && (code <= 0xDBFF))) //Invalid value
         {
             *out++ = 0;
@@ -281,10 +302,22 @@ struct utf8
         else
         {
             std::size_t count{};
-            if      (code <  0x80)       count = 1;
-            else if (code <  0x800)      count = 2;
-            else if (code <  0x10000)    count = 3;
-            else if (code <= 0x0010FFFF) count = 4;
+            if(code < 0x80)
+            {
+                count = 1;
+            }
+            else if(code < 0x800)
+            {
+                count = 2;
+            }
+            else if(code < 0x10000)
+            {
+                count = 3;
+            }
+            else if(code <= 0x0010FFFF)
+            {
+                count = 4;
+            }
 
             std::array<std::uint8_t, 4> bytes{};
             switch(count)
@@ -308,7 +341,10 @@ struct utf8
         if(begin == end)
             return end;
 
-        while((*++begin & 0xc0) != 0x80 && begin != end); //Advance as long as it is not the begin of a character code.
+        while((*++begin & 0xc0) != 0x80 && begin != end) //Advance as long as it is not the begin of a character code.
+        {
+
+        }
 
         return begin;
     }
@@ -342,15 +378,22 @@ struct utf16
     template<typename InputIt, typename T>
     static constexpr InputIt decode(InputIt begin, InputIt end, T& out) noexcept
     {
-        const std::uint16_t first = *begin++;
+        const std::uint16_t first{*begin++};
 
         if(first >= 0xD800 && first <= 0xDBFF)
         {
             if(begin < end)
             {
-                const std::uint32_t second = *begin++;
-                second >= 0xDC00 && second <= 0xDFFF ? out = static_cast<std::uint32_t>(((first - 0xD800) << 10) + (second - 0xDC00) + 0x0010000)
-                                                     : out = 0;
+                const std::uint32_t second{*begin++};
+
+                if(second >= 0xDC00 && second <= 0xDFFF)
+                {
+                    out = static_cast<std::uint32_t>(((first - 0xD800) << 10) + (second - 0xDC00) + 0x0010000);
+                }
+                else
+                {
+                    out = 0;
+                }
             }
             else
             {
@@ -400,8 +443,14 @@ struct utf16
         if(begin == end)
             return end;
 
-        (*begin <= 0xD7FF) || (*begin >= 0xE000 && *begin <= 0xFFFD) ? ++begin
-                                                                     : ++(++begin);
+        if((*begin <= 0xD7FF) || (*begin >= 0xE000 && *begin <= 0xFFFD))
+        {
+            begin += 1;
+        }
+        else
+        {
+            begin += 2;
+        }
 
         return begin;
     }
@@ -413,8 +462,15 @@ struct utf16
 
         while(begin < end)
         {
-            (*begin <= 0xD7FF) || (*begin >= 0xE000 && *begin <= 0xFFFD) ? begin += 1
-                                                                         : begin += 2;
+            if((*begin <= 0xD7FF) || (*begin >= 0xE000 && *begin <= 0xFFFD))
+            {
+                begin += 1;
+            }
+            else
+            {
+                begin += 2;
+            }
+
             ++count;
         }
 
@@ -474,43 +530,6 @@ struct wide : public utf32
     using char_type = wchar_t;
 };
 #endif
-
-struct latin1
-{
-    using char_type = char;
-
-    template<typename InputIt, typename T>
-    static constexpr InputIt decode(InputIt begin, InputIt, T& out)
-    {
-        out = *begin++;
-        return begin;
-    }
-
-    template<typename OutputIt, typename T>
-    static constexpr OutputIt encode(T code, OutputIt out)
-    {
-        *out++ = code < 256 ? static_cast<char>(code)
-                            : 0;
-        return out;
-    }
-
-    template<typename InputIt>
-    static constexpr InputIt next(InputIt begin, InputIt)
-    {
-        return ++begin;
-    }
-
-    template<typename InputIt>
-    static constexpr std::size_t count(InputIt begin, InputIt end)
-    {
-        return static_cast<std::size_t>(end - begin);
-    }
-
-    static constexpr std::size_t max_char_length()
-    {
-        return 1;
-    }
-};
 
 template<typename Input, typename Output>
 struct converter

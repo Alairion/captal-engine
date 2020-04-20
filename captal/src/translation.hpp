@@ -20,7 +20,7 @@ The format supports 3 encoding: UTF-8, UTF-16, UTF-32
 All words are little-endian
 The file is based on a source language, the source language is the language used in your workspace (C++ code, Game Editor, whatever),
 and a target language, the one referred by the file. According to convention, the translation files should be named:
-"{iso_language_code}_{iso_country_code}[.cpt].trans" where {iso_language_code} is the 3-letters language code as defined by the ISO-639-3 standard,
+"{iso_language_code}_{iso_country_code}.ctr" where {iso_language_code} is the 3-letters language code as defined by the ISO-639-3 standard,
 and where {iso_country_code} is the 3-letters country code as defined by the ISO-3166-3 standard. Part in square brackets ([]) is optional.
 The source and the target languages can be represented by different encoding, and this can be used to optimize the file size:
 UTF-8 is usually the lightest encoding for most languages that use latin alphabet. But it will generally be heavier than UTF-16 for Japanese, examples:
@@ -102,7 +102,7 @@ Data:
         }
         [??? bytes: padding] potential padding of unknown size*
 
-        *  : potential padding is due to the file format specs, the sections are located using absolute position in the file, so
+        *  : potential padding is due to the file format specs, the sections are located using absolute position in the file,
              so it is valid to have holes inside the files. This empty space may be used to store anything.
         ** : This hash may used as a speedup to find a specific translation from a UTF-8 encoded string, or to use this hash in a hash table.
 */

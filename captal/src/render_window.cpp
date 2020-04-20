@@ -5,13 +5,13 @@
 namespace cpt
 {
 
-void check_presentation_support(tph::surface& surface)
+static void check_presentation_support(tph::surface& surface)
 {
     if(!engine::instance().graphics_device().support_presentation(surface))
         throw std::runtime_error{"Device does not support presentation"};
 }
 
-tph::surface make_window_surface(apr::window& window)
+static tph::surface make_window_surface(apr::window& window)
 {
     tph::application& application{engine::instance().application().graphics_application()};
 

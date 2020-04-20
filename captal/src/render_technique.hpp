@@ -20,11 +20,6 @@ namespace cpt
 //0: view uniform
 //1: model uniform
 //2: texture sampler
-//3: normal map sampler
-//4: height map sampler
-//4: specular map sampler
-//6: reserved
-//7: reserved
 
 class render_target;
 class descriptor_pool;

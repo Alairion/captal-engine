@@ -296,7 +296,7 @@ static object parse_object(const pugi::xml_node& node, const std::filesystem::pa
 
             text.italic = child.attribute("italic").as_uint() != 0;
 
-            if(child.attribute("kerning") != 0)
+            if(child.attribute("kerning").as_uint(1) != 0)
                 text.drawer_options |= text_drawer_options::kerning;
 
             output.content = std::move(text);
