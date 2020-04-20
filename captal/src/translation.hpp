@@ -88,18 +88,23 @@ Header:
         }
 Data:
     Sections:
+        [??? bytes: padding] potential padding of unknown size*
         [section_count occurencies] array of section
         {
             [section_translation_count occurencies] array of translations
             {
-                [std::uint64_t: source_text_hash] hash value of the source string (in case of UTF-16 or UTF-32 the string is hashed as an array of bytes)
+                [std::uint64_t: source_text_hash] hash value of the source string encoded in UTF-8 (even is stored as UTF-16 or UTF-32) **
                 [std::uint64_t: source_text_size] source text size in bytes
                 [std::uint64_t: destination_text_size] destination text size in bytes
                 [text_size bytes: source_text] source text
                 [text_size bytes: destination_text] destination text
             }
         }
-        [??? bytes: padding] potential padding of unknown size
+        [??? bytes: padding] potential padding of unknown size*
+
+        *  : potential padding is due to the file format specs, the sections are located using absolute position in the file, so
+             so it is valid to have holes inside the files. This empty space may be used to store anything.
+        ** : This hash may used as a speedup to find a specific translation from a UTF-8 encoded string, or to use this hash in a hash table.
 */
 
 enum class language : std::uint32_t
@@ -633,8 +638,8 @@ public:
     translator(translator&&) = default;
     translator& operator=(translator&&) = default;
 
-    std::string translate(std::string_view text, translate_options options = translate_options::none) const;
-    std::string translate(std::string_view text, const translation_context_t& context, translate_options options = translate_options::none) const;
+    std::string_view translate(const std::string_view& text, translate_options options = translate_options::none) const;
+    std::string_view translate(const std::string_view& text, const translation_context_t& context, translate_options options = translate_options::none) const;
 
     tph::version version() const noexcept
     {
@@ -687,9 +692,10 @@ private:
     void parse_header();
     void parse_parse_information();
     void parse_section_descriptions();
-    void parse_sections(const section_description* buffer, std::size_t count);
+    void parse_sections(const std::vector<section_description>& sections);
     std::pair<std::uint64_t, std::string> parse_translation(std::uint64_t& position);
     std::string parse_destination_text(const translation_information& info, std::uint64_t position);
+    void init();
 
 private:
     source_type m_source{};

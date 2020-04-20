@@ -28,6 +28,8 @@ constexpr std::uint64_t hash_value(const T& value) noexcept
     return nes::hash<T, nes::hash_kernels::fnv_1a>{}(value)[0];
 }
 
+static constexpr std::uint64_t no_translation_context_hash{hash_value(no_translation_context)};
+
 translator::translator(const std::filesystem::path& path, translator_options options [[maybe_unused]])
 {
     std::ifstream ifs{path, std::ios_base::binary};
@@ -35,16 +37,83 @@ translator::translator(const std::filesystem::path& path, translator_options opt
         throw std::runtime_error{"Can not open file \"" + path.u8string() + "\"."};
 
     m_source = std::move(ifs);
+
+    init();
 }
 
 translator::translator(const std::string_view& data, translator_options options [[maybe_unused]])
+:m_source{data}
 {
-    m_source = data;
+    init();
 }
 
 translator::translator(std::istream& stream, translator_options options [[maybe_unused]])
+:m_source{std::ref(stream)}
 {
-    m_source = std::ref(stream);
+    init();
+}
+
+std::string_view translator::translate(const std::string_view& text, translate_options options) const
+{
+    const std::uint64_t text_hash{hash_value(text)};
+
+    if(const auto section{m_sections.find(no_translation_context_hash)}; section != std::end(m_sections))
+    {
+        if(const auto translation{section->second.find(text_hash)}; translation != std::end(section->second))
+        {
+            return translation->second;
+        }
+    }
+
+    if(static_cast<bool>(options & translate_options::context_fallback))
+    {
+        for(const auto& section : m_sections)
+        {
+            if(const auto translation{section.second.find(text_hash)}; translation != std::end(section.second))
+            {
+                return translation->second;
+            }
+        }
+    }
+
+    if(!static_cast<bool>(options & translate_options::input_fallback))
+    {
+        throw std::runtime_error{"No translation available for \"" + std::string{text} + "\"."};
+    }
+
+    return text;
+}
+
+std::string_view translator::translate(const std::string_view& text, const translation_context_t& context, translate_options options) const
+{
+    const std::uint64_t text_hash{hash_value(text)};
+    const std::uint64_t context_hash{hash_value(context)};
+
+    if(const auto section{m_sections.find(context_hash)}; section != std::end(m_sections))
+    {
+        if(const auto translation{section->second.find(text_hash)}; translation != std::end(section->second))
+        {
+            return translation->second;
+        }
+    }
+
+    if(static_cast<bool>(options & translate_options::context_fallback))
+    {
+        for(const auto& section : m_sections)
+        {
+            if(const auto translation{section.second.find(text_hash)}; translation != std::end(section.second))
+            {
+                return translation->second;
+            }
+        }
+    }
+
+    if(!static_cast<bool>(options & translate_options::input_fallback))
+    {
+        throw std::runtime_error{"No translation available for \"" + std::string{text} + "\"."};
+    }
+
+    return text;
 }
 
 void translator::read_from_source(char* output, std::uint64_t begin, std::uint64_t size, bool stream_jump)
@@ -130,36 +199,34 @@ void translator::parse_section_descriptions()
 {
     const std::size_t total_size{sizeof(section_description) * m_parse_informations.section_count};
 
-    if(m_parse_informations.section_count <= 32)
-    {
-        std::array<section_description, 32> sections{};
+    std::vector<section_description> sections{};
+    sections.resize(m_parse_informations.section_count);
 
-        read_from_source(reinterpret_cast<char*>(std::data(sections)), section_description_begin, total_size, false);
-        parse_sections(std::data(sections), m_parse_informations.section_count);
-    }
-    else
-    {
-        std::vector<section_description> sections{};
-        sections.resize(m_parse_informations.section_count);
+    read_from_source(reinterpret_cast<char*>(std::data(sections)), section_description_begin, total_size, false);
 
-        read_from_source(reinterpret_cast<char*>(std::data(sections)), section_description_begin, total_size, false);
-        parse_sections(std::data(sections), m_parse_informations.section_count);
+    if constexpr(endian::native == endian::big)
+    {
+        for(auto& section : sections)
+        {
+            section.begin = bswap(section.begin);
+            section.translation_count = bswap(section.translation_count);
+        }
     }
+
+    parse_sections(sections);
 }
 
-void translator::parse_sections(const section_description* sections, std::size_t section_count)
+void translator::parse_sections(const std::vector<section_description>& sections)
 {
-    m_sections.reserve(section_count);
+    m_sections.reserve(std::size(sections));
 
-    for(std::size_t i{}; i < section_count; ++i)
+    for(const auto& section : sections)
     {
-        const section_description& section{sections[i]};
-
         translation_set_type translations{};
         translations.reserve(section.translation_count);
 
         std::uint64_t position{section.begin};
-        for(std::size_t j{}; j < section.translation_count; ++i)
+        for(std::size_t j{}; j < section.translation_count; ++j)
         {
             m_sections.emplace(parse_translation(position));
         }
@@ -181,32 +248,70 @@ std::pair<std::uint64_t, std::string> translator::parse_translation(std::uint64_
     }
 
     position += sizeof(translation_information) + info.source_text_size;
+    std::pair<std::uint64_t, std::string> output{info.source_text_hash, parse_destination_text(info, position)};
+    position += info.destination_text_size;
 
-    return std::pair<std::uint64_t, std::string>{info.source_text_hash, parse_destination_text(info, position)};
+    return output;
 }
 
 std::string translator::parse_destination_text(const translation_information& info, std::uint64_t position)
 {
     if(m_header.target_encoding == translation_encoding::utf8)
     {
-
-
-    }
-    else
-    {
         std::string output{};
+        output.resize(info.destination_text_size);
 
-        if(m_header.target_encoding == translation_encoding::utf16)
-        {
-
-        }
-        else if(m_header.target_encoding == translation_encoding::utf32)
-        {
-
-        }
+        read_from_source(std::data(output), position, std::size(output), true);
 
         return output;
     }
+    else
+    {
+        if(m_header.target_encoding == translation_encoding::utf16)
+        {
+            std::u16string output{};
+            output.resize(info.destination_text_size / sizeof(char16_t));
+
+            read_from_source(reinterpret_cast<char*>(std::data(output)), position, info.destination_text_size, true);
+
+            if constexpr(endian::native == endian::big)
+            {
+                std::transform(std::begin(output), std::end(output), std::begin(output), [](char16_t c)
+                {
+                    return static_cast<char16_t>(bswap(static_cast<std::uint16_t>(c)));
+                });
+            }
+
+            return convert<utf16, utf8>(output);
+        }
+        else if(m_header.target_encoding == translation_encoding::utf32)
+        {
+            std::u32string output{};
+            output.resize(info.destination_text_size / sizeof(char32_t));
+
+            read_from_source(reinterpret_cast<char*>(std::data(output)), position, info.destination_text_size, true);
+
+            if constexpr(endian::native == endian::big)
+            {
+                std::transform(std::begin(output), std::end(output), std::begin(output), [](char32_t c)
+                {
+                    return static_cast<char32_t>(bswap(static_cast<std::uint32_t>(c)));
+                });
+            }
+
+            return convert<utf32, utf8>(output);
+        }
+    }
+
+    throw std::runtime_error{"Bad file destination encoding."};
+}
+
+void translator::init()
+{
+    parse_file_format();
+    parse_header();
+    parse_parse_information();
+    parse_section_descriptions();
 }
 
 }
