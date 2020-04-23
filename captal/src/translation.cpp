@@ -30,6 +30,11 @@ constexpr std::uint64_t hash_value(const T& value) noexcept
 
 static constexpr std::uint64_t no_translation_context_hash{hash_value(no_translation_context)};
 
+translation_string_view_t make_translation_string_view(const translation_string_t& string)
+{
+    return std::visit([](const auto& v){return translation_string_view_t{v};}, string);
+}
+
 translator::translator(const std::filesystem::path& path, translator_options options [[maybe_unused]])
 {
     std::ifstream ifs{path, std::ios_base::binary};
@@ -53,7 +58,7 @@ translator::translator(std::istream& stream, translator_options options [[maybe_
     init();
 }
 
-std::string_view translator::translate(const std::string_view& text, translate_options options) const
+translation_string_view_t translator::raw_translate(const std::string_view& text, translate_options options) const
 {
     const std::uint64_t text_hash{hash_value(text)};
 
@@ -61,7 +66,7 @@ std::string_view translator::translate(const std::string_view& text, translate_o
     {
         if(const auto translation{section->second.find(text_hash)}; translation != std::end(section->second))
         {
-            return translation->second;
+            return make_translation_string_view(translation->second);
         }
     }
 
@@ -71,7 +76,7 @@ std::string_view translator::translate(const std::string_view& text, translate_o
         {
             if(const auto translation{section.second.find(text_hash)}; translation != std::end(section.second))
             {
-                return translation->second;
+                return make_translation_string_view(translation->second);
             }
         }
     }
@@ -84,7 +89,7 @@ std::string_view translator::translate(const std::string_view& text, translate_o
     return text;
 }
 
-std::string_view translator::translate(const std::string_view& text, const translation_context_t& context, translate_options options) const
+translation_string_view_t translator::raw_translate(const std::string_view& text, const translation_context_t& context, translate_options options) const
 {
     const std::uint64_t text_hash{hash_value(text)};
     const std::uint64_t context_hash{hash_value(context)};
@@ -93,7 +98,7 @@ std::string_view translator::translate(const std::string_view& text, const trans
     {
         if(const auto translation{section->second.find(text_hash)}; translation != std::end(section->second))
         {
-            return translation->second;
+            return make_translation_string_view(translation->second);
         }
     }
 
@@ -103,7 +108,7 @@ std::string_view translator::translate(const std::string_view& text, const trans
         {
             if(const auto translation{section.second.find(text_hash)}; translation != std::end(section.second))
             {
-                return translation->second;
+                return make_translation_string_view(translation->second);
             }
         }
     }

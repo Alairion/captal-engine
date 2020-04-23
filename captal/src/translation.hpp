@@ -550,14 +550,25 @@ enum class country : std::uint32_t
 
 enum class translation_encoding : std::uint32_t
 {
-    utf8 = 1,
-    utf16 = 2,
-    utf32 = 3,
+    utf8 = 0,
+    utf16 = 1,
+    utf32 = 2,
 };
+
+using translation_string_t = std::variant<std::string, std::u16string, std::u32string>;
+using translation_string_view_t = std::variant<std::string_view, std::u16string_view, std::u32string_view>;
+
+translation_string_view_t make_translation_string_view(const translation_string_t& string);
+
+using translation_magic_word_t = std::array<std::uint8_t, 8>;
+using translation_context_t = std::array<std::uint8_t, 16>;
+
+static constexpr translation_magic_word_t translation_magic_word{0x43, 0x50, 0x54, 0x54, 0x52, 0x41, 0x4e, 0x53};
+static constexpr translation_context_t no_translation_context{};
 
 enum class translator_options : std::uint32_t
 {
-    none = 0x00
+    none = 0x00,
 };
 
 template<> struct enable_enum_operations<translator_options>{static constexpr bool value{true};};
@@ -571,16 +582,10 @@ enum class translate_options : std::uint32_t
 
 template<> struct enable_enum_operations<translate_options>{static constexpr bool value{true};};
 
-using translation_magic_word_t = std::array<std::uint8_t, 8>;
-using translation_context_t = std::array<std::uint8_t, 16>;
-
-static constexpr translation_context_t no_translation_context{};
-static constexpr translation_magic_word_t translation_magic_word{0x43, 0x50, 0x54, 0x54, 0x52, 0x41, 0x4e, 0x53};
-
 class CAPTAL_API translator
 {
     using source_type = std::variant<std::monostate, std::ifstream, std::string_view, std::reference_wrapper<std::istream>>;
-    using translation_set_type = std::unordered_map<std::uint64_t, std::string>;
+    using translation_set_type = std::unordered_map<std::uint64_t, translation_string_t>;
     using section_type = std::unordered_map<std::uint64_t, translation_set_type>;
 
 private:
@@ -638,8 +643,15 @@ public:
     translator(translator&&) = default;
     translator& operator=(translator&&) = default;
 
-    std::string_view translate(const std::string_view& text, translate_options options = translate_options::none) const;
-    std::string_view translate(const std::string_view& text, const translation_context_t& context, translate_options options = translate_options::none) const;
+    std::string translate(const std::string_view& text, translate_options options = translate_options::none) const;
+    std::string translate(const std::string_view& text, const translation_context_t& context, translate_options options = translate_options::none) const;
+    std::u16string u16translate(const std::string_view& text, translate_options options = translate_options::none) const;
+    std::u16string u16translate(const std::string_view& text, const translation_context_t& context, translate_options options = translate_options::none) const;
+    std::u32string u32translate(const std::string_view& text, translate_options options = translate_options::none) const;
+    std::u32string u32translate(const std::string_view& text, const translation_context_t& context, translate_options options = translate_options::none) const;
+
+    translation_string_view_t raw_translate(const std::string_view& text, translate_options options = translate_options::none) const;
+    translation_string_view_t raw_translate(const std::string_view& text, const translation_context_t& context, translate_options options = translate_options::none) const;
 
     tph::version version() const noexcept
     {
