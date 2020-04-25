@@ -510,7 +510,7 @@ struct utf32
     template<typename InputIt>
     static constexpr std::size_t count(InputIt begin, InputIt end) noexcept
     {
-        return static_cast<std::size_t>(end - begin);
+        return static_cast<std::size_t>(std::distance(begin, end));
     }
 
     static constexpr std::size_t max_char_length() noexcept
@@ -587,15 +587,29 @@ constexpr OutputIt convert(InputIt begin, InputIt end, OutputIt output)
 {
     converter<Input, Output> conv{};
     conv.out(begin, end, output);
+
     return output;
 }
 
-template<typename Input, typename Output, typename StringIn = std::basic_string<typename Input::char_type>, typename StringOut = std::basic_string<typename Output::char_type>>
+template<typename Input, typename Output, typename StringIn, typename StringOut = std::basic_string<typename Output::char_type>>
 StringOut convert(const StringIn& str)
 {
-    StringOut out{};
-    convert<Input, Output>(std::begin(str), std::end(str), std::back_inserter(out));
-    return out;
+    if constexpr(Output::max_char_length() == 1)
+    {
+        StringOut out{};
+        out.resize(Input::count(std::begin(str), std::end(str)));
+
+        convert<Input, Output>(std::begin(str), std::end(str), std::begin(out));
+
+        return out;
+    }
+    else
+    {
+        StringOut out{};
+        convert<Input, Output>(std::begin(str), std::end(str), std::back_inserter(out));
+
+        return out;
+    }
 }
 
 template<typename Encoding, typename InputIt, typename OutputIt>
@@ -624,7 +638,10 @@ template<typename Encoding, typename String = std::basic_string<typename Encodin
 String to_lower(const String& str)
 {
     String output{};
-    to_lower<Encoding>(std::begin(str), std::end(str), std::back_inserter(output));
+    output.resize(std::size(str));
+
+    to_lower<Encoding>(std::begin(str), std::end(str), std::begin(output));
+
     return output;
 }
 
@@ -654,7 +671,10 @@ template<typename Encoding, typename String = std::basic_string<typename Encodin
 String to_upper(const String& str)
 {
     String output{};
-    to_upper<Encoding>(std::begin(str), std::end(str), std::back_inserter(output));
+    output.resize(std::size(str));
+
+    to_upper<Encoding>(std::begin(str), std::end(str), std::begin(output));
+
     return output;
 }
 

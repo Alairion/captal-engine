@@ -23,12 +23,60 @@ namespace cpt
 {
 
 template<typename T>
-constexpr std::uint64_t hash_value(const T& value) noexcept
+static constexpr std::uint64_t hash_value(const T& value) noexcept
 {
     return nes::hash<T, nes::hash_kernels::fnv_1a>{}(value)[0];
 }
 
 static constexpr std::uint64_t no_translation_context_hash{hash_value(no_translation_context)};
+
+static std::string to_utf8(const translation_string_view_t& string)
+{
+    if(std::holds_alternative<std::string_view>(string))
+    {
+        return std::string{std::get<std::string_view>(string)};
+    }
+    else if(std::holds_alternative<std::u16string_view>(string))
+    {
+        return convert<utf16, utf8>(std::get<std::u16string_view>(string));
+    }
+    else
+    {
+        return convert<utf32, utf8>(std::get<std::u32string_view>(string));
+    }
+}
+
+static std::u16string to_utf16(const translation_string_view_t& string)
+{
+    if(std::holds_alternative<std::string_view>(string))
+    {
+        return convert<utf8, utf16>(std::get<std::string_view>(string));
+    }
+    else if(std::holds_alternative<std::u16string_view>(string))
+    {
+        return std::u16string(std::get<std::u16string_view>(string));
+    }
+    else
+    {
+        return convert<utf32, utf16>(std::get<std::u32string_view>(string));
+    }
+}
+
+static std::u32string to_utf32(const translation_string_view_t& string)
+{
+    if(std::holds_alternative<std::string_view>(string))
+    {
+        return convert<utf8, utf32>(std::get<std::string_view>(string));
+    }
+    else if(std::holds_alternative<std::u16string_view>(string))
+    {
+        return convert<utf16, utf32>(std::get<std::u16string_view>(string));
+    }
+    else
+    {
+        return std::u32string{std::get<std::u32string_view>(string)};
+    }
+}
 
 translation_string_view_t make_translation_string_view(const translation_string_t& string)
 {
@@ -56,6 +104,36 @@ translator::translator(std::istream& stream, translator_options options [[maybe_
 :m_source{std::ref(stream)}
 {
     init();
+}
+
+std::string translator::translate(const std::string_view& text, translate_options options) const
+{
+    return to_utf8(raw_translate(text, options));
+}
+
+std::string translator::translate(const std::string_view& text, const translation_context_t& context, translate_options options) const
+{
+    return to_utf8(raw_translate(text, context, options));
+}
+
+std::u16string translator::u16translate(const std::string_view& text, translate_options options) const
+{
+    return to_utf16(raw_translate(text, options));
+}
+
+std::u16string translator::u16translate(const std::string_view& text, const translation_context_t& context, translate_options options) const
+{
+    return to_utf16(raw_translate(text, context, options));
+}
+
+std::u32string translator::u32translate(const std::string_view& text, translate_options options) const
+{
+    return to_utf32(raw_translate(text, options));
+}
+
+std::u32string translator::u32translate(const std::string_view& text, const translation_context_t& context, translate_options options) const
+{
+    return to_utf32(raw_translate(text, context, options));
 }
 
 translation_string_view_t translator::raw_translate(const std::string_view& text, translate_options options) const
