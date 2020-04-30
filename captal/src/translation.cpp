@@ -28,8 +28,6 @@ static constexpr std::uint64_t hash_value(const T& value) noexcept
     return nes::hash<T, nes::hash_kernels::fnv_1a>{}(value)[0];
 }
 
-static constexpr std::uint64_t no_translation_context_hash{hash_value(no_translation_context)};
-
 static std::string to_utf8(const translation_string_view_t& string)
 {
     if(std::holds_alternative<std::string_view>(string))
@@ -54,7 +52,7 @@ static std::u16string to_utf16(const translation_string_view_t& string)
     }
     else if(std::holds_alternative<std::u16string_view>(string))
     {
-        return std::u16string(std::get<std::u16string_view>(string));
+        return std::u16string{std::get<std::u16string_view>(string)};
     }
     else
     {
@@ -78,12 +76,16 @@ static std::u32string to_utf32(const translation_string_view_t& string)
     }
 }
 
-translation_string_view_t make_translation_string_view(const translation_string_t& string)
+translation_string_view_t make_translation_string_view(const translation_string_t& string) noexcept
 {
-    return std::visit([](const auto& v){return translation_string_view_t{v};}, string);
+    return std::visit([](const auto& v)
+    {
+        return translation_string_view_t{v};
+    }, string);
 }
 
-translator::translator(const std::filesystem::path& path, translator_options options [[maybe_unused]])
+translator::translator(const std::filesystem::path& path, translator_options options)
+:m_options{options}
 {
     std::ifstream ifs{path, std::ios_base::binary};
     if(!ifs)
@@ -94,109 +96,92 @@ translator::translator(const std::filesystem::path& path, translator_options opt
     init();
 }
 
-translator::translator(const std::string_view& data, translator_options options [[maybe_unused]])
-:m_source{data}
+translator::translator(const std::string_view& data, translator_options options)
+:m_options{options}
+,m_source{data}
 {
     init();
 }
 
-translator::translator(std::istream& stream, translator_options options [[maybe_unused]])
-:m_source{std::ref(stream)}
+translator::translator(std::istream& stream, translator_options options)
+:m_options{options}
+,m_source{std::ref(stream)}
 {
     init();
 }
 
-std::string translator::translate(const std::string_view& text, translate_options options) const
+translation_string_view_t translator::translate(const std::string_view& text, const translation_context_t& context, translate_options options) const
 {
-    return to_utf8(raw_translate(text, options));
-}
-
-std::string translator::translate(const std::string_view& text, const translation_context_t& context, translate_options options) const
-{
-    return to_utf8(raw_translate(text, context, options));
-}
-
-std::u16string translator::u16translate(const std::string_view& text, translate_options options) const
-{
-    return to_utf16(raw_translate(text, options));
-}
-
-std::u16string translator::u16translate(const std::string_view& text, const translation_context_t& context, translate_options options) const
-{
-    return to_utf16(raw_translate(text, context, options));
-}
-
-std::u32string translator::u32translate(const std::string_view& text, translate_options options) const
-{
-    return to_utf32(raw_translate(text, options));
-}
-
-std::u32string translator::u32translate(const std::string_view& text, const translation_context_t& context, translate_options options) const
-{
-    return to_utf32(raw_translate(text, context, options));
-}
-
-translation_string_view_t translator::raw_translate(const std::string_view& text, translate_options options) const
-{
-    const std::uint64_t text_hash{hash_value(text)};
-
-    if(const auto section{m_sections.find(no_translation_context_hash)}; section != std::end(m_sections))
+    if(static_cast<bool>(m_options & translator_options::identity_translator))
     {
-        if(const auto translation{section->second.find(text_hash)}; translation != std::end(section->second))
-        {
-            return make_translation_string_view(translation->second);
-        }
+        return translation_string_view_t{text};
     }
-
-    if(static_cast<bool>(options & translate_options::context_fallback))
+    else
     {
-        for(const auto& section : m_sections)
+        const std::uint64_t text_hash{hash_value(text)};
+        const std::uint64_t context_hash{hash_value(context)};
+
+        if(const auto section{m_sections.find(context_hash)}; section != std::end(m_sections))
         {
-            if(const auto translation{section.second.find(text_hash)}; translation != std::end(section.second))
+            if(const auto translation{section->second.find(text_hash)}; translation != std::end(section->second))
             {
                 return make_translation_string_view(translation->second);
             }
         }
-    }
 
-    if(!static_cast<bool>(options & translate_options::input_fallback))
-    {
-        throw std::runtime_error{"No translation available for \"" + std::string{text} + "\"."};
-    }
+        if(static_cast<bool>(options & translate_options::context_fallback))
+        {
+            for(const auto& section : m_sections)
+            {
+                if(const auto translation{section.second.find(text_hash)}; translation != std::end(section.second))
+                {
+                    return make_translation_string_view(translation->second);
+                }
+            }
+        }
 
-    return text;
+        if(!static_cast<bool>(options & translate_options::input_fallback))
+        {
+            throw std::runtime_error{"No translation available for \"" + std::string{text} + "\"."};
+        }
+
+        return text;
+    }
 }
 
-translation_string_view_t translator::raw_translate(const std::string_view& text, const translation_context_t& context, translate_options options) const
+std::string translator::u8translate(const std::string_view& text, const translation_context_t& context, translate_options options) const
+{
+    return to_utf8(translate(text, context, options));
+}
+
+std::u16string translator::u16translate(const std::string_view& text, const translation_context_t& context, translate_options options) const
+{
+    return to_utf16(translate(text, context, options));
+}
+
+std::u32string translator::u32translate(const std::string_view& text, const translation_context_t& context, translate_options options) const
+{
+    return to_utf32(translate(text, context, options));
+}
+
+bool translator::exists(const translation_context_t& context) const noexcept
+{
+    const std::uint64_t context_hash{hash_value(context)};
+
+    return m_sections.find(context_hash) != std::end(m_sections);
+}
+
+bool translator::exists(const std::string_view& text, const translation_context_t& context) const noexcept
 {
     const std::uint64_t text_hash{hash_value(text)};
     const std::uint64_t context_hash{hash_value(context)};
 
     if(const auto section{m_sections.find(context_hash)}; section != std::end(m_sections))
     {
-        if(const auto translation{section->second.find(text_hash)}; translation != std::end(section->second))
-        {
-            return make_translation_string_view(translation->second);
-        }
+        return section->second.find(text_hash) != std::end(section->second);
     }
 
-    if(static_cast<bool>(options & translate_options::context_fallback))
-    {
-        for(const auto& section : m_sections)
-        {
-            if(const auto translation{section.second.find(text_hash)}; translation != std::end(section.second))
-            {
-                return make_translation_string_view(translation->second);
-            }
-        }
-    }
-
-    if(!static_cast<bool>(options & translate_options::input_fallback))
-    {
-        throw std::runtime_error{"No translation available for \"" + std::string{text} + "\"."};
-    }
-
-    return text;
+    return false;
 }
 
 void translator::read_from_source(char* output, std::uint64_t begin, std::uint64_t size, bool stream_jump)
@@ -311,14 +296,14 @@ void translator::parse_sections(const std::vector<section_description>& sections
         std::uint64_t position{section.begin};
         for(std::size_t j{}; j < section.translation_count; ++j)
         {
-            m_sections.emplace(parse_translation(position));
+            translations.emplace(parse_translation(position));
         }
 
         m_sections.emplace(std::make_pair(hash_value(section.context), std::move(translations)));
     }
 }
 
-std::pair<std::uint64_t, std::string> translator::parse_translation(std::uint64_t& position)
+std::pair<uint64_t, translation_string_t> translator::parse_translation(std::uint64_t& position)
 {
     translation_information info{};
     read_from_source(reinterpret_cast<char*>(&info), position, sizeof(translation_information), true);
@@ -331,13 +316,13 @@ std::pair<std::uint64_t, std::string> translator::parse_translation(std::uint64_
     }
 
     position += sizeof(translation_information) + info.source_text_size;
-    std::pair<std::uint64_t, std::string> output{info.source_text_hash, parse_destination_text(info, position)};
+    std::pair<std::uint64_t, translation_string_t> output{info.source_text_hash, parse_destination_text(info, position)};
     position += info.destination_text_size;
 
     return output;
 }
 
-std::string translator::parse_destination_text(const translation_information& info, std::uint64_t position)
+translation_string_t translator::parse_destination_text(const translation_information& info, std::uint64_t position)
 {
     if(m_header.target_encoding == translation_encoding::utf8)
     {
@@ -346,7 +331,7 @@ std::string translator::parse_destination_text(const translation_information& in
 
         read_from_source(std::data(output), position, std::size(output), true);
 
-        return output;
+        return translation_string_t{std::move(output)};
     }
     else
     {
@@ -365,7 +350,7 @@ std::string translator::parse_destination_text(const translation_information& in
                 });
             }
 
-            return convert<utf16, utf8>(output);
+            return translation_string_t{std::move(output)};
         }
         else if(m_header.target_encoding == translation_encoding::utf32)
         {
@@ -382,7 +367,7 @@ std::string translator::parse_destination_text(const translation_information& in
                 });
             }
 
-            return convert<utf32, utf8>(output);
+            return translation_string_t{std::move(output)};
         }
     }
 

@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <fstream>
 #include <filesystem>
+#include <numeric>
 #include <variant>
 
 #include <tephra/config.hpp>
@@ -558,17 +559,19 @@ enum class translation_encoding : std::uint32_t
 using translation_string_t = std::variant<std::string, std::u16string, std::u32string>;
 using translation_string_view_t = std::variant<std::string_view, std::u16string_view, std::u32string_view>;
 
-translation_string_view_t make_translation_string_view(const translation_string_t& string);
+translation_string_view_t make_translation_string_view(const translation_string_t& string) noexcept;
 
 using translation_magic_word_t = std::array<std::uint8_t, 8>;
 using translation_context_t = std::array<std::uint8_t, 16>;
 
 static constexpr translation_magic_word_t translation_magic_word{0x43, 0x50, 0x54, 0x54, 0x52, 0x41, 0x4e, 0x53};
 static constexpr translation_context_t no_translation_context{};
+static constexpr tph::version translation_last_version{1, 0, 0};
 
 enum class translator_options : std::uint32_t
 {
     none = 0x00,
+    identity_translator = 0x01
 };
 
 template<> struct enable_enum_operations<translator_options>{static constexpr bool value{true};};
@@ -591,8 +594,8 @@ class CAPTAL_API translator
 private:
     struct file_format
     {
-        std::array<std::uint8_t, 8> magic_word{};
-        tph::version version{};
+        translation_magic_word_t magic_word{translation_magic_word};
+        tph::version version{1, 0, 0};
     };
 
     struct header
@@ -643,15 +646,13 @@ public:
     translator(translator&&) = default;
     translator& operator=(translator&&) = default;
 
-    std::string translate(const std::string_view& text, translate_options options = translate_options::none) const;
-    std::string translate(const std::string_view& text, const translation_context_t& context, translate_options options = translate_options::none) const;
-    std::u16string u16translate(const std::string_view& text, translate_options options = translate_options::none) const;
-    std::u16string u16translate(const std::string_view& text, const translation_context_t& context, translate_options options = translate_options::none) const;
-    std::u32string u32translate(const std::string_view& text, translate_options options = translate_options::none) const;
-    std::u32string u32translate(const std::string_view& text, const translation_context_t& context, translate_options options = translate_options::none) const;
+    translation_string_view_t translate(const std::string_view& text, const translation_context_t& context = no_translation_context, translate_options options = translate_options::none) const;
+    std::string u8translate(const std::string_view& text, const translation_context_t& context = no_translation_context, translate_options options = translate_options::none) const;
+    std::u16string u16translate(const std::string_view& text, const translation_context_t& context = no_translation_context, translate_options options = translate_options::none) const;
+    std::u32string u32translate(const std::string_view& text, const translation_context_t& context = no_translation_context, translate_options options = translate_options::none) const;
 
-    translation_string_view_t raw_translate(const std::string_view& text, translate_options options = translate_options::none) const;
-    translation_string_view_t raw_translate(const std::string_view& text, const translation_context_t& context, translate_options options = translate_options::none) const;
+    bool exists(const translation_context_t& context) const noexcept;
+    bool exists(const std::string_view& text, const translation_context_t& context = no_translation_context) const noexcept;
 
     tph::version version() const noexcept
     {
@@ -705,11 +706,154 @@ private:
     void parse_parse_information();
     void parse_section_descriptions();
     void parse_sections(const std::vector<section_description>& sections);
-    std::pair<std::uint64_t, std::string> parse_translation(std::uint64_t& position);
+    std::pair<std::uint64_t, translation_string_t> parse_translation(std::uint64_t& position);
+    translation_string_t parse_destination_text(const translation_information& info, std::uint64_t position);
+    void init();
+
+private:
+    translator_options m_options{translator_options::identity_translator};
+    source_type m_source{};
+    file_format m_file_format{};
+    header m_header{};
+    parse_information m_parse_informations{};
+    section_type m_sections{};
+};
+
+class CAPTAL_API translation_editor
+{
+    struct context_hash
+    {
+        std::size_t operator()(const translation_context_t& value) const noexcept
+        {
+            return std::hash<std::string_view>{}(std::string_view{reinterpret_cast<const char*>(std::data(value)), std::size(value)});
+        }
+    };
+
+private:
+    using source_type = std::variant<std::monostate, std::ifstream, std::string_view, std::reference_wrapper<std::istream>>;
+    using translation_set_type = std::unordered_map<translation_string_t, translation_string_t>;
+    using section_type = std::unordered_map<translation_context_t, translation_set_type, context_hash>;
+
+private:
+    struct file_format
+    {
+        translation_magic_word_t magic_word{translation_magic_word};
+        tph::version version{translation_last_version};
+    };
+
+    struct header
+    {
+        cpt::language source_language{};
+        cpt::country source_country{};
+        cpt::translation_encoding source_encoding{};
+        cpt::language target_language{};
+        cpt::country target_country{};
+        cpt::translation_encoding target_encoding{};
+        std::uint64_t translation_count{};
+    };
+
+    struct parse_information
+    {
+        std::uint64_t section_count{};
+    };
+
+    struct section_description
+    {
+        translation_context_t context{};
+        std::uint64_t begin{};
+        std::uint64_t translation_count{};
+    };
+
+    struct translation_information
+    {
+        std::uint64_t source_text_hash{};
+        std::uint64_t source_text_size{};
+        std::uint64_t destination_text_size{};
+    };
+
+private:
+    static constexpr std::size_t file_format_begin{};
+    static constexpr std::size_t header_begin{sizeof(file_format)};
+    static constexpr std::size_t parse_information_begin{sizeof(file_format) + sizeof(header)};
+    static constexpr std::size_t section_description_begin{sizeof(file_format) + sizeof(header) + sizeof(parse_information)};
+
+public:
+    translation_editor(cpt::language source_language, cpt::country source_country, cpt::language target_language, cpt::country target_country);
+    translation_editor(const std::filesystem::path& path);
+    translation_editor(const std::string_view& data);
+    translation_editor(std::istream& stream);
+
+    ~translation_editor() = default;
+    translation_editor(const translation_editor&) = delete;
+    translation_editor& operator=(const translation_editor&) = delete;
+    translation_editor(translation_editor&&) = default;
+    translation_editor& operator=(translation_editor&&) = default;
+
+    translation_string_view_t translate(const std::string_view& text, const translation_context_t& context = no_translation_context, translate_options options = translate_options::none) const;
+    std::string u8translate(const std::string_view& text, const translation_context_t& context = no_translation_context, translate_options options = translate_options::none) const;
+    std::u16string u16translate(const std::string_view& text, const translation_context_t& context = no_translation_context, translate_options options = translate_options::none) const;
+    std::u32string u32translate(const std::string_view& text, const translation_context_t& context = no_translation_context, translate_options options = translate_options::none) const;
+
+    void add();
+
+    tph::version version() const noexcept
+    {
+        return m_file_format.version;
+    }
+
+    cpt::language source_language() const noexcept
+    {
+        return m_header.source_language;
+    }
+
+    cpt::country source_country() const noexcept
+    {
+        return m_header.source_country;
+    }
+
+    cpt::translation_encoding source_encoding() const noexcept
+    {
+        return m_header.source_encoding;
+    }
+
+    cpt::language target_language() const noexcept
+    {
+        return m_header.target_language;
+    }
+
+    cpt::country target_country() const noexcept
+    {
+        return m_header.target_country;
+    }
+
+    cpt::translation_encoding target_encoding() const noexcept
+    {
+        return m_header.target_encoding;
+    }
+
+    std::uint64_t translation_count() const noexcept
+    {
+        return std::accumulate(std::begin(m_sections), std::end(m_sections), std::uint64_t{0}, [](std::uint64_t value, auto&& section){return value + std::size(section.second);});
+    }
+
+    std::uint64_t section_count() const noexcept
+    {
+        return static_cast<std::uint64_t>(std::size(m_sections));
+    }
+
+private:
+    void read_from_source(char* output, std::size_t begin, std::size_t size, bool stream_jump);
+    void parse_file_format();
+    void parse_header();
+    void parse_parse_information();
+    void parse_section_descriptions();
+    void parse_sections(const std::vector<section_description>& sections);
+    std::pair<std::string, std::string> parse_translation(std::uint64_t& position);
     std::string parse_destination_text(const translation_information& info, std::uint64_t position);
     void init();
 
 private:
+    translator_options m_options{};
     source_type m_source{};
     file_format m_file_format{};
     header m_header{};
