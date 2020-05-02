@@ -5,7 +5,6 @@
 
 #include <nes/hash.hpp>
 
-#include "encoding.hpp"
 #include "algorithm.hpp"
 
 template<typename Kernel>
@@ -82,6 +81,11 @@ translation_string_view_t make_translation_string_view(const translation_string_
     {
         return translation_string_view_t{v};
     }, string);
+}
+
+std::vector<tph::version> enumerate_translation_versions()
+{
+    return {tph::version{1, 0, 0}};
 }
 
 translator::translator(const std::filesystem::path& path, translator_options options)
@@ -312,22 +316,22 @@ std::pair<uint64_t, translation_string_t> translator::parse_translation(std::uin
     {
         info.source_text_hash = bswap(info.source_text_hash);
         info.source_text_size = bswap(info.source_text_size);
-        info.destination_text_size = bswap(info.destination_text_size);
+        info.target_text_size = bswap(info.target_text_size);
     }
 
     position += sizeof(translation_information) + info.source_text_size;
-    std::pair<std::uint64_t, translation_string_t> output{info.source_text_hash, parse_destination_text(info, position)};
-    position += info.destination_text_size;
+    std::pair<std::uint64_t, translation_string_t> output{info.source_text_hash, parse_target_text(info, position)};
+    position += info.target_text_size;
 
     return output;
 }
 
-translation_string_t translator::parse_destination_text(const translation_information& info, std::uint64_t position)
+translation_string_t translator::parse_target_text(const translation_information& info, std::uint64_t position)
 {
     if(m_header.target_encoding == translation_encoding::utf8)
     {
         std::string output{};
-        output.resize(info.destination_text_size);
+        output.resize(info.target_text_size);
 
         read_from_source(std::data(output), position, std::size(output), true);
 
@@ -338,9 +342,9 @@ translation_string_t translator::parse_destination_text(const translation_inform
         if(m_header.target_encoding == translation_encoding::utf16)
         {
             std::u16string output{};
-            output.resize(info.destination_text_size / sizeof(char16_t));
+            output.resize(info.target_text_size / sizeof(char16_t));
 
-            read_from_source(reinterpret_cast<char*>(std::data(output)), position, info.destination_text_size, true);
+            read_from_source(reinterpret_cast<char*>(std::data(output)), position, info.target_text_size, true);
 
             if constexpr(endian::native == endian::big)
             {
@@ -355,9 +359,9 @@ translation_string_t translator::parse_destination_text(const translation_inform
         else if(m_header.target_encoding == translation_encoding::utf32)
         {
             std::u32string output{};
-            output.resize(info.destination_text_size / sizeof(char32_t));
+            output.resize(info.target_text_size / sizeof(char32_t));
 
-            read_from_source(reinterpret_cast<char*>(std::data(output)), position, info.destination_text_size, true);
+            read_from_source(reinterpret_cast<char*>(std::data(output)), position, info.target_text_size, true);
 
             if constexpr(endian::native == endian::big)
             {
@@ -380,6 +384,11 @@ void translator::init()
     parse_header();
     parse_parse_information();
     parse_section_descriptions();
+}
+
+std::size_t translation_editor::string_hash::operator()(const translation_string_t& string) const
+{
+    return std::hash<std::string>{}(to_utf8(make_translation_string_view(string)));
 }
 
 }

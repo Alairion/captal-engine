@@ -551,14 +551,21 @@ struct wide : public utf32
 template<typename Input, typename Output, typename InputIt, typename OutputIt>
 constexpr OutputIt convert(InputIt begin, InputIt end, OutputIt output)
 {
-    while(begin < end)
+    if constexpr(std::is_same<Input, Output>::value)
     {
-        std::uint32_t code{};
-        begin  = Input::decode(begin, end, code);
-        output = Output::encode(code, output);
+        return std::copy(begin, end, output);
     }
+    else
+    {
+        while(begin < end)
+        {
+            std::uint32_t code{};
+            begin  = Input::decode(begin, end, code);
+            output = Output::encode(code, output);
+        }
 
-    return output;
+        return output;
+    }
 }
 
 template<typename Input, typename Output, typename StringIn, typename StringOut = std::basic_string<typename Output::char_type>>

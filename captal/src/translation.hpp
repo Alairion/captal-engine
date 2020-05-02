@@ -12,6 +12,8 @@
 
 #include <tephra/config.hpp>
 
+#include "encoding.hpp"
+
 namespace cpt
 {
 
@@ -96,9 +98,9 @@ Data:
             {
                 [std::uint64_t: source_text_hash] hash value of the source string encoded in UTF-8 (even is stored as UTF-16 or UTF-32) **
                 [std::uint64_t: source_text_size] source text size in bytes
-                [std::uint64_t: destination_text_size] destination text size in bytes
+                [std::uint64_t: target_text_size] destination text size in bytes
                 [text_size bytes: source_text] source text
-                [text_size bytes: destination_text] destination text
+                [text_size bytes: target_text] destination text
             }
         }
         [??? bytes: padding] potential padding of unknown size*
@@ -559,14 +561,51 @@ enum class translation_encoding : std::uint32_t
 using translation_string_t = std::variant<std::string, std::u16string, std::u32string>;
 using translation_string_view_t = std::variant<std::string_view, std::u16string_view, std::u32string_view>;
 
-translation_string_view_t make_translation_string_view(const translation_string_t& string) noexcept;
+CAPTAL_API translation_string_view_t make_translation_string_view(const translation_string_t& string) noexcept;
+
+template<typename Encoding, typename String = std::basic_string<typename Encoding::char_type>>
+String convert(const translation_string_t& string)
+{
+    if(std::holds_alternative<std::string>(string))
+    {
+        return convert<utf8, Encoding>(std::get<std::string>(string));
+    }
+    else if(std::holds_alternative<std::u16string>(string))
+    {
+        return convert<utf16, Encoding>(std::get<std::u16string>(string));
+    }
+    else
+    {
+        return convert<utf32, Encoding>(std::get<std::u32string>(string));
+    }
+}
+
+template<typename Encoding, typename String = std::basic_string<typename Encoding::char_type>>
+String convert(const translation_string_view_t& string)
+{
+    if(std::holds_alternative<std::string_view>(string))
+    {
+        return convert<utf8, Encoding>(std::get<std::string_view>(string));
+    }
+    else if(std::holds_alternative<std::u16string_view>(string))
+    {
+        return convert<utf16, Encoding>(std::get<std::u16string_view>(string));
+    }
+    else
+    {
+        return convert<utf32, Encoding>(std::get<std::u32string_view>(string));
+    }
+}
+
 
 using translation_magic_word_t = std::array<std::uint8_t, 8>;
 using translation_context_t = std::array<std::uint8_t, 16>;
 
-static constexpr translation_magic_word_t translation_magic_word{0x43, 0x50, 0x54, 0x54, 0x52, 0x41, 0x4e, 0x53};
+static constexpr translation_magic_word_t translation_magic_word{0x43, 0x50, 0x54, 0x54, 0x52, 0x41, 0x4E, 0x53};
 static constexpr translation_context_t no_translation_context{};
 static constexpr tph::version translation_last_version{1, 0, 0};
+
+CAPTAL_API std::vector<tph::version> enumerate_translation_versions();
 
 enum class translator_options : std::uint32_t
 {
@@ -625,7 +664,7 @@ private:
     {
         std::uint64_t source_text_hash{};
         std::uint64_t source_text_size{};
-        std::uint64_t destination_text_size{};
+        std::uint64_t target_text_size{};
     };
 
 private:
@@ -707,7 +746,7 @@ private:
     void parse_section_descriptions();
     void parse_sections(const std::vector<section_description>& sections);
     std::pair<std::uint64_t, translation_string_t> parse_translation(std::uint64_t& position);
-    translation_string_t parse_destination_text(const translation_information& info, std::uint64_t position);
+    translation_string_t parse_target_text(const translation_information& info, std::uint64_t position);
     void init();
 
 private:
@@ -721,6 +760,11 @@ private:
 
 class CAPTAL_API translation_editor
 {
+    struct string_hash
+    {
+        std::size_t operator()(const translation_string_t& value) const;
+    };
+
     struct context_hash
     {
         std::size_t operator()(const translation_context_t& value) const noexcept
@@ -768,7 +812,7 @@ private:
     {
         std::uint64_t source_text_hash{};
         std::uint64_t source_text_size{};
-        std::uint64_t destination_text_size{};
+        std::uint64_t target_text_size{};
     };
 
 private:
@@ -794,7 +838,10 @@ public:
     std::u16string u16translate(const std::string_view& text, const translation_context_t& context = no_translation_context, translate_options options = translate_options::none) const;
     std::u32string u32translate(const std::string_view& text, const translation_context_t& context = no_translation_context, translate_options options = translate_options::none) const;
 
-    void add();
+    void add(translation_string_t source_text, translation_string_t target_text, const translation_context_t& context = no_translation_context);
+    bool exists(const translation_context_t& context) const noexcept;
+    bool exists(const translation_string_t& text, const translation_context_t& context = no_translation_context) const noexcept;
+
 
     tph::version version() const noexcept
     {
@@ -848,8 +895,8 @@ private:
     void parse_parse_information();
     void parse_section_descriptions();
     void parse_sections(const std::vector<section_description>& sections);
-    std::pair<std::string, std::string> parse_translation(std::uint64_t& position);
-    std::string parse_destination_text(const translation_information& info, std::uint64_t position);
+    std::pair<translation_string_t, translation_string_t> parse_translation(std::uint64_t& position);
+    translation_string_t parse_target_text(const translation_information& info, std::uint64_t position);
     void init();
 
 private:
