@@ -19,26 +19,11 @@ namespace cpt
 
 /*
 Captal translation files:
-The format supports 3 encoding: UTF-8, UTF-16, UTF-32
-All words are little-endian
+All integers are little-endian
 The file is based on a source language, the source language is the language used in your workspace (C++ code, Game Editor, whatever),
 and a target language, the one referred by the file. According to convention, the translation files should be named:
 "{iso_language_code}_{iso_country_code}.ctr" where {iso_language_code} is the 3-letters language code as defined by the ISO-639-3 standard,
 and where {iso_country_code} is the 3-letters country code as defined by the ISO-3166-3 standard. Part in square brackets ([]) is optional.
-The source and the target languages can be represented by different encoding, and this can be used to optimize the file size:
-UTF-8 is usually the lightest encoding for most languages that use latin alphabet. But it will generally be heavier than UTF-16 for Japanese, examples:
-
-For the word こんにちは (Konnichiwa) (~= Hello):
-In UTF-8, it will be encoded into: [0xe3|0x81|0x93] [0xe3|0x82|0x93] [0xe3|0x81|0xab] [0xe3|0x81|0xa1] [0xe3|0x81|0xaf]
-for a total of 15 octets
-In UTF-16, it will be encoded into: [0x53|0x30] [0x93|0x30] [0x6b|0x30] [0x61|0x30] [0x6f|0x30]
-for a total of 10 octets
-
-For the word Voilà (a very common French preposition)
-In UTF-8, it will be encoded into: [0x56][0x6f][0x69][0x6c][0xc3|0xa0]
-for a total of 6 octets
-In UTF-16, it will be encoded into: [0x56|0x00][0x6f|0x00][0x69|0x00][0x6c|0x00][0xe0|0x00]
-for a total of 10 octets (you can see that 5 bytes are null)
 
 The country code is used as a disambiguation marker for more accurate translation.
 Some languages are spread all around the world (English, French, Spanish, Portuguese, ...) and each region has its own expressions and words.
@@ -62,7 +47,8 @@ Voilà ! Now you know why :)
 (Note that "Voilà" is usually preceded by another word (such as "et", "ben", ...) to precise it's meaning)
 
 Constants:
-See enumerations in translation.hpp: "cpt::language"; "cpt::country", "cpt::translation_encoding"
+See enumerations in translation.hpp: "cpt::language", "cpt::country"
+Magic word "CPTTRANS" corresponds to the following array of bytes: {0x43, 0x50, 0x54, 0x54, 0x52, 0x41, 0x4E, 0x53}
 These enumerations are all unsigned 32-bits interger values written as is in the files.
 
 Format:
@@ -76,10 +62,8 @@ Header:
     General informations:
         [cpt::language: source_language]the source language
         [cpt::country: source_country] the source language country
-        [cpt::translation_encoding: source_encoding] the source language encoding
         [cpt::language: target_language] the target language
         [cpt::country: target_country] the target language country
-        [cpt::translation_encoding: target_encoding] the target language encoding
         [std::uint64_t: translation_count] the number of translated sentences/strings
     Parse informations:
         [std::uint64_t: section_count] the total number of sections
@@ -96,7 +80,7 @@ Data:
         {
             [section_translation_count occurencies] array of translations
             {
-                [std::uint64_t: source_text_hash] hash value of the source string encoded in UTF-8 (even is stored as UTF-16 or UTF-32) **
+                [std::uint64_t: source_text_hash] hash value of the source string**
                 [std::uint64_t: source_text_size] source text size in bytes
                 [std::uint64_t: target_text_size] destination text size in bytes
                 [text_size bytes: source_text] source text
@@ -551,52 +535,6 @@ enum class country : std::uint32_t
     iso_zwe = 716, //Zimbabwe
 };
 
-enum class translation_encoding : std::uint32_t
-{
-    utf8 = 0,
-    utf16 = 1,
-    utf32 = 2,
-};
-
-using translation_string_t = std::variant<std::string, std::u16string, std::u32string>;
-using translation_string_view_t = std::variant<std::string_view, std::u16string_view, std::u32string_view>;
-
-CAPTAL_API translation_string_view_t make_translation_string_view(const translation_string_t& string) noexcept;
-
-template<typename Encoding, typename String = std::basic_string<typename Encoding::char_type>>
-String convert(const translation_string_t& string)
-{
-    if(std::holds_alternative<std::string>(string))
-    {
-        return convert<utf8, Encoding>(std::get<std::string>(string));
-    }
-    else if(std::holds_alternative<std::u16string>(string))
-    {
-        return convert<utf16, Encoding>(std::get<std::u16string>(string));
-    }
-    else
-    {
-        return convert<utf32, Encoding>(std::get<std::u32string>(string));
-    }
-}
-
-template<typename Encoding, typename String = std::basic_string<typename Encoding::char_type>>
-String convert(const translation_string_view_t& string)
-{
-    if(std::holds_alternative<std::string_view>(string))
-    {
-        return convert<utf8, Encoding>(std::get<std::string_view>(string));
-    }
-    else if(std::holds_alternative<std::u16string_view>(string))
-    {
-        return convert<utf16, Encoding>(std::get<std::u16string_view>(string));
-    }
-    else
-    {
-        return convert<utf32, Encoding>(std::get<std::u32string_view>(string));
-    }
-}
-
 using translation_magic_word_t = std::array<std::uint8_t, 8>;
 using translation_context_t = std::array<std::uint8_t, 16>;
 
@@ -625,7 +563,7 @@ template<> struct enable_enum_operations<translate_options>{static constexpr boo
 class CAPTAL_API translator
 {
     using source_type = std::variant<std::monostate, std::ifstream, std::string_view, std::reference_wrapper<std::istream>>;
-    using translation_set_type = std::unordered_map<std::uint64_t, translation_string_t>;
+    using translation_set_type = std::unordered_map<std::uint64_t, std::string>;
     using section_type = std::unordered_map<std::uint64_t, translation_set_type>;
 
 private:
@@ -639,10 +577,8 @@ private:
     {
         cpt::language source_language{};
         cpt::country source_country{};
-        cpt::translation_encoding source_encoding{};
         cpt::language target_language{};
         cpt::country target_country{};
-        cpt::translation_encoding target_encoding{};
         std::uint64_t translation_count{};
     };
 
@@ -683,11 +619,7 @@ public:
     translator(translator&&) = default;
     translator& operator=(translator&&) = default;
 
-    translation_string_view_t translate(const std::string_view& text, const translation_context_t& context = no_translation_context, translate_options options = translate_options::none) const;
-    std::string u8translate(const std::string_view& text, const translation_context_t& context = no_translation_context, translate_options options = translate_options::none) const;
-    std::u16string u16translate(const std::string_view& text, const translation_context_t& context = no_translation_context, translate_options options = translate_options::none) const;
-    std::u32string u32translate(const std::string_view& text, const translation_context_t& context = no_translation_context, translate_options options = translate_options::none) const;
-
+    std::string_view translate(const std::string_view& text, const translation_context_t& context = no_translation_context, translate_options options = translate_options::none) const;
     bool exists(const translation_context_t& context) const noexcept;
     bool exists(const std::string_view& text, const translation_context_t& context = no_translation_context) const noexcept;
 
@@ -706,11 +638,6 @@ public:
         return m_header.source_country;
     }
 
-    cpt::translation_encoding source_encoding() const noexcept
-    {
-        return m_header.source_encoding;
-    }
-
     cpt::language target_language() const noexcept
     {
         return m_header.target_language;
@@ -719,11 +646,6 @@ public:
     cpt::country target_country() const noexcept
     {
         return m_header.target_country;
-    }
-
-    cpt::translation_encoding target_encoding() const noexcept
-    {
-        return m_header.target_encoding;
     }
 
     std::uint64_t translation_count() const noexcept
@@ -743,8 +665,8 @@ private:
     void parse_parse_information();
     void parse_section_descriptions();
     void parse_sections(const std::vector<section_description>& sections);
-    std::pair<std::uint64_t, translation_string_t> parse_translation(std::uint64_t& position);
-    translation_string_t parse_target_text(const translation_information& info, std::uint64_t position);
+    std::pair<std::uint64_t, std::string> parse_translation(std::uint64_t& position);
+    std::string parse_target_text(const translation_information& info, std::uint64_t position);
     void init();
 
 private:
@@ -758,14 +680,6 @@ private:
 
 class CAPTAL_API translation_editor
 {
-    struct string_hash
-    {
-        std::size_t operator()(const translation_string_t& value) const
-        {
-            return std::hash<std::string>{}(convert<utf8>(value));
-        }
-    };
-
     struct context_hash
     {
         std::size_t operator()(const translation_context_t& value) const noexcept
@@ -788,10 +702,8 @@ private:
     {
         cpt::language source_language{};
         cpt::country source_country{};
-        cpt::translation_encoding source_encoding{};
         cpt::language target_language{};
         cpt::country target_country{};
-        cpt::translation_encoding target_encoding{};
         std::uint64_t translation_count{};
     };
 
@@ -822,7 +734,7 @@ private:
     static constexpr std::size_t section_description_begin{sizeof(file_format) + sizeof(header) + sizeof(parse_information)};
 
 public:
-    using translation_set_type = std::unordered_map<translation_string_t, translation_string_t>;
+    using translation_set_type = std::unordered_map<std::string, std::string>;
     using section_type = std::unordered_map<translation_context_t, translation_set_type, context_hash>;
 
 public:
@@ -838,13 +750,13 @@ public:
     translation_editor& operator=(translation_editor&&) = default;
 
     bool add(const translation_context_t& context);
-    bool add(translation_string_t source_text, translation_string_t target_text, const translation_context_t& context);
+    bool add(std::string source_text, std::string target_text, const translation_context_t& context);
     void add_or_replace(const translation_context_t& context);
-    void add_or_replace(translation_string_t source_text, translation_string_t target_text, const translation_context_t& context);
+    void add_or_replace(std::string source_text, std::string target_text, const translation_context_t& context);
     bool remove(const translation_context_t& context);
-    bool remove(const translation_string_t& source_text, const translation_context_t& context);
+    bool remove(const std::string& source_text, const translation_context_t& context);
     bool exists(const translation_context_t& context) const;
-    bool exists(const translation_string_t& source_text, const translation_context_t& context) const;
+    bool exists(const std::string& source_text, const translation_context_t& context) const;
 
     std::string encode() const;
 
@@ -860,11 +772,6 @@ public:
         m_header.source_country = country;
     }
 
-    void set_source_encoding(translation_encoding encoding) noexcept
-    {
-        m_header.source_encoding = encoding;
-    }
-
     void set_target_language(language language) noexcept
     {
         m_header.target_language = language;
@@ -873,11 +780,6 @@ public:
     void set_target_country(country country) noexcept
     {
         m_header.target_country = country;
-    }
-
-    void set_target_encoding(translation_encoding encoding) noexcept
-    {
-        m_header.target_encoding = encoding;
     }
 
     tph::version version() const noexcept
@@ -895,11 +797,6 @@ public:
         return m_header.source_country;
     }
 
-    cpt::translation_encoding source_encoding() const noexcept
-    {
-        return m_header.source_encoding;
-    }
-
     cpt::language target_language() const noexcept
     {
         return m_header.target_language;
@@ -908,11 +805,6 @@ public:
     cpt::country target_country() const noexcept
     {
         return m_header.target_country;
-    }
-
-    cpt::translation_encoding target_encoding() const noexcept
-    {
-        return m_header.target_encoding;
     }
 
     std::uint64_t translation_count() const noexcept
@@ -937,8 +829,8 @@ private:
     void parse_parse_information();
     void parse_section_descriptions();
     void parse_sections(const std::vector<section_description>& sections);
-    std::pair<translation_string_t, translation_string_t> parse_translation(std::uint64_t& position);
-    translation_string_t parse_text(const translation_information& info, std::uint64_t position);
+    std::pair<std::string, std::string> parse_translation(std::uint64_t& position);
+    std::string parse_text(const translation_information& info, std::uint64_t position);
     void init();
 
 private:

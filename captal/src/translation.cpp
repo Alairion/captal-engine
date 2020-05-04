@@ -18,17 +18,6 @@ struct nes::hash<cpt::translation_context_t, Kernel>
     }
 };
 
-template<typename Kernel>
-struct nes::hash<cpt::translation_string_t, Kernel>
-{
-    using value_type = kernel_hash_value_t<Kernel>;
-
-    constexpr value_type operator()(const cpt::translation_string_t& value) const
-    {
-        return nes::hash<std::string, Kernel>{}(cpt::convert<cpt::utf8>(value));
-    }
-};
-
 namespace cpt
 {
 
@@ -36,14 +25,6 @@ template<typename T>
 static constexpr std::uint64_t hash_value(const T& value)
 {
     return nes::hash<T, nes::hash_kernels::fnv_1a>{}(value)[0];
-}
-
-translation_string_view_t make_translation_string_view(const translation_string_t& string) noexcept
-{
-    return std::visit([](const auto& v)
-    {
-        return translation_string_view_t{v};
-    }, string);
 }
 
 translator::translator(const std::filesystem::path& path, translator_options options)
@@ -72,11 +53,11 @@ translator::translator(std::istream& stream, translator_options options)
     init();
 }
 
-translation_string_view_t translator::translate(const std::string_view& text, const translation_context_t& context, translate_options options) const
+std::string_view translator::translate(const std::string_view& text, const translation_context_t& context, translate_options options) const
 {
     if(static_cast<bool>(m_options & translator_options::identity_translator))
     {
-        return translation_string_view_t{text};
+        return std::string_view{text};
     }
     else
     {
@@ -87,7 +68,7 @@ translation_string_view_t translator::translate(const std::string_view& text, co
         {
             if(const auto translation{section->second.find(text_hash)}; translation != std::end(section->second))
             {
-                return make_translation_string_view(translation->second);
+                return translation->second;
             }
         }
 
@@ -97,7 +78,7 @@ translation_string_view_t translator::translate(const std::string_view& text, co
             {
                 if(const auto translation{section.second.find(text_hash)}; translation != std::end(section.second))
                 {
-                    return make_translation_string_view(translation->second);
+                    return translation->second;
                 }
             }
         }
@@ -109,21 +90,6 @@ translation_string_view_t translator::translate(const std::string_view& text, co
 
         return text;
     }
-}
-
-std::string translator::u8translate(const std::string_view& text, const translation_context_t& context, translate_options options) const
-{
-    return convert<utf8>(translate(text, context, options));
-}
-
-std::u16string translator::u16translate(const std::string_view& text, const translation_context_t& context, translate_options options) const
-{
-    return convert<utf16>(translate(text, context, options));
-}
-
-std::u32string translator::u32translate(const std::string_view& text, const translation_context_t& context, translate_options options) const
-{
-    return convert<utf32>(translate(text, context, options));
 }
 
 bool translator::exists(const translation_context_t& context) const noexcept
@@ -203,10 +169,8 @@ void translator::parse_header()
     {
         m_header.source_language   = bswap(m_header.source_language);
         m_header.source_country    = bswap(m_header.source_country);
-        m_header.source_encoding   = bswap(m_header.source_encoding);
         m_header.target_language   = bswap(m_header.target_language);
         m_header.target_country    = bswap(m_header.target_country);
-        m_header.target_encoding   = bswap(m_header.target_encoding);
         m_header.translation_count = bswap(m_header.translation_count);
     }
 }
@@ -261,7 +225,7 @@ void translator::parse_sections(const std::vector<section_description>& sections
     }
 }
 
-std::pair<uint64_t, translation_string_t> translator::parse_translation(std::uint64_t& position)
+std::pair<uint64_t, std::string> translator::parse_translation(std::uint64_t& position)
 {
     translation_information info{};
     read_from_source(reinterpret_cast<char*>(&info), position, sizeof(translation_information));
@@ -274,62 +238,20 @@ std::pair<uint64_t, translation_string_t> translator::parse_translation(std::uin
     }
 
     position += sizeof(translation_information) + info.source_text_size;
-    std::pair<std::uint64_t, translation_string_t> output{info.source_text_hash, parse_target_text(info, position)};
+    std::pair<std::uint64_t, std::string> output{info.source_text_hash, parse_target_text(info, position)};
     position += info.target_text_size;
 
     return output;
 }
 
-translation_string_t translator::parse_target_text(const translation_information& info, std::uint64_t position)
+std::string translator::parse_target_text(const translation_information& info, std::uint64_t position)
 {
-    if(m_header.target_encoding == translation_encoding::utf8)
-    {
-        std::string output{};
-        output.resize(info.target_text_size);
+    std::string output{};
+    output.resize(info.target_text_size);
 
-        read_from_source(std::data(output), position, std::size(output));
+    read_from_source(std::data(output), position, std::size(output));
 
-        return translation_string_t{std::move(output)};
-    }
-    else
-    {
-        if(m_header.target_encoding == translation_encoding::utf16)
-        {
-            std::u16string output{};
-            output.resize(info.target_text_size / sizeof(char16_t));
-
-            read_from_source(reinterpret_cast<char*>(std::data(output)), position, info.target_text_size);
-
-            if constexpr(endian::native == endian::big)
-            {
-                std::transform(std::begin(output), std::end(output), std::begin(output), [](char16_t c)
-                {
-                    return static_cast<char16_t>(bswap(static_cast<std::uint16_t>(c)));
-                });
-            }
-
-            return translation_string_t{std::move(output)};
-        }
-        else if(m_header.target_encoding == translation_encoding::utf32)
-        {
-            std::u32string output{};
-            output.resize(info.target_text_size / sizeof(char32_t));
-
-            read_from_source(reinterpret_cast<char*>(std::data(output)), position, info.target_text_size);
-
-            if constexpr(endian::native == endian::big)
-            {
-                std::transform(std::begin(output), std::end(output), std::begin(output), [](char32_t c)
-                {
-                    return static_cast<char32_t>(bswap(static_cast<std::uint32_t>(c)));
-                });
-            }
-
-            return translation_string_t{std::move(output)};
-        }
-    }
-
-    throw std::runtime_error{"Bad file destination encoding."};
+    return std::string{std::move(output)};
 }
 
 void translator::init()
@@ -342,7 +264,7 @@ void translator::init()
 
 translation_editor::translation_editor(cpt::language source_language, cpt::country source_country, cpt::language target_language, cpt::country target_country)
 :m_file_format{translation_magic_word, last_translation_version}
-,m_header{source_language, source_country, translation_encoding::utf8, target_language, target_country, translation_encoding::utf8}
+,m_header{source_language, source_country, target_language, target_country}
 {
 
 }
@@ -375,7 +297,7 @@ bool translation_editor::add(const translation_context_t& context)
     return m_sections.emplace(context, translation_set_type{}).second;
 }
 
-bool translation_editor::add(translation_string_t source_text, translation_string_t target_text, const translation_context_t& context)
+bool translation_editor::add(std::string source_text, std::string target_text, const translation_context_t& context)
 {
     return m_sections[context].emplace(std::move(source_text), std::move(target_text)).second;
 }
@@ -393,7 +315,7 @@ void translation_editor::add_or_replace(const translation_context_t& context)
     }
 }
 
-void translation_editor::add_or_replace(translation_string_t source_text, translation_string_t target_text, const translation_context_t& context)
+void translation_editor::add_or_replace(std::string source_text, std::string target_text, const translation_context_t& context)
 {
     auto& section{m_sections[context]};
 
@@ -413,7 +335,7 @@ bool translation_editor::remove(const translation_context_t& context)
     return m_sections.erase(context) > 0;
 }
 
-bool translation_editor::remove(const translation_string_t& source_text, const translation_context_t& context)
+bool translation_editor::remove(const std::string& source_text, const translation_context_t& context)
 {
     const auto it{m_sections.find(context)};
     if(it != std::end(m_sections))
@@ -429,7 +351,7 @@ bool translation_editor::exists(const translation_context_t& context) const
     return m_sections.find(context) != std::end(m_sections);
 }
 
-bool translation_editor::exists(const translation_string_t& source_text, const translation_context_t& context) const
+bool translation_editor::exists(const std::string& source_text, const translation_context_t& context) const
 {
     const auto it{m_sections.find(context)};
     if(it != std::end(m_sections))
@@ -517,10 +439,8 @@ void translation_editor::parse_header()
     {
         m_header.source_language   = bswap(m_header.source_language);
         m_header.source_country    = bswap(m_header.source_country);
-        m_header.source_encoding   = bswap(m_header.source_encoding);
         m_header.target_language   = bswap(m_header.target_language);
         m_header.target_country    = bswap(m_header.target_country);
-        m_header.target_encoding   = bswap(m_header.target_encoding);
         m_header.translation_count = bswap(m_header.translation_count);
     }
 }
@@ -575,7 +495,7 @@ void translation_editor::parse_sections(const std::vector<section_description>& 
     }
 }
 
-std::pair<translation_string_t, translation_string_t> translation_editor::parse_translation(std::uint64_t& position)
+std::pair<std::string, std::string> translation_editor::parse_translation(std::uint64_t& position)
 {
     translation_information info{};
     read_from_source(reinterpret_cast<char*>(&info), position, sizeof(translation_information));
@@ -588,65 +508,23 @@ std::pair<translation_string_t, translation_string_t> translation_editor::parse_
         info.target_text_size = bswap(info.target_text_size);
     }
 
-    translation_string_t source{parse_text(info, position)};
+    std::string source{parse_text(info, position)};
     position += info.source_text_size;
 
-    translation_string_t target{parse_text(info, position)};
+    std::string target{parse_text(info, position)};
     position += info.target_text_size;
 
     return std::make_pair(std::move(source), std::move(target));
 }
 
-translation_string_t translation_editor::parse_text(const translation_information& info, std::uint64_t position)
+std::string translation_editor::parse_text(const translation_information& info, std::uint64_t position)
 {
-    if(m_header.target_encoding == translation_encoding::utf8)
-    {
-        std::string output{};
-        output.resize(info.target_text_size);
+    std::string output{};
+    output.resize(info.target_text_size);
 
-        read_from_source(std::data(output), position, std::size(output));
+    read_from_source(std::data(output), position, std::size(output));
 
-        return translation_string_t{std::move(output)};
-    }
-    else
-    {
-        if(m_header.target_encoding == translation_encoding::utf16)
-        {
-            std::u16string output{};
-            output.resize(info.target_text_size / sizeof(char16_t));
-
-            read_from_source(reinterpret_cast<char*>(std::data(output)), position, info.target_text_size);
-
-            if constexpr(endian::native == endian::big)
-            {
-                std::transform(std::begin(output), std::end(output), std::begin(output), [](char16_t c)
-                {
-                    return static_cast<char16_t>(bswap(static_cast<std::uint16_t>(c)));
-                });
-            }
-
-            return translation_string_t{std::move(output)};
-        }
-        else if(m_header.target_encoding == translation_encoding::utf32)
-        {
-            std::u32string output{};
-            output.resize(info.target_text_size / sizeof(char32_t));
-
-            read_from_source(reinterpret_cast<char*>(std::data(output)), position, info.target_text_size);
-
-            if constexpr(endian::native == endian::big)
-            {
-                std::transform(std::begin(output), std::end(output), std::begin(output), [](char32_t c)
-                {
-                    return static_cast<char32_t>(bswap(static_cast<std::uint32_t>(c)));
-                });
-            }
-
-            return translation_string_t{std::move(output)};
-        }
-    }
-
-    throw std::runtime_error{"Bad file destination encoding."};
+    return std::string{std::move(output)};
 }
 
 void translation_editor::init()
@@ -689,10 +567,8 @@ std::string translation_editor::encode_header() const
 
         header.source_language   = bswap(header.source_language);
         header.source_country    = bswap(header.source_country);
-        header.source_encoding   = bswap(header.source_encoding);
         header.target_language   = bswap(header.target_language);
         header.target_country    = bswap(header.target_country);
-        header.target_encoding   = bswap(header.target_encoding);
         header.translation_count = bswap(header.translation_count);
 
         std::memcpy(std::data(output), &header, std::size(output));
@@ -724,7 +600,7 @@ std::string translation_editor::encode_translations(const translation_set_type& 
 {
     std::string output{};
 
-    const auto text_size = [](const translation_string_t& string) -> std::size_t
+    const auto text_size = [](const std::string& string) -> std::size_t
     {
         return std::visit([](auto&& string) -> std::size_t
         {
@@ -732,7 +608,7 @@ std::string translation_editor::encode_translations(const translation_set_type& 
         }, string);
     };
 
-    const auto format_text = [](const translation_string_t& string) -> std::string
+    const auto format_text = [](const std::string& string) -> std::string
     {
 
     };

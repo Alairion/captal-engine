@@ -20,6 +20,7 @@ set(HEADERS
     "src/encoding.hpp"
     "src/application.hpp"
     "src/engine.hpp"
+    "src/zlib.hpp"
     "src/translation.hpp"
     "src/asynchronous_resource.hpp"
     "src/render_technique.hpp"
@@ -61,6 +62,7 @@ set(HEADERS
 set(SOURCES
     "src/application.cpp"
     "src/engine.cpp"
+    "src/zlib.cpp"
     "src/translation.cpp"
     "src/render_technique.cpp"
     "src/render_target.cpp"
