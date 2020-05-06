@@ -300,8 +300,6 @@ public:
     template<typename OutputIt, typename T>
     static constexpr OutputIt encode(T code, OutputIt output) noexcept
     {
-        using value_type = typename std::iterator_traits<OutputIt>::value_type;
-
         if((code > 0x0010FFFF) || ((code >= 0xD800) && (code <= 0xDBFF))) //Invalid value
         {
             *output++ = 0;
@@ -337,7 +335,7 @@ public:
             }
 
             for(std::size_t i{}; i < count; ++i)
-                *output++ = static_cast<value_type>(bytes[i]);
+                *output++ = bytes[i];
         }
 
         return output;
@@ -386,15 +384,13 @@ struct utf16
     template<typename InputIt, typename T>
     static constexpr InputIt decode(InputIt begin, InputIt end, T& output) noexcept
     {
-        using value_type = typename std::iterator_traits<InputIt>::value_type;
-
-        const value_type first{*begin++};
+        const std::uint16_t first{static_cast<std::uint16_t>(*begin++)};
 
         if(first >= 0xD800 && first <= 0xDBFF)
         {
             if(begin < end)
             {
-                const value_type second{*begin++};
+                const std::uint16_t second{static_cast<std::uint16_t>(*begin++)};
 
                 if(second >= 0xDC00 && second <= 0xDFFF)
                 {
@@ -422,8 +418,6 @@ struct utf16
     template<typename OutputIt, typename T>
     static constexpr OutputIt encode(T code, OutputIt output) noexcept
     {
-        using value_type = typename std::iterator_traits<OutputIt>::value_type;
-
         if(code <= 0xFFFF)
         {
             if(code >= 0xD800 && code <= 0xDFFF)
@@ -432,7 +426,7 @@ struct utf16
             }
             else
             {
-                *output++ = static_cast<value_type>(code);
+                *output++ = static_cast<std::uint16_t>(code);
             }
         }
         else if(code > 0x0010FFFF)
@@ -442,8 +436,8 @@ struct utf16
         else
         {
             code -= 0x0010000;
-            *output++ = static_cast<value_type>((code >> 10)     + 0xD800);
-            *output++ = static_cast<value_type>((code & 0x3FFUL) + 0xDC00);
+            *output++ = static_cast<std::uint16_t>((code >> 10)     + 0xD800);
+            *output++ = static_cast<std::uint16_t>((code & 0x3FFUL) + 0xDC00);
         }
 
         return output;

@@ -31,7 +31,7 @@ public:
     texture(std::uint32_t width, std::uint32_t height, const std::uint8_t* rgba, const tph::sampling_options& sampling = tph::sampling_options{});
     texture(tph::image image, const tph::sampling_options& sampling = tph::sampling_options{});
 
-    virtual ~texture() = default;
+    ~texture() = default;
     texture(const texture&) = delete;
     texture& operator=(const texture&) = delete;
     texture(texture&&) noexcept = default;
