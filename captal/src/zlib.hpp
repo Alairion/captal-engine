@@ -6,6 +6,7 @@
 #include <memory>
 #include <array>
 #include <iterator>
+#include <ctime>
 
 struct z_stream_s;
 
@@ -45,13 +46,12 @@ public:
         std::uint8_t* output_ptr{output_address};
         const std::size_t output_size{static_cast<std::size_t>(std::distance(output_begin, output_end))};
 
-        if(!compress_impl(input_ptr, input_size, output_ptr, output_size, flush))
-            return false;
+        compress_impl(input_ptr, input_size, output_ptr, output_size, flush);
 
         std::advance(input_begin, input_ptr - input_address);
         std::advance(output_begin, output_ptr - output_address);
 
-        return true;
+        return m_valid;
     }
 
     std::size_t compress_bound(std::size_t input_size) const noexcept;
@@ -64,11 +64,25 @@ public:
         return compress_bound(static_cast<std::size_t>(std::distance(begin, end)));
     }
 
+    void reset();
+
+    bool valid() const noexcept
+    {
+        return m_valid;
+    }
+
+protected:
+    z_stream_s& get_zstream() const noexcept
+    {
+        return *m_stream;
+    }
+
 private:
-    bool compress_impl(const std::uint8_t*& input, std::size_t input_size, std::uint8_t*& output, std::size_t output_size, bool finish);
+    void compress_impl(const std::uint8_t*& input, std::size_t input_size, std::uint8_t*& output, std::size_t output_size, bool finish);
 
 private:
     std::unique_ptr<z_stream_s> m_stream{};
+    bool m_valid{};
 };
 
 }
@@ -115,7 +129,7 @@ public:
     constexpr gzip_deflate() noexcept = default;
 
     gzip_deflate(std::uint32_t compression_level)
-    :impl::deflate{compression_level, 15 + 16}
+    :impl::deflate{compression_level, 16 + 15}
     {
 
     }
@@ -125,6 +139,14 @@ public:
     gzip_deflate& operator=(const gzip_deflate&) = delete;
     gzip_deflate(gzip_deflate&&) noexcept = default;
     gzip_deflate& operator=(gzip_deflate&&) noexcept = default;
+
+    void set_header(std::string original_name, std::string comment, std::string extra = std::string{}, std::time_t time = std::time(nullptr));
+
+private:
+    std::string m_original_name{};
+    std::string m_comment{};
+    std::string m_extra{};
+    std::time_t m_time{};
 };
 
 }
