@@ -542,6 +542,61 @@ struct wide : public utf32
 
 #endif
 
+struct latin_1
+{
+    using char_type = char;
+
+    template<typename InputIt, typename T>
+    static constexpr InputIt decode(InputIt begin, InputIt, T& output) noexcept
+    {
+        const std::uint8_t value{static_cast<std::uint8_t>(*begin++)};
+
+        if(value >= 0x80 && value < 0xA0) //in latin_1 this range is unused, but there are unicode code points for this range
+        {
+            output = 0;
+        }
+        else
+        {
+            output = static_cast<T>(value);
+        }
+
+        return begin;
+    }
+
+    template<typename OutputIt, typename T>
+    static constexpr OutputIt encode(T code, OutputIt output) noexcept
+    {
+        if(code > 0xFF)
+        {
+            *output++ = 0;
+        }
+        else
+        {
+            *output++ = static_cast<std::uint8_t>(code);
+        }
+
+        return output;
+    }
+
+    template<typename InputIt>
+    static constexpr InputIt next(InputIt begin, InputIt) noexcept
+    {
+        return ++begin;
+    }
+
+    template<typename InputIt>
+    static constexpr std::size_t count(InputIt begin, InputIt end) noexcept
+    {
+        return static_cast<std::size_t>(std::distance(begin, end));
+    }
+
+    static constexpr std::size_t max_char_length() noexcept
+    {
+        return 1;
+    }
+};
+
+
 template<typename Input, typename Output, typename InputIt, typename OutputIt>
 constexpr OutputIt convert(InputIt begin, InputIt end, OutputIt output)
 {
