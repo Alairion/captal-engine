@@ -76,7 +76,7 @@ inflate::~inflate()
     inflateEnd(m_stream.get());
 }
 
-void inflate::decompress_impl(const std::uint8_t*& input, std::size_t input_size, std::uint8_t*& output, std::size_t output_size, bool finish)
+void inflate::decompress_impl(const std::uint8_t*& input, std::size_t input_size, std::uint8_t*& output, std::size_t output_size, bool flush)
 {
     assert(valid() && "cpt::impl::inflate::compress called on an invalid stream.");
 
@@ -85,12 +85,12 @@ void inflate::decompress_impl(const std::uint8_t*& input, std::size_t input_size
     m_stream->next_out = reinterpret_cast<Bytef*>(output);
     m_stream->avail_out = static_cast<uInt>(output_size);
 
-    const auto result{::inflate(m_stream.get(), finish ? Z_FINISH : Z_NO_FLUSH)};
+    const auto result{::inflate(m_stream.get(), flush ? Z_FINISH : Z_NO_FLUSH)};
 
-    if(result == Z_STREAM_ERROR)
+    if(result == Z_STREAM_ERROR || result == Z_MEM_ERROR)
         throw std::runtime_error{"Error in inflate stream. " + std::string{zError(Z_STREAM_ERROR)}};
 
-    if(result == Z_STREAM_END)
+    if(result == Z_STREAM_END || result == Z_NEED_DICT || result == Z_DATA_ERROR)
         m_valid = false;
 
     input = reinterpret_cast<const std::uint8_t*>(m_stream->next_in);
@@ -148,35 +148,36 @@ struct gzip_inflate::gzip_info
     gz_header header{};
 };
 
-gzip_inflate::gzip_inflate()
-:impl::inflate{16 + 15}
-,m_header{std::make_unique<gzip_info>()}
-{
-
-}
-
-void gzip_inflate::reset()
-{
-    impl::inflate::reset();
-    m_header.reset();
-}
-
 void gzip_inflate::grab_header()
 {
     if(!m_header)
     {
         m_header = std::make_unique<gzip_info>();
-
-        m_header->header.name = reinterpret_cast<Bytef*>(std::data(m_header->name));
-        m_header->header.name_max = static_cast<uInt>(std::size(m_header->name) - 1);
-        m_header->header.comment = reinterpret_cast<Bytef*>(std::data(m_header->comment));
-        m_header->header.comm_max = static_cast<uInt>(std::size(m_header->comment) - 1);
-        m_header->header.extra = reinterpret_cast<Bytef*>(std::data(m_header->extra));
-        m_header->header.extra_max = static_cast<uInt>(std::size(m_header->extra));
-
-        if(!inflateGetHeader(&get_zstream(), &m_header->header))
-            throw std::runtime_error{"Can not grab gzip header."};
     }
+    else
+    {
+        m_header->header = gz_header{};
+    }
+
+    m_header->header.name = reinterpret_cast<Bytef*>(std::data(m_header->name));
+    m_header->header.name_max = static_cast<uInt>(std::size(m_header->name) - 1);
+    m_header->header.comment = reinterpret_cast<Bytef*>(std::data(m_header->comment));
+    m_header->header.comm_max = static_cast<uInt>(std::size(m_header->comment) - 1);
+    m_header->header.extra = reinterpret_cast<Bytef*>(std::data(m_header->extra));
+    m_header->header.extra_max = static_cast<uInt>(std::size(m_header->extra));
+
+    if(inflateGetHeader(&get_zstream(), &m_header->header) != Z_OK)
+        throw std::runtime_error{"Can not grab gzip header."};
+}
+
+bool gzip_inflate::is_header_ready() const noexcept
+{
+    if(m_header)
+    {
+        return m_header->header.done == 1;
+    }
+
+    return false;
 }
 
 std::string gzip_inflate::name() const
@@ -205,16 +206,6 @@ std::time_t gzip_inflate::time() const noexcept
     assert(is_header_ready() && "cpt::gzip_inflate::is_header_ready returned false in cpt::gzip_inflate::time");
 
     return static_cast<std::time_t>(m_header->header.time);
-}
-
-bool gzip_inflate::is_header_ready() const noexcept
-{
-    if(m_header)
-    {
-        return m_header->header.done == 1;
-    }
-
-    return false;
 }
 
 }

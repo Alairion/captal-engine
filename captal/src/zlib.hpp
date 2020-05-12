@@ -7,6 +7,7 @@
 #include <array>
 #include <iterator>
 #include <ctime>
+#include <algorithm>
 
 struct z_stream_s;
 struct gz_header_s;
@@ -53,6 +54,39 @@ public:
         return m_valid;
     }
 
+    template<std::size_t BufferSize = 2048, typename InputIt, typename OutputIt>
+    bool compress_buffered(InputIt& begin, InputIt end, OutputIt output, bool flush = false)
+    {
+        std::array<std::uint8_t, BufferSize> input_buffer{};
+        std::array<std::uint8_t, BufferSize> output_buffer{};
+
+        while(begin != end)
+        {
+            std::size_t count{};
+            while(count < std::size(input_buffer) && begin != end)
+            {
+                input_buffer[count++] = *begin++;
+            }
+
+            auto input_buffer_it{std::cbegin(input_buffer)};
+
+            while(input_buffer_it != std::end(input_buffer))
+            {
+                auto output_buffer_it{std::begin(output_buffer)};
+
+                compress(input_buffer_it, std::end(input_buffer), output_buffer_it, std::end(output_buffer), flush && begin == end);
+                std::copy(std::begin(output_buffer), output_buffer_it, output);
+
+                if(!m_valid)
+                {
+                    return m_valid;
+                }
+            }
+        }
+
+        return m_valid;
+    }
+
     std::size_t compress_bound(std::size_t input_size) const noexcept;
 
     template<typename InputIt>
@@ -87,10 +121,10 @@ private:
 class inflate
 {
 public:
-    static constexpr bool known_compress_bound{true};
+    static constexpr bool flush{true};
 
 public:
-    inflate(std::int32_t window_bits);
+    explicit inflate(std::int32_t window_bits);
     ~inflate();
     inflate(const inflate&) = delete;
     inflate& operator=(const inflate&) = delete;
@@ -98,7 +132,7 @@ public:
     inflate& operator=(inflate&&) noexcept = default;
 
     template<typename InContiguousIt, typename OutContiguousIt>
-    bool decompress(InContiguousIt& input_begin, InContiguousIt input_end, OutContiguousIt& output_begin, OutContiguousIt output_end, bool flush = false)
+    bool decompress(InContiguousIt& input_begin, InContiguousIt input_end, OutContiguousIt& output_begin, OutContiguousIt output_end, bool flush)
     {
         static_assert(sizeof(typename std::iterator_traits<InContiguousIt>::value_type) == 1, "cpt::inflate::decompress only works on bytes.");
         static_assert(sizeof(typename std::iterator_traits<OutContiguousIt>::value_type) == 1, "cpt::inflate::decompress only works on bytes.");
@@ -133,7 +167,7 @@ protected:
     }
 
 private:
-    void decompress_impl(const std::uint8_t*& input, std::size_t input_size, std::uint8_t*& output, std::size_t output_size, bool finish);
+    void decompress_impl(const std::uint8_t*& input, std::size_t input_size, std::uint8_t*& output, std::size_t output_size, bool flush);
 
 private:
     std::unique_ptr<z_stream_s> m_stream{};
@@ -202,7 +236,7 @@ private:
 class inflate : public impl::inflate
 {
 public:
-    inflate()
+    explicit inflate()
     :impl::inflate{-15}
     {
 
@@ -218,7 +252,7 @@ public:
 class zlib_inflate : public impl::inflate
 {
 public:
-    zlib_inflate()
+    explicit zlib_inflate()
     :impl::inflate{15}
     {
 
@@ -236,25 +270,31 @@ class gzip_inflate : public impl::inflate
     struct gzip_info;
 
 public:
-    gzip_inflate();
+    explicit gzip_inflate()
+    :impl::inflate{16 + 15}
+    {
+
+    }
+
     ~gzip_inflate() = default;
     gzip_inflate(const gzip_inflate&) = delete;
     gzip_inflate& operator=(const gzip_inflate&) = delete;
     gzip_inflate(gzip_inflate&&) noexcept = default;
     gzip_inflate& operator=(gzip_inflate&&) noexcept = default;
 
-    void reset();
     void grab_header();
+    bool is_header_ready() const noexcept;
 
     std::string name() const;
     std::string comment() const;
     std::string_view extra() const noexcept;
     std::time_t time() const noexcept;
-    bool is_header_ready() const noexcept;
 
 private:
     std::unique_ptr<gzip_info> m_header{};
 };
+
+
 
 }
 
