@@ -18,7 +18,7 @@ namespace cpt
 namespace impl
 {
 
-class deflate
+class CAPTAL_API deflate
 {
 public:
     static constexpr bool flush{true};
@@ -65,22 +65,21 @@ public:
             std::size_t count{};
             while(count < std::size(input_buffer) && begin != end)
             {
-                input_buffer[count++] = *begin++;
+                input_buffer[count++] = static_cast<std::uint8_t>(*begin++);
             }
 
-            auto input_buffer_it{std::cbegin(input_buffer)};
+            auto input_buffer_begin{std::begin(input_buffer)};
+            const auto input_buffer_end{std::begin(input_buffer) + count};
 
-            while(input_buffer_it != std::end(input_buffer))
+            while(input_buffer_begin != input_buffer_end)
             {
-                auto output_buffer_it{std::begin(output_buffer)};
+                auto output_buffer_begin{std::begin(output_buffer)};
 
-                compress(input_buffer_it, std::end(input_buffer), output_buffer_it, std::end(output_buffer), flush && begin == end);
-                std::copy(std::begin(output_buffer), output_buffer_it, output);
+                compress(input_buffer_begin, input_buffer_end, output_buffer_begin, std::end(output_buffer), flush && begin == end);
+                std::copy(std::begin(output_buffer), output_buffer_begin, output);
 
                 if(!m_valid)
-                {
-                    return m_valid;
-                }
+                    return false;
             }
         }
 
@@ -118,7 +117,7 @@ private:
     bool m_valid{};
 };
 
-class inflate
+class CAPTAL_API inflate
 {
 public:
     static constexpr bool flush{true};
@@ -153,6 +152,38 @@ public:
         return m_valid;
     }
 
+    template<std::size_t BufferSize = 2048, typename InputIt, typename OutputIt>
+    bool decompress_buffered(InputIt& begin, InputIt end, OutputIt output, bool flush = false)
+    {
+        std::array<std::uint8_t, BufferSize> input_buffer{};
+        std::array<std::uint8_t, BufferSize> output_buffer{};
+
+        while(begin != end)
+        {
+            std::size_t count{};
+            while(count < std::size(input_buffer) && begin != end)
+            {
+                input_buffer[count++] = static_cast<std::uint8_t>(*begin++);
+            }
+
+            auto input_buffer_begin{std::begin(input_buffer)};
+            const auto input_buffer_end{std::begin(input_buffer) + count};
+
+            while(input_buffer_begin != input_buffer_end)
+            {
+                auto output_buffer_begin{std::begin(output_buffer)};
+
+                decompress(input_buffer_begin, input_buffer_end, output_buffer_begin, std::end(output_buffer), flush && begin == end);
+                std::copy(std::begin(output_buffer), output_buffer_begin, output);
+
+                if(!m_valid)
+                    return false;
+            }
+        }
+
+        return m_valid;
+    }
+
     void reset();
 
     bool valid() const noexcept
@@ -176,15 +207,10 @@ private:
 
 }
 
-class deflate : public impl::deflate
+class CAPTAL_API deflate : public impl::deflate
 {
 public:
-    explicit deflate(std::uint32_t compression_level = 6)
-    :impl::deflate{compression_level, -15}
-    {
-
-    }
-
+    explicit deflate(std::uint32_t compression_level = 6);
     ~deflate() = default;
     deflate(const deflate&) = delete;
     deflate& operator=(const deflate&) = delete;
@@ -192,15 +218,10 @@ public:
     deflate& operator=(deflate&&) noexcept = default;
 };
 
-class zlib_deflate : public impl::deflate
+class CAPTAL_API zlib_deflate : public impl::deflate
 {
 public:
-    explicit zlib_deflate(std::uint32_t compression_level = 6)
-    :impl::deflate{compression_level, 15}
-    {
-
-    }
-
+    explicit zlib_deflate(std::uint32_t compression_level = 6);
     ~zlib_deflate() = default;
     zlib_deflate(const zlib_deflate&) = delete;
     zlib_deflate& operator=(const zlib_deflate&) = delete;
@@ -208,15 +229,10 @@ public:
     zlib_deflate& operator=(zlib_deflate&&) noexcept = default;
 };
 
-class gzip_deflate : public impl::deflate
+class CAPTAL_API gzip_deflate : public impl::deflate
 {
 public:
-    explicit gzip_deflate(std::uint32_t compression_level = 6)
-    :impl::deflate{compression_level, 16 + 15}
-    {
-
-    }
-
+    explicit gzip_deflate(std::uint32_t compression_level = 6);
     ~gzip_deflate() = default;
     gzip_deflate(const gzip_deflate&) = delete;
     gzip_deflate& operator=(const gzip_deflate&) = delete;
@@ -233,15 +249,10 @@ private:
     std::unique_ptr<gz_header_s> m_header{};
 };
 
-class inflate : public impl::inflate
+class CAPTAL_API inflate : public impl::inflate
 {
 public:
-    explicit inflate()
-    :impl::inflate{-15}
-    {
-
-    }
-
+    explicit inflate();
     ~inflate() = default;
     inflate(const inflate&) = delete;
     inflate& operator=(const inflate&) = delete;
@@ -249,15 +260,10 @@ public:
     inflate& operator=(inflate&&) noexcept = default;
 };
 
-class zlib_inflate : public impl::inflate
+class CAPTAL_API zlib_inflate : public impl::inflate
 {
 public:
-    explicit zlib_inflate()
-    :impl::inflate{15}
-    {
-
-    }
-
+    explicit zlib_inflate();
     ~zlib_inflate() = default;
     zlib_inflate(const zlib_inflate&) = delete;
     zlib_inflate& operator=(const zlib_inflate&) = delete;
@@ -265,17 +271,12 @@ public:
     zlib_inflate& operator=(zlib_inflate&&) noexcept = default;
 };
 
-class gzip_inflate : public impl::inflate
+class CAPTAL_API gzip_inflate : public impl::inflate
 {
     struct gzip_info;
 
 public:
-    explicit gzip_inflate()
-    :impl::inflate{16 + 15}
-    {
-
-    }
-
+    explicit gzip_inflate();
     ~gzip_inflate() = default;
     gzip_inflate(const gzip_inflate&) = delete;
     gzip_inflate& operator=(const gzip_inflate&) = delete;

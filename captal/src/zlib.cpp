@@ -107,6 +107,24 @@ void inflate::reset()
 
 }
 
+deflate::deflate(std::uint32_t compression_level)
+:impl::deflate{compression_level, -15}
+{
+
+}
+
+zlib_deflate::zlib_deflate(std::uint32_t compression_level)
+:impl::deflate{compression_level, 15}
+{
+
+}
+
+gzip_deflate::gzip_deflate(std::uint32_t compression_level)
+:impl::deflate{compression_level, 16 + 15}
+{
+
+}
+
 void gzip_deflate::set_header(const std::string& name, const std::string& comment, std::string extra, std::time_t time)
 {
     assert(valid() && "cpt::gzip_deflate::set_header called on an invalid stream.");
@@ -140,6 +158,18 @@ void gzip_deflate::set_header(const std::string& name, const std::string& commen
     deflateSetHeader(&get_zstream(), m_header.get());
 }
 
+inflate::inflate()
+:impl::inflate{-15}
+{
+
+}
+
+zlib_inflate::zlib_inflate()
+:impl::inflate{15}
+{
+
+}
+
 struct gzip_inflate::gzip_info
 {
     std::array<std::uint8_t, 64 * 1024> extra{};
@@ -147,6 +177,12 @@ struct gzip_inflate::gzip_info
     std::array<char, 4 * 1024> comment{};
     gz_header header{};
 };
+
+gzip_inflate::gzip_inflate()
+:impl::inflate{16 + 15}
+{
+
+}
 
 void gzip_inflate::grab_header()
 {

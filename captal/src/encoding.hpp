@@ -5,6 +5,7 @@
 
 #include <string>
 #include <array>
+#include <iterator>
 
 namespace cpt
 {
@@ -272,9 +273,9 @@ public:
     template<typename InputIt, typename T>
     static constexpr InputIt decode(InputIt begin, InputIt end, T& output) noexcept
     {
-        const std::size_t trailing_bytes{trailing[static_cast<std::size_t>(*begin)]};
+        const std::size_t trailing_bytes{trailing[static_cast<std::uint8_t>(*begin)]};
 
-        if(std::distance(begin, end) <= trailing_bytes && trailing_bytes < 4)
+        if(std::next(begin, trailing_bytes) < end && trailing_bytes < 4)
         {
             output = 0;
 
@@ -693,7 +694,7 @@ public:
     using char_type = char32_t;
     using difference_type = std::ptrdiff_t;
     using pointer = const char32_t*;
-    using reference = const char32_t&;
+    using reference = char32_t;
 
 public:
     constexpr decoder_iterator() = default;
@@ -702,15 +703,10 @@ public:
     :m_begin{std::move(begin)}
     ,m_end{std::move(end)}
     {
-        operator++();
-    }
-
-    template<typename Container, typename = std::enable_if_t<std::is_convertible_v<typename Container::iterator, InputIt>>>
-    constexpr decoder_iterator(const Container& container)
-    :m_begin{std::begin(container)}
-    ,m_end{std::end(container)}
-    {
-        operator++();
+        if(m_begin != m_end)
+        {
+            m_begin = encoding::decode(m_begin, m_end, m_codepoint);
+        }
     }
 
     ~decoder_iterator() = default;
@@ -732,6 +728,8 @@ public:
     constexpr decoder_iterator& operator++()
     {
         m_begin = encoding::decode(m_begin, m_end, m_codepoint);
+
+        return *this;
     }
 
     constexpr decoder_iterator operator++(int)
@@ -750,11 +748,6 @@ public:
     constexpr decoder_iterator end() const
     {
         return decoder_iterator{m_end, m_end};
-    }
-
-    constexpr bool operator==(const decoder_iterator& other) const noexcept
-    {
-        return m_begin == other.m_begin;
     }
 
     constexpr bool operator!=(const decoder_iterator& other) const noexcept
@@ -778,6 +771,12 @@ template<typename Encoding, typename Container>
 constexpr decoder_iterator<Encoding, typename Container::iterator> decode(const Container& container)
 {
     return decoder_iterator<Encoding, typename Container::iterator>{std::begin(container), std::end(container)};
+}
+
+template<typename Encoding, typename T, std::size_t N>
+constexpr decoder_iterator<Encoding, const T*> decode(const T (&array)[N])
+{
+    return decoder_iterator<Encoding, const T*>{std::begin(array), std::end(array)};
 }
 
 }

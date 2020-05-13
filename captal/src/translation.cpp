@@ -491,7 +491,7 @@ void translation_editor::parse_sections(const std::vector<section_description>& 
             translations.emplace(parse_translation(position));
         }
 
-        m_sections.emplace(std::make_pair(hash_value(section.context), std::move(translations)));
+        m_sections.emplace(std::make_pair(section.context, std::move(translations)));
     }
 }
 
@@ -600,14 +600,6 @@ std::string translation_editor::encode_translations(const translation_set_type& 
 {
     std::string output{};
 
-    const auto text_size = [](const std::string& string) -> std::size_t
-    {
-        return std::visit([](auto&& string) -> std::size_t
-        {
-            return std::size(string) * sizeof(typename std::decay_t<decltype(string)>::value_type);
-        }, string);
-    };
-
     const auto format_text = [](const std::string& string) -> std::string
     {
 
@@ -617,8 +609,8 @@ std::string translation_editor::encode_translations(const translation_set_type& 
     {
         translation_information information{};
         information.source_text_hash = hash_value(translation.first);
-        information.source_text_size = text_size(translation.first);
-        information.target_text_size = text_size(translation.second);
+        information.source_text_size = std::size(translation.first);
+        information.target_text_size = std::size(translation.second);
     }
 
     return output;

@@ -8,6 +8,8 @@
 #include "src/view.hpp"
 #include "src/physics.hpp"
 #include "src/render_texture.hpp"
+#include "src/zlib.hpp"
+#include "src/translation.hpp"
 
 #include "src/components/node.hpp"
 #include "src/components/camera.hpp"
@@ -21,7 +23,7 @@
 #include "src/systems/render.hpp"
 #include "src/systems/physics.hpp"
 #include "src/systems/sorting.hpp"
-
+/*
 struct physical_body_controller
 {
     cpt::physical_world_ptr physical_world{};
@@ -40,7 +42,7 @@ static constexpr std::array<std::uint8_t, 16> dummy_normal_map_data{128, 128, 25
 static constexpr std::array<std::uint8_t, 16> dummy_height_map_data{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 static constexpr std::array<std::uint8_t, 16> dummy_specular_map_data{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
-physical_body_controller add_physics(entt::registry& world, const cpt::physical_world_ptr& physical_world)
+static physical_body_controller add_physics(entt::registry& world, const cpt::physical_world_ptr& physical_world)
 {
     cpt::sprite_ptr background{cpt::make_sprite(640, 480)};
     background->set_color(0xFF078900);
@@ -52,10 +54,10 @@ physical_body_controller add_physics(entt::registry& world, const cpt::physical_
     world.assign<cpt::components::node>(background_entity);
     world.assign<cpt::components::drawable>(background_entity).attach(background);
 
-    cpt::sprite_ptr sprite{cpt::make_sprite(cpt::make_texture("assets/diffuse.png", cpt::load_from_file))};
-    sprite->add_uniform_binding(normal_map_binding, cpt::make_texture("assets/normal.png", cpt::load_from_file));
-    sprite->add_uniform_binding(height_map_binding, cpt::make_texture("assets/height.png", cpt::load_from_file));
-    sprite->add_uniform_binding(specular_map_binding, cpt::make_texture("assets/specular.png", cpt::load_from_file));
+    cpt::sprite_ptr sprite{cpt::make_sprite(cpt::make_texture(std::filesystem::u8path("assets/diffuse.png")))};
+    sprite->add_uniform_binding(normal_map_binding, cpt::make_texture(std::filesystem::u8path("assets/normal.png")));
+    sprite->add_uniform_binding(height_map_binding, cpt::make_texture(std::filesystem::u8path("assets/height.png")));
+    sprite->add_uniform_binding(specular_map_binding, cpt::make_texture(std::filesystem::u8path("assets/specular.png")));
     sprite->set_shininess(32.0f);
 
     cpt::physical_body_ptr sprite_body{cpt::make_physical_body(physical_world, cpt::physical_body_type::dynamic, 1.0f, std::numeric_limits<float>::infinity())};
@@ -73,10 +75,10 @@ physical_body_controller add_physics(entt::registry& world, const cpt::physical_
     constexpr std::array<glm::vec2, 4> positions{glm::vec2{300.0f, 230.0f}, glm::vec2{340.0f, 230.0f}, glm::vec2{300.0f, 250.0f}, glm::vec2{340.0f, 250.0f}};
     for(std::size_t i{}; i < 4; ++i)
     {
-        cpt::sprite_ptr sprite{cpt::make_sprite(cpt::make_texture("assets/diffuse.png", cpt::load_from_file))};
-        sprite->add_uniform_binding(normal_map_binding, cpt::make_texture("assets/normal.png", cpt::load_from_file));
-        sprite->add_uniform_binding(height_map_binding, cpt::make_texture("assets/height.png", cpt::load_from_file));
-        sprite->add_uniform_binding(specular_map_binding, cpt::make_texture("assets/specular.png", cpt::load_from_file));
+        cpt::sprite_ptr sprite{cpt::make_sprite(cpt::make_texture(std::filesystem::u8path("assets/diffuse.png")))};
+        sprite->add_uniform_binding(normal_map_binding, cpt::make_texture(std::filesystem::u8path("assets/normal.png")));
+        sprite->add_uniform_binding(height_map_binding, cpt::make_texture(std::filesystem::u8path("assets/height.png")));
+        sprite->add_uniform_binding(specular_map_binding, cpt::make_texture(std::filesystem::u8path("assets/specular.png")));
         sprite->set_shininess(32.0f);
 
         cpt::physical_body_ptr sprite_body{cpt::make_physical_body(physical_world, cpt::physical_body_type::dynamic, 1.0f, std::numeric_limits<float>::infinity())};
@@ -94,10 +96,10 @@ physical_body_controller add_physics(entt::registry& world, const cpt::physical_
 
     auto item_controller{cpt::make_physical_body(physical_world, cpt::physical_body_type::kinematic)};
     item_controller->set_position(glm::vec2{320.0f, 240.0f});
-    auto item_joint{cpt::make_physical_constraint(cpt::physical_constraint::pivot_joint, item_controller, sprite_body, glm::vec2{}, glm::vec2{})};
+    auto item_joint{cpt::make_physical_constraint(cpt::pivot_joint, item_controller, sprite_body, glm::vec2{}, glm::vec2{})};
     item_joint->set_max_bias(0.0f);
     item_joint->set_max_force(10000.0f);
-    auto item_pivot{cpt::make_physical_constraint(cpt::physical_constraint::gear_joint, item_controller, sprite_body, 0.0f, 1.0f)};
+    auto item_pivot{cpt::make_physical_constraint(cpt::gear_joint, item_controller, sprite_body, 0.0f, 1.0f)};
     item_pivot->set_error_bias(0.0f);
     item_pivot->set_max_bias(1.0f);
     item_pivot->set_max_force(10000.0f);
@@ -113,7 +115,7 @@ physical_body_controller add_physics(entt::registry& world, const cpt::physical_
     return physical_body_controller{physical_world, item_controller, item_joint, item_pivot};
 }
 
-void add_logic(const cpt::render_window_ptr& window, entt::registry& world, const cpt::physical_world_ptr& physical_world, entt::entity camera)
+static void add_logic(const cpt::render_window_ptr& window, entt::registry& world, const cpt::physical_world_ptr& physical_world, entt::entity camera)
 {
     auto item_controller{add_physics(world, physical_world)};
 
@@ -168,14 +170,14 @@ struct directional_light
     glm::vec4 specular{};
 };
 
-void run()
+static void run()
 {
     cpt::framed_buffer_ptr light_buffer{cpt::make_framed_buffer(directional_light{glm::vec4{0.0f, 0.0f, 0.0f, 0.0f}, glm::vec4{0.25f, 0.25f, 0.25f, 1.0f}, glm::vec4{0.9f, 0.9f, 0.9f, 1.0f}, glm::vec4{0.75f, 0.75f, 0.75f, 1.0f}})};
     directional_light& light{light_buffer->get<directional_light>(0)};
 
     //Height
-    tph::shader height_vertex_shader{cpt::engine::instance().renderer(), tph::shader_stage::vertex, "shaders/height.vert.spv", tph::load_from_file};
-    tph::shader height_fragment_shader{cpt::engine::instance().renderer(), tph::shader_stage::fragment, "shaders/height.frag.spv", tph::load_from_file};
+    tph::shader height_vertex_shader{cpt::engine::instance().renderer(), tph::shader_stage::vertex, std::filesystem::u8path("shaders/height.vert.spv")};
+    tph::shader height_fragment_shader{cpt::engine::instance().renderer(), tph::shader_stage::fragment, std::filesystem::u8path("shaders/height.frag.spv")};
     cpt::render_technique_info height_info{};
     height_info.stages.push_back(tph::pipeline_shader_stage{height_vertex_shader});
     height_info.stages.push_back(tph::pipeline_shader_stage{height_fragment_shader});
@@ -194,8 +196,8 @@ void run()
     world.assign<cpt::components::camera>(camera).attach(height_map_view);
 
     //Shadow
-    tph::shader shadow_vertex_shader{cpt::engine::instance().renderer(), tph::shader_stage::vertex, "shaders/shadow.vert.spv", tph::load_from_file};
-    tph::shader shadow_fragment_shader{cpt::engine::instance().renderer(), tph::shader_stage::fragment, "shaders/shadow.frag.spv", tph::load_from_file};
+    tph::shader shadow_vertex_shader{cpt::engine::instance().renderer(), tph::shader_stage::vertex, std::filesystem::u8path("shaders/shadow.vert.spv")};
+    tph::shader shadow_fragment_shader{cpt::engine::instance().renderer(), tph::shader_stage::fragment, std::filesystem::u8path("shaders/shadow.frag.spv")};
     cpt::render_technique_info shadow_info{};
     shadow_info.stages.push_back(tph::pipeline_shader_stage{shadow_vertex_shader});
     shadow_info.stages.push_back(tph::pipeline_shader_stage{shadow_fragment_shader});
@@ -220,8 +222,8 @@ void run()
     shadow_world.get<cpt::components::drawable>(shadow_sprite).attachment()->add_uniform_binding(height_map_binding, height_map);
 
     //Diffuse
-    tph::shader diffuse_vertex_shader{cpt::engine::instance().renderer(), tph::shader_stage::vertex, "shaders/lighting.vert.spv", tph::load_from_file};
-    tph::shader diffuse_fragment_shader{cpt::engine::instance().renderer(), tph::shader_stage::fragment, "shaders/lighting.frag.spv", tph::load_from_file};
+    tph::shader diffuse_vertex_shader{cpt::engine::instance().renderer(), tph::shader_stage::vertex, std::filesystem::u8path("shaders/lighting.vert.spv")};
+    tph::shader diffuse_fragment_shader{cpt::engine::instance().renderer(), tph::shader_stage::fragment, std::filesystem::u8path("shaders/lighting.frag.spv")};
     cpt::render_technique_info diffuse_info{};
     diffuse_info.stages.push_back(tph::pipeline_shader_stage{diffuse_vertex_shader});
     diffuse_info.stages.push_back(tph::pipeline_shader_stage{diffuse_fragment_shader});
@@ -323,14 +325,47 @@ void run()
     std::cout << "Device shared : " << memory_used.device_shared << " / " << memory_alloc.device_shared << "\n";
     std::cout << "Host shared : " << memory_used.host_shared << " / " << memory_alloc.host_shared << "\n";
 }
+*/
+
+static void print(const std::string_view& data)
+{
+    for(auto c : data)
+    {
+        std::cout << std::hex << std::setfill('0') << std::setw(2) << static_cast<std::uint32_t>(static_cast<std::uint8_t>(c)) << ' ';
+    }
+
+    std::cout << std::endl;
+}
+
+static void run()
+{
+    std::string_view data{"Hello world!"};
+
+    cpt::zlib_deflate deflate{9};
+    std::string output{};
+    output.reserve(deflate.compress_bound(std::size(data)));
+
+    auto data_begin{std::begin(data)};
+    deflate.compress_buffered(data_begin, std::end(data), std::back_inserter(output), cpt::zlib_deflate::flush);
+
+    print(output);
+
+    cpt::zlib_inflate inflate{};
+    std::string input{};
+
+    auto output_begin{std::begin(output)};
+    inflate.decompress_buffered(output_begin, std::end(output), std::back_inserter(input), cpt::zlib_inflate::flush);
+
+    std::cout << input << std::endl;
+}
 
 int main()
 {
     try
-    {
+    {/*
         const cpt::audio_parameters audio{2, 44100};
         const cpt::graphics_parameters graphics{tph::renderer_options::tiny_memory_heaps};
-        cpt::engine engine{"captal_text", tph::version{1, 0, 0}, audio, graphics};
+        cpt::engine engine{"captal_test", tph::version{1, 0, 0}, audio, graphics};*/
 
         run();
     }

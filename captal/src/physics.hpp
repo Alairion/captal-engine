@@ -392,30 +392,29 @@ enum class physical_constraint_type : std::uint32_t
     motor_joint = 9
 };
 
+struct pin_joint_t{};
+inline constexpr pin_joint_t pin_joint{};
+struct slide_joint_t{};
+inline constexpr slide_joint_t slide_joint{};
+struct pivot_joint_t{};
+inline constexpr pivot_joint_t pivot_joint{};
+struct groove_joint_t{};
+inline constexpr groove_joint_t groove_joint{};
+struct damped_spring_t{};
+inline constexpr damped_spring_t damped_spring{};
+struct damped_rotary_spring_t{};
+inline constexpr damped_rotary_spring_t damped_rotary_spring{};
+struct rotary_limit_joint_t{};
+inline constexpr rotary_limit_joint_t rotary_limit_joint{};
+struct ratchet_joint_t{};
+inline constexpr ratchet_joint_t ratchet_joint{};
+struct gear_joint_t{};
+inline constexpr gear_joint_t gear_joint{};
+struct motor_joint_t{};
+inline constexpr motor_joint_t motor_joint{};
+
 class CAPTAL_API physical_constraint
 {
-public:
-    struct pin_joint_t{};
-    static constexpr pin_joint_t pin_joint{};
-    struct slide_joint_t{};
-    static constexpr slide_joint_t slide_joint{};
-    struct pivot_joint_t{};
-    static constexpr pivot_joint_t pivot_joint{};
-    struct groove_joint_t{};
-    static constexpr groove_joint_t groove_joint{};
-    struct damped_spring_t{};
-    static constexpr damped_spring_t damped_spring{};
-    struct damped_rotary_spring_t{};
-    static constexpr damped_rotary_spring_t damped_rotary_spring{};
-    struct rotary_limit_joint_t{};
-    static constexpr rotary_limit_joint_t rotary_limit_joint{};
-    struct ratchet_joint_t{};
-    static constexpr ratchet_joint_t ratchet_joint{};
-    struct gear_joint_t{};
-    static constexpr gear_joint_t gear_joint{};
-    struct motor_joint_t{};
-    static constexpr motor_joint_t motor_joint{};
-
 public:
     physical_constraint(pin_joint_t, physical_body_ptr first, physical_body_ptr second, const glm::vec2& first_anchor, const glm::vec2& second_anchor);
     physical_constraint(slide_joint_t, physical_body_ptr first, physical_body_ptr second, const glm::vec2& first_anchor, const glm::vec2& second_anchor, float min, float max);
