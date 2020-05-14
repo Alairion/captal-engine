@@ -64,9 +64,9 @@ Header:
         [cpt::country: source_country] the source language country
         [cpt::language: target_language] the target language
         [cpt::country: target_country] the target language country
+        [std::uint64_t: section_count] the total number of sections
         [std::uint64_t: translation_count] the number of translated sentences/strings
     Parse informations:
-        [std::uint64_t: section_count] the total number of sections
         [section_count occurencies] array of section description
         {
             [16 bytes: context] the context of this section
@@ -540,8 +540,125 @@ using translation_context_t = std::array<std::uint8_t, 16>;
 
 inline constexpr translation_magic_word_t translation_magic_word{0x43, 0x50, 0x54, 0x54, 0x52, 0x41, 0x4E, 0x53};
 inline constexpr translation_context_t no_translation_context{};
-inline constexpr tph::version last_translation_version{1, 0, 0};
-inline constexpr std::array translation_versions{tph::version{1, 0, 0}};
+inline constexpr tph::version last_translation_version{0, 1, 0};
+inline constexpr std::array translation_versions{tph::version{0, 1, 0}};
+
+class translation_parser
+{
+    struct memory_stream
+    {
+        std::string_view data{};
+        std::size_t position{};
+    };
+
+private:
+    using source_type = std::variant<std::monostate, std::ifstream, memory_stream, std::reference_wrapper<std::istream>>;
+
+public:
+    struct file_information
+    {
+        translation_magic_word_t magic_word{};
+        tph::version version{};
+    };
+
+    struct header
+    {
+        cpt::language source_language{};
+        cpt::country source_country{};
+        cpt::language target_language{};
+        cpt::country target_country{};
+        std::uint64_t section_count{};
+        std::uint64_t translation_count{};
+    };
+
+    struct section
+    {
+        translation_context_t context{};
+        std::uint64_t begin{};
+        std::uint64_t translation_count{};
+    };
+
+    struct translation
+    {
+        std::uint64_t source_hash{};
+        std::uint64_t source_size{};
+        std::uint64_t target_size{};
+        std::string source{};
+        std::string target{};
+    };
+
+private:
+    static constexpr std::size_t file_information_begin{};
+    static constexpr std::size_t header_begin{file_information_begin + sizeof(file_information)};
+    static constexpr std::size_t section_description_begin{header_begin + sizeof(header)};
+
+public:
+    static constexpr bool load_source{true};
+
+public:
+    constexpr translation_parser() = default;
+    translation_parser(const std::filesystem::path& path);
+    translation_parser(const std::string_view& data);
+    translation_parser(std::istream& stream);
+
+    ~translation_parser() = default;
+    translation_parser(const translation_parser&) = delete;
+    translation_parser& operator=(const translation_parser&) = delete;
+    translation_parser(translation_parser&&) = default;
+    translation_parser& operator=(translation_parser&&) = default;
+
+    const section& next_section();
+    std::optional<translation> next_translation(bool load_source = false);
+    const section& jump_to_section(std::size_t index);
+
+    tph::version version() const noexcept
+    {
+        return m_info.version;
+    }
+
+    cpt::language source_language() const noexcept
+    {
+        return m_header.source_language;
+    }
+
+    cpt::country source_country() const noexcept
+    {
+        return m_header.source_country;
+    }
+
+    cpt::language target_language() const noexcept
+    {
+        return m_header.target_language;
+    }
+
+    cpt::country target_country() const noexcept
+    {
+        return m_header.target_country;
+    }
+
+    std::uint64_t translation_count() const noexcept
+    {
+        return m_header.translation_count;
+    }
+
+    const std::vector<section>& sections() const noexcept
+    {
+        return m_sections;
+    }
+
+private:
+    void read(void* output, std::size_t size);
+    void seek(std::size_t position);
+    void read_header();
+    void read_sections();
+
+private:
+    source_type m_source{};
+    file_information m_info{};
+    header m_header{};
+    std::vector<section> m_sections{};
+    std::size_t m_current_section{};
+};
 
 enum class translator_options : std::uint32_t
 {

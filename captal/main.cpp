@@ -1,4 +1,7 @@
 #include <iostream>
+#include <random>
+
+#include <nes/hash.hpp>
 
 #include "src/engine.hpp"
 
@@ -327,36 +330,40 @@ static void run()
 }
 */
 
-static void print(const std::string_view& data)
+static std::string generate_data()
 {
-    for(auto c : data)
-    {
-        std::cout << std::hex << std::setfill('0') << std::setw(2) << static_cast<std::uint32_t>(static_cast<std::uint8_t>(c)) << ' ';
-    }
+    std::string data{};
+    data.resize(1024 * 1024);
+    std::mt19937 engine{std::random_device{}()};
+    std::uniform_int_distribution<char> dist('A', 'Z');
+    for(auto& c : data)
+        c = dist(engine);
 
-    std::cout << std::endl;
+    return data;
 }
 
 static void run()
 {
-    std::string_view data{"Hello world!"};
+    const std::string data{generate_data()};
 
-    cpt::zlib_deflate deflate{9};
-    std::string output{};
-    output.reserve(deflate.compress_bound(std::size(data)));
+    for(std::uint32_t compression{0}; compression < 10; ++compression)
+    {
+        std::string compressed{};
+        compressed.reserve(std::size(data));
 
-    auto data_begin{std::begin(data)};
-    deflate.compress_buffered(data_begin, std::end(data), std::back_inserter(output), cpt::zlib_deflate::flush);
+        const auto tp1{std::chrono::steady_clock::now()};
+        cpt::compress_buffered<cpt::zlib_deflate>(std::begin(data), std::end(data), std::back_inserter(compressed), compression);
+        const auto time{std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - tp1).count()};
 
-    print(output);
-
-    cpt::zlib_inflate inflate{};
-    std::string input{};
-
-    auto output_begin{std::begin(output)};
-    inflate.decompress_buffered(output_begin, std::end(output), std::back_inserter(input), cpt::zlib_inflate::flush);
-
-    std::cout << input << std::endl;
+        std::cout << " Compression level: " << compression;
+        std::cout << " Compressed size: " << std::size(compressed);
+        std::cout << " Time: " << time << "ms" << std::endl;
+    }
+    /*
+    std::string decompressed{};
+    decompressed.reserve(std::size(data));
+    cpt::decompress_buffered<cpt::zlib_inflate>(std::begin(compressed), std::end(compressed), std::back_inserter(decompressed));
+*/
 }
 
 int main()

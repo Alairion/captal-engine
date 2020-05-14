@@ -27,6 +27,96 @@ static constexpr std::uint64_t hash_value(const T& value)
     return nes::hash<T, nes::hash_kernels::fnv_1a>{}(value)[0];
 }
 
+translation_parser::translation_parser(const std::filesystem::path& path)
+{
+
+}
+
+translation_parser::translation_parser(const std::string_view& data)
+{
+
+}
+
+translation_parser::translation_parser(std::istream& stream)
+{
+
+}
+
+const translation_parser::section& translation_parser::next_section()
+{
+
+}
+
+std::optional<translation_parser::translation> translation_parser::next_translation(bool load_source)
+{
+
+}
+
+const translation_parser::section& translation_parser::jump_to_section(std::size_t index)
+{
+
+}
+
+void translation_parser::read(void* output, std::size_t size)
+{
+    if(std::holds_alternative<memory_stream>(m_source))
+    {
+        auto& view{std::get<memory_stream>(m_source)};
+
+        if(std::size(view.data) < view.position + size)
+            throw std::runtime_error{"Bad file content."};
+
+        std::memcpy(output, std::data(view.data) + view.position, size);
+
+        view.position += size;
+    }
+    else if(std::holds_alternative<std::ifstream>(m_source))
+    {
+        auto& ifs{std::get<std::ifstream>(m_source)};
+        ifs.read(reinterpret_cast<char*>(output), static_cast<std::streamsize>(size));
+
+        if(static_cast<std::size_t>(ifs.gcount()) != size)
+            throw std::runtime_error{"Bad file content."};
+    }
+    else if(std::holds_alternative<std::reference_wrapper<std::istream>>(m_source))
+    {
+        auto& is{std::get<std::reference_wrapper<std::istream>>(m_source).get()};
+        is.read(reinterpret_cast<char*>(output), static_cast<std::streamsize>(size));
+
+        if(static_cast<std::size_t>(is.gcount()) != size)
+            throw std::runtime_error{"Bad file content."};
+    }
+}
+
+void translation_parser::seek(std::size_t position)
+{
+    if(std::holds_alternative<memory_stream>(m_source))
+    {
+        auto& view{std::get<memory_stream>(m_source)};
+        view.position = position;
+    }
+    else if(std::holds_alternative<std::ifstream>(m_source))
+    {
+        auto& ifs{std::get<std::ifstream>(m_source)};
+        ifs.seekg(static_cast<std::streamoff>(position), std::ios_base::beg);
+    }
+    else if(std::holds_alternative<std::reference_wrapper<std::istream>>(m_source))
+    {
+        auto& is{std::get<std::reference_wrapper<std::istream>>(m_source).get()};
+        is.seekg(static_cast<std::streamoff>(position), std::ios_base::beg);
+    }
+}
+
+void translation_parser::read_header()
+{
+
+}
+
+void translation_parser::read_sections()
+{
+
+}
+
 translator::translator(const std::filesystem::path& path, translator_options options)
 :m_options{options}
 {
@@ -117,8 +207,6 @@ void translator::read_from_source(char* output, std::uint64_t begin, std::uint64
     if(std::holds_alternative<std::ifstream>(m_source))
     {
         auto& ifs{std::get<std::ifstream>(m_source)};
-
-        ifs.seekg(static_cast<std::streamoff>(begin), std::ios_base::beg);
         ifs.read(output, static_cast<std::streamsize>(size));
 
         if(static_cast<std::size_t>(ifs.gcount()) != size)
@@ -131,13 +219,11 @@ void translator::read_from_source(char* output, std::uint64_t begin, std::uint64
         if(std::size(view) < begin + size)
             throw std::runtime_error{"Bad file content."};
 
-        std::memcpy(&m_file_format, std::data(view) + begin, size);
+        std::memcpy(output, std::data(view) + begin, size);
     }
     else if(std::holds_alternative<std::reference_wrapper<std::istream>>(m_source))
     {
         auto& is{std::get<std::reference_wrapper<std::istream>>(m_source).get()};
-
-        is.seekg(static_cast<std::streamoff>(begin), std::ios_base::beg);
         is.read(output, static_cast<std::streamsize>(size));
 
         if(static_cast<std::size_t>(is.gcount()) != size)

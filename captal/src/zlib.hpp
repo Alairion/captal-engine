@@ -71,11 +71,14 @@ public:
             auto input_buffer_begin{std::begin(input_buffer)};
             const auto input_buffer_end{std::begin(input_buffer) + count};
 
-            while(input_buffer_begin != input_buffer_end)
-            {
-                auto output_buffer_begin{std::begin(output_buffer)};
+            auto output_buffer_begin{std::end(output_buffer)}; //i hate do-whiles :)
+            const auto output_buffer_end{std::end(output_buffer)};
 
-                compress(input_buffer_begin, input_buffer_end, output_buffer_begin, std::end(output_buffer), flush && begin == end);
+            while(output_buffer_begin == output_buffer_end)
+            {
+                output_buffer_begin = std::begin(output_buffer);
+
+                compress(input_buffer_begin, input_buffer_end, output_buffer_begin, output_buffer_end, flush && !(begin != end));
                 std::copy(std::begin(output_buffer), output_buffer_begin, output);
 
                 if(!m_valid)
@@ -169,11 +172,14 @@ public:
             auto input_buffer_begin{std::begin(input_buffer)};
             const auto input_buffer_end{std::begin(input_buffer) + count};
 
-            while(input_buffer_begin != input_buffer_end)
-            {
-                auto output_buffer_begin{std::begin(output_buffer)};
+            auto output_buffer_begin{std::end(output_buffer)}; //i hate do-whiles :)
+            const auto output_buffer_end{std::end(output_buffer)};
 
-                decompress(input_buffer_begin, input_buffer_end, output_buffer_begin, std::end(output_buffer), flush && begin == end);
+            while(output_buffer_begin == output_buffer_end)
+            {
+                output_buffer_begin = std::begin(output_buffer);
+
+                decompress(input_buffer_begin, input_buffer_end, output_buffer_begin, output_buffer_end, flush && !(begin != end));
                 std::copy(std::begin(output_buffer), output_buffer_begin, output);
 
                 if(!m_valid)
@@ -295,7 +301,41 @@ private:
     std::unique_ptr<gzip_info> m_header{};
 };
 
+template<typename Compressor, typename InContiguousIt, typename OutContiguousIt, typename... Args>
+std::pair<OutContiguousIt, bool> compress(InContiguousIt input_begin, InContiguousIt input_end, OutContiguousIt output_begin, OutContiguousIt output_end, Args&&... args)
+{
+    Compressor compressor{std::forward<Args>(args)...};
+    compressor.compress(input_begin, input_end, output_begin, output_end, true);
 
+    return std::make_pair(output_begin, !compressor.valid());
+}
+
+template<typename Decompressor, typename InContiguousIt, typename OutContiguousIt, typename... Args>
+std::pair<OutContiguousIt, bool> decompress(InContiguousIt input_begin, InContiguousIt input_end, OutContiguousIt output_begin, OutContiguousIt output_end, Args&&... args)
+{
+    Decompressor decompressor{std::forward<Args>(args)...};
+    decompressor.decompress(input_begin, input_end, output_begin, output_end, true);
+
+    return std::make_pair(output_begin, !decompressor.valid());
+}
+
+template<typename Compressor, std::size_t BufferSize = 2048, typename InputIt, typename OutputIt, typename... Args>
+std::pair<OutputIt, bool> compress_buffered(InputIt begin, InputIt end, OutputIt output, Args&&... args)
+{
+    Compressor compressor{std::forward<Args>(args)...};
+    compressor. template compress_buffered<BufferSize>(begin, end, output, true);
+
+    return std::make_pair(output, !compressor.valid());
+}
+
+template<typename Decompressor, std::size_t BufferSize = 2048, typename InputIt, typename OutputIt, typename... Args>
+std::pair<OutputIt, bool> decompress_buffered(InputIt begin, InputIt end, OutputIt output, Args&&... args)
+{
+    Decompressor decompressor{std::forward<Args>(args)...};
+    decompressor. template decompress_buffered<BufferSize>(begin, end, output, true);
+
+    return std::make_pair(output, !decompressor.valid());
+}
 
 }
 
