@@ -4,6 +4,9 @@ project(apyre)
 
 option(APYRE_BUILD_EXAMPLE OFF)
 
+set(GLOBAL_INCLUDES "${PROJECT_SOURCE_DIR}/../libs/include")
+set(GLOBAL_LIBRARIES "${PROJECT_SOURCE_DIR}/../libs/external")
+
 set(SDL_INCLUDES "${PROJECT_SOURCE_DIR}/../libs/include/sdl")
 set(SDL_LIBRARIES "${PROJECT_SOURCE_DIR}/../libs/external/libSDL2main.a"
                   "${PROJECT_SOURCE_DIR}/../libs/external/libSDL2-static.a")
@@ -29,7 +32,7 @@ add_definitions(-DSDL_MAIN_HANDLED -DAPYRE_SHARED_BUILD)
 add_library(${PROJECT_NAME} SHARED ${HEADERS} ${SOURCES})
 set_target_properties(${PROJECT_NAME} PROPERTIES PREFIX "")
 
-target_include_directories(${PROJECT_NAME} PRIVATE ${SDL_INCLUDES})
+target_include_directories(${PROJECT_NAME} PRIVATE ${SDL_INCLUDES} ${GLOBAL_INCLUDES})
 target_link_libraries(${PROJECT_NAME} ${SDL_LIBRARIES})
 
 if(APYRE_BUILD_EXAMPLE)

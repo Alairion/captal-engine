@@ -218,8 +218,6 @@ enum class pipeline_options
     allow_derivatives = VK_PIPELINE_CREATE_ALLOW_DERIVATIVES_BIT,
 };
 
-template<> struct enable_enum_operations<pipeline_options> {static constexpr bool value{true};};
-
 struct pipeline_info
 {
     pipeline_options options{};
@@ -262,5 +260,7 @@ inline VkPipeline underlying_cast(const pipeline& pipeline) noexcept
 }
 
 }
+
+template<> struct tph::enable_enum_operations<tph::pipeline_options> {static constexpr bool value{true};};
 
 #endif

@@ -143,8 +143,6 @@ enum class color_component : std::uint32_t
     a = VK_COLOR_COMPONENT_A_BIT,
 };
 
-template<> struct enable_enum_operations<color_component> {static constexpr bool value{true};};
-
 enum class dynamic_state : std::uint32_t
 {
     viewport = VK_DYNAMIC_STATE_VIEWPORT,
@@ -168,8 +166,6 @@ enum class shader_stage : std::uint32_t
     compute = VK_SHADER_STAGE_COMPUTE_BIT,
 };
 
-template<> struct enable_enum_operations<shader_stage> {static constexpr bool value{true};};
-
 enum class pipeline_stage : std::uint32_t
 {
     top_of_pipe = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
@@ -190,8 +186,6 @@ enum class pipeline_stage : std::uint32_t
     all_graphics = VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT,
     all_commands = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
 };
-
-template<> struct enable_enum_operations<pipeline_stage> {static constexpr bool value{true};};
 
 enum class resource_access
 {
@@ -214,8 +208,6 @@ enum class resource_access
     memory_read = VK_ACCESS_MEMORY_READ_BIT,
     memory_write = VK_ACCESS_MEMORY_WRITE_BIT,
 };
-
-template<> struct enable_enum_operations<resource_access> {static constexpr bool value{true};};
 
 enum class texture_layout : std::uint32_t
 {
@@ -425,8 +417,6 @@ enum class format_feature : std::uint32_t
     transfer_destination = VK_FORMAT_FEATURE_TRANSFER_DST_BIT,
 };
 
-template<> struct enable_enum_operations<format_feature> {static constexpr bool value{true};};
-
 enum class attachment_load_op : std::uint32_t
 {
     load = VK_ATTACHMENT_LOAD_OP_LOAD,
@@ -441,8 +431,6 @@ enum class dependency_flags : std::uint32_t
     view_local = VK_DEPENDENCY_VIEW_LOCAL_BIT,
 };
 
-template<> struct enable_enum_operations<dependency_flags> {static constexpr bool value{true};};
-
 enum class filter : std::uint32_t
 {
     nearest = VK_FILTER_NEAREST,
@@ -456,5 +444,12 @@ enum class index_type : std::uint32_t
 };
 
 }
+
+template<> struct tph::enable_enum_operations<tph::color_component> {static constexpr bool value{true};};
+template<> struct tph::enable_enum_operations<tph::shader_stage> {static constexpr bool value{true};};
+template<> struct tph::enable_enum_operations<tph::pipeline_stage> {static constexpr bool value{true};};
+template<> struct tph::enable_enum_operations<tph::resource_access> {static constexpr bool value{true};};
+template<> struct tph::enable_enum_operations<tph::format_feature> {static constexpr bool value{true};};
+template<> struct tph::enable_enum_operations<tph::dependency_flags> {static constexpr bool value{true};};
 
 #endif

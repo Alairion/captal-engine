@@ -47,8 +47,6 @@ enum class mouse_button : std::uint32_t
     side2 = 0x10,
 };
 
-template<> struct enable_enum_operations<mouse_button> {static constexpr bool value{true};};
-
 struct mouse_event
 {
     enum : std::uint32_t
@@ -343,8 +341,6 @@ enum class key_modifier : std::uint32_t
     mode = 0x4000,
 };
 
-template<> struct enable_enum_operations<key_modifier> {static constexpr bool value{true};};
-
 struct keyboard_event
 {
     enum : std::uint32_t
@@ -467,5 +463,9 @@ private:
 };
 
 }
+
+template<> struct apr::enable_enum_operations<apr::mouse_button> {static constexpr bool value{true};};
+template<> struct apr::enable_enum_operations<apr::key_modifier> {static constexpr bool value{true};};
+
 
 #endif

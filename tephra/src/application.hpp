@@ -21,8 +21,6 @@ enum class application_options : std::uint32_t
     enable_verbose_validation = 0x02,
 };
 
-template<> struct enable_enum_operations<application_options> {static constexpr bool value{true};};
-
 class application
 {
     template<typename VulkanObject, typename... Args>
@@ -80,5 +78,8 @@ private:
 template<> inline VkInstance underlying_cast(const application& initializer) noexcept {return initializer.m_instance;}
 
 }
+
+template<> struct tph::enable_enum_operations<tph::application_options> {static constexpr bool value{true};};
+
 
 #endif

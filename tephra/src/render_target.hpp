@@ -30,8 +30,6 @@ enum class render_target_options : std::uint32_t
     all = 0xFFFFFFFF
 };
 
-template<> struct enable_enum_operations<render_target_options> {static constexpr bool value{true};};
-
 enum class render_pass_content : std::uint32_t
 {
     inlined = VK_SUBPASS_CONTENTS_INLINE,
@@ -317,5 +315,7 @@ inline VkFramebuffer underlying_cast(const render_target& render_target, const s
 }
 
 }
+
+template<> struct tph::enable_enum_operations<tph::render_target_options> {static constexpr bool value{true};};
 
 #endif

@@ -26,8 +26,6 @@ enum class renderer_options
     transfer_queue = 0x10,
 };
 
-template<> struct enable_enum_operations<renderer_options> {static constexpr bool value{true};};
-
 enum class queue : std::size_t
 {
     graphics = 0,
@@ -116,5 +114,7 @@ inline VkQueue underlying_cast(const renderer& renderer, const queue& index) noe
 }
 
 }
+
+template<> struct tph::enable_enum_operations<tph::renderer_options> {static constexpr bool value{true};};
 
 #endif

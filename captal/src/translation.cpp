@@ -29,30 +29,43 @@ static constexpr std::uint64_t hash_value(const T& value)
 
 translation_parser::translation_parser(const std::filesystem::path& path)
 {
+    std::ifstream ifs{path, std::ios_base::binary};
+    if(!ifs)
+        throw std::runtime_error{"Can not open file \"" + path.u8string() + "\"."};
 
+    m_source = std::move(ifs);
+
+    init();
 }
 
 translation_parser::translation_parser(const std::string_view& data)
+:m_source{memory_stream{data, 0}}
 {
-
+    init();
 }
 
 translation_parser::translation_parser(std::istream& stream)
+:m_source{std::ref(stream)}
 {
-
+    init();
 }
 
-const translation_parser::section& translation_parser::next_section()
+tph::optional_ref<const translation_parser::section> translation_parser::next_section()
 {
+    ++m_current_section;
 
-}
+    if(m_current_section == std::size(m_sections))
+        return tph::nullref;
 
-std::optional<translation_parser::translation> translation_parser::next_translation(bool load_source)
-{
-
+    return tph::ref(jump_to_section(m_current_section));
 }
 
 const translation_parser::section& translation_parser::jump_to_section(std::size_t index)
+{
+
+}
+
+std::optional<translation_parser::translation> translation_parser::next_translation(translation_parser_load loads)
 {
 
 }
@@ -115,6 +128,12 @@ void translation_parser::read_header()
 void translation_parser::read_sections()
 {
 
+}
+
+void translation_parser::init()
+{
+    read_header();
+    read_sections();
 }
 
 translator::translator(const std::filesystem::path& path, translator_options options)

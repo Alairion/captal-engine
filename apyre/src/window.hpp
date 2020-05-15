@@ -7,7 +7,7 @@
 
 class SDL_Window;
 
-#ifndef VULKAN_H_
+#ifndef VULKAN_H_ //hello
     #define APYRE_VK_DEFINE_HANDLE(object) typedef struct object##_T* object;
 
     #if defined(__LP64__) || defined(_WIN64) || defined(__x86_64__) || defined(_M_X64) || defined(__ia64) || defined (_M_IA64) || defined(__aarch64__) || defined(__powerpc64__)
@@ -36,8 +36,6 @@ enum class window_options : std::uint32_t
     minimized = 0x10,
     maximized = 0x20,
 };
-
-template<> struct enable_enum_operations<window_options> {static constexpr bool value{true};};
 
 class APYRE_API window
 {
@@ -102,5 +100,7 @@ private:
 };
 
 }
+
+template<> struct apr::enable_enum_operations<apr::window_options> {static constexpr bool value{true};};
 
 #endif

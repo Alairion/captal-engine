@@ -37,8 +37,6 @@ enum class font_style : std::uint32_t
     strikethrough = 0x08,
 };
 
-template<> struct enable_enum_operations<font_style> {static constexpr bool value{true};};
-
 struct font_info
 {
     std::string family{};
@@ -212,5 +210,7 @@ text_ptr CAPTAL_API draw_text(cpt::font& font, std::string_view u8string,  std::
 text_ptr CAPTAL_API draw_text(cpt::font&& font, std::string_view u8string, std::uint32_t line_width, text_align align = text_align::left, const color& color = colors::white, text_drawer_options options = text_drawer_options::kerning);
 
 }
+
+template<> struct cpt::enable_enum_operations<cpt::font_style> {static constexpr bool value{true};};
 
 #endif

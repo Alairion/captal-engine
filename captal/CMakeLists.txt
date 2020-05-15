@@ -4,7 +4,6 @@ project(captal)
 
 option(CAPTAL_BUILD_EXAMPLE OFF)
 
-
 set(GLOBAL_INCLUDES "${PROJECT_SOURCE_DIR}/../libs/include")
 set(GLOBAL_LIBRARIES "${PROJECT_SOURCE_DIR}/../libs/external")
 

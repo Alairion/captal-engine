@@ -24,8 +24,6 @@ enum class image_usage : std::uint32_t
     persistant_mapping = 0x20000000,
 };
 
-template<> struct enable_enum_operations<image_usage> {static constexpr bool value{true};};
-
 struct pixel
 {
     std::uint8_t red{};
@@ -233,5 +231,7 @@ inline VkBuffer underlying_cast(const image& image) noexcept
 }
 
 }
+
+template<> struct tph::enable_enum_operations<tph::image_usage> {static constexpr bool value{true};};
 
 #endif

@@ -28,8 +28,6 @@ enum class buffer_usage : std::uint32_t
     staging = 0x20000000,
 };
 
-template<> struct enable_enum_operations<buffer_usage> {static constexpr bool value{true};};
-
 class buffer
 {
     template<typename VulkanObject, typename... Args>
@@ -68,5 +66,7 @@ inline VkBuffer underlying_cast(const buffer& buffer) noexcept
 }
 
 }
+
+template<> struct tph::enable_enum_operations<tph::buffer_usage> {static constexpr bool value{true};};
 
 #endif

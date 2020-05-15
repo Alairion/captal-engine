@@ -58,7 +58,7 @@ Each translations are preceded by the hash value of the source FNV-1a hash algor
 Header:
     File format detection:
         [8 bytes: "CPTTRANS"] magic word to detect file format
-        [tph::version: file_version] the file version (tph::version is an uint64 composed of 3 fields: [uint16: major][uint16: minor][uint32: patch])
+        [cpt::version: file_version] the file version (cpt::version is an uint64 composed of 3 fields: [uint16: major][uint16: minor][uint32: patch])
     General informations:
         [cpt::language: source_language]the source language
         [cpt::country: source_country] the source language country
@@ -540,10 +540,17 @@ using translation_context_t = std::array<std::uint8_t, 16>;
 
 inline constexpr translation_magic_word_t translation_magic_word{0x43, 0x50, 0x54, 0x54, 0x52, 0x41, 0x4E, 0x53};
 inline constexpr translation_context_t no_translation_context{};
-inline constexpr tph::version last_translation_version{0, 1, 0};
-inline constexpr std::array translation_versions{tph::version{0, 1, 0}};
+inline constexpr cpt::version last_translation_version{0, 1, 0};
+inline constexpr std::array translation_versions{cpt::version{0, 1, 0}};
 
-class translation_parser
+enum class translation_parser_load : std::uint32_t
+{
+    none = 0x00,
+    source_text = 0x01,
+    target_text = 0x02
+};
+
+class CAPTAL_API translation_parser
 {
     struct memory_stream
     {
@@ -558,7 +565,7 @@ public:
     struct file_information
     {
         translation_magic_word_t magic_word{};
-        tph::version version{};
+        cpt::version version{};
     };
 
     struct header
@@ -593,9 +600,6 @@ private:
     static constexpr std::size_t section_description_begin{header_begin + sizeof(header)};
 
 public:
-    static constexpr bool load_source{true};
-
-public:
     constexpr translation_parser() = default;
     translation_parser(const std::filesystem::path& path);
     translation_parser(const std::string_view& data);
@@ -607,11 +611,11 @@ public:
     translation_parser(translation_parser&&) = default;
     translation_parser& operator=(translation_parser&&) = default;
 
-    const section& next_section();
-    std::optional<translation> next_translation(bool load_source = false);
+    optional_ref<const section> next_section();
     const section& jump_to_section(std::size_t index);
+    std::optional<translation> next_translation(translation_parser_load loads);
 
-    tph::version version() const noexcept
+    cpt::version version() const noexcept
     {
         return m_info.version;
     }
@@ -646,11 +650,17 @@ public:
         return m_sections;
     }
 
+    std::size_t current_section() const noexcept
+    {
+        return m_current_section;
+    }
+
 private:
     void read(void* output, std::size_t size);
     void seek(std::size_t position);
     void read_header();
     void read_sections();
+    void init();
 
 private:
     source_type m_source{};
@@ -666,16 +676,12 @@ enum class translator_options : std::uint32_t
     identity_translator = 0x01
 };
 
-template<> struct enable_enum_operations<translator_options>{static constexpr bool value{true};};
-
 enum class translate_options : std::uint32_t
 {
     none = 0x00,
     context_fallback = 0x01,
     input_fallback = 0x02,
 };
-
-template<> struct enable_enum_operations<translate_options>{static constexpr bool value{true};};
 
 class CAPTAL_API translator
 {
@@ -687,7 +693,7 @@ private:
     struct file_format
     {
         translation_magic_word_t magic_word{translation_magic_word};
-        tph::version version{1, 0, 0};
+        cpt::version version{1, 0, 0};
     };
 
     struct header
@@ -740,7 +746,7 @@ public:
     bool exists(const translation_context_t& context) const noexcept;
     bool exists(const std::string_view& text, const translation_context_t& context = no_translation_context) const noexcept;
 
-    tph::version version() const noexcept
+    cpt::version version() const noexcept
     {
         return m_file_format.version;
     }
@@ -812,7 +818,7 @@ private:
     struct file_format
     {
         translation_magic_word_t magic_word{};
-        tph::version version{};
+        cpt::version version{};
     };
 
     struct header
@@ -877,7 +883,7 @@ public:
 
     std::string encode() const;
 
-    tph::version set_minimum_version(tph::version requested);
+    cpt::version set_minimum_version(cpt::version requested);
 
     void set_source_language(language language) noexcept
     {
@@ -899,7 +905,7 @@ public:
         m_header.target_country = country;
     }
 
-    tph::version version() const noexcept
+    cpt::version version() const noexcept
     {
         return m_file_format.version;
     }
@@ -966,5 +972,9 @@ private:
 };
 
 }
+
+template<> struct cpt::enable_enum_operations<cpt::translation_parser_load>{static constexpr bool value{true};};
+template<> struct cpt::enable_enum_operations<cpt::translator_options>{static constexpr bool value{true};};
+template<> struct cpt::enable_enum_operations<cpt::translate_options>{static constexpr bool value{true};};
 
 #endif

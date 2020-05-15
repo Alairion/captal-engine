@@ -17,8 +17,6 @@ enum class sound_reader_options : std::uint32_t
     buffered = 0x01
 };
 
-template<> struct enable_enum_operations<sound_reader_options> {static constexpr bool value{true};};
-
 class sound_reader
 {
 public:
@@ -242,5 +240,7 @@ private:
 };
 
 }
+
+template<> struct swl::enable_enum_operations<swl::sound_reader_options> {static constexpr bool value{true};};
 
 #endif

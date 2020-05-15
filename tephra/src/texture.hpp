@@ -28,8 +28,6 @@ enum class texture_usage : std::uint32_t
     input_attachment = VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT,
 };
 
-template<> struct enable_enum_operations<texture_usage> {static constexpr bool value{true};};
-
 enum class address_mode : std::uint32_t
 {
     repeat = VK_SAMPLER_ADDRESS_MODE_REPEAT,
@@ -145,5 +143,7 @@ inline VkSampler underlying_cast(const texture& texture) noexcept
 }
 
 }
+
+template<> struct tph::enable_enum_operations<tph::texture_usage> {static constexpr bool value{true};};
 
 #endif

@@ -108,7 +108,7 @@ constexpr std::uint8_t bswap(std::uint8_t value) noexcept
 
 constexpr std::uint16_t bswap(std::uint16_t value) noexcept
 {
-    return (value << 8) | (value >> 8);
+    return static_cast<std::uint16_t>((value << 8) | (value >> 8));
 }
 
 constexpr std::uint32_t bswap(std::uint32_t value) noexcept

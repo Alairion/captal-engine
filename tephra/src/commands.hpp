@@ -99,8 +99,6 @@ enum class command_buffer_flags : std::uint32_t
     simultaneous_use = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT,
 };
 
-template<> struct enable_enum_operations<command_buffer_flags> {static constexpr bool value{true};};
-
 struct copy_offset
 {
     std::int32_t x{};
@@ -231,5 +229,7 @@ void submit(renderer& renderer, queue queue, const submit_info& info, optional_r
 void submit(renderer& renderer, queue queue, const std::vector<submit_info>& submits, optional_ref<fence> fence);
 
 }
+
+template<> struct tph::enable_enum_operations<tph::command_buffer_flags> {static constexpr bool value{true};};
 
 #endif
