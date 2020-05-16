@@ -68,8 +68,6 @@ translation_parser::section_ptr translation_parser::next_section()
 
 translation_parser::section_ptr translation_parser::jump_to_section(std::size_t index)
 {
-    assert(index < std::size(m_sections) && "cpt::translation_parser::jump_to_section was called with an out of range index.");
-
     const section_information& output{m_sections[index]};
     seek(output.begin);
 
@@ -433,7 +431,12 @@ bool translation_editor::exists(const std::string& source_text, const translatio
 
 std::string translation_editor::encode() const
 {
+    std::string output{};
+    output.reserve(file_bound());
 
+    //...
+
+    return output;
 }
 
 cpt::version translation_editor::set_minimum_version(cpt::version requested)
@@ -475,6 +478,27 @@ void translation_editor::parse(translation_parser& parser)
     }
 }
 
+std::size_t translation_editor::file_bound() const
+{
+    std::size_t output{};
+
+    output += sizeof(translation_parser::file_information);
+    output += sizeof(translation_parser::header_information);
+    output += sizeof(translation_parser::section_information) * section_count();
+
+    for(auto&& [context, translations] : m_sections)
+    {
+        for(auto&& [source, target] : translations)
+        {
+            output += sizeof(std::uint32_t) * 3;
+            output += std::size(source);
+            output += std::size(target);
+        }
+    }
+
+    return output;
+}
+
 std::string translation_editor::encode_file_information() const
 {
     std::string output{};
@@ -494,7 +518,7 @@ std::string translation_editor::encode_file_information() const
     return output;
 }
 
-std::string translation_editor::encode_header() const
+std::string translation_editor::encode_header_information() const
 {
     std::string output{};
     output.resize(sizeof(translation_parser::header_information));
@@ -522,39 +546,44 @@ std::string translation_editor::encode_header() const
     return output;
 }
 
-std::string translation_editor::encode_sections() const
+std::string translation_editor::encode_section_informations() const
 {
-    translation_parser::parse_information parse_informations{std::size(m_sections)};
-    std::vector<section_description> section_descriptions{};
-    section_descriptions.reserve(parse_informations.section_count);
-
-    const std::size_t output_position{parse_information_begin};
-    std::string tranlations{};
+    std::string output{};
 
     for(auto&& section : m_sections)
     {
 
     }
+
+    return output;
 }
 
-std::string translation_editor::encode_translations(const translation_set_type& translations)
-{/*
+std::string translation_editor::encode_section(const translation_set_type& translations) const
+{
     std::string output{};
-
-    const auto format_text = [](const std::string& string) -> std::string
-    {
-
-    };
 
     for(auto&& translation : translations)
     {
-        translation_information information{};
-        information.source_text_hash = hash_value(translation.first);
-        information.source_text_size = std::size(translation.first);
-        information.target_text_size = std::size(translation.second);
     }
 
-    return output;*/
+    return output;
+}
+
+std::string translation_editor::encode_translation(const std::pair<std::string, std::string>& translation)
+{
+
+        std::uint64_t source_hash{hash_value(translation.first)};
+        std::uint64_t source_size{static_cast<std::uint64_t>(std::size(translation.first))};
+        std::uint64_t target_size{static_cast<std::uint64_t>(std::size(translation.second))};
+
+        if constexpr(endian::native == endian::big)
+        {
+            source_hash = bswap(source_hash);
+            source_size = bswap(source_size);
+            target_size = bswap(target_size);
+        }
+
+        std::memcpy(std::data(output), &source_hash, sizeof(std::uint64_t));
 }
 
 }

@@ -854,10 +854,12 @@ private:
     void parse(translation_parser& parser);
 
 private:
+    std::size_t file_bound() const;
     std::string encode_file_information() const;
-    std::string encode_header() const;
-    std::string encode_sections() const;
-    std::string encode_translations(const translation_set_type& translations);
+    std::string encode_header_information() const;
+    std::string encode_section_informations() const;
+    std::string encode_section(const translation_set_type& translations) const;
+    std::string encode_translation(const std::pair<std::string, std::string>& translation);
 
 private:
     translator_options m_options{};
