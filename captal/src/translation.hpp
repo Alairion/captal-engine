@@ -857,9 +857,9 @@ private:
     std::size_t file_bound() const;
     std::string encode_file_information() const;
     std::string encode_header_information() const;
-    std::string encode_section_informations() const;
+    std::string encode_section_informations(std::size_t begin, std::size_t bound) const;
     std::string encode_section(const translation_set_type& translations) const;
-    std::string encode_translation(const std::pair<std::string, std::string>& translation);
+    std::string encode_translation(const std::string& source, const std::string& target) const;
 
 private:
     translator_options m_options{};

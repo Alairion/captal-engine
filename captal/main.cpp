@@ -330,6 +330,7 @@ static void run()
 }
 */
 
+/*
 static std::string generate_data()
 {
     std::string data{};
@@ -359,11 +360,16 @@ static void run()
         std::cout << " Compressed size: " << std::size(compressed);
         std::cout << " Time: " << time << "ms" << std::endl;
     }
-    /*
-    std::string decompressed{};
-    decompressed.reserve(std::size(data));
-    cpt::decompress_buffered<cpt::zlib_inflate>(std::begin(compressed), std::end(compressed), std::back_inserter(decompressed));
+}
 */
+
+static void run()
+{
+    cpt::translation_editor editor{cpt::language::iso_fra, cpt::country::iso_fra, cpt::language::iso_eng, cpt::country::iso_gbr};
+    editor.add("Coucou !", "Hello!", cpt::no_translation_context);
+    editor.add("Coucou !", "Hello, bitch!", cpt::translation_context_t{42, 12});
+
+    const std::string file{editor.encode()};
 }
 
 int main()

@@ -431,10 +431,14 @@ bool translation_editor::exists(const std::string& source_text, const translatio
 
 std::string translation_editor::encode() const
 {
-    std::string output{};
-    output.reserve(file_bound());
+    const std::size_t bound{file_bound()};
 
-    //...
+    std::string output{};
+    output.reserve(bound);
+
+    output += encode_file_information();
+    output += encode_header_information();
+    output += encode_section_informations(std::size(output), bound - std::size(output));
 
     return output;
 }
@@ -546,14 +550,42 @@ std::string translation_editor::encode_header_information() const
     return output;
 }
 
-std::string translation_editor::encode_section_informations() const
+std::string translation_editor::encode_section_informations(std::size_t begin, std::size_t bound) const
 {
+    if(std::empty(m_sections))
+        return {};
+
     std::string output{};
+    output.reserve(bound);
 
-    for(auto&& section : m_sections)
+    std::vector<translation_parser::section_information> sections_starts{};
+    sections_starts.reserve(std::size(m_sections));
+
+    const std::size_t sections_total_size{std::size(m_sections) * sizeof(translation_parser::section_information)};
+
+    std::size_t current_begin{begin + sections_total_size};
+    output.resize(sections_total_size);
+
+    for(auto&& [context, translations] : m_sections)
     {
+        std::string translations_data{encode_section(translations)};
 
+        auto& section_information{sections_starts.emplace_back()};
+        section_information.context = context;
+        section_information.translation_count = static_cast<std::uint64_t>(std::size(translations));
+        section_information.begin = current_begin;
+
+        if constexpr(endian::native == endian::big)
+        {
+            section_information.translation_count = bswap(section_information.translation_count);
+            section_information.begin = bswap(section_information.begin);
+        }
+
+        current_begin += std::size(translations_data);
+        output += translations_data;
     }
+
+    std::memcpy(std::data(output), std::data(sections_starts), sections_total_size);
 
     return output;
 }
@@ -562,28 +594,48 @@ std::string translation_editor::encode_section(const translation_set_type& trans
 {
     std::string output{};
 
-    for(auto&& translation : translations)
+    std::size_t total_size{};
+    for(auto&& [source, target] : translations)
     {
+        total_size += sizeof(std::uint64_t) * 3;
+        total_size += std::size(source);
+        total_size += std::size(target);
+    }
+
+    output.reserve(total_size);
+    for(auto&& [source, target] : translations)
+    {
+        output += encode_translation(source, target);
     }
 
     return output;
 }
 
-std::string translation_editor::encode_translation(const std::pair<std::string, std::string>& translation)
+std::string translation_editor::encode_translation(const std::string& source, const std::string& target) const
 {
+    std::string output{};
+    output.reserve(sizeof(std::uint64_t) * 3 + std::size(source) + std::size(target));
 
-        std::uint64_t source_hash{hash_value(translation.first)};
-        std::uint64_t source_size{static_cast<std::uint64_t>(std::size(translation.first))};
-        std::uint64_t target_size{static_cast<std::uint64_t>(std::size(translation.second))};
+    std::uint64_t source_hash{hash_value(source)};
+    std::uint64_t source_size{static_cast<std::uint64_t>(std::size(source))};
+    std::uint64_t target_size{static_cast<std::uint64_t>(std::size(target))};
 
-        if constexpr(endian::native == endian::big)
-        {
-            source_hash = bswap(source_hash);
-            source_size = bswap(source_size);
-            target_size = bswap(target_size);
-        }
+    if constexpr(endian::native == endian::big)
+    {
+        source_hash = bswap(source_hash);
+        source_size = bswap(source_size);
+        target_size = bswap(target_size);
+    }
 
-        std::memcpy(std::data(output), &source_hash, sizeof(std::uint64_t));
+    output.resize(sizeof(std::uint64_t) * 3);
+    std::memcpy(std::data(output), &source_hash, sizeof(std::uint64_t));
+    std::memcpy(std::data(output) + sizeof(std::uint64_t), &source_size, sizeof(std::uint64_t));
+    std::memcpy(std::data(output) + sizeof(std::uint64_t) * 2, &target_size, sizeof(std::uint64_t));
+
+    output += source;
+    output += target;
+
+    return output;
 }
 
 }
