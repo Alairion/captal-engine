@@ -28,14 +28,14 @@ struct audio_parameters
 {
     std::uint32_t channel_count{};
     std::uint32_t frequency{};
-    std::optional<std::reference_wrapper<const swl::physical_device>> physical_device{};
+    optional_ref<const swl::physical_device> physical_device{};
 };
 
 struct graphics_parameters
 {
     tph::renderer_options options{};
     tph::physical_device_features features{};
-    std::optional<std::reference_wrapper<const tph::physical_device>> physical_device{};
+    optional_ref<const tph::physical_device> physical_device{};
 };
 
 using update_signal = sigslot::signal<float>;
@@ -51,8 +51,8 @@ public:
     static constexpr std::uint32_t no_frame_rate_limit{std::numeric_limits<std::uint32_t>::max()};
 
 public:
-    engine(const std::string& application_name, tph::version version);
-    engine(const std::string& application_name, tph::version version, const audio_parameters& audio, const graphics_parameters& graphics);
+    engine(const std::string& application_name, cpt::version version);
+    engine(const std::string& application_name, cpt::version version, const audio_parameters& audio, const graphics_parameters& graphics);
     engine(cpt::application application, const audio_parameters& audio, const graphics_parameters& graphics);
     ~engine();
     engine(const engine&) = delete;

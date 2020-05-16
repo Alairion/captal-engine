@@ -547,7 +547,8 @@ enum class translation_parser_load : std::uint32_t
 {
     none = 0x00,
     source_text = 0x01,
-    target_text = 0x02
+    target_text = 0x02,
+    all = source_text | target_text
 };
 
 class CAPTAL_API translation_parser
@@ -568,17 +569,17 @@ public:
         cpt::version version{};
     };
 
-    struct header
+    struct header_information
     {
-        cpt::language source_language{};
-        cpt::country source_country{};
-        cpt::language target_language{};
-        cpt::country target_country{};
+        language source_language{};
+        country source_country{};
+        language target_language{};
+        country target_country{};
         std::uint64_t section_count{};
         std::uint64_t translation_count{};
     };
 
-    struct section
+    struct section_information
     {
         translation_context_t context{};
         std::uint64_t begin{};
@@ -594,10 +595,8 @@ public:
         std::string target{};
     };
 
-private:
-    static constexpr std::size_t file_information_begin{};
-    static constexpr std::size_t header_begin{file_information_begin + sizeof(file_information)};
-    static constexpr std::size_t section_description_begin{header_begin + sizeof(header)};
+public:
+    using section_ptr = const section_information*;
 
 public:
     constexpr translation_parser() = default;
@@ -611,31 +610,33 @@ public:
     translation_parser(translation_parser&&) = default;
     translation_parser& operator=(translation_parser&&) = default;
 
-    optional_ref<const section> next_section();
-    const section& jump_to_section(std::size_t index);
-    std::optional<translation> next_translation(translation_parser_load loads);
+    section_ptr current_section() const noexcept;
+    section_ptr next_section();
+    section_ptr jump_to_section(std::size_t index);
+
+    std::optional<translation> next_translation(translation_parser_load loads = translation_parser_load::all);
 
     cpt::version version() const noexcept
     {
         return m_info.version;
     }
 
-    cpt::language source_language() const noexcept
+    language source_language() const noexcept
     {
         return m_header.source_language;
     }
 
-    cpt::country source_country() const noexcept
+    country source_country() const noexcept
     {
         return m_header.source_country;
     }
 
-    cpt::language target_language() const noexcept
+    language target_language() const noexcept
     {
         return m_header.target_language;
     }
 
-    cpt::country target_country() const noexcept
+    country target_country() const noexcept
     {
         return m_header.target_country;
     }
@@ -645,19 +646,14 @@ public:
         return m_header.translation_count;
     }
 
-    const std::vector<section>& sections() const noexcept
+    std::uint64_t section_count() const noexcept
     {
-        return m_sections;
-    }
-
-    std::size_t current_section() const noexcept
-    {
-        return m_current_section;
+        return m_header.section_count;
     }
 
 private:
     void read(void* output, std::size_t size);
-    void seek(std::size_t position);
+    void seek(std::size_t position, std::ios_base::seekdir dir = std::ios_base::beg);
     void read_header();
     void read_sections();
     void init();
@@ -665,9 +661,10 @@ private:
 private:
     source_type m_source{};
     file_information m_info{};
-    header m_header{};
-    std::vector<section> m_sections{};
+    header_information m_header{};
+    std::vector<section_information> m_sections{};
     std::size_t m_current_section{};
+    std::size_t m_current_translation{};
 };
 
 enum class translator_options : std::uint32_t
@@ -685,50 +682,8 @@ enum class translate_options : std::uint32_t
 
 class CAPTAL_API translator
 {
-    using source_type = std::variant<std::monostate, std::ifstream, std::string_view, std::reference_wrapper<std::istream>>;
     using translation_set_type = std::unordered_map<std::uint64_t, std::string>;
     using section_type = std::unordered_map<std::uint64_t, translation_set_type>;
-
-private:
-    struct file_format
-    {
-        translation_magic_word_t magic_word{translation_magic_word};
-        cpt::version version{1, 0, 0};
-    };
-
-    struct header
-    {
-        cpt::language source_language{};
-        cpt::country source_country{};
-        cpt::language target_language{};
-        cpt::country target_country{};
-        std::uint64_t translation_count{};
-    };
-
-    struct parse_information
-    {
-        std::uint64_t section_count{};
-    };
-
-    struct section_description
-    {
-        translation_context_t context{};
-        std::uint64_t begin{};
-        std::uint64_t translation_count{};
-    };
-
-    struct translation_information
-    {
-        std::uint64_t source_text_hash{};
-        std::uint64_t source_text_size{};
-        std::uint64_t target_text_size{};
-    };
-
-private:
-    static constexpr std::size_t file_format_begin{};
-    static constexpr std::size_t header_begin{sizeof(file_format)};
-    static constexpr std::size_t parse_information_begin{sizeof(file_format) + sizeof(header)};
-    static constexpr std::size_t section_description_begin{sizeof(file_format) + sizeof(header) + sizeof(parse_information)};
 
 public:
     translator() = default;
@@ -748,56 +703,51 @@ public:
 
     cpt::version version() const noexcept
     {
-        return m_file_format.version;
+        return m_version;
     }
 
-    cpt::language source_language() const noexcept
+    language source_language() const noexcept
     {
-        return m_header.source_language;
+        return m_source_language;
     }
 
-    cpt::country source_country() const noexcept
+    country source_country() const noexcept
     {
-        return m_header.source_country;
+        return m_source_country;
     }
 
-    cpt::language target_language() const noexcept
+    language target_language() const noexcept
     {
-        return m_header.target_language;
+        return m_target_language;
     }
 
-    cpt::country target_country() const noexcept
+    country target_country() const noexcept
     {
-        return m_header.target_country;
+        return m_target_country;
     }
 
     std::uint64_t translation_count() const noexcept
     {
-        return m_header.translation_count;
+        return m_translation_count;
     }
 
     std::uint64_t section_count() const noexcept
     {
-        return m_parse_informations.section_count;
+        return m_section_count;
     }
 
 private:
-    void read_from_source(char* output, std::size_t begin, std::size_t size);
-    void parse_file_format();
-    void parse_header();
-    void parse_parse_information();
-    void parse_section_descriptions();
-    void parse_sections(const std::vector<section_description>& sections);
-    std::pair<std::uint64_t, std::string> parse_translation(std::uint64_t& position);
-    std::string parse_target_text(const translation_information& info, std::uint64_t position);
-    void init();
+    void parse(translation_parser& parser);
 
 private:
     translator_options m_options{translator_options::identity_translator};
-    source_type m_source{};
-    file_format m_file_format{};
-    header m_header{};
-    parse_information m_parse_informations{};
+    cpt::version m_version{};
+    language m_source_language{};
+    country m_source_country{};
+    language m_target_language{};
+    country m_target_country{};
+    std::uint64_t m_section_count{};
+    std::uint64_t m_translation_count{};
     section_type m_sections{};
 };
 
@@ -810,51 +760,6 @@ class CAPTAL_API translation_editor
             return std::hash<std::string_view>{}(std::string_view{reinterpret_cast<const char*>(std::data(value)), std::size(value)});
         }
     };
-
-private:
-    using source_type = std::variant<std::monostate, std::ifstream, std::string_view, std::reference_wrapper<std::istream>>;
-
-private:
-    struct file_format
-    {
-        translation_magic_word_t magic_word{};
-        cpt::version version{};
-    };
-
-    struct header
-    {
-        cpt::language source_language{};
-        cpt::country source_country{};
-        cpt::language target_language{};
-        cpt::country target_country{};
-        std::uint64_t translation_count{};
-    };
-
-    struct parse_information
-    {
-        std::uint64_t section_count{};
-    };
-
-private:
-    struct section_description
-    {
-        translation_context_t context{};
-        std::uint64_t begin{};
-        std::uint64_t translation_count{};
-    };
-
-    struct translation_information
-    {
-        std::uint64_t source_text_hash{};
-        std::uint64_t source_text_size{};
-        std::uint64_t target_text_size{};
-    };
-
-private:
-    static constexpr std::size_t file_format_begin{};
-    static constexpr std::size_t header_begin{sizeof(file_format)};
-    static constexpr std::size_t parse_information_begin{sizeof(file_format) + sizeof(header)};
-    static constexpr std::size_t section_description_begin{sizeof(file_format) + sizeof(header) + sizeof(parse_information)};
 
 public:
     using translation_set_type = std::unordered_map<std::string, std::string>;
@@ -887,47 +792,47 @@ public:
 
     void set_source_language(language language) noexcept
     {
-        m_header.source_language = language;
+        m_source_language = language;
     }
 
     void set_source_country(country country) noexcept
     {
-        m_header.source_country = country;
+        m_source_country = country;
     }
 
     void set_target_language(language language) noexcept
     {
-        m_header.target_language = language;
+        m_target_language = language;
     }
 
     void set_target_country(country country) noexcept
     {
-        m_header.target_country = country;
+        m_target_country = country;
     }
 
     cpt::version version() const noexcept
     {
-        return m_file_format.version;
+        return m_version;
     }
 
-    cpt::language source_language() const noexcept
+    language source_language() const noexcept
     {
-        return m_header.source_language;
+        return m_source_language;
     }
 
-    cpt::country source_country() const noexcept
+    country source_country() const noexcept
     {
-        return m_header.source_country;
+        return m_source_country;
     }
 
-    cpt::language target_language() const noexcept
+    language target_language() const noexcept
     {
-        return m_header.target_language;
+        return m_target_language;
     }
 
-    cpt::country target_country() const noexcept
+    country target_country() const noexcept
     {
-        return m_header.target_country;
+        return m_target_country;
     }
 
     std::uint64_t translation_count() const noexcept
@@ -946,28 +851,21 @@ public:
     }
 
 private:
-    void read_from_source(char* output, std::size_t begin, std::size_t size);
-    void parse_file_format();
-    void parse_header();
-    void parse_parse_information();
-    void parse_section_descriptions();
-    void parse_sections(const std::vector<section_description>& sections);
-    std::pair<std::string, std::string> parse_translation(std::uint64_t& position);
-    std::string parse_text(const translation_information& info, std::uint64_t position);
-    void init();
+    void parse(translation_parser& parser);
 
 private:
-    std::string encode_file_format() const;
+    std::string encode_file_information() const;
     std::string encode_header() const;
-    std::string encode_parse_informations() const;
+    std::string encode_sections() const;
     std::string encode_translations(const translation_set_type& translations);
 
 private:
     translator_options m_options{};
-    source_type m_source{};
-    file_format m_file_format{};
-    header m_header{};
-    parse_information m_parse_informations{};
+    cpt::version m_version{};
+    language m_source_language{};
+    country m_source_country{};
+    language m_target_language{};
+    country m_target_country{};
     section_type m_sections{};
 };
 

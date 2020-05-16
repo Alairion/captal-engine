@@ -50,24 +50,72 @@ translation_parser::translation_parser(std::istream& stream)
     init();
 }
 
-tph::optional_ref<const translation_parser::section> translation_parser::next_section()
+translation_parser::section_ptr translation_parser::current_section() const noexcept
 {
-    ++m_current_section;
+    if(std::empty(m_sections))
+        return nullptr;
 
-    if(m_current_section == std::size(m_sections))
-        return tph::nullref;
-
-    return tph::ref(jump_to_section(m_current_section));
+    return &m_sections[m_current_section];
 }
 
-const translation_parser::section& translation_parser::jump_to_section(std::size_t index)
+translation_parser::section_ptr translation_parser::next_section()
 {
+    if(++m_current_section == std::size(m_sections))
+        return nullptr;
 
+    return jump_to_section(m_current_section);
+}
+
+translation_parser::section_ptr translation_parser::jump_to_section(std::size_t index)
+{
+    assert(index < std::size(m_sections) && "cpt::translation_parser::jump_to_section was called with an out of range index.");
+
+    const section_information& output{m_sections[index]};
+    seek(output.begin);
+
+    m_current_translation = 0;
+
+    return &output;
 }
 
 std::optional<translation_parser::translation> translation_parser::next_translation(translation_parser_load loads)
 {
+    ++m_current_translation;
 
+    if(m_current_translation == m_sections[m_current_section].translation_count)
+        return std::nullopt;
+
+    translation output{};
+    read(&output, sizeof(std::uint64_t) * 3); //Don't overwrite the strings
+
+    if constexpr(endian::native == endian::big)
+    {
+        output.source_hash = bswap(output.source_hash);
+        output.source_size = bswap(output.source_size);
+        output.target_size = bswap(output.target_size);
+    }
+
+    if(static_cast<bool>(loads & translation_parser_load::source_text))
+    {
+        output.source.resize(output.source_size);
+        read(std::data(output.source), std::size(output.source));
+    }
+    else
+    {
+        seek(output.source_size, std::ios_base::cur);
+    }
+
+    if(static_cast<bool>(loads & translation_parser_load::target_text))
+    {
+        output.target.resize(output.target_size);
+        read(std::data(output.target), std::size(output.target));
+    }
+    else
+    {
+        seek(output.target_size, std::ios_base::cur);
+    }
+
+    return std::make_optional(std::move(output));
 }
 
 void translation_parser::read(void* output, std::size_t size)
@@ -80,7 +128,6 @@ void translation_parser::read(void* output, std::size_t size)
             throw std::runtime_error{"Bad file content."};
 
         std::memcpy(output, std::data(view.data) + view.position, size);
-
         view.position += size;
     }
     else if(std::holds_alternative<std::ifstream>(m_source))
@@ -101,33 +148,77 @@ void translation_parser::read(void* output, std::size_t size)
     }
 }
 
-void translation_parser::seek(std::size_t position)
+void translation_parser::seek(std::size_t position, std::ios_base::seekdir dir)
 {
     if(std::holds_alternative<memory_stream>(m_source))
     {
         auto& view{std::get<memory_stream>(m_source)};
-        view.position = position;
+
+        if(dir == std::ios_base::beg)
+        {
+            view.position = position;
+        }
+        else if(dir == std::ios_base::cur)
+        {
+            view.position += position;
+        }
+        else if(dir == std::ios_base::end)
+        {
+            view.position = std::size(view.data) + position;
+        }
     }
     else if(std::holds_alternative<std::ifstream>(m_source))
     {
         auto& ifs{std::get<std::ifstream>(m_source)};
-        ifs.seekg(static_cast<std::streamoff>(position), std::ios_base::beg);
+        ifs.seekg(static_cast<std::streamoff>(position), dir);
     }
     else if(std::holds_alternative<std::reference_wrapper<std::istream>>(m_source))
     {
         auto& is{std::get<std::reference_wrapper<std::istream>>(m_source).get()};
-        is.seekg(static_cast<std::streamoff>(position), std::ios_base::beg);
+        is.seekg(static_cast<std::streamoff>(position), dir);
     }
 }
 
 void translation_parser::read_header()
 {
+    read(&m_info, sizeof(file_information));
 
+    if constexpr(endian::native == endian::big)
+    {
+        m_info.version = tph::to_version(bswap(tph::from_version(m_info.version)));
+    }
+
+    if(m_info.magic_word != translation_magic_word)
+        throw std::runtime_error{"Bad file format."};
+    if(m_info.version != cpt::version{0, 1, 0}) //Only version as of this file is written
+        throw std::runtime_error{"Bad file version."};
+
+    read(&m_header, sizeof(header_information));
+
+    if constexpr(endian::native == endian::big)
+    {
+        m_header.source_language   = bswap(m_header.source_language);
+        m_header.source_country    = bswap(m_header.source_country);
+        m_header.target_language   = bswap(m_header.target_language);
+        m_header.target_country    = bswap(m_header.target_country);
+        m_header.translation_count = bswap(m_header.translation_count);
+        m_header.section_count     = bswap(m_header.section_count);
+    }
 }
 
 void translation_parser::read_sections()
 {
+    m_sections.resize(m_header.section_count);
+    read(std::data(m_sections), sizeof(section_information) * m_header.section_count);
 
+    if constexpr(endian::native == endian::big)
+    {
+        for(auto& section : m_sections)
+        {
+            section.begin = bswap(section.begin);
+            section.translation_count = bswap(section.translation_count);
+        }
+    }
 }
 
 void translation_parser::init()
@@ -139,27 +230,22 @@ void translation_parser::init()
 translator::translator(const std::filesystem::path& path, translator_options options)
 :m_options{options}
 {
-    std::ifstream ifs{path, std::ios_base::binary};
-    if(!ifs)
-        throw std::runtime_error{"Can not open file \"" + path.u8string() + "\"."};
-
-    m_source = std::move(ifs);
-
-    init();
+    translation_parser parser{path};
+    parse(parser);
 }
 
 translator::translator(const std::string_view& data, translator_options options)
 :m_options{options}
-,m_source{data}
 {
-    init();
+    translation_parser parser{data};
+    parse(parser);
 }
 
 translator::translator(std::istream& stream, translator_options options)
 :m_options{options}
-,m_source{std::ref(stream)}
 {
-    init();
+    translation_parser parser{stream};
+    parse(parser);
 }
 
 std::string_view translator::translate(const std::string_view& text, const translation_context_t& context, translate_options options) const
@@ -221,180 +307,58 @@ bool translator::exists(const std::string_view& text, const translation_context_
     return false;
 }
 
-void translator::read_from_source(char* output, std::uint64_t begin, std::uint64_t size)
+void translator::parse(translation_parser& parser)
 {
-    if(std::holds_alternative<std::ifstream>(m_source))
-    {
-        auto& ifs{std::get<std::ifstream>(m_source)};
-        ifs.read(output, static_cast<std::streamsize>(size));
+    m_version = parser.version();
+    m_source_language = parser.source_language();
+    m_source_country = parser.source_country();
+    m_target_language = parser.target_language();
+    m_target_country = parser.target_country();
+    m_section_count = parser.section_count();
+    m_translation_count = parser.translation_count();
 
-        if(static_cast<std::size_t>(ifs.gcount()) != size)
-            throw std::runtime_error{"Bad file content."};
-    }
-    else if(std::holds_alternative<std::string_view>(m_source))
-    {
-        const auto& view{std::get<std::string_view>(m_source)};
+    m_sections.reserve(m_section_count);
 
-        if(std::size(view) < begin + size)
-            throw std::runtime_error{"Bad file content."};
-
-        std::memcpy(output, std::data(view) + begin, size);
-    }
-    else if(std::holds_alternative<std::reference_wrapper<std::istream>>(m_source))
-    {
-        auto& is{std::get<std::reference_wrapper<std::istream>>(m_source).get()};
-        is.read(output, static_cast<std::streamsize>(size));
-
-        if(static_cast<std::size_t>(is.gcount()) != size)
-            throw std::runtime_error{"Bad file content."};
-    }
-}
-
-void translator::parse_file_format()
-{
-    read_from_source(reinterpret_cast<char*>(&m_file_format), file_format_begin, sizeof(file_format));
-
-    if constexpr(endian::native == endian::big)
-    {
-        m_file_format.version = tph::to_version(bswap(tph::from_version(m_file_format.version)));
-    }
-
-    if(m_file_format.magic_word != translation_magic_word)
-        throw std::runtime_error{"Bad file format."};
-
-    if(m_file_format.version != tph::version{1, 0, 0})
-        throw std::runtime_error{"Bad file version."};
-}
-
-void translator::parse_header()
-{
-    read_from_source(reinterpret_cast<char*>(&m_header), header_begin, sizeof(header));
-
-    if constexpr(endian::native == endian::big)
-    {
-        m_header.source_language   = bswap(m_header.source_language);
-        m_header.source_country    = bswap(m_header.source_country);
-        m_header.target_language   = bswap(m_header.target_language);
-        m_header.target_country    = bswap(m_header.target_country);
-        m_header.translation_count = bswap(m_header.translation_count);
-    }
-}
-
-void translator::parse_parse_information()
-{
-    read_from_source(reinterpret_cast<char*>(&m_parse_informations), parse_information_begin, sizeof(parse_information));
-
-    if constexpr(endian::native == endian::big)
-    {
-        m_parse_informations.section_count = bswap(m_parse_informations.section_count);
-    }
-}
-
-void translator::parse_section_descriptions()
-{
-    const std::size_t total_size{sizeof(section_description) * m_parse_informations.section_count};
-
-    std::vector<section_description> sections{};
-    sections.resize(m_parse_informations.section_count);
-
-    read_from_source(reinterpret_cast<char*>(std::data(sections)), section_description_begin, total_size);
-
-    if constexpr(endian::native == endian::big)
-    {
-        for(auto& section : sections)
-        {
-            section.begin = bswap(section.begin);
-            section.translation_count = bswap(section.translation_count);
-        }
-    }
-
-    parse_sections(sections);
-}
-
-void translator::parse_sections(const std::vector<section_description>& sections)
-{
-    m_sections.reserve(std::size(sections));
-
-    for(const auto& section : sections)
+    for(auto section{parser.current_section()}; section; section = parser.next_section())
     {
         translation_set_type translations{};
-        translations.reserve(section.translation_count);
+        translations.reserve(section->translation_count);
 
-        std::uint64_t position{section.begin};
-        for(std::size_t j{}; j < section.translation_count; ++j)
+        for(auto translation{parser.next_translation(translation_parser_load::target_text)}; translation; translation = parser.next_translation(translation_parser_load::target_text))
         {
-            translations.emplace(parse_translation(position));
+            translations.emplace(std::make_pair(translation->source_hash, std::move(translation->target)));
         }
 
-        m_sections.emplace(std::make_pair(hash_value(section.context), std::move(translations)));
+        m_sections.emplace(std::make_pair(hash_value(section->context), std::move(translations)));
     }
-}
-
-std::pair<uint64_t, std::string> translator::parse_translation(std::uint64_t& position)
-{
-    translation_information info{};
-    read_from_source(reinterpret_cast<char*>(&info), position, sizeof(translation_information));
-
-    if constexpr(endian::native == endian::big)
-    {
-        info.source_text_hash = bswap(info.source_text_hash);
-        info.source_text_size = bswap(info.source_text_size);
-        info.target_text_size = bswap(info.target_text_size);
-    }
-
-    position += sizeof(translation_information) + info.source_text_size;
-    std::pair<std::uint64_t, std::string> output{info.source_text_hash, parse_target_text(info, position)};
-    position += info.target_text_size;
-
-    return output;
-}
-
-std::string translator::parse_target_text(const translation_information& info, std::uint64_t position)
-{
-    std::string output{};
-    output.resize(info.target_text_size);
-
-    read_from_source(std::data(output), position, std::size(output));
-
-    return std::string{std::move(output)};
-}
-
-void translator::init()
-{
-    parse_file_format();
-    parse_header();
-    parse_parse_information();
-    parse_section_descriptions();
 }
 
 translation_editor::translation_editor(cpt::language source_language, cpt::country source_country, cpt::language target_language, cpt::country target_country)
-:m_file_format{translation_magic_word, last_translation_version}
-,m_header{source_language, source_country, target_language, target_country}
+:m_version{last_translation_version}
+,m_source_language{source_language}
+,m_source_country{source_country}
+,m_target_language{target_language}
+,m_target_country{target_country}
 {
 
 }
 
 translation_editor::translation_editor(const std::filesystem::path& path)
 {
-    std::ifstream ifs{path, std::ios_base::binary};
-    if(!ifs)
-        throw std::runtime_error{"Can not open file \"" + path.u8string() + "\"."};
-
-    m_source = std::move(ifs);
-
-    init();
+    translation_parser parser{path};
+    parse(parser);
 }
 
 translation_editor::translation_editor(const std::string_view& data)
-:m_source{data}
 {
-    init();
+    translation_parser parser{data};
+    parse(parser);
 }
 
 translation_editor::translation_editor(std::istream& stream)
-:m_source{std::ref(stream)}
 {
-    init();
+    translation_parser parser{stream};
+    parse(parser);
 }
 
 bool translation_editor::add(const translation_context_t& context)
@@ -472,191 +436,60 @@ std::string translation_editor::encode() const
 
 }
 
-tph::version translation_editor::set_minimum_version(tph::version requested)
+cpt::version translation_editor::set_minimum_version(cpt::version requested)
 {
     for(auto version : translation_versions)
     {
         if(version >= requested)
         {
-            m_file_format.version = version;
-            return m_file_format.version;
+            m_version = version;
+            return m_version;
         }
     }
 
-    m_file_format.version = last_translation_version;
-    return m_file_format.version;
+    m_version = last_translation_version;
+    return m_version;
 }
 
-void translation_editor::read_from_source(char* output, std::size_t begin, std::size_t size)
+void translation_editor::parse(translation_parser& parser)
 {
-    if(std::holds_alternative<std::ifstream>(m_source))
-    {
-        auto& ifs{std::get<std::ifstream>(m_source)};
+    m_version = parser.version();
+    m_source_language = parser.source_language();
+    m_source_country = parser.source_country();
+    m_target_language = parser.target_language();
+    m_target_country = parser.target_country();
 
-        ifs.seekg(static_cast<std::streamoff>(begin), std::ios_base::beg);
-        ifs.read(output, static_cast<std::streamsize>(size));
+    m_sections.reserve(parser.section_count());
 
-        if(static_cast<std::size_t>(ifs.gcount()) != size)
-            throw std::runtime_error{"Bad file content."};
-    }
-    else if(std::holds_alternative<std::string_view>(m_source))
-    {
-        const auto& view{std::get<std::string_view>(m_source)};
-
-        if(std::size(view) < begin + size)
-            throw std::runtime_error{"Bad file content."};
-
-        std::memcpy(&m_file_format, std::data(view) + begin, size);
-    }
-    else if(std::holds_alternative<std::reference_wrapper<std::istream>>(m_source))
-    {
-        auto& is{std::get<std::reference_wrapper<std::istream>>(m_source).get()};
-
-        is.seekg(static_cast<std::streamoff>(begin), std::ios_base::beg);
-        is.read(output, static_cast<std::streamsize>(size));
-
-        if(static_cast<std::size_t>(is.gcount()) != size)
-            throw std::runtime_error{"Bad file content."};
-    }
-}
-
-void translation_editor::parse_file_format()
-{
-    read_from_source(reinterpret_cast<char*>(&m_file_format), file_format_begin, sizeof(file_format));
-
-    if constexpr(endian::native == endian::big)
-    {
-        m_file_format.version = tph::to_version(bswap(tph::from_version(m_file_format.version)));
-    }
-
-    if(m_file_format.magic_word != translation_magic_word)
-        throw std::runtime_error{"Bad file format."};
-
-    if(m_file_format.version != tph::version{1, 0, 0})
-        throw std::runtime_error{"Bad file version."};
-}
-
-void translation_editor::parse_header()
-{
-    read_from_source(reinterpret_cast<char*>(&m_header), header_begin, sizeof(header));
-
-    if constexpr(endian::native == endian::big)
-    {
-        m_header.source_language   = bswap(m_header.source_language);
-        m_header.source_country    = bswap(m_header.source_country);
-        m_header.target_language   = bswap(m_header.target_language);
-        m_header.target_country    = bswap(m_header.target_country);
-        m_header.translation_count = bswap(m_header.translation_count);
-    }
-}
-
-void translation_editor::parse_parse_information()
-{
-    read_from_source(reinterpret_cast<char*>(&m_parse_informations), parse_information_begin, sizeof(parse_information));
-
-    if constexpr(endian::native == endian::big)
-    {
-        m_parse_informations.section_count = bswap(m_parse_informations.section_count);
-    }
-}
-
-void translation_editor::parse_section_descriptions()
-{
-    const std::size_t total_size{sizeof(section_description) * m_parse_informations.section_count};
-
-    std::vector<section_description> sections{};
-    sections.resize(m_parse_informations.section_count);
-
-    read_from_source(reinterpret_cast<char*>(std::data(sections)), section_description_begin, total_size);
-
-    if constexpr(endian::native == endian::big)
-    {
-        for(auto& section : sections)
-        {
-            section.begin = bswap(section.begin);
-            section.translation_count = bswap(section.translation_count);
-        }
-    }
-
-    parse_sections(sections);
-}
-
-void translation_editor::parse_sections(const std::vector<section_description>& sections)
-{
-    m_sections.reserve(std::size(sections));
-
-    for(const auto& section : sections)
+    for(auto section{parser.current_section()}; section; section = parser.next_section())
     {
         translation_set_type translations{};
-        translations.reserve(section.translation_count);
+        translations.reserve(section->translation_count);
 
-        std::uint64_t position{section.begin};
-        for(std::size_t j{}; j < section.translation_count; ++j)
+        for(auto translation{parser.next_translation()}; translation; translation = parser.next_translation())
         {
-            translations.emplace(parse_translation(position));
+            translations.emplace(std::make_pair(std::move(translation->source), std::move(translation->target)));
         }
 
-        m_sections.emplace(std::make_pair(section.context, std::move(translations)));
+        m_sections.emplace(std::make_pair(section->context, std::move(translations)));
     }
 }
 
-std::pair<std::string, std::string> translation_editor::parse_translation(std::uint64_t& position)
+std::string translation_editor::encode_file_information() const
 {
-    translation_information info{};
-    read_from_source(reinterpret_cast<char*>(&info), position, sizeof(translation_information));
-    position += sizeof(translation_information);
+    std::string output{};
+    output.resize(sizeof(translation_parser::file_information));
+
+    translation_parser::file_information format{};
+    format.magic_word = translation_magic_word;
+    format.version = m_version;
 
     if constexpr(endian::native == endian::big)
     {
-        info.source_text_hash = bswap(info.source_text_hash);
-        info.source_text_size = bswap(info.source_text_size);
-        info.target_text_size = bswap(info.target_text_size);
-    }
-
-    std::string source{parse_text(info, position)};
-    position += info.source_text_size;
-
-    std::string target{parse_text(info, position)};
-    position += info.target_text_size;
-
-    return std::make_pair(std::move(source), std::move(target));
-}
-
-std::string translation_editor::parse_text(const translation_information& info, std::uint64_t position)
-{
-    std::string output{};
-    output.resize(info.target_text_size);
-
-    read_from_source(std::data(output), position, std::size(output));
-
-    return std::string{std::move(output)};
-}
-
-void translation_editor::init()
-{
-    parse_file_format();
-    parse_header();
-    parse_parse_information();
-    parse_section_descriptions();
-}
-
-std::string translation_editor::encode_file_format() const
-{
-    std::string output{};
-    output.resize(sizeof(file_format));
-
-    if constexpr(endian::native == endian::big)
-    {
-        file_format format{m_file_format};
-
         format.version = tph::to_version(bswap(tph::from_version(format.version)));
+    }
 
-        std::memcpy(std::data(output), &format, std::size(output));
-    }
-    else
-    {
-        std::memcpy(std::data(output), &m_file_format, std::size(output));
-    }
+    std::memcpy(std::data(output), &format, std::size(output));
 
     return output;
 }
@@ -664,31 +497,34 @@ std::string translation_editor::encode_file_format() const
 std::string translation_editor::encode_header() const
 {
     std::string output{};
-    output.resize(sizeof(header));
+    output.resize(sizeof(translation_parser::header_information));
+
+    translation_parser::header_information header{};
+    header.source_language = m_source_language;
+    header.source_country = m_source_country;
+    header.target_language = m_target_language;
+    header.target_country = m_target_country;
+    header.section_count = section_count();
+    header.translation_count = translation_count();
 
     if constexpr(endian::native == endian::big)
     {
-        header header{};
-
         header.source_language   = bswap(header.source_language);
         header.source_country    = bswap(header.source_country);
         header.target_language   = bswap(header.target_language);
         header.target_country    = bswap(header.target_country);
+        header.section_count     = bswap(header.section_count);
         header.translation_count = bswap(header.translation_count);
+    }
 
-        std::memcpy(std::data(output), &header, std::size(output));
-    }
-    else
-    {
-        std::memcpy(std::data(output), &m_header, std::size(output));
-    }
+    std::memcpy(std::data(output), &header, std::size(output));
 
     return output;
 }
 
-std::string translation_editor::encode_parse_informations() const
+std::string translation_editor::encode_sections() const
 {
-    parse_information parse_informations{std::size(m_sections)};
+    translation_parser::parse_information parse_informations{std::size(m_sections)};
     std::vector<section_description> section_descriptions{};
     section_descriptions.reserve(parse_informations.section_count);
 
@@ -702,7 +538,7 @@ std::string translation_editor::encode_parse_informations() const
 }
 
 std::string translation_editor::encode_translations(const translation_set_type& translations)
-{
+{/*
     std::string output{};
 
     const auto format_text = [](const std::string& string) -> std::string
@@ -718,7 +554,7 @@ std::string translation_editor::encode_translations(const translation_set_type& 
         information.target_text_size = std::size(translation.second);
     }
 
-    return output;
+    return output;*/
 }
 
 }
