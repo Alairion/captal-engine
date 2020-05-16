@@ -156,6 +156,31 @@ void engine::flush_transfers()
     }
 }
 
+void engine::set_framerate_limit(std::uint32_t frame_per_second) noexcept
+{
+    m_frame_rate_limit = frame_per_second;
+}
+
+void engine::set_translator(cpt::translator new_translator)
+{
+    m_translator = std::move(new_translator);
+}
+
+void engine::set_dummy_texture(cpt::texture new_dummy_texture) noexcept
+{
+    m_dummy_texture = std::move(new_dummy_texture);
+}
+
+void engine::set_default_vertex_shader(tph::shader new_default_vertex_shader) noexcept
+{
+    m_default_vertex_shader = std::move(new_default_vertex_shader);
+}
+
+void engine::set_default_fragment_shader(tph::shader new_default_fragment_shader) noexcept
+{
+    m_default_fragment_shader = std::move(new_default_fragment_shader);
+}
+
 bool engine::run()
 {
     update_window();
@@ -229,9 +254,5 @@ void engine::update_frame()
     }
 }
 
-void engine::set_framerate_limit(std::uint32_t frame_per_second)
-{
-    m_frame_rate_limit = frame_per_second;
-}
 
 }

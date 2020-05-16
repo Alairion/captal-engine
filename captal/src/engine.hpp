@@ -20,6 +20,7 @@
 #include "application.hpp"
 #include "render_window.hpp"
 #include "texture.hpp"
+#include "translation.hpp"
 
 namespace cpt
 {
@@ -71,9 +72,13 @@ public:
     std::pair<tph::command_buffer&, transfer_ended_signal&> begin_transfer();
     void flush_transfers();
 
-    bool run();
+    void set_framerate_limit(std::uint32_t frame_per_second) noexcept;
+    void set_translator(cpt::translator new_translator);
+    void set_dummy_texture(cpt::texture new_dummy_texture) noexcept;
+    void set_default_vertex_shader(tph::shader new_default_vertex_shader) noexcept;
+    void set_default_fragment_shader(tph::shader new_default_fragment_shader) noexcept;
 
-    void set_framerate_limit(std::uint32_t frame_per_second);
+    bool run();
 
     static engine& instance() noexcept
     {
@@ -164,6 +169,11 @@ public:
         return m_dummy_texture;
     }
 
+    const translator& translator() const noexcept
+    {
+        return m_translator;
+    }
+
     float frame_time() const noexcept
     {
         return m_frame_time;
@@ -197,14 +207,14 @@ private:
         tph::fence fence{};
         transfer_ended_signal signal{};
     };
-
+/*
     struct render_buffer
     {
         std::uint64_t frame_id{};
         tph::command_buffer buffer{};
         tph::fence fence{};
         render_ended_signal signal{};
-    };
+    };*/
 
 private:
     cpt::application m_application;
@@ -219,14 +229,16 @@ private:
     tph::command_pool m_transfer_pool{};
     std::vector<transfer_buffer> m_transfer_buffers{};
     transfer_buffer* m_current_transfer_buffer{};
-
+/*
     tph::command_pool m_render_pool{};
     std::vector<render_buffer> m_render_buffers{};
     render_buffer* m_current_render_buffer{};
-
+*/
     tph::shader m_default_vertex_shader{};
     tph::shader m_default_fragment_shader{};
     texture m_dummy_texture{};
+
+    cpt::translator m_translator{};
 
     std::vector<std::shared_ptr<render_window>> m_windows{};
 
