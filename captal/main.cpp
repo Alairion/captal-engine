@@ -370,6 +370,11 @@ static void run()
     editor.add("Coucou !", "Hello, bitch!", cpt::translation_context_t{42, 12});
 
     const std::string file{editor.encode()};
+
+    cpt::translator translator{std::string_view{file}};
+    std::cout << translator.translate("Coucou !") << std::endl;
+    std::cout << translator.translate("Coucou !", cpt::translation_context_t{42, 12}) << std::endl;
+    std::cout << translator.translate("Ah ah !", cpt::no_translation_context, cpt::translate_options::input_fallback) << std::endl;
 }
 
 int main()

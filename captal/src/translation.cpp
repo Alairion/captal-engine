@@ -78,10 +78,10 @@ translation_parser::section_ptr translation_parser::jump_to_section(std::size_t 
 
 std::optional<translation_parser::translation> translation_parser::next_translation(translation_parser_load loads)
 {
-    ++m_current_translation;
-
     if(m_current_translation == m_sections[m_current_section].translation_count)
         return std::nullopt;
+
+    ++m_current_translation;
 
     translation output{};
     read(&output, sizeof(std::uint64_t) * 3); //Don't overwrite the strings
