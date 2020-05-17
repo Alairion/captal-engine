@@ -135,9 +135,6 @@ private:
     cpt::framed_buffer_ptr m_directional_light_buffer{};
     cpt::render_texture_ptr m_height_map{};
     cpt::view_ptr m_height_map_view{};
-    entt::registry m_shadow_world{};
-    cpt::render_texture_ptr m_shadow_map{};
-    cpt::view_ptr m_shadow_map_view{};
     cpt::render_texture_ptr m_diffuse_map{};
     cpt::view_ptr m_diffuse_map_view{};
 };

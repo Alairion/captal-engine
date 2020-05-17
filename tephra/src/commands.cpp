@@ -167,8 +167,8 @@ void copy(command_buffer& command_buffer, image& source, texture& destination, c
     destination.transition(command_buffer, resource_access::none, resource_access::transfer_write, pipeline_stage::top_of_pipe, pipeline_stage::transfer, texture_layout::transfer_destination_optimal);
 
     VkBufferImageCopy native_region{};
-    native_region.bufferRowLength = source.width();
-    native_region.bufferImageHeight = source.height();
+    native_region.bufferRowLength = static_cast<std::uint32_t>(source.width());
+    native_region.bufferImageHeight = static_cast<std::uint32_t>(source.height());
     native_region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     native_region.imageSubresource.mipLevel = 0;
     native_region.imageSubresource.baseArrayLayer = 0;
@@ -195,8 +195,8 @@ void copy(command_buffer& command_buffer, image& source, texture& destination, c
     for(auto&& region : regions)
     {
         VkBufferImageCopy& native_region{native_regions.emplace_back()};
-        native_region.bufferRowLength = source.width();
-        native_region.bufferImageHeight = source.height();
+        native_region.bufferRowLength = static_cast<std::uint32_t>(source.width());
+        native_region.bufferImageHeight = static_cast<std::uint32_t>(source.height());
         native_region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
         native_region.imageSubresource.mipLevel = 0;
         native_region.imageSubresource.baseArrayLayer = 0;
@@ -274,8 +274,8 @@ void copy(command_buffer& command_buffer, texture& source, image& destination, c
     source.transition(command_buffer, resource_access::none, resource_access::transfer_read, pipeline_stage::top_of_pipe, pipeline_stage::transfer, texture_layout::transfer_source_optimal);
 
     VkBufferImageCopy native_region{};
-    native_region.bufferRowLength = destination.width();
-    native_region.bufferImageHeight = destination.height();
+    native_region.bufferRowLength = static_cast<std::uint32_t>(destination.width());
+    native_region.bufferImageHeight = static_cast<std::uint32_t>(destination.height());
     native_region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     native_region.imageSubresource.mipLevel = 0;
     native_region.imageSubresource.baseArrayLayer = 0;
@@ -302,8 +302,8 @@ void copy(command_buffer& command_buffer, texture& source, image& destination, c
     for(auto&& region : regions)
     {
         VkBufferImageCopy& native_region{native_regions.emplace_back()};
-        native_region.bufferRowLength = destination.width();
-        native_region.bufferImageHeight = destination.height();
+        native_region.bufferRowLength = static_cast<std::uint32_t>(destination.width());
+        native_region.bufferImageHeight = static_cast<std::uint32_t>(destination.height());
         native_region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
         native_region.imageSubresource.mipLevel = 0;
         native_region.imageSubresource.baseArrayLayer = 0;
@@ -411,8 +411,8 @@ void copy(command_buffer& command_buffer, image& source, texture& destination)
     destination.transition(command_buffer, resource_access::none, resource_access::transfer_write, pipeline_stage::top_of_pipe, pipeline_stage::transfer, texture_layout::transfer_destination_optimal);
 
     VkBufferImageCopy native_region{};
-    native_region.bufferRowLength = source.width();
-    native_region.bufferImageHeight = source.height();
+    native_region.bufferRowLength = static_cast<std::uint32_t>(source.width());
+    native_region.bufferImageHeight = static_cast<std::uint32_t>(source.height());
     native_region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     native_region.imageSubresource.mipLevel = 0;
     native_region.imageSubresource.layerCount = 1;
@@ -429,8 +429,8 @@ void copy(command_buffer& command_buffer, texture& source, image& destination)
     source.transition(command_buffer, resource_access::none, resource_access::transfer_read, pipeline_stage::top_of_pipe, pipeline_stage::transfer, texture_layout::transfer_source_optimal);
 
     VkBufferImageCopy native_region{};
-    native_region.bufferRowLength = destination.width();
-    native_region.bufferImageHeight = destination.height();
+    native_region.bufferRowLength = static_cast<std::uint32_t>(destination.width());
+    native_region.bufferImageHeight = static_cast<std::uint32_t>(destination.height());
     native_region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     native_region.imageSubresource.mipLevel = 0;
     native_region.imageSubresource.layerCount = 1;
@@ -715,12 +715,12 @@ void submit(renderer& renderer, queue queue, const submit_info& info, optional_r
 
     VkSubmitInfo native_submit{};
     native_submit.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    native_submit.waitSemaphoreCount = std::size(wait_semaphores);
+    native_submit.waitSemaphoreCount = static_cast<std::uint32_t>(std::size(wait_semaphores));
     native_submit.pWaitSemaphores = std::data(wait_semaphores);
     native_submit.pWaitDstStageMask = std::data(wait_stages);
-    native_submit.commandBufferCount = std::size(command_buffers);
+    native_submit.commandBufferCount = static_cast<std::uint32_t>(std::size(command_buffers));
     native_submit.pCommandBuffers = std::data(command_buffers);
-    native_submit.signalSemaphoreCount = std::size(signal_semaphores);
+    native_submit.signalSemaphoreCount = static_cast<std::uint32_t>(std::size(signal_semaphores));
     native_submit.pSignalSemaphores = std::data(signal_semaphores);
 
     VkFence native_fence{fence.has_value() ? underlying_cast<VkFence>(fence.value()) : VkFence{}};
@@ -774,12 +774,12 @@ void submit(renderer& renderer, queue queue, const std::vector<submit_info>& sub
     {
         VkSubmitInfo native_submit{};
         native_submit.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-        native_submit.waitSemaphoreCount = std::size(temp_submit.wait_semaphores);
+        native_submit.waitSemaphoreCount = static_cast<std::uint32_t>(std::size(temp_submit.wait_semaphores));
         native_submit.pWaitSemaphores = std::data(temp_submit.wait_semaphores);
         native_submit.pWaitDstStageMask = std::data(temp_submit.wait_stages);
-        native_submit.commandBufferCount = std::size(temp_submit.command_buffers);
+        native_submit.commandBufferCount = static_cast<std::uint32_t>(std::size(temp_submit.command_buffers));
         native_submit.pCommandBuffers = std::data(temp_submit.command_buffers);
-        native_submit.signalSemaphoreCount = std::size(temp_submit.signal_semaphores);
+        native_submit.signalSemaphoreCount = static_cast<std::uint32_t>(std::size(temp_submit.signal_semaphores));
         native_submit.pSignalSemaphores = std::data(temp_submit.signal_semaphores);
 
         native_submits.push_back(native_submit);
@@ -787,7 +787,7 @@ void submit(renderer& renderer, queue queue, const std::vector<submit_info>& sub
 
     VkFence native_fence{fence.has_value() ? underlying_cast<VkFence>(fence.value()) : VkFence{}};
 
-    if(auto result{vkQueueSubmit(underlying_cast<VkQueue>(renderer, queue), std::size(native_submits), std::data(native_submits), native_fence)}; result != VK_SUCCESS)
+    if(auto result{vkQueueSubmit(underlying_cast<VkQueue>(renderer, queue), static_cast<std::uint32_t>(std::size(native_submits)), std::data(native_submits), native_fence)}; result != VK_SUCCESS)
         throw vulkan::error{result};
 }
 
