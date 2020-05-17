@@ -6,6 +6,7 @@
 #include <nes/hash.hpp>
 
 #include "algorithm.hpp"
+#include "engine.hpp"
 
 template<typename Kernel>
 struct nes::hash<cpt::translation_context_t, Kernel>
@@ -369,6 +370,37 @@ bool translation_editor::add(std::string source_text, std::string target_text, c
     return m_sections[context].emplace(std::move(source_text), std::move(target_text)).second;
 }
 
+bool translation_editor::replace(const translation_context_t& context)
+{
+    const auto it{m_sections.find(context)};
+    if(it != std::end(m_sections))
+    {
+        it->second.clear();
+
+        return true;
+    }
+
+    return false;
+}
+
+bool translation_editor::replace(const std::string& source_text, std::string target_text, const translation_context_t& context)
+{
+    const auto section{m_sections.find(context)};
+    if(section != std::end(m_sections))
+    {
+        const auto translation{section->second.find(source_text)};
+
+        if(translation != std::end(section->second))
+        {
+            translation->second = std::move(target_text);
+
+            return true;
+        }
+    }
+
+    return false;
+}
+
 void translation_editor::add_or_replace(const translation_context_t& context)
 {
     const auto it{m_sections.find(context)};
@@ -636,6 +668,11 @@ std::string translation_editor::encode_translation(const std::string& source, co
     output += target;
 
     return output;
+}
+
+std::string_view translate(const std::string_view& string, const translation_context_t& context, translate_options options)
+{
+    return engine::cinstance().translator().translate(string, context, options);
 }
 
 }

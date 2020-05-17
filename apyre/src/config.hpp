@@ -17,7 +17,6 @@ namespace apr
 {
 
 using namespace cpt::foundation;
-using namespace cpt::foundation::enum_operations;
 
 }
 

@@ -3,6 +3,7 @@
 
 #include "config.hpp"
 
+#include <cassert>
 #include <array>
 #include <unordered_map>
 #include <fstream>
@@ -779,6 +780,8 @@ public:
 
     bool add(const translation_context_t& context);
     bool add(std::string source_text, std::string target_text, const translation_context_t& context);
+    bool replace(const translation_context_t& context);
+    bool replace(const std::string& source_text, std::string target_text, const translation_context_t& context);
     void add_or_replace(const translation_context_t& context);
     void add_or_replace(std::string source_text, std::string target_text, const translation_context_t& context);
     bool remove(const translation_context_t& context);
@@ -870,6 +873,8 @@ private:
     country m_target_country{};
     section_type m_sections{};
 };
+
+CAPTAL_API std::string_view translate(const std::string_view& string, const translation_context_t& context = no_translation_context, translate_options options = translate_options::none);
 
 }
 

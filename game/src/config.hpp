@@ -1,7 +1,6 @@
 #ifndef MY_PROJECT_CONFIG_HPP_INCLUDED
 #define MY_PROJECT_CONFIG_HPP_INCLUDED
 
-#include <tephra/config.hpp>
 #include <captal/config.hpp>
 
 #include <array>
@@ -11,7 +10,9 @@
 namespace mpr
 {
 
-static constexpr tph::version game_version{MY_PROJECT_MAJOR_VERSION, MY_PROJECT_MINOR_VERSION, MY_PROJECT_PATCH_VERSION};
+using namespace cpt::foundation::enum_operations;
+
+static constexpr cpt::version game_version{MY_PROJECT_MAJOR_VERSION, MY_PROJECT_MINOR_VERSION, MY_PROJECT_PATCH_VERSION};
 
 static constexpr std::uint32_t normal_map_binding{3};
 static constexpr std::uint32_t height_map_binding{4};

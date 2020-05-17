@@ -7,7 +7,7 @@
 
 #include "states/splash_screen.hpp"
 
-void run()
+static void run()
 {
     cpt::render_window_ptr window{cpt::engine::instance().make_window("My project, the real one", cpt::video_mode{860, 480}, apr::window_options::resizable)};
     window->change_limits(640, 360, 1024, std::numeric_limits<std::uint32_t>::max());

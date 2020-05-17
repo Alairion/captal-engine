@@ -44,6 +44,7 @@ std::pair<std::string, entt::entity> chunk::drain(std::string entity_name)
     {
         auto output{std::move(*it)};
         m_entities.erase(it);
+
         return output;
     }
 
@@ -114,7 +115,7 @@ cpt::tilemap_ptr chunk::parse_tiles(const cpt::tiled::layer::tiles& tiles, cpt::
         const cpt::tiled::tileset& map_tileset{m_tiled_map.tilesets[tileset_index(*it)]};
         auto&& [first_gid, tileset] = tileset_from_gid(*it);
 
-        for(std::size_t i{}; i < m_tiled_map.width * m_tiled_map.height; ++i)
+        for(std::uint32_t i{}; i < m_tiled_map.width * m_tiled_map.height; ++i)
         {
             const std::uint32_t lid{tiles.gid[i] - first_gid};
 

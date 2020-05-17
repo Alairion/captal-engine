@@ -367,23 +367,23 @@ static void run()
 {
     cpt::translation_editor editor{cpt::language::iso_fra, cpt::country::iso_fra, cpt::language::iso_eng, cpt::country::iso_gbr};
     editor.add("Coucou !", "Hello!", cpt::no_translation_context);
-    editor.add("Coucou !", "Hello, bitch!", cpt::translation_context_t{42, 12});
+    editor.add("Coucou !", "Hello, bitch!", cpt::translation_context_t{"vulgar"});
 
     const std::string file{editor.encode()};
+    cpt::engine::instance().set_translator(cpt::translator{std::string_view{file}});
 
-    cpt::translator translator{std::string_view{file}};
-    std::cout << translator.translate("Coucou !") << std::endl;
-    std::cout << translator.translate("Coucou !", cpt::translation_context_t{42, 12}) << std::endl;
-    std::cout << translator.translate("Ah ah !", cpt::no_translation_context, cpt::translate_options::input_fallback) << std::endl;
+    std::cout << cpt::translate("Coucou !") << std::endl;
+    std::cout << cpt::translate("Coucou !", cpt::translation_context_t{"vulgar"}) << std::endl;
+    std::cout << cpt::translate("Ah ah !", cpt::no_translation_context, cpt::translate_options::input_fallback) << std::endl;
 }
 
 int main()
 {
     try
-    {/*
+    {
         const cpt::audio_parameters audio{2, 44100};
         const cpt::graphics_parameters graphics{tph::renderer_options::tiny_memory_heaps};
-        cpt::engine engine{"captal_test", cpt::version{1, 0, 0}, audio, graphics};*/
+        cpt::engine engine{"captal_test", cpt::version{1, 0, 0}, audio, graphics};
 
         run();
     }

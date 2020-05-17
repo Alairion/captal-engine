@@ -1,0 +1,22 @@
+Lists are sorted from more important to less important
+
+Tephra:
+-Generic render target (complete render pass build with almost everything possible with pure Vulkan)
+-Complete commands list
+-Complete physical devices properties structures
+-Add compute pipeline
+-Multiple queue support ? (maybe overkill for 2D, but may be useful for 3D (since tephra is a generic renderer))
+
+Swell:
+-Split mixer in multiple class: audio world responsible of spacialization and first mixing which contains sounds and a listener; the mixer contains audio worlds
+which outputs are mixed together by the mixer then gave to the user
+-Rewrite audio stream to reduce the number of internal threads by 1 (write to the stream without using port audio callback)
+-Support other platforms 
+
+Apyre:
+-Add dialogbox support (with native style, mainly for error reports)
+
+Captal:
+-Add more primitive shapes (circles, ellipses, convex polygons)
+-Complete text rendering support (alignments, stylized)
+-Create file archive system (already prototyped)
