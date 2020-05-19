@@ -17,12 +17,12 @@
 namespace mpr
 {
 
-static constexpr std::uint32_t chunk_size{32};
-static constexpr std::uint32_t tile_size{24};
+inline constexpr std::uint32_t chunk_size{32};
+inline constexpr std::uint32_t tile_size{24};
 
-static constexpr const char* camera_entity_name{"camera"};
-static constexpr const char* player_entity_name{"player"};
-static constexpr const char* player_controller_entity_name{"playerctrlr"};
+inline constexpr const char* camera_entity_name{"camera"};
+inline constexpr const char* player_entity_name{"player"};
+inline constexpr const char* player_controller_entity_name{"playerctrlr"};
 
 class map;
 
@@ -135,6 +135,7 @@ private:
     cpt::framed_buffer_ptr m_directional_light_buffer{};
     cpt::render_texture_ptr m_height_map{};
     cpt::view_ptr m_height_map_view{};
+
     cpt::render_texture_ptr m_diffuse_map{};
     cpt::view_ptr m_diffuse_map_view{};
 };

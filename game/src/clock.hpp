@@ -47,12 +47,12 @@ constexpr To daytime(const std::chrono::duration<Rep, Period>& total_time)
 //xyangle = (-π)/(16) + (2*π*t)/(16)
 //sunpos = cos(zangle) * cos(xyangle), sin(xyangle), sin(zangle) * cos(xyangle)
 
-static constexpr time::hour day_begin{7.0f};
-static constexpr time::hour sunset_begin{19.0f};
-static constexpr time::hour moonrise_begin{20.0f};
-static constexpr time::hour night_begin{21.0f};
-static constexpr time::hour moonset_begin{5.0f};
-static constexpr time::hour sunrise_begin{6.0f};
+inline constexpr time::hour day_begin{7.0f};
+inline constexpr time::hour sunset_begin{19.0f};
+inline constexpr time::hour moonrise_begin{20.0f};
+inline constexpr time::hour night_begin{21.0f};
+inline constexpr time::hour moonset_begin{5.0f};
+inline constexpr time::hour sunrise_begin{6.0f};
 
 enum class weather : std::uint32_t
 {

@@ -56,7 +56,7 @@ struct attachment_description
     texture_layout final_layout{texture_layout::undefined};
 };
 
-static constexpr std::uint32_t unused_attachment{VK_ATTACHMENT_UNUSED};
+inline constexpr std::uint32_t unused_attachment{VK_ATTACHMENT_UNUSED};
 
 struct attachment_reference
 {
@@ -73,7 +73,7 @@ struct subpass_description
     std::vector<std::uint32_t> preserve_attachments{};
 };
 
-static constexpr std::uint32_t external_subpass{VK_SUBPASS_EXTERNAL};
+inline constexpr std::uint32_t external_subpass{VK_SUBPASS_EXTERNAL};
 
 struct subpass_dependency
 {

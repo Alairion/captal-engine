@@ -139,7 +139,6 @@ void renderable::upload()
         model = glm::translate(model, -m_origin);
 
         m_buffer.get<uniform_data>(0).model = model;
-        m_buffer.get<uniform_data>(0).shininess = m_shininess;
 
         m_buffer.upload();
     }

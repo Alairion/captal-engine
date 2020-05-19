@@ -188,7 +188,7 @@ enum class scancode : std::uint32_t
 namespace impl
 {
 
-static constexpr std::uint32_t scancode_to_keycode{1 << 30};
+inline constexpr std::uint32_t scancode_to_keycode{1 << 30};
 
 }
 
