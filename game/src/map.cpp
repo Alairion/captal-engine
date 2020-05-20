@@ -272,7 +272,7 @@ void map::view(float x, float y, std::uint32_t width, std::uint32_t height)
 
 void map::init_render()
 {
-    m_directional_light_buffer = cpt::make_framed_buffer(directional_light{});
+    m_lights_buffer = cpt::make_framed_buffer(uniform_lights{});
 
     //Height map
     tph::shader height_vertex_shader{cpt::engine::instance().renderer(), tph::shader_stage::vertex, std::filesystem::u8path(u8"shaders/height.vert.spv")};
@@ -287,15 +287,6 @@ void map::init_render()
     m_height_map_view = cpt::make_view(m_height_map, height_info);
     m_height_map_view->fit_to(m_height_map);
 
-    //Shadow map
-    tph::shader shadow_vertex_shader{cpt::engine::instance().renderer(), tph::shader_stage::vertex, std::filesystem::u8path(u8"shaders/shadow.vert.spv")};
-    tph::shader shadow_fragment_shader{cpt::engine::instance().renderer(), tph::shader_stage::fragment, std::filesystem::u8path(u8"shaders/shadow.frag.spv")};
-    cpt::render_technique_info shadow_info{};
-    shadow_info.stages.push_back(tph::pipeline_shader_stage{shadow_vertex_shader});
-    shadow_info.stages.push_back(tph::pipeline_shader_stage{shadow_fragment_shader});
-    shadow_info.stages_bindings.push_back(tph::descriptor_set_layout_binding{tph::shader_stage::fragment, height_map_binding, tph::descriptor_type::image_sampler});
-    shadow_info.stages_bindings.push_back(tph::descriptor_set_layout_binding{tph::shader_stage::fragment, directional_light_binding, tph::descriptor_type::uniform_buffer});
-
     //Color "diffuse" map
     tph::shader diffuse_vertex_shader{cpt::engine::instance().renderer(), tph::shader_stage::vertex, std::filesystem::u8path(u8"shaders/lighting.vert.spv")};
     tph::shader diffuse_fragment_shader{cpt::engine::instance().renderer(), tph::shader_stage::fragment, std::filesystem::u8path(u8"shaders/lighting.frag.spv")};
@@ -303,6 +294,7 @@ void map::init_render()
     diffuse_info.stages.push_back(tph::pipeline_shader_stage{diffuse_vertex_shader});
     diffuse_info.stages.push_back(tph::pipeline_shader_stage{diffuse_fragment_shader});
     diffuse_info.stages_bindings.push_back(tph::descriptor_set_layout_binding{tph::shader_stage::fragment, normal_map_binding, tph::descriptor_type::image_sampler});
+    diffuse_info.stages_bindings.push_back(tph::descriptor_set_layout_binding{tph::shader_stage::fragment, height_map_binding, tph::descriptor_type::image_sampler});
     diffuse_info.stages_bindings.push_back(tph::descriptor_set_layout_binding{tph::shader_stage::fragment, specular_map_binding, tph::descriptor_type::image_sampler});
     diffuse_info.stages_bindings.push_back(tph::descriptor_set_layout_binding{tph::shader_stage::fragment, emission_map_binding, tph::descriptor_type::image_sampler});
     diffuse_info.stages_bindings.push_back(tph::descriptor_set_layout_binding{tph::shader_stage::fragment, directional_light_binding, tph::descriptor_type::uniform_buffer});
@@ -310,7 +302,7 @@ void map::init_render()
     cpt::render_texture_ptr m_diffuse_map = cpt::make_render_texture(1920, 540, tph::sampling_options{});
     cpt::view_ptr m_diffuse_map_view = cpt::make_view(m_diffuse_map, diffuse_info);
     m_diffuse_map_view->fit_to(m_diffuse_map);
-    m_diffuse_map_view->add_uniform_binding(directional_light_binding, m_directional_light_buffer);
+    m_diffuse_map_view->add_uniform_binding(directional_light_binding, m_lights_buffer);
 }
 
 void map::init_entities()

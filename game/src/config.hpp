@@ -34,7 +34,7 @@ inline constexpr std::string_view dummy_emission_map_name = "VIRTUAL/emission_ma
 struct directional_light
 {
     glm::vec4 direction{};
-    glm::vec4 ambiant{};
+    glm::vec4 ambient{};
     glm::vec4 diffuse{};
     glm::vec4 specular{};
 };

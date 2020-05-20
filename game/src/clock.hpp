@@ -106,7 +106,7 @@ std::array<directional_light, 2> compute_lights(const std::chrono::duration<Rep,
     {
         //Sun
         output[0].direction = sun_direction(normalize_time(time, day_begin, sunset_begin));
-        output[0].ambiant = glm::vec4{0.35f, 0.35f, 0.35f, 1.0f};
+        output[0].ambient = glm::vec4{0.35f, 0.35f, 0.35f, 1.0f};
         output[0].diffuse = glm::vec4{0.65f, 0.65f, 0.65f, 1.0f};
         output[0].specular = glm::vec4{0.50f, 0.50f, 0.50f, 1.0f};
     }
@@ -116,7 +116,7 @@ std::array<directional_light, 2> compute_lights(const std::chrono::duration<Rep,
 
         //Sun
         output[0].direction = sun_direction(1.0f);
-        output[0].ambiant = glm::vec4{0.25f, 0.25f, 0.25f, 1.0f} + glm::vec4{0.10f, 0.10f, 0.10f, 1.0f} * (1.0f - advance);
+        output[0].ambient = glm::vec4{0.25f, 0.25f, 0.25f, 1.0f} + glm::vec4{0.10f, 0.10f, 0.10f, 1.0f} * (1.0f - advance);
         output[0].diffuse = static_cast<glm::vec4>(cpt::gradient(glm::vec4{0.65f, 0.65f, 0.65f, 1.0f}, sunset_color * glm::vec4{0.65f, 0.65f, 0.65f, 1.0f}, advance));
         output[0].specular = static_cast<glm::vec4>(cpt::gradient(glm::vec4{0.50f, 0.50f, 0.50f, 1.0f}, sunset_color * glm::vec4{0.50f, 0.50f, 0.50f, 1.0f}, advance));
     }
@@ -130,7 +130,7 @@ std::array<directional_light, 2> compute_lights(const std::chrono::duration<Rep,
 
             //Sun
             output[0].direction = sun_direction(1.0f);
-            output[0].ambiant = glm::vec4{0.05f, 0.05f, 0.05f, 1.0f} + glm::vec4{0.20f, 0.20f, 0.20f, 1.0f} * half_advance;
+            output[0].ambient = glm::vec4{0.05f, 0.05f, 0.05f, 1.0f} + glm::vec4{0.20f, 0.20f, 0.20f, 1.0f} * half_advance;
             output[0].diffuse = sunset_color * glm::vec4{0.65f, 0.65f, 0.65f, 1.0f} * half_advance;
             output[0].specular = sunset_color * glm::vec4{0.50f, 0.50f, 0.50f, 1.0f} * half_advance;
         }
@@ -140,14 +140,14 @@ std::array<directional_light, 2> compute_lights(const std::chrono::duration<Rep,
 
             //Second moon
             output[0].direction = second_moon_direction(0.0f);
-            output[0].ambiant = glm::vec4{0.05f, 0.05f, 0.05f, 1.0f};
+            output[0].ambient = glm::vec4{0.05f, 0.05f, 0.05f, 1.0f};
             output[0].diffuse = second_moon_color * glm::vec4{0.10f, 0.10f, 0.10f, 1.0f} * half_advance;
             output[0].specular = second_moon_color * glm::vec4{0.075f, 0.075f, 0.075f, 1.0f} * half_advance;
         }
 
         //Moon
         output[1].direction = moon_direction(0.0f);
-        output[1].ambiant = glm::vec4{0.15f, 0.15f, 0.15f, 1.0f} * advance;
+        output[1].ambient = glm::vec4{0.15f, 0.15f, 0.15f, 1.0f} * advance;
         output[1].diffuse = moon_color * glm::vec4{0.35f, 0.35f, 0.35f, 1.0f} * advance;
         output[1].specular = moon_color * glm::vec4{0.25f, 0.25f, 0.25f, 1.0f} * advance;
     }
@@ -157,13 +157,13 @@ std::array<directional_light, 2> compute_lights(const std::chrono::duration<Rep,
 
         //Second moon
         output[0].direction = second_moon_direction(advance);
-        output[0].ambiant = glm::vec4{0.05f, 0.05f, 0.05f, 1.0f};
+        output[0].ambient = glm::vec4{0.05f, 0.05f, 0.05f, 1.0f};
         output[0].diffuse = second_moon_color * glm::vec4{0.15f, 0.15f, 0.15f, 1.0f};
         output[0].specular = second_moon_color * glm::vec4{0.10f, 0.10f, 0.10f, 1.0f};
 
         //Moon
         output[1].direction = moon_direction(advance);
-        output[1].ambiant = glm::vec4{0.15f, 0.15f, 0.15f, 1.0f};
+        output[1].ambient = glm::vec4{0.15f, 0.15f, 0.15f, 1.0f};
         output[1].diffuse = moon_color * glm::vec4{0.35f, 0.35f, 0.35f, 1.0f};
         output[1].specular = moon_color * glm::vec4{0.25f, 0.25f, 0.25f, 1.0f};
     }
@@ -177,7 +177,7 @@ std::array<directional_light, 2> compute_lights(const std::chrono::duration<Rep,
 
             //Second moon
             output[0].direction = second_moon_direction(0.0f);
-            output[0].ambiant = glm::vec4{0.05f, 0.05f, 0.05f, 1.0f};
+            output[0].ambient = glm::vec4{0.05f, 0.05f, 0.05f, 1.0f};
             output[0].diffuse = second_moon_color * glm::vec4{0.10f, 0.10f, 0.10f, 1.0f} * half_advance;
             output[0].specular = second_moon_color * glm::vec4{0.075f, 0.075f, 0.075f, 1.0f} * half_advance;
         }
@@ -187,14 +187,14 @@ std::array<directional_light, 2> compute_lights(const std::chrono::duration<Rep,
 
             //Sun
             output[0].direction = sun_direction(1.0f);
-            output[0].ambiant = glm::vec4{0.05f, 0.05f, 0.05f, 1.0f} + glm::vec4{0.20f, 0.20f, 0.20f, 1.0f} * half_advance;
+            output[0].ambient = glm::vec4{0.05f, 0.05f, 0.05f, 1.0f} + glm::vec4{0.20f, 0.20f, 0.20f, 1.0f} * half_advance;
             output[0].diffuse = sunrise_color * glm::vec4{0.65f, 0.65f, 0.65f, 1.0f} * half_advance;
             output[0].specular = sunrise_color * glm::vec4{0.50f, 0.50f, 0.50f, 1.0f} * half_advance;
         }
 
         //Moon
         output[1].direction = moon_direction(1.0f);
-        output[1].ambiant = glm::vec4{0.15f, 0.15f, 0.15f, 1.0f} * (1.0f - advance);
+        output[1].ambient = glm::vec4{0.15f, 0.15f, 0.15f, 1.0f} * (1.0f - advance);
         output[1].diffuse = moon_color * glm::vec4{0.35f, 0.35f, 0.35f, 1.0f} * (1.0f - advance);
         output[1].specular = moon_color * glm::vec4{0.25f, 0.25f, 0.25f, 1.0f} * (1.0f - advance);
     }
@@ -204,7 +204,7 @@ std::array<directional_light, 2> compute_lights(const std::chrono::duration<Rep,
 
         //Sun
         output[0].direction = sun_direction(1.0f);
-        output[0].ambiant = glm::vec4{0.25f, 0.25f, 0.25f, 1.0f} + glm::vec4{0.10f, 0.10f, 0.10f, 1.0f} * advance;
+        output[0].ambient = glm::vec4{0.25f, 0.25f, 0.25f, 1.0f} + glm::vec4{0.10f, 0.10f, 0.10f, 1.0f} * advance;
         output[0].diffuse = static_cast<glm::vec4>(cpt::gradient(sunrise_color * glm::vec4{0.65f, 0.65f, 0.65f, 1.0f}, glm::vec4{0.65f, 0.65f, 0.65f, 1.0f}, advance));
         output[0].specular = static_cast<glm::vec4>(cpt::gradient(sunrise_color * glm::vec4{0.50f, 0.50f, 0.50f, 1.0f}, glm::vec4{0.50f, 0.50f, 0.50f, 1.0f}, advance));
     }

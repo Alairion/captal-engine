@@ -132,7 +132,7 @@ private:
     cpt::texture_pool m_texture_pool{};
 
     //Render:
-    cpt::framed_buffer_ptr m_directional_light_buffer{};
+    cpt::framed_buffer_ptr m_lights_buffer{};
     cpt::render_texture_ptr m_height_map{};
     cpt::view_ptr m_height_map_view{};
 
