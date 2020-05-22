@@ -15,6 +15,9 @@
 
 #include <captal/systems/render.hpp>
 #include <captal/systems/frame.hpp>
+#include <captal/systems/audio.hpp>
+#include <captal/systems/sorting.hpp>
+#include <captal/systems/physics.hpp>
 
 namespace mpr
 {
@@ -248,10 +251,16 @@ void map::render()
     const auto camera_entity{m_entities.at(camera_entity_name)};
     auto& camera{m_world.get<cpt::components::camera>(camera_entity)};
 
+    cpt::systems::physics(m_world);
+    cpt::systems::audio(m_world);
+    cpt::systems::index_z_sorting(m_world);
+
     camera.attach(m_height_map_view);
     cpt::systems::render(m_world);
     camera.attach(m_diffuse_map_view);
     cpt::systems::render(m_world);
+
+    cpt::systems::end_frame(m_world);
 
     m_height_map->present();
     m_diffuse_map->present();
@@ -278,9 +287,9 @@ void map::init_render()
     tph::shader height_vertex_shader{cpt::engine::instance().renderer(), tph::shader_stage::vertex, std::filesystem::u8path(u8"shaders/height.vert.spv")};
     tph::shader height_fragment_shader{cpt::engine::instance().renderer(), tph::shader_stage::fragment, std::filesystem::u8path(u8"shaders/height.frag.spv")};
     cpt::render_technique_info height_info{};
-    height_info.stages.push_back(tph::pipeline_shader_stage{height_vertex_shader});
-    height_info.stages.push_back(tph::pipeline_shader_stage{height_fragment_shader});
-    height_info.stages_bindings.push_back(tph::descriptor_set_layout_binding{tph::shader_stage::fragment, height_map_binding, tph::descriptor_type::image_sampler});
+    height_info.stages.emplace_back(tph::pipeline_shader_stage{height_vertex_shader});
+    height_info.stages.emplace_back(tph::pipeline_shader_stage{height_fragment_shader});
+    height_info.stages_bindings.emplace_back(tph::descriptor_set_layout_binding{tph::shader_stage::fragment, height_map_binding, tph::descriptor_type::image_sampler});
 
     m_height_map = cpt::make_render_texture(1920, 540, tph::sampling_options{});
     m_height_map->get_target().set_clear_color_value(0.0f, 0.0f, 0.0f, 1.0f);
@@ -291,13 +300,13 @@ void map::init_render()
     tph::shader diffuse_vertex_shader{cpt::engine::instance().renderer(), tph::shader_stage::vertex, std::filesystem::u8path(u8"shaders/lighting.vert.spv")};
     tph::shader diffuse_fragment_shader{cpt::engine::instance().renderer(), tph::shader_stage::fragment, std::filesystem::u8path(u8"shaders/lighting.frag.spv")};
     cpt::render_technique_info diffuse_info{};
-    diffuse_info.stages.push_back(tph::pipeline_shader_stage{diffuse_vertex_shader});
-    diffuse_info.stages.push_back(tph::pipeline_shader_stage{diffuse_fragment_shader});
-    diffuse_info.stages_bindings.push_back(tph::descriptor_set_layout_binding{tph::shader_stage::fragment, normal_map_binding, tph::descriptor_type::image_sampler});
-    diffuse_info.stages_bindings.push_back(tph::descriptor_set_layout_binding{tph::shader_stage::fragment, height_map_binding, tph::descriptor_type::image_sampler});
-    diffuse_info.stages_bindings.push_back(tph::descriptor_set_layout_binding{tph::shader_stage::fragment, specular_map_binding, tph::descriptor_type::image_sampler});
-    diffuse_info.stages_bindings.push_back(tph::descriptor_set_layout_binding{tph::shader_stage::fragment, emission_map_binding, tph::descriptor_type::image_sampler});
-    diffuse_info.stages_bindings.push_back(tph::descriptor_set_layout_binding{tph::shader_stage::fragment, directional_light_binding, tph::descriptor_type::uniform_buffer});
+    diffuse_info.stages.emplace_back(tph::pipeline_shader_stage{diffuse_vertex_shader});
+    diffuse_info.stages.emplace_back(tph::pipeline_shader_stage{diffuse_fragment_shader});
+    diffuse_info.stages_bindings.emplace_back(tph::descriptor_set_layout_binding{tph::shader_stage::fragment, normal_map_binding, tph::descriptor_type::image_sampler});
+    diffuse_info.stages_bindings.emplace_back(tph::descriptor_set_layout_binding{tph::shader_stage::fragment, height_map_binding, tph::descriptor_type::image_sampler});
+    diffuse_info.stages_bindings.emplace_back(tph::descriptor_set_layout_binding{tph::shader_stage::fragment, specular_map_binding, tph::descriptor_type::image_sampler});
+    diffuse_info.stages_bindings.emplace_back(tph::descriptor_set_layout_binding{tph::shader_stage::fragment, emission_map_binding, tph::descriptor_type::image_sampler});
+    diffuse_info.stages_bindings.emplace_back(tph::descriptor_set_layout_binding{tph::shader_stage::fragment, directional_light_binding, tph::descriptor_type::uniform_buffer});
 
     cpt::render_texture_ptr m_diffuse_map = cpt::make_render_texture(1920, 540, tph::sampling_options{});
     cpt::view_ptr m_diffuse_map_view = cpt::make_view(m_diffuse_map, diffuse_info);

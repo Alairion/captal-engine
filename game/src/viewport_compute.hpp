@@ -34,13 +34,13 @@ T scale_to_window(const cpt::render_window_ptr& window, T value) noexcept
 template<typename... Args>
 std::tuple<Args...> scale_from_window(const cpt::render_window_ptr& window, Args&&... value) noexcept
 {
-    return std::make_tuple(scale_from_window(window, value)...);
+    return std::make_tuple(scale_from_window(window, std::forward(value))...);
 }
 
 template<typename... Args>
 std::tuple<Args...> scale_to_window(const cpt::render_window_ptr& window, Args&&... value) noexcept
 {
-    return std::make_tuple(scale_to_window(window, value)...);
+    return std::make_tuple(scale_to_window(window, std::forward(value))...);
 }
 
 inline glm::vec3 scaled_window_center(const cpt::render_window_ptr& window) noexcept
