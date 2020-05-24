@@ -14,6 +14,9 @@ namespace components
 class audio_emiter
 {
 public:
+    using value_type = sound;
+
+public:
     audio_emiter() = default;
     audio_emiter(sound_ptr attachment)
     :m_attachment{std::move(attachment)}
@@ -40,6 +43,11 @@ public:
     const sound_ptr& attachment() const noexcept
     {
         return m_attachment;
+    }
+
+    sound* operator->() const noexcept
+    {
+        return m_attachment.get();
     }
 
 private:

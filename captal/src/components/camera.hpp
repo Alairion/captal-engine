@@ -14,6 +14,9 @@ namespace components
 class camera
 {
 public:
+    using value_type = view;
+
+public:
     camera() = default;
 
     camera(view_ptr attachment)
@@ -41,6 +44,11 @@ public:
     const view_ptr& attachment() const noexcept
     {
         return m_attachment;
+    }
+
+    view* operator->() const noexcept
+    {
+        return m_attachment.get();
     }
 
 private:

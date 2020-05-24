@@ -120,6 +120,7 @@ private:
         render_target_options options{};
         VkSampleCountFlagBits sample_count{};
         VkExtent2D extent{};
+        VkFormat format{};
         VkImage texture{};
         VkImageView texture_view{};
         bool has_sampling{};

@@ -15,8 +15,9 @@ class CAPTAL_API render_texture : public texture, public render_target
 {
 public:
     render_texture() = default;
-    render_texture(std::uint32_t width, std::uint32_t height, tph::render_target_options target_options = tph::render_target_options::none, tph::sample_count sample_count = tph::sample_count::msaa_x1);
-    render_texture(std::uint32_t width, std::uint32_t height, const tph::sampling_options& sampling, tph::render_target_options target_options = tph::render_target_options::none, tph::sample_count sample_count = tph::sample_count::msaa_x1);
+    render_texture(std::uint32_t width, std::uint32_t height, color_space space = color_space::srgb, tph::render_target_options target_options = tph::render_target_options::none, tph::sample_count sample_count = tph::sample_count::msaa_x1);
+    render_texture(std::uint32_t width, std::uint32_t height, const tph::sampling_options& sampling, color_space space = color_space::srgb, tph::render_target_options target_options = tph::render_target_options::none, tph::sample_count sample_count = tph::sample_count::msaa_x1);
+    render_texture(texture other, tph::render_target_options target_options = tph::render_target_options::none, tph::sample_count sample_count = tph::sample_count::msaa_x1);
     ~render_texture();
     render_texture(const render_texture&) = delete;
     render_texture& operator=(const render_texture&) = delete;

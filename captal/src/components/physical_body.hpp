@@ -16,6 +16,9 @@ namespace components
 class physical_body
 {
 public:
+    using value_type = cpt::physical_body;
+
+public:
     physical_body() = default;
 
     physical_body(physical_body_ptr attachment)
@@ -70,6 +73,11 @@ public:
     const physical_shape_ptr& shape(std::size_t index) const noexcept
     {
         return m_shapes[index];
+    }
+
+    cpt::physical_body* operator->() const noexcept
+    {
+        return m_attachment.get();
     }
 
 private:

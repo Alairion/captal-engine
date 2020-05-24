@@ -14,7 +14,7 @@ using namespace tph::vulkan::functions;
 namespace tph
 {
 
-static VkExtent2D choose_extent(const VkSurfaceCapabilitiesKHR& capabilities)
+static VkExtent2D choose_extent(const VkSurfaceCapabilitiesKHR& capabilities) noexcept
 {
     if(capabilities.currentExtent.width == 0xFFFFFFFF || capabilities.currentExtent.height == 0xFFFFFFFF)
         return capabilities.maxImageExtent;
@@ -35,7 +35,7 @@ static VkSurfaceFormatKHR choose_format(VkPhysicalDevice physical_device, VkSurf
         throw vulkan::error{result};
 
     if(std::size(formats) == 1 && formats[0].format == VK_FORMAT_UNDEFINED)
-        return {VK_FORMAT_R8G8B8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
+        return {VK_FORMAT_B8G8R8A8_SRGB, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
 
     for(auto&& format : formats)
     {
@@ -70,6 +70,8 @@ static VkSurfaceCapabilitiesKHR get_surface_capabilities(VkPhysicalDevice physic
 render_target::render_target(renderer& renderer, tph::texture& texture, render_target_options options, tph::sample_count sample_count)
 :m_offscreen_target{std::make_unique<offscreen_target>()}
 {
+    assert(texture.aspect() == texture_aspect::color && "High level tph::render_target contructor called with non color target.");
+
     m_offscreen_target->physical_device = underlying_cast<VkPhysicalDevice>(renderer);
     m_offscreen_target->device = underlying_cast<VkDevice>(renderer);
     m_offscreen_target->allocator = &renderer.allocator();
@@ -78,6 +80,7 @@ render_target::render_target(renderer& renderer, tph::texture& texture, render_t
     m_offscreen_target->options = options;
     m_offscreen_target->sample_count = static_cast<VkSampleCountFlagBits>(sample_count);
     m_offscreen_target->extent = VkExtent2D{texture.width(), texture.height()};
+    m_offscreen_target->format = static_cast<VkFormat>(texture.format());
     m_offscreen_target->texture = underlying_cast<VkImage>(texture);
     m_offscreen_target->texture_view = underlying_cast<VkImageView>(texture);
     m_offscreen_target->has_sampling = underlying_cast<VkSampler>(texture);
@@ -106,9 +109,9 @@ void render_target::build_offscreen_target_multisampling_images()
 {
     if(m_offscreen_target->sample_count != VK_SAMPLE_COUNT_1_BIT)
     {
-        m_offscreen_target->multisampling_image = vulkan::image{m_offscreen_target->device, m_offscreen_target->extent, VK_IMAGE_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_IMAGE_TILING_OPTIMAL, m_offscreen_target->sample_count};
+        m_offscreen_target->multisampling_image = vulkan::image{m_offscreen_target->device, m_offscreen_target->extent, VK_IMAGE_TYPE_2D, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_IMAGE_TILING_OPTIMAL, m_offscreen_target->sample_count};
         m_offscreen_target->multisampling_image_memory = m_offscreen_target->allocator->allocate_bound(m_offscreen_target->multisampling_image, vulkan::memory_resource_type::non_linear, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-        m_offscreen_target->multisampling_image_view = vulkan::image_view{m_offscreen_target->device, m_offscreen_target->multisampling_image, VK_IMAGE_VIEW_TYPE_2D,  VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT};
+        m_offscreen_target->multisampling_image_view = vulkan::image_view{m_offscreen_target->device, m_offscreen_target->multisampling_image, VK_IMAGE_VIEW_TYPE_2D,  VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT};
     }
 }
 
@@ -118,7 +121,7 @@ void render_target::build_offscreen_target_render_pass()
     std::vector<VkAttachmentReference> attachment_references{};
 
     attachments.emplace_back();
-    attachments.back().format = VK_FORMAT_R8G8B8A8_UNORM;
+    attachments.back().format = m_offscreen_target->format;
     attachments.back().samples = m_offscreen_target->sample_count;
     attachments.back().loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     attachments.back().storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -159,14 +162,14 @@ void render_target::build_offscreen_target_render_pass()
     if(m_offscreen_target->sample_count != VK_SAMPLE_COUNT_1_BIT)
     {
         attachments.emplace_back();
-        attachments.back().format = VK_FORMAT_R8G8B8A8_UNORM;
+        attachments.back().format = m_offscreen_target->format;
         attachments.back().samples = VK_SAMPLE_COUNT_1_BIT;
         attachments.back().loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         attachments.back().storeOp = VK_ATTACHMENT_STORE_OP_STORE;
         attachments.back().stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
         attachments.back().stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
         attachments.back().initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        attachments.back().finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+        attachments.back().finalLayout = m_offscreen_target->has_sampling ? VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
 
         attachment_references.emplace_back();
         attachment_references.back().attachment = static_cast<std::uint32_t>(std::size(attachments) - 1);
@@ -627,13 +630,19 @@ void render_target::recreate()
         const bool format_changed{old_format.format != m_surface_target->swapchain_format.format};
 
         if(extent_changed)
+        {
             build_surface_target_depth_images();
+        }
 
         if(extent_changed || format_changed)
+        {
             build_surface_target_multisampling_images();
+        }
 
         if(format_changed)
+        {
             build_surface_target_render_pass();
+        }
 
         build_surface_target_render_pass_data();
     }

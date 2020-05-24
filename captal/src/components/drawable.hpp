@@ -14,6 +14,9 @@ namespace components
 class drawable
 {
 public:
+    using value_type = renderable;
+
+public:
     drawable() = default;
     drawable(renderable_ptr attachment)
     :m_attachment{std::move(attachment)}
@@ -40,6 +43,11 @@ public:
     const renderable_ptr& attachment() const noexcept
     {
         return m_attachment;
+    }
+
+    renderable* operator->() const noexcept
+    {
+        return m_attachment.get();
     }
 
 private:

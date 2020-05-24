@@ -600,7 +600,7 @@ texture_ptr text_drawer::make_texture(std::u32string string, std::unordered_map<
         cache.emplace(std::make_pair(c, std::make_pair(std::move(character_glyph), texture_pos)));
     }
 
-    texture_ptr texture{cpt::make_texture(texture_width, texture_height, tph::sampling_options{}, tph::texture_usage::transfer_destination | tph::texture_usage::sampled)};
+    texture_ptr texture{cpt::make_texture(texture_width, texture_height, tph::texture_usage::transfer_destination | tph::texture_usage::sampled)};
 
     for(auto c : string)
     {

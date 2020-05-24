@@ -151,7 +151,7 @@ std::array<directional_light, 2> compute_lights(const std::chrono::duration<Rep,
         output[1].diffuse = moon_color * glm::vec4{0.35f, 0.35f, 0.35f, 1.0f} * advance;
         output[1].specular = moon_color * glm::vec4{0.25f, 0.25f, 0.25f, 1.0f} * advance;
     }
-    else if(time >= night_begin && time < moonset_begin)
+    else if(time >= night_begin || time < moonset_begin)
     {
         const float advance{normalize_time(time, night_begin, moonset_begin)};
 
@@ -210,6 +210,19 @@ std::array<directional_light, 2> compute_lights(const std::chrono::duration<Rep,
     }
 
     return output;
+}
+
+template<typename Rep, typename Period>
+std::uint32_t directional_light_count(const std::chrono::duration<Rep, Period>& total_time)
+{
+    const time::hour time{daytime<time::hour>(total_time)};
+
+    if(time >= moonrise_begin || time < sunrise_begin)
+    {
+        return 2;
+    }
+
+    return 1;
 }
 
 }

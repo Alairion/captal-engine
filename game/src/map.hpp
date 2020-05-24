@@ -130,6 +130,7 @@ private:
     std::unordered_map<std::string, entt::entity> m_entities{};
     cpt::physical_world_ptr m_physical_world{};
     cpt::texture_pool m_texture_pool{};
+    std::vector<chunk> m_chunks{};
 
     //Render:
     cpt::framed_buffer_ptr m_lights_buffer{};

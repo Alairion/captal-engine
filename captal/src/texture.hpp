@@ -16,22 +16,26 @@
 namespace cpt
 {
 
+enum class color_space : std::uint32_t
+{
+    srgb = 0,
+    linear = 1
+};
+
 class CAPTAL_API texture : public asynchronous_resource
 {
 public:
     texture() = default;
-    texture(std::uint32_t width, std::uint32_t height, tph::texture_usage usage);
-    texture(std::uint32_t width, std::uint32_t height, const tph::sampling_options& options, tph::texture_usage usage);
-    texture(std::uint32_t width, std::uint32_t height, std::uint32_t depth, tph::texture_usage usage);
-    texture(std::uint32_t width, std::uint32_t height, std::uint32_t depth, const tph::sampling_options& options, tph::texture_usage usage);
+    texture(std::uint32_t width, std::uint32_t height, tph::texture_usage usage, color_space space = color_space::srgb);
+    texture(std::uint32_t width, std::uint32_t height, tph::texture_usage usage, const tph::sampling_options& options, color_space space = color_space::srgb);
+    texture(const std::filesystem::path& file, const tph::sampling_options& sampling = tph::sampling_options{}, color_space space = color_space::srgb);
+    texture(const std::string_view& data, const tph::sampling_options& sampling = tph::sampling_options{}, color_space space = color_space::srgb);
+    texture(std::istream& stream, const tph::sampling_options& sampling = tph::sampling_options{}, color_space space = color_space::srgb);
+    texture(std::uint32_t width, std::uint32_t height, const std::uint8_t* rgba, const tph::sampling_options& sampling = tph::sampling_options{}, color_space space = color_space::srgb);
+    texture(tph::image image, const tph::sampling_options& sampling = tph::sampling_options{}, color_space space = color_space::srgb);
     texture(tph::texture other);
-    texture(const std::filesystem::path& file, const tph::sampling_options& sampling = tph::sampling_options{});
-    texture(const std::string_view& data, const tph::sampling_options& sampling = tph::sampling_options{});
-    texture(std::istream& stream, const tph::sampling_options& sampling = tph::sampling_options{});
-    texture(std::uint32_t width, std::uint32_t height, const std::uint8_t* rgba, const tph::sampling_options& sampling = tph::sampling_options{});
-    texture(tph::image image, const tph::sampling_options& sampling = tph::sampling_options{});
 
-    ~texture() = default;
+    virtual ~texture() = default;
     texture(const texture&) = delete;
     texture& operator=(const texture&) = delete;
     texture(texture&&) noexcept = default;

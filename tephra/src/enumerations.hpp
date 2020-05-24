@@ -393,9 +393,16 @@ enum class texture_format : std::uint32_t
     x8_d24_unorm_pack = VK_FORMAT_X8_D24_UNORM_PACK32,
     d32_sfloat = VK_FORMAT_D32_SFLOAT,
     s8_uint = VK_FORMAT_S8_UINT,
-    d16_unorm_S8_uint = VK_FORMAT_D16_UNORM_S8_UINT,
-    d24_unorm_S8_uint = VK_FORMAT_D24_UNORM_S8_UINT,
-    d32_sfloat_S8_uint = VK_FORMAT_D32_SFLOAT_S8_UINT,
+    d16_unorm_s8_uint = VK_FORMAT_D16_UNORM_S8_UINT,
+    d24_unorm_s8_uint = VK_FORMAT_D24_UNORM_S8_UINT,
+    d32_sfloat_s8_uint = VK_FORMAT_D32_SFLOAT_S8_UINT,
+};
+
+enum class texture_aspect : std::uint32_t
+{
+    color = VK_IMAGE_ASPECT_COLOR_BIT,
+    depth = VK_IMAGE_ASPECT_DEPTH_BIT,
+    stencil = VK_IMAGE_ASPECT_STENCIL_BIT,
 };
 
 enum class format_feature : std::uint32_t
@@ -449,6 +456,7 @@ template<> struct tph::enable_enum_operations<tph::color_component> {static cons
 template<> struct tph::enable_enum_operations<tph::shader_stage> {static constexpr bool value{true};};
 template<> struct tph::enable_enum_operations<tph::pipeline_stage> {static constexpr bool value{true};};
 template<> struct tph::enable_enum_operations<tph::resource_access> {static constexpr bool value{true};};
+template<> struct tph::enable_enum_operations<tph::texture_aspect> {static constexpr bool value{true};};
 template<> struct tph::enable_enum_operations<tph::format_feature> {static constexpr bool value{true};};
 template<> struct tph::enable_enum_operations<tph::dependency_flags> {static constexpr bool value{true};};
 

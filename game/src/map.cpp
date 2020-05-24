@@ -77,8 +77,9 @@ std::uint64_t chunk::parse_layers(const std::vector<cpt::tiled::layer>& layers, 
         m_map->world().assign<cpt::components::node>(entity).move_to(chunk_offset() + glm::vec3{layer.position, 0.0f});
         m_map->world().assign<cpt::components::draw_index>(entity).index = index;
         m_map->world().assign<cpt::components::drawable>(entity);
+
         auto& layer_body = m_map->world().assign<cpt::components::physical_body>(entity, cpt::make_physical_body(m_map->physical_world(), cpt::physical_body_type::steady));
-        layer_body.attachment()->set_position(glm::vec2{chunk_offset()} + layer.position);
+        layer_body->set_position(glm::vec2{chunk_offset()} + layer.position);
 
         if(std::holds_alternative<cpt::tiled::layer::tiles>(layer.content))
         {
@@ -233,12 +234,16 @@ map::map()
     init_render();
     init_entities();
 
+
     m_physical_world->set_damping(0.1f);
 
-    m_texture_pool.emplace(dummy_normal_map_name, cpt::make_texture(1, 1, std::data(dummy_normal_map_data), tph::sampling_options{tph::filter::nearest, tph::filter::nearest, tph::address_mode::repeat}));
-    m_texture_pool.emplace(dummy_height_map_name, cpt::make_texture(1, 1, std::data(dummy_height_map_data), tph::sampling_options{tph::filter::nearest, tph::filter::nearest, tph::address_mode::repeat}));
-    m_texture_pool.emplace(dummy_specular_map_name, cpt::make_texture(1, 1, std::data(dummy_specular_map_data), tph::sampling_options{tph::filter::nearest, tph::filter::nearest, tph::address_mode::repeat}));
-    m_texture_pool.emplace(dummy_emission_map_name, cpt::make_texture(1, 1, std::data(dummy_emission_map_data), tph::sampling_options{tph::filter::nearest, tph::filter::nearest, tph::address_mode::repeat}));
+    constexpr tph::sampling_options sampling{tph::filter::nearest, tph::filter::nearest, tph::address_mode::repeat};
+    m_texture_pool.emplace(dummy_normal_map_name, cpt::make_texture(1, 1, std::data(dummy_normal_map_data), sampling));
+    m_texture_pool.emplace(dummy_height_map_name, cpt::make_texture(1, 1, std::data(dummy_height_map_data), sampling, cpt::color_space::linear));
+    m_texture_pool.emplace(dummy_specular_map_name, cpt::make_texture(1, 1, std::data(dummy_specular_map_data), sampling, cpt::color_space::linear));
+    m_texture_pool.emplace(dummy_emission_map_name, cpt::make_texture(1, 1, std::data(dummy_emission_map_data), sampling));
+
+    /*view(...);*/
 }
 
 void map::update(float time)
@@ -269,14 +274,18 @@ void map::render()
 void map::view(float x, float y, std::uint32_t width, std::uint32_t height)
 {
     const auto camera_entity{m_entities.at(camera_entity_name)};
-
     auto& camera_node{m_world.assign<cpt::components::node>(camera_entity)};
     camera_node.move_to(x, y);
 
-    const auto& camera{m_world.assign<cpt::components::camera>(camera_entity).attachment()};
-    camera->resize(static_cast<float>(width), static_cast<float>(height));
-    camera->set_viewport(0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f);
-    camera->set_scissor(0, 0, width, height);
+    const auto update_view = [width, height](const cpt::view_ptr& view)
+    {
+        view->set_viewport(0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f, 255.0f);
+        view->set_scissor(0, 0, width, height);
+        view->resize(static_cast<float>(width), static_cast<float>(height));
+    };
+
+    update_view(m_height_map_view);
+    update_view(m_diffuse_map_view);
 }
 
 void map::init_render()
@@ -291,7 +300,7 @@ void map::init_render()
     height_info.stages.emplace_back(tph::pipeline_shader_stage{height_fragment_shader});
     height_info.stages_bindings.emplace_back(tph::descriptor_set_layout_binding{tph::shader_stage::fragment, height_map_binding, tph::descriptor_type::image_sampler});
 
-    m_height_map = cpt::make_render_texture(1920, 540, tph::sampling_options{});
+    m_height_map = cpt::make_render_texture(1920, 540, tph::sampling_options{}, cpt::color_space::linear);
     m_height_map->get_target().set_clear_color_value(0.0f, 0.0f, 0.0f, 1.0f);
     m_height_map_view = cpt::make_view(m_height_map, height_info);
     m_height_map_view->fit_to(m_height_map);

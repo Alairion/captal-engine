@@ -5,8 +5,8 @@
 namespace cpt
 {
 
-render_texture::render_texture(std::uint32_t width, std::uint32_t height, tph::render_target_options target_options, tph::sample_count sample_count)
-:texture{width, height, tph::texture_usage::color_attachment | tph::texture_usage::sampled}
+render_texture::render_texture(std::uint32_t width, std::uint32_t height, color_space space, tph::render_target_options target_options, tph::sample_count sample_count)
+:texture{width, height, tph::texture_usage::color_attachment | tph::texture_usage::sampled, space}
 ,render_target{engine::instance().renderer(), get_texture(), target_options, sample_count}
 ,m_options{target_options}
 ,m_sample_count{sample_count}
@@ -14,8 +14,17 @@ render_texture::render_texture(std::uint32_t width, std::uint32_t height, tph::r
 
 }
 
-render_texture::render_texture(std::uint32_t width, std::uint32_t height, const tph::sampling_options& sampling, tph::render_target_options target_options, tph::sample_count sample_count)
-:texture{width, height, sampling, tph::texture_usage::color_attachment | tph::texture_usage::sampled}
+render_texture::render_texture(std::uint32_t width, std::uint32_t height, const tph::sampling_options& sampling, color_space space, tph::render_target_options target_options, tph::sample_count sample_count)
+:texture{width, height, tph::texture_usage::color_attachment | tph::texture_usage::sampled, sampling, space}
+,render_target{engine::instance().renderer(), get_texture(), target_options, sample_count}
+,m_options{target_options}
+,m_sample_count{sample_count}
+{
+
+}
+
+render_texture::render_texture(texture other, tph::render_target_options target_options, tph::sample_count sample_count)
+:texture{std::move(other)}
 ,render_target{engine::instance().renderer(), get_texture(), target_options, sample_count}
 ,m_options{target_options}
 ,m_sample_count{sample_count}
@@ -36,7 +45,7 @@ std::pair<tph::command_buffer&, frame_presented_signal&> render_texture::begin_r
 
     const auto find_data = [this]() -> frame_data&
     {
-        for(auto&& data : m_frames_data)
+        for(auto& data : m_frames_data)
             if(data.fence.try_wait())
                 return data;
 
@@ -60,7 +69,7 @@ void render_texture::present()
 {
     const auto find_data = [this]() -> frame_data&
     {
-        for(auto&& data : m_frames_data)
+        for(auto& data : m_frames_data)
             if(data.begin)
                 return data;
 

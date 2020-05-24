@@ -90,9 +90,19 @@ public:
     texture(texture&& other) noexcept = default;
     texture& operator=(texture&& other) noexcept = default;
 
+    texture_format format() const noexcept
+    {
+        return m_format;
+    }
+
     texture_layout layout() const noexcept
     {
         return m_layout;
+    }
+
+    texture_aspect aspect() const noexcept
+    {
+        return m_aspect;
     }
 
     size_type width() const noexcept
@@ -118,7 +128,9 @@ private:
     vulkan::memory_heap_chunk m_memory{};
     vulkan::image_view m_image_view{};
     vulkan::sampler m_sampler{};
+    texture_format m_format{texture_format::undefined};
     texture_layout m_layout{texture_layout::undefined};
+    texture_aspect m_aspect{texture_layout::undefined};
     size_type m_width{};
     size_type m_height{};
     size_type m_depth{};
