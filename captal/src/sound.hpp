@@ -16,6 +16,8 @@ public:
     sound(const std::filesystem::path& file, swl::sound_reader_options options = swl::sound_reader_options::none);
     sound(const std::string_view& data, swl::sound_reader_options options = swl::sound_reader_options::none);
     sound(std::istream& stream, swl::sound_reader_options options = swl::sound_reader_options::none);
+    sound(swl::sound_file_reader reader);
+
     ~sound() = default;
     sound(const sound&) = delete;
     sound& operator=(const sound&) = delete;

@@ -17,11 +17,13 @@ class sound_file_reader : public sound_reader
 {
 public:
     constexpr sound_file_reader() = default;
+
     sound_file_reader(const std::filesystem::path& file, sound_reader_options options = sound_reader_options::none);
     sound_file_reader(const std::string_view& data, sound_reader_options options = sound_reader_options::none);
     sound_file_reader(std::istream& stream, sound_reader_options options = sound_reader_options::none);
+    sound_file_reader(std::unique_ptr<sound_reader> m_reader) noexcept;
 
-    ~sound_file_reader() = default;
+    virtual ~sound_file_reader() = default;
     sound_file_reader(const sound_file_reader&) = delete;
     sound_file_reader& operator=(const sound_file_reader&) = delete;
     sound_file_reader(sound_file_reader&& other) noexcept = default;

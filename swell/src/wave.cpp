@@ -7,7 +7,7 @@ namespace swl
 
 static std::uint16_t bswap(std::uint16_t value) noexcept
 {
-    return (value << 8) | (value >> 8);
+    return static_cast<std::uint16_t>((value << 8) | (value >> 8));
 }
 
 static std::uint32_t bswap(std::uint32_t value) noexcept
@@ -71,7 +71,9 @@ static void read_samples_impl(const char* data, std::uint32_t bits_per_sample, f
     const std::size_t byte_per_sample{bits_per_sample / 8u};
 
     for(std::size_t i{}; i < sample_count; ++i)
+    {
         output[i] = read_sample(data + (i * byte_per_sample), bits_per_sample);
+    }
 }
 
 static constexpr std::array<char, 4> file_type_block_id{0x52, 0x49, 0x46, 0x46};
@@ -169,7 +171,7 @@ bool wave_reader::read_samples(float* output, std::size_t frame_count)
 
 void wave_reader::seek_samples(std::uint64_t frame_offset)
 {
-    m_current_frame = frame_offset;
+    m_current_frame = static_cast<std::uint32_t>(frame_offset);
 
     if(m_file.is_open())
     {

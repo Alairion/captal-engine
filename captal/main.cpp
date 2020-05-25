@@ -1,24 +1,104 @@
 #include <iostream>
 
-#include <captal/engine.hpp>
-#include <captal/texture.hpp>
-#include <captal/sprite.hpp>
-#include <captal/sound.hpp>
-#include <captal/view.hpp>
-#include <captal/physics.hpp>
+#include "src/engine.hpp"
+#include "src/texture.hpp"
+#include "src/sprite.hpp"
+#include "src/sound.hpp"
+#include "src/view.hpp"
+#include "src/physics.hpp"
 
-#include <captal/components/node.hpp>
-#include <captal/components/camera.hpp>
-#include <captal/components/drawable.hpp>
-#include <captal/components/audio_emiter.hpp>
-#include <captal/components/listener.hpp>
-#include <captal/components/physical_body.hpp>
+#include "src/components/node.hpp"
+#include "src/components/camera.hpp"
+#include "src/components/drawable.hpp"
+#include "src/components/audio_emiter.hpp"
+#include "src/components/listener.hpp"
+#include "src/components/physical_body.hpp"
 
-#include <captal/systems/frame.hpp>
-#include <captal/systems/audio.hpp>
-#include <captal/systems/render.hpp>
-#include <captal/systems/physics.hpp>
-#include <captal/systems/sorting.hpp>
+#include "src/systems/frame.hpp"
+#include "src/systems/audio.hpp"
+#include "src/systems/render.hpp"
+#include "src/systems/physics.hpp"
+#include "src/systems/sorting.hpp"
+
+class sawtooth_generator : public swl::sound_reader
+{
+public:
+    sawtooth_generator(std::uint32_t frequency, std::uint32_t channels, std::uint32_t wave_frequency, std::uint32_t max)
+    :m_frequency{frequency}
+    ,m_channels{channels}
+    ,m_wave_frequency{wave_frequency}
+    ,m_max{max}
+    {
+
+    }
+
+    ~sawtooth_generator() = default;
+    sawtooth_generator(const sawtooth_generator&) = delete;
+    sawtooth_generator& operator=(const sawtooth_generator&) = delete;
+    sawtooth_generator(sawtooth_generator&& other) noexcept = default;
+    sawtooth_generator& operator=(sawtooth_generator&& other) noexcept = default;
+
+protected:
+    bool read_samples(float* output, std::size_t frame_count) override
+    {
+        for(std::size_t i{}; i < frame_count; ++i)
+        {
+            const float value{next_value()};
+
+            for(std::size_t j{}; j < m_channels; ++j)
+            {
+                output[i * m_channels + j] = value;
+            }
+        }
+
+        return true;
+    }
+
+    void seek_samples(std::uint64_t frame_offset) override
+    {
+        m_current_index = frame_offset;
+    }
+
+    std::uint64_t get_frame_count() override
+    {
+        return std::numeric_limits<std::uint64_t>::max();
+    }
+
+    std::uint32_t get_frequency() override
+    {
+        return m_frequency;
+    }
+
+    std::uint32_t get_channels() override
+    {
+        return m_channels;
+    }
+
+private:
+    float next_value() noexcept
+    {
+        float value{};
+        for(std::uint32_t k{}; k < m_max; ++k)
+        {
+            const float kf{static_cast<float>(k)};
+            const float ff{static_cast<float>(m_wave_frequency)};
+            const float tf{static_cast<float>(m_current_index) / static_cast<float>(m_frequency)};
+
+            value += std::pow(-1.0f, kf + 1.0f) * (std::sin(2 * cpt::pi<float> * kf * ff * tf) / kf);
+        }
+
+        ++m_current_index;
+
+        return (2.0f * cpt::pi<float>) * value;
+    }
+
+private:
+    std::uint64_t m_current_index{};
+    std::uint32_t m_frequency{};
+    std::uint32_t m_channels{};
+    std::uint32_t m_wave_frequency{};
+    std::uint32_t m_max{};
+};
 
 //Needed information to control player's physical body
 struct physical_body_controller
@@ -27,7 +107,11 @@ struct physical_body_controller
     cpt::physical_body_ptr player_controller{};
     cpt::physical_constraint_ptr player_pivot_joint{};
     cpt::physical_constraint_ptr player_gear_joint{};
+    entt::entity player_entity{};
 };
+
+static constexpr cpt::collision_type_t player_type{1};
+static constexpr cpt::collision_type_t wall_type{2};
 
 static physical_body_controller add_physics(entt::registry& world, const cpt::physical_world_ptr& physical_world)
 {
@@ -46,42 +130,44 @@ static physical_body_controller add_physics(entt::registry& world, const cpt::ph
         const auto item{world.create()};
         world.assign<cpt::components::node>(item, glm::vec3{position, 1.0f}, glm::vec3{12.0f, 12.0f, 0.0f});
         world.assign<cpt::components::drawable>(item, cpt::make_sprite(24, 24, cpt::colors::blue));
-        world.assign<cpt::components::physical_body>(item, std::move(sprite_body)).add_shape(24.0f, 24.0f);
+        world.assign<cpt::components::physical_body>(item, std::move(sprite_body)).add_shape(24.0f, 24.0f)->set_collision_type(player_type);
     }
 
     //Walls are placed at window's limits
     auto walls{world.create()};
     auto& walls_body{world.assign<cpt::components::physical_body>(walls)};
     walls_body.attach(cpt::make_physical_body(physical_world, cpt::physical_body_type::steady));
-    walls_body.add_shape(glm::vec2{0.0f, 0.0f}, glm::vec2{0.0f, 480.0f});
-    walls_body.add_shape(glm::vec2{0.0f, 0.0f}, glm::vec2{640.0f, 0.0f});
-    walls_body.add_shape(glm::vec2{640.0f, 0.0f}, glm::vec2{640.0f, 480.0f});
-    walls_body.add_shape(glm::vec2{0.0f, 480.0f}, glm::vec2{640.0f, 480.0f});
+    walls_body.add_shape(glm::vec2{0.0f, 0.0f},   glm::vec2{0.0f, 480.0f}  )->set_collision_type(wall_type);
+    walls_body.add_shape(glm::vec2{0.0f, 0.0f},   glm::vec2{640.0f, 0.0f}  )->set_collision_type(wall_type);
+    walls_body.add_shape(glm::vec2{640.0f, 0.0f}, glm::vec2{640.0f, 480.0f})->set_collision_type(wall_type);
+    walls_body.add_shape(glm::vec2{0.0f, 480.0f}, glm::vec2{640.0f, 480.0f})->set_collision_type(wall_type);
 
     //The player
-    cpt::physical_body_ptr item_physical_body{cpt::make_physical_body(physical_world, cpt::physical_body_type::dynamic)};
-    item_physical_body->set_position(glm::vec2{320.0f, 240.0f});
+    cpt::physical_body_ptr player_physical_body{cpt::make_physical_body(physical_world, cpt::physical_body_type::dynamic)};
+    player_physical_body->set_position(glm::vec2{320.0f, 240.0f});
 
-    const auto item{world.create()};
-    world.assign<cpt::components::node>(item, glm::vec3{0.0f, 0.0f, 1.0f}, glm::vec3{16.0f, 16.0f, 0.0f});
-    world.assign<cpt::components::drawable>(item, cpt::make_sprite(32, 32, cpt::colors::black));
-    world.assign<cpt::components::physical_body>(item, item_physical_body).add_shape(32.0f, 32.0f);
+    const auto player{world.create()};
+    world.assign<cpt::components::node>(player, glm::vec3{0.0f, 0.0f, 1.0f}, glm::vec3{16.0f, 16.0f, 0.0f});
+    world.assign<cpt::components::drawable>(player, cpt::make_sprite(32, 32, cpt::colors::black));
+    world.assign<cpt::components::physical_body>(player, player_physical_body).add_shape(32.0f, 32.0f);
+    world.assign<cpt::components::listener>(player);
+    world.assign<cpt::components::audio_emiter>(player, cpt::make_sound(swl::sound_file_reader{std::make_unique<sawtooth_generator>(44100, 2, 1000, 100)}))->enable_spatialization();
 
     //The player is controlled by a kinetic body jointed to the dynamic one
-    const auto item_controller{cpt::make_physical_body(physical_world, cpt::physical_body_type::kinematic)};
-    item_controller->set_position(glm::vec2{320.0f, 240.0f});
+    const auto player_controller{cpt::make_physical_body(physical_world, cpt::physical_body_type::kinematic)};
+    player_controller->set_position(glm::vec2{320.0f, 240.0f});
 
-    const auto item_joint{cpt::make_physical_constraint(cpt::pivot_joint, item_controller, item_physical_body, glm::vec2{}, glm::vec2{})};
-    item_joint->set_max_bias(0.0f);
-    item_joint->set_max_force(10000.0f);
+    const auto player_joint{cpt::make_physical_constraint(cpt::pivot_joint, player_controller, player_physical_body, glm::vec2{}, glm::vec2{})};
+    player_joint->set_max_bias(0.0f);
+    player_joint->set_max_force(10000.0f);
 
-    const auto item_pivot{cpt::make_physical_constraint(cpt::gear_joint, item_controller, item_physical_body, 0.0f, 1.0f)};
-    item_pivot->set_error_bias(0.0f);
-    item_pivot->set_max_bias(1.0f);
-    item_pivot->set_max_force(10000.0f);
+    const auto player_pivot{cpt::make_physical_constraint(cpt::gear_joint, player_controller, player_physical_body, 0.0f, 1.0f)};
+    player_pivot->set_error_bias(0.0f);
+    player_pivot->set_max_bias(1.0f);
+    player_pivot->set_max_force(10000.0f);
 
     //This set of variables is required to control the player entity
-    return physical_body_controller{physical_world, item_controller, item_joint, item_pivot};
+    return physical_body_controller{physical_world, player_controller, player_joint, player_pivot, player};
 }
 
 static void add_logic(const cpt::render_window_ptr& window, entt::registry& world, const cpt::physical_world_ptr& physical_world, entt::entity camera)
@@ -129,6 +215,37 @@ static void add_logic(const cpt::render_window_ptr& window, entt::registry& worl
         if(event.scan == apr::scancode::a) pressed_keys[2] = false;
         if(event.scan == apr::scancode::w) pressed_keys[3] = false;
     });
+
+    const auto player{item_controller.player_entity};
+    auto current_collisions{std::make_shared<std::uint32_t>()};
+
+    cpt::physical_world::collision_handler collision_handler{};
+
+    collision_handler.collision_begin = [&world, player, current_collisions](auto&, auto&, auto&, auto, auto*)
+    {
+        *current_collisions += 1;
+
+        if(*current_collisions == 1)
+        {
+            world.get<cpt::components::audio_emiter>(player)->start();
+        }
+
+        return true;
+    };
+
+    collision_handler.collision_end = [&world, player, current_collisions](auto&, auto&, auto&, auto, auto*)
+    {
+        *current_collisions -= 1;
+
+        if(*current_collisions == 0)
+        {
+            world.get<cpt::components::audio_emiter>(player)->stop();
+        }
+
+        return true;
+    };
+
+    physical_world->add_collision(player_type, wall_type, std::move(collision_handler));
 
     //This signal will be called withing cpt::engine::instanc()::run()
     //We could have write this code inside the main loop instead.

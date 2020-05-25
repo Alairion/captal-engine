@@ -195,7 +195,7 @@ static float sgn(T value)
 
 static inline float mix_amplitude(float value, std::size_t count) noexcept
 {
-    return (sgn(value) * (1.0f - std::pow(1.0f - std::abs(value), count)));
+    return sgn(value) * (1.0f - std::pow(1.0f - std::abs(value), static_cast<float>(count)));
 }
 
 mixer::mixer(std::size_t frame_per_buffer, std::uint32_t channel_count, std::uint32_t frequency)
@@ -268,11 +268,11 @@ void mixer::process() noexcept
             m_next_future = m_next_promise.get_future();
         }
     }
-    catch(const std::exception& e)
+    catch(...)
     {
         m_ok.store(false, std::memory_order_release);
 
-        m_data_promise.set_value(sample_buffer_type{});
+        m_data_promise.set_exception(std::current_exception());
 
         m_next_future.get();
         m_next_promise = std::promise<void>{};
@@ -306,7 +306,7 @@ std::vector<mixer::sample_buffer_type> mixer::get_sounds_data()
                 sounds_data.push_back(std::move(sound_data));
             }
         }
-        catch(const std::exception& e)
+        catch(...)
         {
             sound.state.status = sound_status::aborted;
         }
@@ -338,7 +338,9 @@ mixer::sample_buffer_type mixer::mix_sounds(const std::vector<sample_buffer_type
     }
 
     if(std::size(sounds_data) == 1)
+    {
         return sounds_data[0];
+    }
 
     sample_buffer_type out_data{};
     out_data.resize(m_buffer_size * m_channel_count);
@@ -347,7 +349,9 @@ mixer::sample_buffer_type mixer::mix_sounds(const std::vector<sample_buffer_type
     {
         float sum{};
         for(auto&& data : sounds_data)
+        {
             sum += data[i];
+        }
 
         const float average{sum / static_cast<float>(std::size(sounds_data))};
         out_data[i] = mix_amplitude(average, std::size(sounds_data));
@@ -363,7 +367,7 @@ mixer::sample_buffer_type mixer::get_sound_data(impl::sound_data& sound, std::ui
 
     if((sound.state.current_sample + m_buffer_size) > sound.state.loop_end) //Loop
     {
-        const std::uint32_t first_size = sound.state.loop_end - sound.state.current_sample;
+        const std::uint64_t first_size = sound.state.loop_end - sound.state.current_sample;
         sound.reader->read(std::data(sound_data), first_size);
 
         sound.reader->seek(sound.state.loop_begin);
@@ -374,7 +378,9 @@ mixer::sample_buffer_type mixer::get_sound_data(impl::sound_data& sound, std::ui
     else
     {
         if(!sound.reader->read(std::data(sound_data), m_buffer_size))
+        {
             sound.state.status = sound_status::ended;
+        }
 
         sound.state.current_sample += m_buffer_size;
     }
@@ -398,7 +404,9 @@ mixer::sample_buffer_type mixer::apply_volume(impl::sound_data& sound, sample_bu
 
             const float fading_multiplier{get_volume_multiplier(fading_percent)};
             for(std::uint32_t j{}; j < channels; ++j)
+            {
                 data[i + j] *= sound.state.volume * fading_multiplier;
+            }
         }
 
         sound.state.current_fading += m_buffer_size;
@@ -406,7 +414,9 @@ mixer::sample_buffer_type mixer::apply_volume(impl::sound_data& sound, sample_bu
     else if(sound.state.volume != 1.0f)
     {
         for(auto& sample : data)
+        {
             sample *= sound.state.volume;
+        }
     }
 
     return data;
@@ -427,10 +437,14 @@ mixer::sample_buffer_type mixer::spatialize(impl::sound_data& sound, sample_buff
             const float factor{minimum / (minimum + attenuation * (std::max(distance, minimum) - minimum))};
 
             for(auto& sample : data)
+            {
                 sample *= factor;
+            }
 
             if(m_channel_count == 1) //Don't need to do anything more in mono
+            {
                 return data;
+            }
 
             const glm::vec3 up{glm::normalize(glm::vec3{m_up.x, m_up.y, m_up.z})};
             const glm::vec3 listener_direction{glm::normalize(glm::vec3{m_direction.x, m_direction.y, m_direction.z})};
@@ -464,8 +478,12 @@ mixer::sample_buffer_type mixer::spatialize(impl::sound_data& sound, sample_buff
         output.resize(m_buffer_size * m_channel_count);
 
         for(std::size_t i{}; i < m_buffer_size; ++i)
+        {
             for(std::size_t j{}; j < maximum_channel; ++j)
+            {
                 output[(i * m_channel_count) + j] = data[(i * channels) + j];
+            }
+        }
 
         return output;
     }

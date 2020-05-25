@@ -31,11 +31,17 @@ static int stream_seek(void* datasource, ogg_int64_t offset, int whence)
     stream.clear();
 
     if(whence == SEEK_SET)
+    {
         stream.seekg(offset, std::ios_base::beg);
+    }
     else if(whence == SEEK_CUR)
+    {
         stream.seekg(offset, std::ios_base::cur);
+    }
     else if(whence == SEEK_END)
+    {
         stream.seekg(offset, std::ios_base::end);
+    }
 
     return static_cast<int>(stream.tellg());
 }
@@ -47,7 +53,7 @@ static long stream_tell(void* datasource)
     return static_cast<long>(stream.tellg());
 }
 
-std::size_t memory_read(void* ptr, std::size_t size, std::size_t nmemb, void* datasource)
+static std::size_t memory_read(void* ptr, std::size_t size, std::size_t nmemb, void* datasource)
 {
     memory_stream& stream = *static_cast<memory_stream*>(datasource);
 
@@ -60,21 +66,27 @@ std::size_t memory_read(void* ptr, std::size_t size, std::size_t nmemb, void* da
     return to_read;
 }
 
-int memory_seek(void* datasource, ogg_int64_t offset, int whence)
+static int memory_seek(void* datasource, ogg_int64_t offset, int whence)
 {
     memory_stream& stream = *static_cast<memory_stream*>(datasource);
 
     if(whence == SEEK_SET)
+    {
         stream.pos = offset;
+    }
     else if(whence == SEEK_CUR)
+    {
         stream.pos += offset;
+    }
     else if(whence == SEEK_END)
+    {
         stream.pos = static_cast<std::streampos>(std::size(stream.data)) + offset;
+    }
 
-    return stream.pos;
+    return static_cast<int>(stream.pos);
 }
 
-long memory_tell(void* datasource)
+static long memory_tell(void* datasource)
 {
     memory_stream& stream = *static_cast<memory_stream*>(datasource);
     return static_cast<long>(stream.pos);
@@ -176,7 +188,7 @@ void ogg_reader::seek_samples(std::uint64_t frame_offset)
 {
     if(static_cast<bool>(m_options & sound_reader_options::buffered))
     {
-        m_current_frame = frame_offset;
+        m_current_frame = static_cast<std::uint32_t>(frame_offset);
     }
     else
     {
@@ -209,11 +221,15 @@ void ogg_reader::fill_buffer()
     while(total_read < m_frame_count)
     {
         float** data{};
-        const auto read{ov_read_float(m_vorbis.get(), &data, m_frame_count, &m_current_section)};
+        const auto read{ov_read_float(m_vorbis.get(), &data, static_cast<int>(m_frame_count), &m_current_section)};
 
         for(std::size_t i{}; i < static_cast<std::size_t>(read); ++i)
+        {
             for(std::size_t j{}; j < m_channel_count; ++j)
+            {
                 m_buffer.push_back(data[j][i]);
+            }
+        }
 
         total_read += read;
 
@@ -273,7 +289,7 @@ bool ogg_reader::read_samples_from_vorbis(float* output, std::size_t frame_count
     while(total_read < frame_count)
     {
         float** data{};
-        const auto read{ov_read_float(m_vorbis.get(), &data, frame_count - total_read, &m_current_section)};
+        const auto read{ov_read_float(m_vorbis.get(), &data, static_cast<int>(frame_count - total_read), &m_current_section)};
 
         for(std::size_t i{}; i < static_cast<std::size_t>(read); ++i)
             for(std::size_t j{}; j < m_channel_count; ++j)

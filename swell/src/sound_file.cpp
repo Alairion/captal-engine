@@ -21,14 +21,14 @@ struct header
 static constexpr std::array<char, 4> file_type_block_id{0x52, 0x49, 0x46, 0x46};
 static constexpr std::array<char, 4> file_format_id{0x57, 0x41, 0x56, 0x45};
 
-bool is_valid(const std::string_view& data)
+static bool is_valid(const std::string_view& data)
 {
     const header header_data{*reinterpret_cast<const header*>(std::data(data))};
 
     return header_data.file_type_block_id == file_type_block_id && header_data.file_format_id == file_format_id;
 }
 
-bool is_valid(std::istream& stream)
+static bool is_valid(std::istream& stream)
 {
     header header_data{};
     stream.read(reinterpret_cast<char*>(&header_data), sizeof(header));
@@ -36,7 +36,7 @@ bool is_valid(std::istream& stream)
     return header_data.file_type_block_id == file_type_block_id && header_data.file_format_id == file_format_id;
 }
 
-bool is_valid(const std::filesystem::path& file)
+static bool is_valid(const std::filesystem::path& file)
 {
     std::ifstream ifs{file, std::ios_base::binary};
     if(!ifs)
@@ -52,7 +52,7 @@ namespace ogg
 
 static constexpr std::array<char, 4> file_header{0x4F, 0x67, 0x67, 0x53};
 
-bool is_valid(std::istream& stream)
+static bool is_valid(std::istream& stream)
 {
     std::array<char, 4> header_data{};
     stream.read(std::data(header_data), std::size(header_data));
@@ -60,14 +60,14 @@ bool is_valid(std::istream& stream)
     return header_data == file_header;
 }
 
-bool is_valid(const std::string_view& data)
+static bool is_valid(const std::string_view& data)
 {
     const std::array<char, 4> header_data{*reinterpret_cast<const std::array<char, 4>*>(std::data(data))};
 
     return header_data == file_header;
 }
 
-bool is_valid(const std::filesystem::path& file)
+static bool is_valid(const std::filesystem::path& file)
 {
     std::ifstream ifs{file, std::ios_base::binary};
     if(!ifs)
@@ -124,6 +124,12 @@ sound_file_reader::sound_file_reader(std::istream& stream, sound_reader_options 
     {
         throw std::runtime_error{"File contains unknown audio format."};
     }
+}
+
+sound_file_reader::sound_file_reader(std::unique_ptr<sound_reader> m_reader) noexcept
+:m_reader{std::move(m_reader)}
+{
+
 }
 
 }
