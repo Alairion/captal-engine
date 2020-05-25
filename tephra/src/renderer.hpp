@@ -23,7 +23,8 @@ enum class renderer_options
     small_memory_heaps = 0x02,
     large_memory_heaps = 0x04,
     giant_memory_heaps = 0x08,
-    transfer_queue = 0x10,
+    standalone_transfer_queue = 0x10,
+    standalone_compute_queue = 0x20
 };
 
 enum class queue : std::size_t
@@ -31,7 +32,8 @@ enum class queue : std::size_t
     graphics = 0,
     present = 1,
     transfer = 2,
-    count = 3
+    compute = 3,
+    count = 4
 };
 
 class renderer

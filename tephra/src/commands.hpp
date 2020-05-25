@@ -32,6 +32,7 @@ public:
     constexpr command_pool() = default;
     command_pool(renderer& renderer);
     command_pool(renderer& renderer, queue queue);
+
     ~command_pool() = default;
     command_pool(const command_pool&) = delete;
     command_pool& operator=(const command_pool&) = delete;
@@ -215,6 +216,9 @@ void draw(command_buffer& command_buffer, std::uint32_t vertex_count, std::uint3
 void draw_indexed(command_buffer& command_buffer, std::uint32_t index_count, std::uint32_t instance_count, std::uint32_t first_index, std::uint32_t first_vertex, std::uint32_t first_instance);
 void draw_indirect(command_buffer& command_buffer, buffer& buffer, std::uint64_t offset, std::uint32_t draw_count, std::uint32_t stride);
 void draw_indexed_indirect(command_buffer& command_buffer, buffer& buffer, std::uint64_t offset, std::uint32_t draw_count, std::uint32_t stride);
+
+void dispatch(command_buffer& command_buffer, std::uint32_t group_count_x, std::uint32_t group_count_y, std::uint32_t group_count_z);
+void dispatch_indirect(command_buffer& command_buffer, buffer& buffer, std::uint64_t offset);
 
 void end(command_buffer& command_buffer);
 

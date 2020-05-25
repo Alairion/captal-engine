@@ -117,11 +117,15 @@ static VkPhysicalDeviceFeatures parse_enabled_features(const physical_device_fea
     return output;
 }
 
-static std::uint32_t choose_graphics_family(const std::vector<VkQueueFamilyProperties>& queue_families)
+static std::uint32_t choose_generic_family(const std::vector<VkQueueFamilyProperties>& queue_families) //It's the one used for graphics
 {
     for(std::size_t i{}; i < std::size(queue_families); ++i)
-        if((queue_families[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) != 0)
+    {
+        if((queue_families[i].queueFlags & (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT)) == (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT))
+        {
             return static_cast<std::uint32_t>(i);
+        }
+    }
 
     std::terminate();
 }
@@ -131,8 +135,12 @@ static std::uint32_t choose_present_family(VkPhysicalDevice physical_device, con
 #if defined(TPH_PLATFORM_WIN32)
 
     for(std::size_t i{}; i < std::size(queue_families); ++i)
-        if(vkGetPhysicalDeviceWin32PresentationSupportKHR(physical_device, i) == VK_TRUE)
+    {
+        if(vkGetPhysicalDeviceWin32PresentationSupportKHR(physical_device, static_cast<std::uint32_t>(i)) == VK_TRUE)
+        {
             return static_cast<std::uint32_t>(i);
+        }
+    }
 
 #elif defined(TPH_PLATFORM_XLIB)
 
@@ -142,7 +150,7 @@ static std::uint32_t choose_present_family(VkPhysicalDevice physical_device, con
 
     for(std::size_t i{}; i < std::size(queue_families); ++i)
     {
-        if(vkGetPhysicalDeviceXlibPresentationSupportKHR(physical_device, i, display, id) == VK_TRUE)
+        if(vkGetPhysicalDeviceXlibPresentationSupportKHR(physical_device, static_cast<std::uint32_t>(i), display, id) == VK_TRUE)
         {
             XCloseDisplay(display);
             return static_cast<std::uint32_t>(i);
@@ -169,7 +177,7 @@ static std::uint32_t choose_present_family(VkPhysicalDevice physical_device, con
 
     for(std::size_t i{}; i < std::size(queue_families); ++i)
     {
-        if(vkGetPhysicalDeviceXcbPresentationSupportKHR(physical_device, i, connection, id) == VK_TRUE)
+        if(vkGetPhysicalDeviceXcbPresentationSupportKHR(physical_device, static_cast<std::uint32_t>(i), connection, id) == VK_TRUE)
         {
             xcb_disconnect(connection);
             return static_cast<std::uint32_t>(i);
@@ -184,7 +192,7 @@ static std::uint32_t choose_present_family(VkPhysicalDevice physical_device, con
 
     for(std::size_t i{}; i < std::size(queue_families); ++i)
     {
-        if(vkGetPhysicalDeviceWaylandPresentationSupportKHR(physical_device, i, display) == VK_TRUE)
+        if(vkGetPhysicalDeviceWaylandPresentationSupportKHR(physical_device, static_cast<std::uint32_t>(i), display) == VK_TRUE)
         {
             wl_display_disconnect(connection);
             return static_cast<std::uint32_t>(i);
@@ -195,7 +203,7 @@ static std::uint32_t choose_present_family(VkPhysicalDevice physical_device, con
 
 #endif
 
-    return choose_graphics_family(queue_families);
+    return choose_generic_family(queue_families);
 }
 
 static std::uint32_t choose_transfer_family(const std::vector<VkQueueFamilyProperties>& queue_families)
@@ -209,7 +217,21 @@ static std::uint32_t choose_transfer_family(const std::vector<VkQueueFamilyPrope
             return static_cast<std::uint32_t>(i);
     }
 
-    return choose_graphics_family(queue_families);
+    return choose_generic_family(queue_families);
+}
+
+static std::uint32_t choose_compute_family(const std::vector<VkQueueFamilyProperties>& queue_families)
+{
+    for(std::size_t i{}; i < std::size(queue_families); ++i)
+    {
+        const bool support_compute{(queue_families[i].queueFlags & VK_QUEUE_COMPUTE_BIT) != 0};
+        const bool support_other{(queue_families[i].queueFlags & (VK_QUEUE_GRAPHICS_BIT)) != 0};
+
+        if(support_compute && !support_other)
+            return static_cast<std::uint32_t>(i);
+    }
+
+    return choose_generic_family(queue_families);
 }
 
 static std::array<std::uint32_t, static_cast<std::size_t>(queue::count)> choose_queue_families(VkPhysicalDevice physical_device, renderer_options options, renderer::transfer_granularity& granularity)
@@ -222,10 +244,10 @@ static std::array<std::uint32_t, static_cast<std::size_t>(queue::count)> choose_
     vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &count, std::data(queue_family_properties));
 
     std::array<std::uint32_t, static_cast<std::size_t>(queue::count)> output{};
-    output[static_cast<std::size_t>(queue::graphics)] = choose_graphics_family(queue_family_properties);
+    output[static_cast<std::size_t>(queue::graphics)] = choose_generic_family(queue_family_properties);
     output[static_cast<std::size_t>(queue::present)] = choose_present_family(physical_device, queue_family_properties);
 
-    if(static_cast<bool>(options & renderer_options::transfer_queue))
+    if(static_cast<bool>(options & renderer_options::standalone_transfer_queue))
     {
         output[static_cast<std::size_t>(queue::transfer)] = choose_transfer_family(queue_family_properties);
 
@@ -239,6 +261,15 @@ static std::array<std::uint32_t, static_cast<std::size_t>(queue::count)> choose_
         output[static_cast<std::size_t>(queue::transfer)] = output[static_cast<std::size_t>(queue::graphics)];
     }
 
+    if(static_cast<bool>(options & renderer_options::standalone_compute_queue))
+    {
+        output[static_cast<std::size_t>(queue::compute)] = choose_compute_family(queue_family_properties);
+    }
+    else
+    {
+        output[static_cast<std::size_t>(queue::compute)] = output[static_cast<std::size_t>(queue::graphics)];
+    }
+
     return output;
 }
 
@@ -247,8 +278,16 @@ static std::vector<VkDeviceQueueCreateInfo> make_queue_create_info(const std::ar
     std::vector<std::uint32_t> unique_families{};
     unique_families.push_back(families[static_cast<std::size_t>(queue::graphics)]);
     unique_families.push_back(families[static_cast<std::size_t>(queue::present)]);
-    if(static_cast<bool>(options & renderer_options::transfer_queue))
+
+    if(static_cast<bool>(options & renderer_options::standalone_transfer_queue))
+    {
         unique_families.push_back(families[static_cast<std::size_t>(queue::transfer)]);
+    }
+
+    if(static_cast<bool>(options & renderer_options::standalone_compute_queue))
+    {
+        unique_families.push_back(families[static_cast<std::size_t>(queue::compute)]);
+    }
 
     std::sort(std::begin(unique_families), std::end(unique_families));
     unique_families.erase(std::unique(std::begin(unique_families), std::end(unique_families)), std::end(unique_families));

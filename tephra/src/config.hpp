@@ -11,12 +11,9 @@ using namespace cpt::foundation;
 template<typename VulkanObject, typename... Args>
 VulkanObject underlying_cast(const Args&...) noexcept
 {
-    /*
-    Declare a compatible type:
-
-    template<typename VulkanObject, typename... Args>
-    friend VulkanObject underlying_cast(const Args&...) noexcept;
-    */
+    //Declare a compatible type:
+    //    template<typename VulkanObject, typename... Args>
+    //    friend VulkanObject underlying_cast(const Args&...) noexcept;
 
     static_assert(!std::is_same<VulkanObject, VulkanObject>::value, "tph::underlying_cast called with incompatible arguments.");
 }

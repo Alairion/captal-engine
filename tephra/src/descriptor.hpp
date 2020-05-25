@@ -4,6 +4,7 @@
 #include "config.hpp"
 
 #include <optional>
+#include <variant>
 
 #include "vulkan/vulkan.hpp"
 
@@ -105,11 +106,30 @@ inline VkDescriptorSet underlying_cast(const descriptor_set& descriptor_set) noe
    return descriptor_set.m_descriptor_set;
 }
 
-void write_descriptor(renderer& renderer, descriptor_set& descriptor_set, std::uint32_t binding, buffer& buffer, std::uint64_t offset, std::uint64_t size);
-void write_descriptor(renderer& renderer, descriptor_set& descriptor_set, std::uint32_t binding, texture& texture);
-void write_descriptor(renderer& renderer, descriptor_set& descriptor_set, std::uint32_t binding, std::uint32_t array_index, buffer& buffer, std::uint64_t offset, std::uint64_t size);
-void write_descriptor(renderer& renderer, descriptor_set& descriptor_set, std::uint32_t binding, std::uint32_t array_index, texture& texture);
+struct descriptor_texture_info
+{
+    texture& texture;
+};
 
+struct descriptor_buffer_info
+{
+    buffer& buffer;
+    std::uint64_t offset{};
+    std::uint64_t size{};
+};
+
+struct descriptor_write
+{
+    descriptor_set& descriptor_set;
+    std::uint32_t binding{};
+    std::uint32_t array_index{};
+    descriptor_type type{};
+    std::variant<std::monostate, descriptor_texture_info, descriptor_buffer_info> info{};
+};
+
+void write_descriptor(renderer& renderer, descriptor_set& descriptor_set, std::uint32_t binding, std::uint32_t array_index, descriptor_type type, buffer& buffer, std::uint64_t offset, std::uint64_t size);
+void write_descriptor(renderer& renderer, descriptor_set& descriptor_set, std::uint32_t binding, std::uint32_t array_index, descriptor_type type, texture& texture);
+void write_descriptors(renderer& renderer, const std::vector<descriptor_write>& writes);
 
 }
 

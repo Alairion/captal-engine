@@ -56,9 +56,9 @@ static std::vector<tph::descriptor_set_layout_binding> make_bindings(const std::
     return output;
 }
 
-static tph::pipeline_info make_info(const render_technique_info& info)
+static tph::graphics_pipeline_info make_info(const render_technique_info& info)
 {
-    tph::pipeline_info output{};
+    tph::graphics_pipeline_info output{};
 
     if(std::empty(info.color_blend.attachments))
     {

@@ -728,6 +728,7 @@ class pipeline
 public:
     constexpr pipeline() = default;
     pipeline(VkDevice device, const VkGraphicsPipelineCreateInfo& create_info, VkPipelineCache cache);
+    pipeline(VkDevice device, const VkComputePipelineCreateInfo& create_info, VkPipelineCache cache);
     ~pipeline();
 
     pipeline(const pipeline&) = delete;

@@ -90,7 +90,7 @@ pipeline_cache& pipeline_cache::merge_with(const std::vector<std::reference_wrap
     for(const pipeline_cache& other : others)
         native_pipeline_caches.push_back(other.m_pipeline_cache);
 
-    if(auto result{vkMergePipelineCaches(m_device, m_pipeline_cache, std::size(native_pipeline_caches), std::data(native_pipeline_caches))}; result != VK_SUCCESS)
+    if(auto result{vkMergePipelineCaches(m_device, m_pipeline_cache, static_cast<std::uint32_t>(std::size(native_pipeline_caches)), std::data(native_pipeline_caches))}; result != VK_SUCCESS)
         throw vulkan::error{result};
 
     return *this;
@@ -111,13 +111,14 @@ std::string pipeline_cache::data() const
     return output;
 }
 
-pipeline::pipeline(renderer& renderer, render_target& render_target, const pipeline_info& info, const pipeline_layout& layout, optional_ref<pipeline_cache> cache, optional_ref<pipeline> parent)
+pipeline::pipeline(renderer& renderer, render_target& render_target, const graphics_pipeline_info& info, const pipeline_layout& layout, optional_ref<pipeline_cache> cache, optional_ref<pipeline> parent)
 :pipeline{renderer, render_target, 0, info, layout, cache, parent}
 {
 
 }
 
-pipeline::pipeline(renderer& renderer, render_target& render_target, std::uint32_t subpass, const pipeline_info& info, const pipeline_layout& layout, optional_ref<pipeline_cache> cache, optional_ref<pipeline> parent)
+pipeline::pipeline(renderer& renderer, render_target& render_target, std::uint32_t subpass, const graphics_pipeline_info& info, const pipeline_layout& layout, optional_ref<pipeline_cache> cache, optional_ref<pipeline> parent)
+:m_type{pipeline_type::graphics}
 {
     VkGraphicsPipelineCreateInfo create_info{};
     create_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -139,7 +140,7 @@ pipeline::pipeline(renderer& renderer, render_target& render_target, std::uint32
         if(!std::empty(stage.specialisation_info.entries))
         {
             auto& specialisation_info{stages_specialization.emplace_back()};
-            specialisation_info.mapEntryCount = std::size(stage.specialisation_info.entries);
+            specialisation_info.mapEntryCount = static_cast<std::uint32_t>(std::size(stage.specialisation_info.entries));
             specialisation_info.pMapEntries = reinterpret_cast<const VkSpecializationMapEntry*>(std::data(stage.specialisation_info.entries));
             specialisation_info.dataSize = stage.specialisation_info.size;
             specialisation_info.pData = stage.specialisation_info.data;
@@ -175,9 +176,9 @@ pipeline::pipeline(renderer& renderer, render_target& render_target, std::uint32
 
     VkPipelineViewportStateCreateInfo viewport{};
     viewport.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-    viewport.viewportCount = info.viewport.viewport_count;
+    viewport.viewportCount = static_cast<std::uint32_t>(info.viewport.viewport_count);
     viewport.pViewports = reinterpret_cast<const VkViewport*>(std::data(info.viewport.viewports));
-    viewport.scissorCount = info.viewport.viewport_count;
+    viewport.scissorCount = static_cast<std::uint32_t>(info.viewport.viewport_count);
     viewport.pScissors = reinterpret_cast<const VkRect2D*>(std::data(info.viewport.scissors));
 
     create_info.pViewportState = &viewport;
@@ -270,6 +271,42 @@ pipeline::pipeline(renderer& renderer, render_target& render_target, std::uint32
     create_info.layout = underlying_cast<VkPipelineLayout>(layout);
     create_info.renderPass = underlying_cast<VkRenderPass>(render_target);
     create_info.subpass = subpass;
+
+    if(parent.has_value())
+    {
+        create_info.flags |= VK_PIPELINE_CREATE_DERIVATIVE_BIT;
+        create_info.basePipelineHandle = parent.value().m_pipeline;
+    }
+
+    VkPipelineCache native_cache{cache.has_value() ? underlying_cast<VkPipelineCache>(cache.value()) : VkPipelineCache{}};
+
+    m_pipeline = vulkan::pipeline{underlying_cast<VkDevice>(renderer), create_info, native_cache};
+}
+
+pipeline::pipeline(renderer& renderer, const compute_pipeline_info& info, const pipeline_layout& layout, optional_ref<pipeline_cache> cache, optional_ref<pipeline> parent)
+:m_type{pipeline_type::compute}
+{
+    VkComputePipelineCreateInfo create_info{};
+    create_info.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+    create_info.flags = static_cast<VkPipelineCreateFlags>(info.options);
+
+    create_info.stage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    create_info.stage.stage = static_cast<VkShaderStageFlagBits>(info.stage.shader.stage());
+    create_info.stage.module = underlying_cast<VkShaderModule>(info.stage.shader);
+    create_info.stage.pName = std::data(info.stage.name);
+
+    VkSpecializationInfo specialisation_info{};
+    if(!std::empty(info.stage.specialisation_info.entries))
+    {
+        specialisation_info.mapEntryCount = static_cast<std::uint32_t>(std::size(info.stage.specialisation_info.entries));
+        specialisation_info.pMapEntries = reinterpret_cast<const VkSpecializationMapEntry*>(std::data(info.stage.specialisation_info.entries));
+        specialisation_info.dataSize = info.stage.specialisation_info.size;
+        specialisation_info.pData = info.stage.specialisation_info.data;
+
+        create_info.stage.pSpecializationInfo = &specialisation_info;
+    }
+
+    create_info.layout = underlying_cast<VkPipelineLayout>(layout);
 
     if(parent.has_value())
     {

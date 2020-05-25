@@ -31,7 +31,7 @@ std::size_t hash(const T& value)
     return std::hash<T>{}(value);
 }
 
-inline std::size_t combine_hash(std::size_t first, std::size_t second)
+inline std::size_t combine_hash(std::size_t first, std::size_t second) noexcept
 {
     return first ^ (second << 1);
 }

@@ -73,12 +73,18 @@ command_buffer begin(command_pool& pool, render_target& target, std::optional<st
 
 void copy(command_buffer& command_buffer, buffer& source, buffer& destination, const buffer_copy& region)
 {
-    vkCmdCopyBuffer(underlying_cast<VkCommandBuffer>(command_buffer), underlying_cast<VkBuffer>(source), underlying_cast<VkBuffer>(destination), 1, reinterpret_cast<const VkBufferCopy*>(&region));
+    vkCmdCopyBuffer(underlying_cast<VkCommandBuffer>(command_buffer),
+                    underlying_cast<VkBuffer>(source),
+                    underlying_cast<VkBuffer>(destination),
+                    1, reinterpret_cast<const VkBufferCopy*>(&region));
 }
 
 void copy(command_buffer& command_buffer, buffer& source, buffer& destination, const std::vector<buffer_copy>& regions)
 {
-    vkCmdCopyBuffer(underlying_cast<VkCommandBuffer>(command_buffer), underlying_cast<VkBuffer>(source), underlying_cast<VkBuffer>(destination), static_cast<std::uint32_t>(std::size(regions)), reinterpret_cast<const VkBufferCopy*>(std::data(regions)));
+    vkCmdCopyBuffer(underlying_cast<VkCommandBuffer>(command_buffer),
+                    underlying_cast<VkBuffer>(source),
+                    underlying_cast<VkBuffer>(destination),
+                    static_cast<std::uint32_t>(std::size(regions)), reinterpret_cast<const VkBufferCopy*>(std::data(regions)));
 }
 
 void copy(command_buffer& command_buffer, buffer& source, image& destination, const buffer_image_copy& region)
@@ -90,7 +96,8 @@ void copy(command_buffer& command_buffer, buffer& source, image& destination, co
     native_region.size = destination.byte_size();
 
     vkCmdCopyBuffer(underlying_cast<VkCommandBuffer>(command_buffer),
-                    underlying_cast<VkBuffer>(source), underlying_cast<VkBuffer>(destination),
+                    underlying_cast<VkBuffer>(source),
+                    underlying_cast<VkBuffer>(destination),
                     1, &native_region);
 
 }
@@ -115,7 +122,8 @@ void copy(command_buffer& command_buffer, buffer& source, texture& destination, 
     native_region.imageExtent.depth = region.texture_size.depth;
 
     vkCmdCopyBufferToImage(underlying_cast<VkCommandBuffer>(command_buffer),
-                           underlying_cast<VkBuffer>(source), underlying_cast<VkImage>(destination), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                           underlying_cast<VkBuffer>(source),
+                           underlying_cast<VkImage>(destination), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                            1, &native_region);
 }
 
@@ -145,7 +153,8 @@ void copy(command_buffer& command_buffer, buffer& source, texture& destination, 
     }
 
     vkCmdCopyBufferToImage(underlying_cast<VkCommandBuffer>(command_buffer),
-                           underlying_cast<VkBuffer>(source), underlying_cast<VkImage>(destination), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                           underlying_cast<VkBuffer>(source),
+                           underlying_cast<VkImage>(destination), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                            static_cast<std::uint32_t>(std::size(native_regions)), std::data(native_regions));
 }
 
@@ -158,7 +167,8 @@ void copy(command_buffer& command_buffer, image& source, buffer& destination, co
     native_region.size = source.byte_size();
 
     vkCmdCopyBuffer(underlying_cast<VkCommandBuffer>(command_buffer),
-                    underlying_cast<VkBuffer>(source), underlying_cast<VkBuffer>(destination),
+                    underlying_cast<VkBuffer>(source),
+                    underlying_cast<VkBuffer>(destination),
                     1, &native_region);
 }
 
@@ -181,7 +191,8 @@ void copy(command_buffer& command_buffer, image& source, texture& destination, c
     native_region.imageExtent.depth = region.texture_size.depth;
 
     vkCmdCopyBufferToImage(underlying_cast<VkCommandBuffer>(command_buffer),
-                           underlying_cast<VkBuffer>(source), underlying_cast<VkImage>(destination), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                           underlying_cast<VkBuffer>(source),
+                           underlying_cast<VkImage>(destination), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                            1, &native_region);
 }
 
@@ -211,7 +222,8 @@ void copy(command_buffer& command_buffer, image& source, texture& destination, c
     }
 
     vkCmdCopyBufferToImage(underlying_cast<VkCommandBuffer>(command_buffer),
-                           underlying_cast<VkBuffer>(source), underlying_cast<VkImage>(destination), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                           underlying_cast<VkBuffer>(source),
+                           underlying_cast<VkImage>(destination), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                            static_cast<std::uint32_t>(std::size(native_regions)), std::data(native_regions));
 }
 
@@ -235,7 +247,8 @@ void copy(command_buffer& command_buffer, texture& source, buffer& destination, 
     native_region.imageExtent.depth = region.texture_size.depth;
 
     vkCmdCopyImageToBuffer(underlying_cast<VkCommandBuffer>(command_buffer),
-                           underlying_cast<VkImage>(source), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, underlying_cast<VkBuffer>(destination),
+                           underlying_cast<VkImage>(source), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                           underlying_cast<VkBuffer>(destination),
                            1, &native_region);
 }
 
@@ -265,7 +278,8 @@ void copy(command_buffer& command_buffer, texture& source, buffer& destination, 
     }
 
     vkCmdCopyImageToBuffer(underlying_cast<VkCommandBuffer>(command_buffer),
-                           underlying_cast<VkImage>(source), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, underlying_cast<VkBuffer>(destination),
+                           underlying_cast<VkImage>(source), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                           underlying_cast<VkBuffer>(destination),
                            static_cast<std::uint32_t>(std::size(native_regions)), std::data(native_regions));
 }
 
@@ -288,7 +302,8 @@ void copy(command_buffer& command_buffer, texture& source, image& destination, c
     native_region.imageExtent.depth = region.texture_size.depth;
 
     vkCmdCopyImageToBuffer(underlying_cast<VkCommandBuffer>(command_buffer),
-                           underlying_cast<VkImage>(source), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, underlying_cast<VkBuffer>(destination),
+                           underlying_cast<VkImage>(source), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                           underlying_cast<VkBuffer>(destination),
                            1, &native_region);
 }
 
@@ -317,7 +332,8 @@ void copy(command_buffer& command_buffer, texture& source, image& destination, c
     }
 
     vkCmdCopyImageToBuffer(underlying_cast<VkCommandBuffer>(command_buffer),
-                           underlying_cast<VkImage>(source), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, underlying_cast<VkBuffer>(destination),
+                           underlying_cast<VkImage>(source), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                           underlying_cast<VkBuffer>(destination),
                            static_cast<std::uint32_t>(std::size(native_regions)), std::data(native_regions));
 }
 
@@ -346,7 +362,8 @@ void copy(command_buffer& command_buffer, texture& source, texture& destination,
     native_region.extent.depth = region.size.depth;
 
     vkCmdCopyImage(underlying_cast<VkCommandBuffer>(command_buffer),
-                   underlying_cast<VkImage>(source), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, underlying_cast<VkImage>(destination), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                   underlying_cast<VkImage>(source), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                   underlying_cast<VkImage>(destination), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                    1, &native_region);
 }
 
@@ -382,7 +399,8 @@ void copy(command_buffer& command_buffer, texture& source, texture& destination,
     }
 
     vkCmdCopyImage(underlying_cast<VkCommandBuffer>(command_buffer),
-                   underlying_cast<VkImage>(source), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, underlying_cast<VkImage>(destination), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                   underlying_cast<VkImage>(source), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                   underlying_cast<VkImage>(destination), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                    static_cast<std::uint32_t>(std::size(native_regions)), std::data(native_regions));
 }
 
@@ -393,7 +411,10 @@ void copy(command_buffer& command_buffer, buffer& source, buffer& destination)
     VkBufferCopy native_region{};
     native_region.size = source.size();
 
-    vkCmdCopyBuffer(underlying_cast<VkCommandBuffer>(command_buffer), underlying_cast<VkBuffer>(source), underlying_cast<VkBuffer>(destination), 1, &native_region);
+    vkCmdCopyBuffer(underlying_cast<VkCommandBuffer>(command_buffer),
+                    underlying_cast<VkBuffer>(source),
+                     underlying_cast<VkBuffer>(destination),
+                     1, &native_region);
 }
 
 void copy(command_buffer& command_buffer, image& source, image& destination)
@@ -403,7 +424,10 @@ void copy(command_buffer& command_buffer, image& source, image& destination)
     VkBufferCopy native_region{};
     native_region.size = source.byte_size();
 
-    vkCmdCopyBuffer(underlying_cast<VkCommandBuffer>(command_buffer), underlying_cast<VkBuffer>(source), underlying_cast<VkBuffer>(destination), 1, &native_region);
+    vkCmdCopyBuffer(underlying_cast<VkCommandBuffer>(command_buffer),
+                    underlying_cast<VkBuffer>(source),
+                    underlying_cast<VkBuffer>(destination),
+                    1, &native_region);
 }
 
 void copy(command_buffer& command_buffer, image& source, texture& destination)
@@ -421,7 +445,10 @@ void copy(command_buffer& command_buffer, image& source, texture& destination)
     native_region.imageExtent.height = destination.height();
     native_region.imageExtent.depth = destination.depth();
 
-    vkCmdCopyBufferToImage(underlying_cast<VkCommandBuffer>(command_buffer), underlying_cast<VkBuffer>(source), underlying_cast<VkImage>(destination), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &native_region);
+    vkCmdCopyBufferToImage(underlying_cast<VkCommandBuffer>(command_buffer),
+                           underlying_cast<VkBuffer>(source),
+                           underlying_cast<VkImage>(destination), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                           1, &native_region);
 }
 
 void copy(command_buffer& command_buffer, texture& source, image& destination)
@@ -439,7 +466,10 @@ void copy(command_buffer& command_buffer, texture& source, image& destination)
     native_region.imageExtent.height = source.height();
     native_region.imageExtent.depth = source.depth();
 
-    vkCmdCopyImageToBuffer(underlying_cast<VkCommandBuffer>(command_buffer), underlying_cast<VkImage>(source), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, underlying_cast<VkBuffer>(destination), 1, &native_region);
+    vkCmdCopyImageToBuffer(underlying_cast<VkCommandBuffer>(command_buffer),
+                           underlying_cast<VkImage>(source), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                           underlying_cast<VkBuffer>(destination),
+                           1, &native_region);
 }
 
 void copy(command_buffer& command_buffer, texture& source, texture& destination)
@@ -462,7 +492,10 @@ void copy(command_buffer& command_buffer, texture& source, texture& destination)
     native_region.extent.height = source.height();
     native_region.extent.depth = source.depth();
 
-    vkCmdCopyImage(underlying_cast<VkCommandBuffer>(command_buffer), underlying_cast<VkImage>(source), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, underlying_cast<VkImage>(destination), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &native_region);
+    vkCmdCopyImage(underlying_cast<VkCommandBuffer>(command_buffer),
+                   underlying_cast<VkImage>(source), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                   underlying_cast<VkImage>(destination), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                   1, &native_region);
 }
 
 void blit(command_buffer& command_buffer, texture& source, texture& destination, filter filter, const texture_blit& region)
@@ -492,7 +525,10 @@ void blit(command_buffer& command_buffer, texture& source, texture& destination,
     native_region.dstSubresource.layerCount = 1;
     native_region.dstSubresource.baseArrayLayer = 0;
 
-    vkCmdBlitImage(underlying_cast<VkCommandBuffer>(command_buffer), underlying_cast<VkImage>(source), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, underlying_cast<VkImage>(destination), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &native_region, static_cast<VkFilter>(filter));
+    vkCmdBlitImage(underlying_cast<VkCommandBuffer>(command_buffer),
+                   underlying_cast<VkImage>(source), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                   underlying_cast<VkImage>(destination), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                   1, &native_region, static_cast<VkFilter>(filter));
 }
 
 void blit(command_buffer& command_buffer, texture& source, texture& destination, filter filter, const std::vector<texture_blit>& regions)
@@ -561,7 +597,10 @@ void blit(command_buffer& command_buffer, texture& source, texture& destination,
     native_region.dstSubresource.layerCount = 1;
     native_region.dstSubresource.baseArrayLayer = 0;
 
-    vkCmdBlitImage(underlying_cast<VkCommandBuffer>(command_buffer), underlying_cast<VkImage>(source), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, underlying_cast<VkImage>(destination), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &native_region, static_cast<VkFilter>(filter));
+    vkCmdBlitImage(underlying_cast<VkCommandBuffer>(command_buffer),
+                   underlying_cast<VkImage>(source), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                   underlying_cast<VkImage>(destination), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                   1, &native_region, static_cast<VkFilter>(filter));
 }
 
 void pipeline_barrier(command_buffer& command_buffer, pipeline_stage source_stage, pipeline_stage destination_stage)
@@ -574,11 +613,17 @@ void pipeline_barrier(command_buffer& command_buffer, pipeline_stage source_stag
 void prepare(command_buffer& command_buffer, texture& texture, pipeline_stage stage)
 {
     if(texture.layout() == texture_layout::transfer_source_optimal)
+    {
         texture.transition(command_buffer, resource_access::transfer_read, resource_access::shader_read, pipeline_stage::transfer, stage, texture_layout::shader_read_only_optimal);
+    }
     else if(texture.layout() == texture_layout::transfer_destination_optimal)
+    {
         texture.transition(command_buffer, resource_access::transfer_write, resource_access::shader_read, pipeline_stage::transfer, stage, texture_layout::shader_read_only_optimal);
+    }
     else
+    {
         texture.transition(command_buffer, resource_access::none, resource_access::shader_read, pipeline_stage::top_of_pipe, stage, texture_layout::shader_read_only_optimal);
+    }
 }
 
 void push_constants(command_buffer& command_buffer, pipeline_layout& layout, shader_stage stages, std::uint32_t offset, std::uint32_t size, const void* data)
@@ -603,7 +648,7 @@ void end_render_pass(command_buffer& command_buffer)
 
 void bind_pipeline(command_buffer& command_buffer, pipeline& pipeline)
 {
-    vkCmdBindPipeline(underlying_cast<VkCommandBuffer>(command_buffer), VK_PIPELINE_BIND_POINT_GRAPHICS, underlying_cast<VkPipeline>(pipeline));
+    vkCmdBindPipeline(underlying_cast<VkCommandBuffer>(command_buffer), static_cast<VkPipelineBindPoint>(pipeline.type()), underlying_cast<VkPipeline>(pipeline));
 }
 
 void bind_vertex_buffer(command_buffer& command_buffer, buffer& buffer, std::uint64_t offset)
@@ -651,6 +696,16 @@ void draw_indirect(command_buffer& command_buffer, buffer& buffer, std::uint64_t
 void draw_indexed_indirect(command_buffer& command_buffer, buffer& buffer, std::uint64_t offset, std::uint32_t draw_count, std::uint32_t stride)
 {
     vkCmdDrawIndexedIndirect(underlying_cast<VkCommandBuffer>(command_buffer), underlying_cast<VkBuffer>(buffer), offset, draw_count, stride);
+}
+
+void dispatch(command_buffer& command_buffer, std::uint32_t group_count_x, std::uint32_t group_count_y, std::uint32_t group_count_z)
+{
+    vkCmdDispatch(underlying_cast<VkCommandBuffer>(command_buffer), group_count_x, group_count_y, group_count_z);
+}
+
+void dispatch_indirect(command_buffer& command_buffer, buffer& buffer, std::uint64_t offset)
+{
+    vkCmdDispatchIndirect(underlying_cast<VkCommandBuffer>(command_buffer), underlying_cast<VkBuffer>(buffer), offset);
 }
 
 void end(command_buffer& command_buffer)

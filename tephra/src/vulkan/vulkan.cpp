@@ -893,6 +893,13 @@ pipeline::pipeline(VkDevice device, const VkGraphicsPipelineCreateInfo& create_i
         throw error{result};
 }
 
+pipeline::pipeline(VkDevice device, const VkComputePipelineCreateInfo& create_info, VkPipelineCache cache)
+:m_device{device}
+{
+    if(auto result{vkCreateComputePipelines(m_device, cache, 1, &create_info, nullptr, &m_pipeline)}; result != VK_SUCCESS)
+        throw error{result};
+}
+
 pipeline::~pipeline()
 {
     if(m_pipeline)

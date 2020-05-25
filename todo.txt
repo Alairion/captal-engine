@@ -1,15 +1,14 @@
-Lists are sorted from more important to less important
 Priority:
-H = high priotiry
-A = average priority
-L = low priority
-I = just an idea
+H: high
+A: average
+L: low
+I: just an idea
 
 Tephra:
 H: Generic render target (complete render pass build with almost everything possible with pure Vulkan)
 H: Complete commands list
 A: Complete physical devices properties structures
-L: Add compute pipeline
+L: Performance query support
 I: Multiple queue support ? (maybe overkill for 2D, but may be useful for 3D (since tephra is a generic renderer))
 
 Swell:
@@ -18,9 +17,12 @@ L: Rewrite audio stream to reduce the number of internal threads by 1 (write to 
 L: Support other platforms (as of 18 may 2020 only Win32/OSX/Linux are supported)
 
 Apyre:
-A: Add dialogbox support (with native style, mainly for error reports)
+A: Game controller / joystick support
+A: Dialogbox support (with native style, mainly for error reports)
+A: Clipboard support
 
 Captal:
 H: Complete text rendering support (alignments, stylized)
-A: Add more primitive shapes (circles, ellipses, convex polygons)
-I: Create file archive system (already prototyped)
+A: More primitive shapes (circles, ellipses, convex polygons)
+L: Remove std::u32string in cpt::text interface (use cpt::converter_iterator on utf8 encoded std::string_view instead)
+I: Virtual file archive system ? (already prototyped)

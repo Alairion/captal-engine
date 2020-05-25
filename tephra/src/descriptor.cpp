@@ -1,5 +1,7 @@
 #include "descriptor.hpp"
 
+#include <cassert>
+
 #include "vulkan/vulkan_functions.hpp"
 
 #include "renderer.hpp"
@@ -60,52 +62,107 @@ descriptor_set::descriptor_set(renderer& renderer, descriptor_pool& pool, descri
 
 }
 
-void write_descriptor(renderer& renderer, descriptor_set& descriptor_set, std::uint32_t binding, buffer& buffer, uint64_t offset, uint64_t size)
+void write_descriptor(renderer& renderer, descriptor_set& descriptor_set, std::uint32_t binding, std::uint32_t array_index, descriptor_type type, buffer& buffer, std::uint64_t offset, std::uint64_t size)
 {
-    write_descriptor(renderer, descriptor_set, binding, 0, buffer, offset, size);
-}
-
-void write_descriptor(renderer& renderer, descriptor_set& descriptor_set, std::uint32_t binding, texture& texture)
-{
-    write_descriptor(renderer, descriptor_set, binding, 0, texture);
-}
-
-void write_descriptor(renderer& renderer, descriptor_set& descriptor_set, std::uint32_t binding, std::uint32_t array_index, buffer& buffer, std::uint64_t offset, std::uint64_t size)
-{
-    VkDescriptorBufferInfo descriptor_ubo{};
-    descriptor_ubo.buffer = underlying_cast<VkBuffer>(buffer);
-    descriptor_ubo.offset = offset;
-    descriptor_ubo.range = size;
+    VkDescriptorBufferInfo buffer_info{};
+    buffer_info.buffer = underlying_cast<VkBuffer>(buffer);
+    buffer_info.offset = offset;
+    buffer_info.range = size;
 
     VkWriteDescriptorSet write{};
     write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     write.dstSet = underlying_cast<VkDescriptorSet>(descriptor_set);
     write.dstBinding = binding;
     write.dstArrayElement = array_index;
-    write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    write.descriptorType = static_cast<VkDescriptorType>(type);
     write.descriptorCount = 1;
-    write.pBufferInfo = &descriptor_ubo;
+    write.pBufferInfo = &buffer_info;
 
     vkUpdateDescriptorSets(underlying_cast<VkDevice>(renderer), 1, &write, 0, nullptr);
 }
 
-void write_descriptor(renderer& renderer, descriptor_set& descriptor_set, std::uint32_t binding, std::uint32_t array_index, texture& texture)
+void write_descriptor(renderer& renderer, descriptor_set& descriptor_set, std::uint32_t binding, std::uint32_t array_index, descriptor_type type, texture& texture)
 {
-    VkDescriptorImageInfo descriptor_image{};
-    descriptor_image.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    descriptor_image.imageView = underlying_cast<VkImageView>(texture);
-    descriptor_image.sampler = underlying_cast<VkSampler>(texture);
+    VkDescriptorImageInfo image_info{};
+    image_info.imageLayout = static_cast<VkImageLayout>(texture.layout());
+    image_info.imageView = underlying_cast<VkImageView>(texture);
+    image_info.sampler = underlying_cast<VkSampler>(texture); //will be null if the texture has no sampler
 
     VkWriteDescriptorSet write{};
     write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     write.dstSet = underlying_cast<VkDescriptorSet>(descriptor_set);
     write.dstBinding = binding;
     write.dstArrayElement = array_index;
-    write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    write.descriptorType = static_cast<VkDescriptorType>(type);
     write.descriptorCount = 1;
-    write.pImageInfo = &descriptor_image;
+    write.pImageInfo = &image_info;
 
     vkUpdateDescriptorSets(underlying_cast<VkDevice>(renderer), 1, &write, 0, nullptr);
+}
+
+void write_descriptors(renderer& renderer, const std::vector<descriptor_write>& writes)
+{
+    std::size_t image_count{};
+    std::size_t buffer_count{};
+
+    for(auto&& write : writes)
+    {
+        assert(!std::holds_alternative<std::monostate>(write.info) && "tph::write_descriptors contains underfined write target.");
+
+        if(std::holds_alternative<descriptor_texture_info>(write.info))
+        {
+            ++image_count;
+        }
+        else if(std::holds_alternative<descriptor_buffer_info>(write.info))
+        {
+            ++buffer_count;
+        }
+    }
+
+    std::vector<VkDescriptorImageInfo> native_images{};
+    native_images.reserve(image_count);
+    std::vector<VkDescriptorBufferInfo> buffers_image{};
+    buffers_image.reserve(buffer_count);
+    std::vector<VkWriteDescriptorSet> native_writes{};
+    native_writes.reserve(std::size(writes));
+
+    for(auto&& write : writes)
+    {
+        VkWriteDescriptorSet native_write{};
+        native_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        native_write.dstSet = underlying_cast<VkDescriptorSet>(write.descriptor_set);
+        native_write.dstBinding = write.binding;
+        native_write.dstArrayElement = write.array_index;
+        native_write.descriptorType = static_cast<VkDescriptorType>(write.type);
+        native_write.descriptorCount = 1;
+
+        if(std::holds_alternative<descriptor_texture_info>(write.info))
+        {
+            auto& write_info{std::get<descriptor_texture_info>(write.info)};
+
+            VkDescriptorImageInfo image_info{};
+            image_info.imageLayout = static_cast<VkImageLayout>(write_info.texture.layout());
+            image_info.imageView = underlying_cast<VkImageView>(write_info.texture);
+            image_info.sampler = underlying_cast<VkSampler>(write_info.texture); //will be null if the texture has no sampler
+
+            native_write.pImageInfo = &native_images.emplace_back(image_info);
+        }
+        else if(std::holds_alternative<descriptor_buffer_info>(write.info))
+        {
+            auto& write_info{std::get<descriptor_buffer_info>(write.info)};
+
+            VkDescriptorBufferInfo buffer_info{};
+            buffer_info.buffer = underlying_cast<VkBuffer>(write_info.buffer);
+            buffer_info.offset = write_info.offset;
+            buffer_info.range = write_info.size;
+
+            native_write.pBufferInfo = &buffers_image.emplace_back(buffer_info);
+        }
+
+        native_writes.emplace_back(native_write);
+    }
+
+    vkUpdateDescriptorSets(underlying_cast<VkDevice>(renderer), static_cast<std::uint32_t>(std::size(native_writes)), std::data(native_writes), 0, nullptr);
 }
 
 }

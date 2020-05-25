@@ -77,16 +77,20 @@ void renderable::set_view(const view_ptr& view)
     const auto write_binding = [](const descriptor_set_ptr& set, std::uint32_t binding, cpt::uniform_binding& data)
     {
         if(get_uniform_binding_type(data) == uniform_binding_type::buffer)
-            tph::write_descriptor(engine::instance().renderer(), set->set(), binding, std::get<framed_buffer_ptr>(data)->buffer(), 0, std::get<framed_buffer_ptr>(data)->size());
+        {
+            tph::write_descriptor(engine::instance().renderer(), set->set(), binding, 0, tph::descriptor_type::uniform_buffer, std::get<framed_buffer_ptr>(data)->buffer(), 0, std::get<framed_buffer_ptr>(data)->size());
+        }
         else if(get_uniform_binding_type(data) == uniform_binding_type::texture)
-            tph::write_descriptor(engine::instance().renderer(), set->set(), binding, std::get<texture_ptr>(data)->get_texture());
+        {
+            tph::write_descriptor(engine::instance().renderer(), set->set(), binding, 0, tph::descriptor_type::image_sampler, std::get<texture_ptr>(data)->get_texture());
+        }
     };
 
     const auto write_bindings = [has_binding, write_binding, &view, this](const descriptor_set_ptr& set)
     {
-        tph::write_descriptor(engine::instance().renderer(), set->set(), 0, view->buffer(), 0, view->buffer().size());
-        tph::write_descriptor(engine::instance().renderer(), set->set(), 1, m_buffer.buffer(), 0, m_buffer.size());
-        tph::write_descriptor(engine::instance().renderer(), set->set(), 2, m_texture ? m_texture->get_texture() : engine::instance().dummy_texture().get_texture());
+        tph::write_descriptor(engine::instance().renderer(), set->set(), 0, 0, tph::descriptor_type::uniform_buffer, view->buffer(), 0, view->buffer().size());
+        tph::write_descriptor(engine::instance().renderer(), set->set(), 1, 0, tph::descriptor_type::uniform_buffer, m_buffer.buffer(), 0, m_buffer.size());
+        tph::write_descriptor(engine::instance().renderer(), set->set(), 2, 0, tph::descriptor_type::image_sampler, m_texture ? m_texture->get_texture() : engine::instance().dummy_texture().get_texture());
 
         for(auto&& [binding, data] : m_uniform_bindings)
             if(has_binding(view, binding))

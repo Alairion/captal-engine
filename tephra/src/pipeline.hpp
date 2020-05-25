@@ -163,7 +163,7 @@ struct pipeline_rasterization
 struct pipeline_multisample
 {
     float sample_shading{};
-    const std::uint32_t* sample_mask{nullptr};
+    const std::uint32_t* sample_mask{};
     bool alpha_to_coverage{};
     bool alpha_to_one{};
 };
@@ -212,13 +212,13 @@ struct pipeline_color_blend
     std::array<float, 4> blend_constants{};
 };
 
-enum class pipeline_options
+enum class pipeline_options : std::uint32_t
 {
     disable_optimization = VK_PIPELINE_CREATE_DISABLE_OPTIMIZATION_BIT,
     allow_derivatives = VK_PIPELINE_CREATE_ALLOW_DERIVATIVES_BIT,
 };
 
-struct pipeline_info
+struct graphics_pipeline_info
 {
     pipeline_options options{};
     std::vector<pipeline_shader_stage> stages{};
@@ -233,6 +233,18 @@ struct pipeline_info
     std::vector<dynamic_state> dynamic_states{};
 };
 
+struct compute_pipeline_info
+{
+    pipeline_options options{};
+    pipeline_shader_stage stage;
+};
+
+enum class pipeline_type : std::uint32_t
+{
+    graphics = VK_PIPELINE_BIND_POINT_GRAPHICS,
+    compute = VK_PIPELINE_BIND_POINT_COMPUTE,
+};
+
 class pipeline
 {
     template<typename VulkanObject, typename... Args>
@@ -240,8 +252,9 @@ class pipeline
 
 public:
     constexpr pipeline() = default;
-    pipeline(renderer& renderer, render_target& render_target, const pipeline_info& info, const pipeline_layout& layout, optional_ref<pipeline_cache> cache = nullref, optional_ref<pipeline> parent = nullref);
-    pipeline(renderer& renderer, render_target& render_target, std::uint32_t subpass, const pipeline_info& info, const pipeline_layout& layout, optional_ref<pipeline_cache> cache = nullref, optional_ref<pipeline> parent = nullref);
+    pipeline(renderer& renderer, render_target& render_target, const graphics_pipeline_info& info, const pipeline_layout& layout, optional_ref<pipeline_cache> cache = nullref, optional_ref<pipeline> parent = nullref);
+    pipeline(renderer& renderer, render_target& render_target, std::uint32_t subpass, const graphics_pipeline_info& info, const pipeline_layout& layout, optional_ref<pipeline_cache> cache = nullref, optional_ref<pipeline> parent = nullref);
+    pipeline(renderer& renderer, const compute_pipeline_info& info, const pipeline_layout& layout, optional_ref<pipeline_cache> cache = nullref, optional_ref<pipeline> parent = nullref);
 
     ~pipeline() = default;
     pipeline(const pipeline&) = delete;
@@ -249,8 +262,14 @@ public:
     pipeline(pipeline&&) noexcept = default;
     pipeline& operator=(pipeline&&) noexcept = default;
 
+    pipeline_type type() const noexcept
+    {
+        return m_type;
+    }
+
 private:
     vulkan::pipeline m_pipeline{};
+    pipeline_type m_type{};
 };
 
 template<>
