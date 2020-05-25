@@ -69,19 +69,11 @@ public:
 public:
     constexpr texture() = default;
 
-    texture(renderer& renderer, size_type width, texture_usage usage);
     texture(renderer& renderer, size_type width, texture_format format, texture_usage usage);
-    texture(renderer& renderer, size_type width, const sampling_options& options, texture_usage usage);
     texture(renderer& renderer, size_type width, const sampling_options& options, texture_format format, texture_usage usage);
-
-    texture(renderer& renderer, size_type width, size_type height, texture_usage usage);
     texture(renderer& renderer, size_type width, size_type height, texture_format format, texture_usage usage);
-    texture(renderer& renderer, size_type width, size_type height, const sampling_options& options, texture_usage usage);
     texture(renderer& renderer, size_type width, size_type height, const sampling_options& options, texture_format format, texture_usage usage);
-
-    texture(renderer& renderer, size_type width, size_type height, size_type depth, texture_usage usage);
     texture(renderer& renderer, size_type width, size_type height, size_type depth, texture_format format, texture_usage usage);
-    texture(renderer& renderer, size_type width, size_type height, size_type depth, const sampling_options& options, texture_usage usage);
     texture(renderer& renderer, size_type width, size_type height, size_type depth, const sampling_options& options, texture_format format, texture_usage usage);
 
     ~texture() = default;

@@ -68,8 +68,12 @@ void renderable::set_view(const view_ptr& view)
     const auto has_binding = [](const view_ptr& view, std::uint32_t binding)
     {
         for(auto&& layout_binding : view->render_technique()->bindings())
+        {
             if(layout_binding.binding == binding)
+            {
                 return true;
+            }
+        }
 
         return false;
     };
@@ -93,12 +97,20 @@ void renderable::set_view(const view_ptr& view)
         tph::write_descriptor(engine::instance().renderer(), set->set(), 2, 0, tph::descriptor_type::image_sampler, m_texture ? m_texture->get_texture() : engine::instance().dummy_texture().get_texture());
 
         for(auto&& [binding, data] : m_uniform_bindings)
+        {
             if(has_binding(view, binding))
+            {
                 write_binding(set, binding, data);
+            }
+        }
 
         for(auto&& [binding, data] : view->uniform_bindings())
+        {
             if(has_binding(view, binding))
+            {
                 write_binding(set, binding, data);
+            }
+        }
     };
 
     const auto it{m_descriptor_sets.find(view.get())};

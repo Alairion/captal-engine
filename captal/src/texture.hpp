@@ -28,12 +28,20 @@ public:
     texture() = default;
     texture(std::uint32_t width, std::uint32_t height, tph::texture_usage usage, color_space space = color_space::srgb);
     texture(std::uint32_t width, std::uint32_t height, tph::texture_usage usage, const tph::sampling_options& options, color_space space = color_space::srgb);
+
     texture(const std::filesystem::path& file, const tph::sampling_options& sampling = tph::sampling_options{}, color_space space = color_space::srgb);
     texture(const std::string_view& data, const tph::sampling_options& sampling = tph::sampling_options{}, color_space space = color_space::srgb);
     texture(std::istream& stream, const tph::sampling_options& sampling = tph::sampling_options{}, color_space space = color_space::srgb);
+
     texture(std::uint32_t width, std::uint32_t height, const std::uint8_t* rgba, const tph::sampling_options& sampling = tph::sampling_options{}, color_space space = color_space::srgb);
     texture(tph::image image, const tph::sampling_options& sampling = tph::sampling_options{}, color_space space = color_space::srgb);
-    texture(tph::texture other);
+
+    template<typename... Args, typename = std::enable_if_t<std::is_convertible_v<tph::texture, tph::renderer&, Args...>>>
+    texture(Args&&... args) noexcept(std::is_nothrow_constructible_v<tph::texture, tph::renderer&, Args...>)
+    :m_texture{get_renderer(), std::forward<Args>(args)...}
+    {
+
+    }
 
     virtual ~texture() = default;
     texture(const texture&) = delete;
@@ -65,6 +73,9 @@ public:
     {
         return m_texture;
     }
+
+private:
+    static tph::renderer& get_renderer() noexcept;
 
 private:
     tph::texture m_texture{};

@@ -268,17 +268,7 @@ void text_drawer::resize(std::uint32_t pixels_size)
     m_cache.clear();
 }
 
-std::pair<std::uint32_t, std::uint32_t> text_drawer::bounds(std::string_view u8string)
-{
-    std::u32string u32string{};
-    u32string.reserve(utf8::count(std::begin(u8string), std::end(u8string)));
-
-    convert<utf8, utf32>(std::begin(u8string), std::end(u8string), std::back_inserter(u32string));
-
-    return bounds(std::move(u32string));
-}
-
-std::pair<std::uint32_t, std::uint32_t> text_drawer::bounds(std::u32string string)
+std::pair<std::uint32_t, std::uint32_t> text_drawer::bounds(const std::string_view& string)
 {
     float current_x{};
     float current_y{static_cast<float>(m_font.info().max_ascent)};
@@ -288,22 +278,22 @@ std::pair<std::uint32_t, std::uint32_t> text_drawer::bounds(std::u32string strin
     float greatest_y{};
     char32_t last{};
 
-    for(auto c : string)
+    for(auto codepoint : decode<utf8>(string))
     {
-        if(c == U'\n')
+        if(codepoint == U'\n')
         {
             current_x = 0;
             current_y += m_font.info().line_height;
             last = 0;
         }
 
-        const glyph& glyph{*load_glyph(c)};
+        const auto& glyph {*load_glyph(codepoint)};
         const float width {static_cast<float>(glyph.image.width())};
         const float height{static_cast<float>(glyph.image.height())};
 
         if(width > 0 && height > 0)
         {
-            const float kerning{last != 0 && static_cast<bool>(m_options & text_drawer_options::kerning) ? m_font.kerning(last, c) : 0.0f};
+            const float kerning{last != 0 && static_cast<bool>(m_options & text_drawer_options::kerning) ? m_font.kerning(last, codepoint) : 0.0f};
             const float x{current_x + glyph.origin.x + kerning};
             const float y{current_y + glyph.origin.y};
 
@@ -314,32 +304,25 @@ std::pair<std::uint32_t, std::uint32_t> text_drawer::bounds(std::u32string strin
         }
 
         current_x += glyph.advance;
-        last = c;
+        last = codepoint;
     }
 
     return std::make_pair(static_cast<std::uint32_t>(greatest_x - lowest_x), static_cast<std::uint32_t>(greatest_y - lowest_y));
 }
 
-text_ptr text_drawer::draw(std::string_view u8string, const color& color)
-{
-    std::u32string u32string{};
-    u32string.reserve(utf8::count(std::begin(u8string), std::end(u8string)));
-
-    convert<utf8, utf32>(std::begin(u8string), std::end(u8string), std::back_inserter(u32string));
-
-    return draw(std::move(u32string), color);
-}
-
-text_ptr text_drawer::draw(std::u32string string, const color& color)
+text_ptr text_drawer::draw(const std::string_view& string, const color& color)
 {
     auto&& [command_buffer, signal] = cpt::engine::instance().begin_transfer();
+
     std::unordered_map<char32_t, std::pair<std::shared_ptr<glyph>, glm::vec2>> cache{};
     texture_ptr texture{make_texture(string, cache, command_buffer)};
+
     const float texture_width{static_cast<float>(texture->width())};
     const float texture_height{static_cast<float>(texture->height())};
+    const std::size_t codepoint_count{utf8::count(std::begin(string), std::end(string))};
 
     std::vector<vertex> vertices{};
-    vertices.reserve(std::size(string) * 4);
+    vertices.reserve(codepoint_count * 4);
 
     float current_x{};
     float current_y{static_cast<float>(m_font.info().max_ascent)};
@@ -349,9 +332,9 @@ text_ptr text_drawer::draw(std::u32string string, const color& color)
     float greatest_y{};
     char32_t last{};
 
-    for(auto c : string)
+    for(auto codepoint : decode<utf8>(string))
     {
-        if(c == U'\n')
+        if(codepoint == U'\n')
         {
             current_x = 0.0f;
             current_y += m_font.info().line_height;
@@ -364,7 +347,7 @@ text_ptr text_drawer::draw(std::u32string string, const color& color)
         }
         else
         {
-            auto& slot{cache.at(c)};
+            auto& slot{cache.at(codepoint)};
 
             const glyph& glyph{*slot.first};
             const glm::vec2& texture_pos{slot.second};
@@ -374,7 +357,7 @@ text_ptr text_drawer::draw(std::u32string string, const color& color)
 
             if(width > 0 && height > 0)
             {
-                const float kerning{last != 0 && static_cast<bool>(m_options & text_drawer_options::kerning) ? m_font.kerning(last, c) : 0.0f};
+                const float kerning{last != 0 && static_cast<bool>(m_options & text_drawer_options::kerning) ? m_font.kerning(last, codepoint) : 0.0f};
                 const float x{current_x + glyph.origin.x + kerning};
                 const float y{current_y + glyph.origin.y};
 
@@ -397,7 +380,7 @@ text_ptr text_drawer::draw(std::u32string string, const color& color)
             }
 
             current_x += glyph.advance;
-            last = c;
+            last = codepoint;
        }
     }
 
@@ -406,8 +389,9 @@ text_ptr text_drawer::draw(std::u32string string, const color& color)
     signal.connect([cache = std::move(cache)](){});
 
     std::vector<std::uint32_t> indices{};
-    indices.reserve(std::size(string) * 6);
-    for(std::size_t i{}; i < std::size(string); ++i)
+    indices.reserve(codepoint_count * 6);
+
+    for(std::size_t i{}; i < codepoint_count; ++i)
     {
         const std::size_t shift{i * 4};
 
@@ -426,24 +410,16 @@ text_ptr text_drawer::draw(std::u32string string, const color& color)
     return std::make_shared<text>(indices, vertices, std::move(texture), static_cast<std::uint32_t>(greatest_x - lowest_x), static_cast<std::uint32_t>(greatest_y - lowest_y), std::size(string));
 }
 
-text_ptr text_drawer::draw(std::string_view u8string, std::uint32_t line_width, text_align align, const color& color)
-{
-    std::u32string u32string{};
-    u32string.reserve(utf8::count(std::begin(u8string), std::end(u8string)));
-
-    convert<utf8, utf32>(std::begin(u8string), std::end(u8string), std::back_inserter(u32string));
-
-    return draw(std::move(u32string), line_width, align, color);
-}
-
-text_ptr text_drawer::draw(std::u32string string, std::uint32_t line_width, text_align align, const color& color)
+text_ptr text_drawer::draw(const std::string_view& string, std::uint32_t line_width, text_align align, const color& color)
 {
     auto&& [command_buffer, signal] = cpt::engine::instance().begin_transfer();
+
     std::unordered_map<char32_t, std::pair<std::shared_ptr<glyph>, glm::vec2>> cache{};
     texture_ptr texture{make_texture(string, cache, command_buffer)};
 
+    const std::size_t codepoint_count{utf8::count(std::begin(string), std::end(string))};
     std::vector<vertex> vertices{};
-    vertices.reserve(std::size(string) * 4);
+    vertices.reserve(codepoint_count * 4);
 
     draw_line_state state{};
     state.current_y = static_cast<float>(m_font.info().max_ascent);
@@ -452,7 +428,7 @@ text_ptr text_drawer::draw(std::u32string string, std::uint32_t line_width, text
     state.texture_width = static_cast<float>(texture->width());
     state.texture_height = static_cast<float>(texture->height());
 
-    for(auto&& line : split(std::u32string_view{string}, U'\n'))
+    for(auto&& line : split(string, '\n'))
     {
         draw_line(line, line_width, align, state, vertices, cache, color);
 
@@ -470,8 +446,8 @@ text_ptr text_drawer::draw(std::u32string string, std::uint32_t line_width, text
     signal.connect([cache = std::move(cache)](){});
 
     std::vector<std::uint32_t> indices{};
-    indices.reserve(std::size(string) * 6);
-    for(std::size_t i{}; i < std::size(string); ++i)
+    indices.reserve(codepoint_count * 6);
+    for(std::size_t i{}; i < codepoint_count; ++i)
     {
         const std::size_t shift{i * 4};
 
@@ -493,19 +469,19 @@ text_ptr text_drawer::draw(std::u32string string, std::uint32_t line_width, text
     return std::make_shared<text>(indices, vertices, std::move(texture), text_width, text_height, std::size(string));
 }
 
-void text_drawer::draw_line(std::u32string_view line, std::uint32_t line_width, text_align align, draw_line_state& state, std::vector<vertex>& vertices, const std::unordered_map<char32_t, std::pair<std::shared_ptr<glyph>, glm::vec2>>& cache, const color& color)
+void text_drawer::draw_line(const std::string_view& line, std::uint32_t line_width, text_align align, draw_line_state& state, std::vector<vertex>& vertices, const std::unordered_map<char32_t, std::pair<std::shared_ptr<glyph>, glm::vec2>>& cache, const color& color)
 {
     if(align == text_align::left)
     {
-        const std::shared_ptr<glyph>& space_glyph{load_glyph(U' ')};
+        const auto& space_glyph{*load_glyph(U' ')};
 
-        for(auto word : split(line, U' '))
+        for(auto word : split(line, ' '))
         {
             char32_t last{};
 
             float word_advance{};
-            for(auto c : word)
-                word_advance += cache.at(c).first->advance;
+            for(auto codepoint : word)
+                word_advance += cache.at(codepoint).first->advance;
 
             if(static_cast<std::uint32_t>(state.current_x + word_advance) > line_width)
             {
@@ -514,9 +490,9 @@ void text_drawer::draw_line(std::u32string_view line, std::uint32_t line_width, 
                 last = 0;
             }
 
-            for(auto c : word)
+            for(auto codepoint : word)
             {
-                auto& slot{cache.at(c)};
+                auto& slot{cache.at(codepoint)};
 
                 const glyph& glyph{*slot.first};
                 const glm::vec2& texture_pos{slot.second};
@@ -526,7 +502,7 @@ void text_drawer::draw_line(std::u32string_view line, std::uint32_t line_width, 
 
                 if(width > 0 && height > 0)
                 {
-                    const float kerning{last != 0 && static_cast<bool>(m_options & text_drawer_options::kerning) ? m_font.kerning(last, c) : 0.0f};
+                    const float kerning{last != 0 && static_cast<bool>(m_options & text_drawer_options::kerning) ? m_font.kerning(last, codepoint) : 0.0f};
                     const float x{state.current_x + glyph.origin.x + kerning};
                     const float y{state.current_y + glyph.origin.y};
 
@@ -549,7 +525,7 @@ void text_drawer::draw_line(std::u32string_view line, std::uint32_t line_width, 
                 }
 
                 state.current_x += glyph.advance;
-                last = c;
+                last = codepoint;
             }
 
             vertices.push_back(vertex{});
@@ -557,10 +533,10 @@ void text_drawer::draw_line(std::u32string_view line, std::uint32_t line_width, 
             vertices.push_back(vertex{});
             vertices.push_back(vertex{});
 
-            state.current_x += space_glyph->advance;
+            state.current_x += space_glyph.advance;
         }
 
-        //There is an additionnal space at the end, so we remove it
+        //There is an additionnal space at the end
         vertices.erase(std::end(vertices) - 4, std::end(vertices));
     }
     else
@@ -569,21 +545,21 @@ void text_drawer::draw_line(std::u32string_view line, std::uint32_t line_width, 
     }
 }
 
-texture_ptr text_drawer::make_texture(std::u32string string, std::unordered_map<char32_t, std::pair<std::shared_ptr<glyph>, glm::vec2>>& cache, tph::command_buffer& command_buffer)
+texture_ptr text_drawer::make_texture(const std::string_view& string, std::unordered_map<char32_t, std::pair<std::shared_ptr<glyph>, glm::vec2>>& cache, tph::command_buffer& command_buffer)
 {
     constexpr std::uint32_t max_texture_width{4096};
-
-    std::sort(std::begin(string), std::end(string));
-    string.erase(std::unique(std::begin(string), std::end(string)), std::end(string));
 
     std::uint32_t current_x{};
     std::uint32_t current_y{};
     std::uint32_t texture_width{};
     std::uint32_t texture_height{};
 
-    for(auto c : string)
+    for(auto codepoint : decode<utf8>(string))
     {
-        std::shared_ptr<glyph> character_glyph{load_glyph(c)};
+        if(cache.find(codepoint) != std::end(cache))
+            continue;
+
+        std::shared_ptr<glyph> character_glyph{load_glyph(codepoint)};
 
         if(current_x + character_glyph->image.width() > max_texture_width)
         {
@@ -597,27 +573,24 @@ texture_ptr text_drawer::make_texture(std::u32string string, std::unordered_map<
         texture_width = std::max(current_x, texture_width);
         texture_height = std::max(static_cast<std::uint32_t>(current_y + character_glyph->image.height()), texture_height);
 
-        cache.emplace(std::make_pair(c, std::make_pair(std::move(character_glyph), texture_pos)));
+        cache.emplace(std::make_pair(codepoint, std::make_pair(std::move(character_glyph), texture_pos)));
     }
 
     texture_ptr texture{cpt::make_texture(texture_width, texture_height, tph::texture_usage::transfer_destination | tph::texture_usage::sampled)};
 
-    for(auto c : string)
+    for(auto&& [codepoint, slot] : cache)
     {
-        auto& slot{cache.at(c)};
+        auto&& [glyph, position] = slot;
 
-        glyph& glyph{*slot.first};
-        const glm::vec2& texture_pos{slot.second};
-
-        if(glyph.image.width() > 0 && glyph.image.height() > 0)
+        if(glyph->image.width() > 0 && glyph->image.height() > 0)
         {
             tph::image_texture_copy copy_region{};
-            copy_region.texture_offset.x = static_cast<std::int32_t>(texture_pos.x);
-            copy_region.texture_offset.y = static_cast<std::int32_t>(texture_pos.y);
-            copy_region.texture_size.width = static_cast<std::uint32_t>(glyph.image.width());
-            copy_region.texture_size.height = static_cast<std::uint32_t>(glyph.image.height());
+            copy_region.texture_offset.x = static_cast<std::int32_t>(position.x);
+            copy_region.texture_offset.y = static_cast<std::int32_t>(position.y);
+            copy_region.texture_size.width = static_cast<std::uint32_t>(glyph->image.width());
+            copy_region.texture_size.height = static_cast<std::uint32_t>(glyph->image.height());
 
-            tph::cmd::copy(command_buffer, glyph.image, texture->get_texture(), copy_region);
+            tph::cmd::copy(command_buffer, glyph->image, texture->get_texture(), copy_region);
         }
     }
 
@@ -635,39 +608,43 @@ const std::shared_ptr<glyph>& text_drawer::load_glyph(char32_t codepoint)
     return it->second;
 }
 
-text_ptr draw_text(cpt::font& font, std::string_view u8string, const color& color, text_drawer_options options)
+text_ptr draw_text(cpt::font& font, const std::string_view& string, const color& color, text_drawer_options options)
 {
     text_drawer drawer{std::move(font), options};
-    text_ptr text{drawer.draw(u8string, color)};
+    text_ptr text{drawer.draw(string, color)};
 
     font = std::move(drawer.font());
+
     return text;
 }
 
-text_ptr draw_text(cpt::font&& font, std::string_view u8string, const color& color, text_drawer_options options)
+text_ptr draw_text(cpt::font&& font, const std::string_view& string, const color& color, text_drawer_options options)
 {
     text_drawer drawer{std::move(font), options};
-    text_ptr text{drawer.draw(u8string, color)};
+    text_ptr text{drawer.draw(string, color)};
 
     font = std::move(drawer.font());
+
     return text;
 }
 
-text_ptr draw_text(cpt::font& font, std::string_view u8string, std::uint32_t line_width, text_align align, const color& color, text_drawer_options options)
+text_ptr draw_text(cpt::font& font, const std::string_view& string, std::uint32_t line_width, text_align align, const color& color, text_drawer_options options)
 {
     text_drawer drawer{std::move(font), options};
-    text_ptr text{drawer.draw(u8string, line_width, align, color)};
+    text_ptr text{drawer.draw(string, line_width, align, color)};
 
     font = std::move(drawer.font());
+
     return text;
 }
 
-text_ptr draw_text(cpt::font&& font, std::string_view u8string, std::uint32_t line_width, text_align align, const color& color, text_drawer_options options)
+text_ptr draw_text(cpt::font&& font, const std::string_view& string, std::uint32_t line_width, text_align align, const color& color, text_drawer_options options)
 {
     text_drawer drawer{std::move(font), options};
-    text_ptr text{drawer.draw(u8string, line_width, align, color)};
+    text_ptr text{drawer.draw(string, line_width, align, color)};
 
     font = std::move(drawer.font());
+
     return text;
 }
 

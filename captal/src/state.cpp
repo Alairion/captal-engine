@@ -28,7 +28,9 @@ state_ptr state_stack::pop()
 void state_stack::reset(state_ptr initial_state)
 {
     while(!std::empty(m_states))
+    {
         pop();
+    }
 
     push(std::move(initial_state));
 }
@@ -36,13 +38,17 @@ void state_stack::reset(state_ptr initial_state)
 void state_stack::pop_until(const state_ptr& state)
 {
     while(!is_top(state))
+    {
         pop();
+    }
 }
 
 void state_stack::pop_until(state* state)
 {
     while(!is_top(state))
+    {
         pop();
+    }
 }
 
 void state_stack::raise(const state_ptr& state)
@@ -77,10 +83,14 @@ void state_stack::raise(state* state)
 void state_stack::update(float elapsed_time)
 {
     for(auto&& state : m_states)
+    {
         state->update(*this, elapsed_time);
+    }
 
     for(auto&& callback : m_post_update_callbacks)
+    {
         callback(*this);
+    }
 
     m_post_update_callbacks.clear();
 }

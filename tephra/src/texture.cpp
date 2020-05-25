@@ -26,28 +26,6 @@ static vulkan::sampler make_sampler(renderer& renderer, const sampling_options& 
     };
 }
 
-static texture_format format_from_usage(renderer& renderer, texture_usage usage)
-{
-    if(static_cast<bool>(usage & texture_usage::depth_stencil_attachment))
-    {
-        return static_cast<texture_format>(vulkan::find_format(
-            underlying_cast<VkPhysicalDevice>(renderer),
-            {
-                VK_FORMAT_D24_UNORM_S8_UINT,
-                VK_FORMAT_D32_SFLOAT_S8_UINT,
-                VK_FORMAT_D16_UNORM_S8_UINT,
-                VK_FORMAT_D32_SFLOAT,
-                VK_FORMAT_X8_D24_UNORM_PACK32,
-                VK_FORMAT_D16_UNORM
-            },
-            VK_IMAGE_TILING_OPTIMAL,
-            VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
-        ));
-    }
-
-    return texture_format::r8g8b8a8_srgb;
-}
-
 static texture_aspect aspect_from_format(texture_format format) noexcept
 {
     switch(format)
@@ -71,12 +49,6 @@ static bool need_image_view(texture_usage usage) noexcept
         || static_cast<bool>(usage & texture_usage::input_attachment);
 }
 
-texture::texture(renderer& renderer, size_type width, texture_usage usage)
-:texture{renderer, width, format_from_usage(renderer, usage), usage}
-{
-
-}
-
 texture::texture(renderer& renderer, size_type width, texture_format format, texture_usage usage)
 :m_format{format}
 ,m_aspect{aspect_from_format(m_format)}
@@ -91,12 +63,6 @@ texture::texture(renderer& renderer, size_type width, texture_format format, tex
     {
         m_image_view = vulkan::image_view{underlying_cast<VkDevice>(renderer), m_image, VK_IMAGE_VIEW_TYPE_1D, static_cast<VkFormat>(m_format), static_cast<VkImageAspectFlags>(m_aspect)};
     }
-}
-
-texture::texture(renderer& renderer, size_type width, const sampling_options& options, texture_usage usage)
-:texture{renderer, width, options, format_from_usage(renderer, usage), usage}
-{
-
 }
 
 texture::texture(renderer& renderer, size_type width, const sampling_options& options, texture_format format, texture_usage usage)
@@ -120,12 +86,6 @@ texture::texture(renderer& renderer, size_type width, const sampling_options& op
     }
 }
 
-texture::texture(renderer& renderer, size_type width, size_type height, texture_usage usage)
-:texture{renderer, width, height, format_from_usage(renderer, usage), usage}
-{
-
-}
-
 texture::texture(renderer& renderer, size_type width, size_type height, texture_format format, texture_usage usage)
 :m_format{format}
 ,m_aspect{aspect_from_format(m_format)}
@@ -140,12 +100,6 @@ texture::texture(renderer& renderer, size_type width, size_type height, texture_
     {
         m_image_view = vulkan::image_view{underlying_cast<VkDevice>(renderer), m_image, VK_IMAGE_VIEW_TYPE_2D, static_cast<VkFormat>(m_format), static_cast<VkImageAspectFlags>(m_aspect)};
     }
-}
-
-texture::texture(renderer& renderer, size_type width, size_type height, const sampling_options& options, texture_usage usage)
-:texture{renderer, width, height, options, format_from_usage(renderer, usage), usage}
-{
-
 }
 
 texture::texture(renderer& renderer, size_type width, size_type height, const sampling_options& options, texture_format format, texture_usage usage)
@@ -169,12 +123,6 @@ texture::texture(renderer& renderer, size_type width, size_type height, const sa
     }
 }
 
-texture::texture(renderer& renderer, size_type width, size_type height, size_type depth, texture_usage usage)
-:texture{renderer, width, height, depth, format_from_usage(renderer, usage), usage}
-{
-
-}
-
 texture::texture(renderer& renderer, size_type width, size_type height, size_type depth, texture_format format, texture_usage usage)
 :m_format{format}
 ,m_aspect{aspect_from_format(m_format)}
@@ -189,12 +137,6 @@ texture::texture(renderer& renderer, size_type width, size_type height, size_typ
     {
         m_image_view = vulkan::image_view{underlying_cast<VkDevice>(renderer), m_image, VK_IMAGE_VIEW_TYPE_3D, static_cast<VkFormat>(m_format), static_cast<VkImageAspectFlags>(m_aspect)};
     }
-}
-
-texture::texture(renderer& renderer, size_type width, size_type height, size_type depth, const sampling_options& options, texture_usage usage)
-:texture{renderer, width, height, depth, options, format_from_usage(renderer, usage), usage}
-{
-
 }
 
 texture::texture(renderer& renderer, size_type width, size_type height, size_type depth, const sampling_options& options, texture_format format, texture_usage usage)

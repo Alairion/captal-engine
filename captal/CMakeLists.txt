@@ -113,21 +113,6 @@ endif()
 
 target_link_libraries(${PROJECT_NAME} ${FREETYPE_LIBRARIES} ${CHIPMUNK_LIBRARIES} ${ZLIB_LIBRARIES})
 
-if(CAPTAL_BUILD_EXAMPLE)
-    add_executable(${PROJECT_NAME}_test "main.cpp")
-    target_link_libraries(${PROJECT_NAME}_test ${PROJECT_NAME})
-
-    if(CMAKE_BUILD_TYPE STREQUAL Debug)
-        target_link_libraries(${PROJECT_NAME}_test "${PROJECT_SOURCE_DIR}/../libs/debug/libapyre.dll.a")
-        target_link_libraries(${PROJECT_NAME}_test "${PROJECT_SOURCE_DIR}/../libs/debug/libswell.dll.a")
-        target_link_libraries(${PROJECT_NAME}_test "${PROJECT_SOURCE_DIR}/../libs/debug/libtephra.dll.a")
-    else()
-        target_link_libraries(${PROJECT_NAME}_test "${PROJECT_SOURCE_DIR}/../libs/release/libapyre.dll.a")
-        target_link_libraries(${PROJECT_NAME}_test "${PROJECT_SOURCE_DIR}/../libs/release/libswell.dll.a")
-        target_link_libraries(${PROJECT_NAME}_test "${PROJECT_SOURCE_DIR}/../libs/release/libtephra.dll.a")
-    endif()
-endif()
-
 install(TARGETS ${PROJECT_NAME}
         CONFIGURATIONS Debug
         RUNTIME DESTINATION "${PROJECT_SOURCE_DIR}/../test/debug"
@@ -145,3 +130,19 @@ install(DIRECTORY "${PROJECT_SOURCE_DIR}/src/" DESTINATION "${PROJECT_SOURCE_DIR
 
 install(DIRECTORY "${PROJECT_SOURCE_DIR}/src/" DESTINATION "${PROJECT_SOURCE_DIR}/../libs/include/${PROJECT_NAME}"
         FILES_MATCHING PATTERN "*.hpp")
+
+if(CAPTAL_BUILD_EXAMPLE)
+    add_executable(${PROJECT_NAME}_test "main.cpp")
+    target_link_libraries(${PROJECT_NAME}_test ${PROJECT_NAME})
+    target_include_directories(${PROJECT_NAME}_test PRIVATE "${PROJECT_SOURCE_DIR}/include/${PROJECT_NAME}")
+
+    if(CMAKE_BUILD_TYPE STREQUAL Debug)
+        target_link_libraries(${PROJECT_NAME}_test "${PROJECT_SOURCE_DIR}/../libs/debug/libapyre.dll.a")
+        target_link_libraries(${PROJECT_NAME}_test "${PROJECT_SOURCE_DIR}/../libs/debug/libswell.dll.a")
+        target_link_libraries(${PROJECT_NAME}_test "${PROJECT_SOURCE_DIR}/../libs/debug/libtephra.dll.a")
+    else()
+        target_link_libraries(${PROJECT_NAME}_test "${PROJECT_SOURCE_DIR}/../libs/release/libapyre.dll.a")
+        target_link_libraries(${PROJECT_NAME}_test "${PROJECT_SOURCE_DIR}/../libs/release/libswell.dll.a")
+        target_link_libraries(${PROJECT_NAME}_test "${PROJECT_SOURCE_DIR}/../libs/release/libtephra.dll.a")
+    endif()
+endif()

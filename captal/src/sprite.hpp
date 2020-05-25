@@ -13,7 +13,7 @@ class CAPTAL_API sprite : public renderable
 {
 public:
     sprite() = default;
-    sprite(std::uint32_t width, std::uint32_t height);
+    sprite(std::uint32_t width, std::uint32_t height, const color& color = colors::white);
     sprite(texture_ptr texture);
     ~sprite() = default;
     sprite(const sprite&) = delete;
@@ -43,7 +43,7 @@ public:
     }
 
 private:
-    void init();
+    void init(const color& color);
 
 private:
     std::uint32_t m_width{};

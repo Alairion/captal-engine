@@ -3,12 +3,12 @@
 namespace cpt
 {
 
-sprite::sprite(std::uint32_t width, std::uint32_t height)
+sprite::sprite(std::uint32_t width, std::uint32_t height, const color& color)
 :renderable{6, 4}
 ,m_width{width}
 ,m_height{height}
 {
-    init();
+    init(color);
 }
 
 sprite::sprite(texture_ptr texture)
@@ -16,7 +16,7 @@ sprite::sprite(texture_ptr texture)
 ,m_width{texture->width()}
 ,m_height{texture->height()}
 {
-    init();
+    init(colors::white);
     set_texture(std::move(texture));
 }
 
@@ -82,12 +82,12 @@ void sprite::resize(std::uint32_t width, std::uint32_t height) noexcept
     update();
 }
 
-void sprite::init()
+void sprite::init(const color& color)
 {
     set_indices({0, 1, 2, 2, 3, 0});
 
     resize(m_width, m_height);
-    set_color(glm::vec4{1.0f, 1.0f, 1.0f, 1.0f});
+    set_color(color);
     set_relative_texture_coords(0.0f, 0.0f, 1.0f, 1.0f);
 }
 

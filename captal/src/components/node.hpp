@@ -131,6 +131,11 @@ public:
         return m_rotation;
     }
 
+    void update() noexcept
+    {
+        m_updated = true;
+    }
+
     bool is_updated() const noexcept
     {
         return m_updated;

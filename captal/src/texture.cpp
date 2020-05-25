@@ -87,10 +87,9 @@ texture::texture(tph::image image, const tph::sampling_options& sampling, color_
 
 }
 
-texture::texture(tph::texture other)
-:m_texture{std::move(other)}
+tph::renderer& texture::get_renderer() noexcept
 {
-
+    return engine::instance().renderer();
 }
 
 }
