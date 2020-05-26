@@ -23,11 +23,10 @@
 class sawtooth_generator : public swl::sound_reader
 {
 public:
-    sawtooth_generator(std::uint32_t frequency, std::uint32_t channels, std::uint32_t wave_frequency, std::uint32_t max)
+    sawtooth_generator(std::uint32_t frequency, std::uint32_t channels, std::uint32_t wave_frequency)
     :m_frequency{frequency}
     ,m_channels{channels}
     ,m_wave_frequency{wave_frequency}
-    ,m_max{max}
     {
 
     }
@@ -54,11 +53,6 @@ protected:
         return true;
     }
 
-    void seek_samples(std::uint64_t frame_offset) override
-    {
-        m_current_index = frame_offset;
-    }
-
     std::uint64_t get_frame_count() override
     {
         return std::numeric_limits<std::uint64_t>::max();
@@ -75,29 +69,24 @@ protected:
     }
 
 private:
+    //Pretty easy implementation
     float next_value() noexcept
     {
-        float value{};
-        for(std::uint32_t k{}; k < m_max; ++k)
-        {
-            const float kf{static_cast<float>(k)};
-            const float ff{static_cast<float>(m_wave_frequency)};
-            const float tf{static_cast<float>(m_current_index) / static_cast<float>(m_frequency)};
+        m_value += 2.0f / static_cast<float>(m_wave_frequency);
 
-            value += std::pow(-1.0f, kf + 1.0f) * (std::sin(2 * cpt::pi<float> * kf * ff * tf) / kf);
+        if(m_value >= 1.0f)
+        {
+            m_value -= 2.0f;
         }
 
-        ++m_current_index;
-
-        return (2.0f * cpt::pi<float>) * value;
+        return m_value;
     }
 
 private:
-    std::uint64_t m_current_index{};
+    float m_value{};
     std::uint32_t m_frequency{};
     std::uint32_t m_channels{};
     std::uint32_t m_wave_frequency{};
-    std::uint32_t m_max{};
 };
 
 //Needed information to control player's physical body
@@ -130,7 +119,7 @@ static physical_body_controller add_physics(entt::registry& world, const cpt::ph
         const auto item{world.create()};
         world.assign<cpt::components::node>(item, glm::vec3{position, 1.0f}, glm::vec3{12.0f, 12.0f, 0.0f});
         world.assign<cpt::components::drawable>(item, cpt::make_sprite(24, 24, cpt::colors::blue));
-        world.assign<cpt::components::physical_body>(item, std::move(sprite_body)).add_shape(24.0f, 24.0f)->set_collision_type(player_type);
+        world.assign<cpt::components::physical_body>(item, std::move(sprite_body)).add_shape(24.0f, 24.0f);
     }
 
     //Walls are placed at window's limits
@@ -149,9 +138,8 @@ static physical_body_controller add_physics(entt::registry& world, const cpt::ph
     const auto player{world.create()};
     world.assign<cpt::components::node>(player, glm::vec3{0.0f, 0.0f, 1.0f}, glm::vec3{16.0f, 16.0f, 0.0f});
     world.assign<cpt::components::drawable>(player, cpt::make_sprite(32, 32, cpt::colors::black));
-    world.assign<cpt::components::physical_body>(player, player_physical_body).add_shape(32.0f, 32.0f);
-    world.assign<cpt::components::listener>(player);
-    world.assign<cpt::components::audio_emiter>(player, cpt::make_sound(swl::sound_file_reader{std::make_unique<sawtooth_generator>(44100, 2, 1000, 100)}))->enable_spatialization();
+    world.assign<cpt::components::physical_body>(player, player_physical_body).add_shape(32.0f, 32.0f)->set_collision_type(player_type);
+    world.assign<cpt::components::audio_emiter>(player, cpt::make_sound(swl::sound_file_reader{std::make_unique<sawtooth_generator>(44100, 2, 441)}));
 
     //The player is controlled by a kinetic body jointed to the dynamic one
     const auto player_controller{cpt::make_physical_body(physical_world, cpt::physical_body_type::kinematic)};
@@ -216,15 +204,20 @@ static void add_logic(const cpt::render_window_ptr& window, entt::registry& worl
         if(event.scan == apr::scancode::w) pressed_keys[3] = false;
     });
 
+    //Add some physics based behaviour.
     const auto player{item_controller.player_entity};
+    //The player can collide with multiple walls at the same time, so we don't use a boolean but an integer.
     auto current_collisions{std::make_shared<std::uint32_t>()};
 
+    //Contains all callbacks for collision handling.
     cpt::physical_world::collision_handler collision_handler{};
 
+    //We don't use the parameters.
     collision_handler.collision_begin = [&world, player, current_collisions](auto&, auto&, auto&, auto, auto*)
     {
         *current_collisions += 1;
 
+        //Start the sawtooth when we first collide.
         if(*current_collisions == 1)
         {
             world.get<cpt::components::audio_emiter>(player)->start();
@@ -237,6 +230,7 @@ static void add_logic(const cpt::render_window_ptr& window, entt::registry& worl
     {
         *current_collisions -= 1;
 
+        //Stop the sawtooth when we no longer collide with any wall.
         if(*current_collisions == 0)
         {
             world.get<cpt::components::audio_emiter>(player)->stop();
@@ -245,6 +239,7 @@ static void add_logic(const cpt::render_window_ptr& window, entt::registry& worl
         return true;
     };
 
+    //When the player and a wall collide, our callbacks will be called.
     physical_world->add_collision(player_type, wall_type, std::move(collision_handler));
 
     //This signal will be called withing cpt::engine::instanc()::run()
@@ -253,10 +248,10 @@ static void add_logic(const cpt::render_window_ptr& window, entt::registry& worl
     {
         glm::vec2 new_velocity{};
 
-        if(pressed_keys[0]) new_velocity += glm::vec2{96.0f, 0.0f};
-        if(pressed_keys[1]) new_velocity += glm::vec2{0.0f, 96.0f};
-        if(pressed_keys[2]) new_velocity += glm::vec2{-96.0f, 0.0f};
-        if(pressed_keys[3]) new_velocity += glm::vec2{0.0f, -96.0f};
+        if(pressed_keys[0]) new_velocity += glm::vec2{256.0f, 0.0f};
+        if(pressed_keys[1]) new_velocity += glm::vec2{0.0f, 256.0f};
+        if(pressed_keys[2]) new_velocity += glm::vec2{-256.0f, 0.0f};
+        if(pressed_keys[3]) new_velocity += glm::vec2{0.0f, -256.0f};
 
         //Update player controller based on user inputs.
         item_controller.player_controller->set_velocity(new_velocity);
@@ -280,7 +275,7 @@ static void run()
     //-The sample count enable MSAA (MultiSample Anti-Aliasing). (default: tph::sample_count::msaa_x1)
     //    MSAA will smoother the edges of polygons rendered in the window.
     //    MSAAx4 and no MSAA (MSAAx1), are always available (cf. Vulkan Specification)
-    constexpr cpt::video_mode video_mode{640, 480, 2, tph::present_mode::fifo, tph::render_target_options::clipping, tph::sample_count::msaa_x4};
+    constexpr cpt::video_mode video_mode{640, 480, 2, tph::present_mode::fifo, tph::render_target_options::clipping, tph::sample_count::msaa_x8};
 
     //Create the window
     cpt::render_window_ptr window{cpt::engine::instance().make_window("Captal test", video_mode)};

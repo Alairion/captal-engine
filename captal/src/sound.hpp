@@ -71,6 +71,26 @@ public:
     {
         seek(static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::duration<double>>(time).count() * frequency()));
     }
+
+    swl::sound& get_sound() noexcept
+    {
+        return *this;
+    }
+
+    const swl::sound& get_sound() const noexcept
+    {
+        return *this;
+    }
+
+    swl::sound_file_reader& get_sound_file_reader() noexcept
+    {
+        return *this;
+    }
+
+    const swl::sound_file_reader& get_sound_file_reader() const noexcept
+    {
+        return *this;
+    }
 };
 
 using sound_ptr = std::shared_ptr<sound>;
