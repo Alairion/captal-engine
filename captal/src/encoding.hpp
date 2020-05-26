@@ -686,6 +686,8 @@ String to_upper(const String& str)
 template<typename Encoding, typename InputIt>
 class decoder_iterator
 {
+    static constexpr char32_t end_of_stream{std::numeric_limits<char32_t>::max()};
+
 public:
     using encoding = Encoding;
     using iterator_type = InputIt;
@@ -703,10 +705,7 @@ public:
     :m_begin{std::move(begin)}
     ,m_end{std::move(end)}
     {
-        if(m_begin != m_end)
-        {
-            m_begin = encoding::decode(m_begin, m_end, m_codepoint);
-        }
+        operator++();
     }
 
     ~decoder_iterator() = default;
@@ -727,7 +726,14 @@ public:
 
     constexpr decoder_iterator& operator++()
     {
-        m_begin = encoding::decode(m_begin, m_end, m_codepoint);
+        if(m_begin != m_end)
+        {
+            m_begin = encoding::decode(m_begin, m_end, m_codepoint);
+        }
+        else
+        {
+            m_codepoint = end_of_stream;
+        }
 
         return *this;
     }
@@ -747,18 +753,18 @@ public:
 
     constexpr decoder_iterator end() const
     {
-        return decoder_iterator{m_end, m_end};
+        return decoder_iterator{};
     }
 
     constexpr bool operator!=(const decoder_iterator& other) const noexcept
     {
-        return m_begin != other.m_begin;
+        return m_codepoint != other.m_codepoint;
     }
 
 private:
     InputIt m_begin{};
     InputIt m_end{};
-    char32_t m_codepoint{};
+    char32_t m_codepoint{end_of_stream};
 };
 
 template<typename Encoding, typename InputIt>

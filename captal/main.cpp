@@ -6,6 +6,7 @@
 #include "src/sound.hpp"
 #include "src/view.hpp"
 #include "src/physics.hpp"
+#include "src/text.hpp"
 
 #include "src/components/node.hpp"
 #include "src/components/camera.hpp"
@@ -23,10 +24,10 @@
 class sawtooth_generator : public swl::sound_reader
 {
 public:
-    sawtooth_generator(std::uint32_t frequency, std::uint32_t channels, std::uint32_t wave_frequency)
+    sawtooth_generator(std::uint32_t frequency, std::uint32_t channels, std::uint32_t wave_lenght)
     :m_frequency{frequency}
     ,m_channels{channels}
-    ,m_wave_frequency{wave_frequency}
+    ,m_wave_lenght{wave_lenght}
     {
 
     }
@@ -69,10 +70,10 @@ protected:
     }
 
 private:
-    //Pretty easy implementation
     float next_value() noexcept
     {
-        m_value += 2.0f / static_cast<float>(m_wave_frequency);
+        //Pretty easy implementation
+        m_value += 2.0f / static_cast<float>(m_wave_lenght);
 
         if(m_value >= 1.0f)
         {
@@ -83,10 +84,15 @@ private:
     }
 
 private:
-    float m_value{};
+    float m_value{-1.0f};
     std::uint32_t m_frequency{};
     std::uint32_t m_channels{};
-    std::uint32_t m_wave_frequency{};
+    std::uint32_t m_wave_lenght{};
+};
+
+static constexpr const char sansation_regular_font_data[]
+{
+    #include "Sansation_Regular.ttf.txt"
 };
 
 //Needed information to control player's physical body
@@ -139,7 +145,7 @@ static physical_body_controller add_physics(entt::registry& world, const cpt::ph
     world.assign<cpt::components::node>(player, glm::vec3{0.0f, 0.0f, 1.0f}, glm::vec3{16.0f, 16.0f, 0.0f});
     world.assign<cpt::components::drawable>(player, cpt::make_sprite(32, 32, cpt::colors::black));
     world.assign<cpt::components::physical_body>(player, player_physical_body).add_shape(32.0f, 32.0f)->set_collision_type(player_type);
-    world.assign<cpt::components::audio_emiter>(player, cpt::make_sound(swl::sound_file_reader{std::make_unique<sawtooth_generator>(44100, 2, 441)}));
+    world.assign<cpt::components::audio_emiter>(player, cpt::make_sound(swl::sound_file_reader{std::make_unique<sawtooth_generator>(44100, 2, 240)}));
 
     //The player is controlled by a kinetic body jointed to the dynamic one
     const auto player_controller{cpt::make_physical_body(physical_world, cpt::physical_body_type::kinematic)};
@@ -160,13 +166,17 @@ static physical_body_controller add_physics(entt::registry& world, const cpt::ph
 
 static void add_logic(const cpt::render_window_ptr& window, entt::registry& world, const cpt::physical_world_ptr& physical_world, entt::entity camera)
 {
-    //Add all physics to the world.
-    auto item_controller{add_physics(world, physical_world)};
+    cpt::text_drawer drawer{cpt::font{std::string_view{std::data(sansation_regular_font_data), std::size(sansation_regular_font_data)}, 24}};
+
+    const auto text{world.create()};
+    world.assign<cpt::components::node>(text, glm::vec3{4.0f, 4.0f, 1.0f});
+    world.assign<cpt::components::drawable>(text, drawer.draw("0"));
 
     //Display current FPS in window title
-    cpt::engine::instance().frame_per_second_update_signal().connect([&window](std::uint32_t frame_per_second)
+    cpt::engine::instance().frame_per_second_update_signal().connect([&world, text, drawer = std::move(drawer)](std::uint32_t frame_per_second) mutable
     {
-        window->change_title("Captal test - " + std::to_string(frame_per_second) + " FPS");
+        world.get<cpt::components::drawable>(text).attach(drawer.draw(std::to_string(frame_per_second)));
+        world.get<cpt::components::node>(text).update();
     });
 
     //Add a zoom support
@@ -174,11 +184,11 @@ static void add_logic(const cpt::render_window_ptr& window, entt::registry& worl
     {
         if(event.wheel > 0)
         {
-            world.get<cpt::components::node>(camera).scale(1.0f / 3.0f);
+            world.get<cpt::components::node>(camera).scale(1.0f / 2.0f);
         }
         else
         {
-            world.get<cpt::components::node>(camera).scale(3.0f / 1.0f);
+            world.get<cpt::components::node>(camera).scale(2.0f / 1.0f);
         }
     });
 
@@ -203,6 +213,9 @@ static void add_logic(const cpt::render_window_ptr& window, entt::registry& worl
         if(event.scan == apr::scancode::a) pressed_keys[2] = false;
         if(event.scan == apr::scancode::w) pressed_keys[3] = false;
     });
+
+    //Add all physics to the world.
+    auto item_controller{add_physics(world, physical_world)};
 
     //Add some physics based behaviour.
     const auto player{item_controller.player_entity};
@@ -275,7 +288,7 @@ static void run()
     //-The sample count enable MSAA (MultiSample Anti-Aliasing). (default: tph::sample_count::msaa_x1)
     //    MSAA will smoother the edges of polygons rendered in the window.
     //    MSAAx4 and no MSAA (MSAAx1), are always available (cf. Vulkan Specification)
-    constexpr cpt::video_mode video_mode{640, 480, 2, tph::present_mode::fifo, tph::render_target_options::clipping, tph::sample_count::msaa_x8};
+    const cpt::video_mode video_mode{640, 480, 2, tph::present_mode::fifo, tph::render_target_options::clipping, tph::sample_count::msaa_x4};
 
     //Create the window
     cpt::render_window_ptr window{cpt::engine::instance().make_window("Captal test", video_mode)};
@@ -288,7 +301,7 @@ static void run()
 
     //Our camera, it will hold the cpt::view for our scene.
     const auto camera{world.create()};
-    world.assign<cpt::components::node>(camera, glm::vec3{320.0f, 240.0f, 1.0f}, glm::vec3{window->width() / 2.0f, window->height() / 2.0f, 0.0f});
+    world.assign<cpt::components::node>(camera, glm::vec3{320.0f, 240.0f, 1.0f}, glm::vec3{320.0f, 240.0f, 0.0f});
     world.assign<cpt::components::camera>(camera, cpt::make_view(window))->fit_to(window);
 
     //Our physical world. See add_logic() function for more informations.
@@ -354,7 +367,7 @@ int main()
     {
         const cpt::audio_parameters audio{2, 44100};
         const cpt::graphics_parameters graphics{tph::renderer_options::tiny_memory_heaps};
-        cpt::engine engine{"captal_test", cpt::version{1, 0, 0}, audio, graphics};
+        cpt::engine engine{"captal_test", cpt::version{0, 1, 0}, audio, graphics};
 
         run();
     }

@@ -94,7 +94,7 @@ void renderable::set_view(const view_ptr& view)
     {
         tph::write_descriptor(engine::instance().renderer(), set->set(), 0, 0, tph::descriptor_type::uniform_buffer, view->buffer(), 0, view->buffer().size());
         tph::write_descriptor(engine::instance().renderer(), set->set(), 1, 0, tph::descriptor_type::uniform_buffer, m_buffer.buffer(), 0, m_buffer.size());
-        tph::write_descriptor(engine::instance().renderer(), set->set(), 2, 0, tph::descriptor_type::image_sampler, m_texture ? m_texture->get_texture() : engine::instance().dummy_texture().get_texture());
+        tph::write_descriptor(engine::instance().renderer(), set->set(), 2, 0, tph::descriptor_type::image_sampler, m_texture ? m_texture->get_texture() : engine::instance().default_texture().get_texture());
 
         for(auto&& [binding, data] : m_uniform_bindings)
         {

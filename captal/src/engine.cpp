@@ -15,7 +15,7 @@ static constexpr const char default_fragment_shader_spv[]
     #include "data/default.frag.spv.str"
 };
 
-static constexpr std::array<std::uint8_t, 4> dummy_texture_data{255, 255, 255, 255};
+static constexpr std::array<std::uint8_t, 4> default_texture_data{255, 255, 255, 255};
 
 using clock = std::chrono::steady_clock;
 
@@ -35,26 +35,36 @@ engine::engine(const std::string& application_name, cpt::version version)
 static const swl::physical_device& default_audio_device(const swl::application& application, const audio_parameters& parameters)
 {
     if(parameters.physical_device.has_value())
+    {
         return parameters.physical_device.value();
+    }
 
     const swl::physical_device& default_device{application.default_device()};
 
     if(default_device.max_output_channel() >= parameters.channel_count && default_device.default_sample_rate() == parameters.frequency)
+    {
         return default_device;
+    }
 
     for(const swl::physical_device& device : application.enumerate_physical_devices())
     {
         if(device.max_output_channel() >= parameters.channel_count && device.default_sample_rate() == parameters.frequency)
+        {
             return device;
+        }
     }
 
     if(default_device.max_output_channel() >= parameters.channel_count)
+    {
         return default_device;
+    }
 
     for(const swl::physical_device& device : application.enumerate_physical_devices())
     {
         if(device.max_output_channel() >= parameters.channel_count)
+        {
             return device;
+        }
     }
 
     throw std::runtime_error{"Can not find any suitable audio device."};
@@ -63,15 +73,21 @@ static const swl::physical_device& default_audio_device(const swl::application& 
 static const tph::physical_device& default_graphics_device(const tph::application& application, const graphics_parameters& parameters)
 {
     if(parameters.physical_device.has_value())
+    {
         return parameters.physical_device.value();
+    }
 
     const auto requirements = [&parameters](const tph::physical_device& device) -> bool
     {
         if(parameters.features.wide_lines && !device.features().wide_lines)
+        {
             return false;
+        }
 
         if(parameters.features.large_points && ! device.features().large_points)
+        {
             return false;
+        }
 
         return true;
     };
@@ -111,7 +127,9 @@ void engine::remove_window(render_window_ptr window)
     const auto it{std::find(std::begin(m_windows), std::end(m_windows), window)};
 
     if(it != std::end(m_windows))
+    {
         m_windows.erase(it);
+    }
 }
 
 std::pair<tph::command_buffer&, transfer_ended_signal&> engine::begin_transfer()
@@ -166,9 +184,9 @@ void engine::set_translator(cpt::translator new_translator)
     m_translator = std::move(new_translator);
 }
 
-void engine::set_dummy_texture(cpt::texture new_dummy_texture) noexcept
+void engine::set_default_texture(cpt::texture new_default_texture) noexcept
 {
-    m_dummy_texture = std::move(new_dummy_texture);
+    m_default_texture = std::move(new_default_texture);
 }
 
 void engine::set_default_vertex_shader(tph::shader new_default_vertex_shader) noexcept
@@ -215,13 +233,15 @@ void engine::init()
     m_default_vertex_shader = tph::shader{m_renderer, tph::shader_stage::vertex, std::string_view{default_vertex_shader_spv, std::size(default_vertex_shader_spv) - 1}};
     m_default_fragment_shader = tph::shader{m_renderer, tph::shader_stage::fragment, std::string_view{default_fragment_shader_spv, std::size(default_fragment_shader_spv) - 1}};
 
-    m_dummy_texture = texture{1, 1, std::data(dummy_texture_data), tph::sampling_options{tph::filter::nearest, tph::filter::nearest, tph::address_mode::repeat}};
+    m_default_texture = texture{1, 1, std::data(default_texture_data), tph::sampling_options{tph::filter::nearest, tph::filter::nearest, tph::address_mode::repeat}};
 }
 
 void engine::update_window()
 {
-    for(auto& window_ptr : m_windows)
+    for(auto&& window_ptr : m_windows)
+    {
         window_ptr->update();
+    }
 }
 
 void engine::update_frame()
@@ -236,7 +256,6 @@ void engine::update_frame()
     if(m_frame_per_second_timer > 1.0f)
     {
         m_frame_per_second = m_frame_per_second_counter;
-
         m_frame_per_second_signal(m_frame_per_second);
 
         m_frame_per_second_counter = 0;

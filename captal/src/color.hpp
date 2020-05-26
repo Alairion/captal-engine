@@ -231,6 +231,7 @@ inline constexpr color tan{0.824f, 0.706f, 0.549f};
 inline constexpr color teal{0.000f, 0.502f, 0.502f};
 inline constexpr color thistle{0.847f, 0.749f, 0.847f};
 inline constexpr color tomato{1.000f, 0.388f, 0.278f};
+inline constexpr color transparent{0.0f, 0.0f, 0.0f, 0.0f};
 inline constexpr color turquoise{0.251f, 0.878f, 0.816f};
 inline constexpr color violet{0.933f, 0.510f, 0.933f};
 inline constexpr color wheat{0.961f, 0.871f, 0.702f};

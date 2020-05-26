@@ -74,7 +74,7 @@ public:
 
     void set_framerate_limit(std::uint32_t frame_per_second) noexcept;
     void set_translator(cpt::translator new_translator);
-    void set_dummy_texture(cpt::texture new_dummy_texture) noexcept;
+    void set_default_texture(cpt::texture new_default_texture) noexcept;
     void set_default_vertex_shader(tph::shader new_default_vertex_shader) noexcept;
     void set_default_fragment_shader(tph::shader new_default_fragment_shader) noexcept;
 
@@ -164,9 +164,9 @@ public:
         return m_default_fragment_shader;
     }
 
-    texture& dummy_texture() noexcept
+    texture& default_texture() noexcept
     {
-        return m_dummy_texture;
+        return m_default_texture;
     }
 
     const translator& translator() const noexcept
@@ -236,7 +236,7 @@ private:
 */
     tph::shader m_default_vertex_shader{};
     tph::shader m_default_fragment_shader{};
-    texture m_dummy_texture{};
+    texture m_default_texture{};
 
     cpt::translator m_translator{};
 

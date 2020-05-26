@@ -36,7 +36,7 @@ public:
     texture(std::uint32_t width, std::uint32_t height, const std::uint8_t* rgba, const tph::sampling_options& sampling = tph::sampling_options{}, color_space space = color_space::srgb);
     texture(tph::image image, const tph::sampling_options& sampling = tph::sampling_options{}, color_space space = color_space::srgb);
 
-    template<typename... Args, typename = std::enable_if_t<std::is_convertible_v<tph::texture, tph::renderer&, Args...>>>
+    template<typename... Args, typename = std::enable_if_t<std::is_constructible_v<tph::texture, tph::renderer&, Args...>>>
     texture(Args&&... args) noexcept(std::is_nothrow_constructible_v<tph::texture, tph::renderer&, Args...>)
     :m_texture{get_renderer(), std::forward<Args>(args)...}
     {

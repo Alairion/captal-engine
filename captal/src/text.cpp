@@ -576,7 +576,7 @@ texture_ptr text_drawer::make_texture(const std::string_view& string, std::unord
         cache.emplace(std::make_pair(codepoint, std::make_pair(std::move(character_glyph), texture_pos)));
     }
 
-    texture_ptr texture{cpt::make_texture(texture_width, texture_height, tph::texture_usage::transfer_destination | tph::texture_usage::sampled)};
+    texture_ptr texture{cpt::make_texture(texture_width, texture_height, tph::texture_usage::transfer_destination | tph::texture_usage::sampled, tph::sampling_options{})};
 
     for(auto&& [codepoint, slot] : cache)
     {

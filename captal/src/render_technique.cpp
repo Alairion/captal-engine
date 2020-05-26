@@ -21,7 +21,9 @@ descriptor_pool::descriptor_pool(render_technique& parent, tph::descriptor_pool 
 ,m_pool{std::move(pool)}
 {
     for(auto&& set : m_sets)
+    {
         set = std::make_shared<descriptor_set>(*this, tph::descriptor_set{engine::instance().renderer(), m_pool, m_parent->descriptor_set_layout()});
+    }
 }
 
 std::optional<descriptor_set_ptr> descriptor_pool::allocate()
@@ -29,7 +31,9 @@ std::optional<descriptor_set_ptr> descriptor_pool::allocate()
     for(auto&& set : m_sets)
     {
         if(set.use_count() == 1)
+        {
             return set;
+        }
     }
 
     return std::nullopt;
@@ -77,7 +81,9 @@ static tph::graphics_pipeline_info make_info(const render_technique_info& info)
     else
     {
         for(auto&& stage : info.stages)
+        {
             output.stages.push_back(tph::pipeline_shader_stage{stage.shader, stage.name, stage.specialisation_info});
+        }
     }
 
     output.vertex_input.bindings.push_back(tph::vertex_input_binding{0, sizeof(vertex)});
@@ -104,7 +110,9 @@ render_technique::render_technique(const render_target_ptr& target, const render
 {
     m_sizes.reserve(std::size(m_bindings));
     for(auto&& binding : m_bindings)
+    {
         m_sizes.push_back(tph::descriptor_pool_size{binding.type, static_cast<std::uint32_t>(binding.count * descriptor_pool::pool_size)});
+    }
 
     m_push_constant_buffer.resize(static_cast<std::size_t>(engine::instance().graphics_device().limits().max_push_constant_size));
 }
@@ -116,10 +124,13 @@ descriptor_set_ptr render_technique::make_set()
     for(auto&& pool : m_pools)
     {
         if(auto set{pool->allocate()}; set.has_value())
+        {
             return std::move(set).value();
+        }
     }
 
     m_pools.push_back(std::make_unique<descriptor_pool>(*this, tph::descriptor_pool{engine::instance().renderer(), m_sizes, static_cast<std::uint32_t>(descriptor_pool::pool_size)}));
+
     return m_pools.back()->allocate().value();
 }
 
