@@ -3,9 +3,9 @@
 namespace cpt
 {
 
-static cpt::texture_ptr default_load_callback(const std::filesystem::path& path, const tph::sampling_options& sampling)
+cpt::texture_ptr texture_pool::default_load_callback(const std::filesystem::path& path, const tph::sampling_options& sampling, color_space space)
 {
-    return make_texture(path, sampling);
+    return make_texture(path, sampling, space);
 }
 
 texture_pool::texture_pool() noexcept
@@ -14,31 +14,35 @@ texture_pool::texture_pool() noexcept
 
 }
 
-texture_pool::texture_pool(load_callback load_callback) noexcept
+texture_pool::texture_pool(load_callback_t load_callback) noexcept
 :m_load_callback{std::move(load_callback)}
 {
 
 }
 
-cpt::texture_ptr texture_pool::load(const std::filesystem::path& path, const tph::sampling_options& sampling)
+cpt::texture_ptr texture_pool::load(const std::filesystem::path& path, const tph::sampling_options& sampling, color_space space)
 {
-    return load(path, m_load_callback, sampling);
+    return load(path, m_load_callback, sampling, space);
 }
 
-cpt::texture_ptr texture_pool::load(const std::filesystem::path& path, const load_callback& load_callback, const tph::sampling_options& sampling)
+cpt::texture_ptr texture_pool::load(const std::filesystem::path& path, const load_callback_t& load_callback, const tph::sampling_options& sampling, color_space space)
 {
     const auto it{m_pool.find(path)};
     if(it != std::end(m_pool))
+    {
         return it->second;
+    }
 
-    return m_pool.emplace(std::make_pair(path, load_callback(path, sampling))).first->second;
+    return m_pool.emplace(std::make_pair(path, load_callback(path, sampling, space))).first->second;
 }
 
 cpt::texture_weak_ptr texture_pool::weak_load(const std::filesystem::path& path) const
 {
     const auto it{m_pool.find(path)};
     if(it != std::end(m_pool))
+    {
         return cpt::texture_weak_ptr{it->second};
+    }
 
     return cpt::texture_weak_ptr{};
 }
@@ -70,7 +74,9 @@ void texture_pool::remove(const std::filesystem::path& path)
 {
     const auto it{m_pool.find(path)};
     if(it != std::end(m_pool))
+    {
         m_pool.erase(it);
+    }
 }
 
 void texture_pool::remove(const texture_ptr& texture)
@@ -82,7 +88,9 @@ void texture_pool::remove(const texture_ptr& texture)
 
     const auto it{std::find_if(std::begin(m_pool), std::end(m_pool), predicate)};
     if(it != std::end(m_pool))
+    {
         m_pool.erase(it);
+    }
 }
 
 }

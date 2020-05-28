@@ -5,6 +5,8 @@
 #include <captal/state.hpp>
 #include <captal/tiled_map.hpp>
 
+#include <apyre/messagebox.hpp>
+
 #include "states/splash_screen.hpp"
 
 static void run()
@@ -24,7 +26,9 @@ static void run()
         states.update(cpt::engine::instance().frame_time());
 
         if(window->is_rendering_enable())
+        {
             window->present();
+        }
     }
 }
 
@@ -40,6 +44,10 @@ int main()
     }
     catch(const std::exception& e)
     {
-        std::cerr << e.what() << std::endl;
+        apr::message_box(apr::message_box_type::error, "Error", e.what());
+    }
+    catch(...)
+    {
+        apr::message_box(apr::message_box_type::error, "Error", "Unknown error.");
     }
 }

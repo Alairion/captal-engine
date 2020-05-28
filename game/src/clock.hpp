@@ -60,7 +60,7 @@ enum class weather : std::uint32_t
 };
 
 template<typename Rep, typename Period>
-std::array<directional_light, 2> compute_lights(const std::chrono::duration<Rep, Period>& total_time, weather weather [[maybe_unused]] = weather::clear)
+std::array<directional_light, 2> compute_directional_lights(const std::chrono::duration<Rep, Period>& total_time, weather weather [[maybe_unused]] = weather::clear)
 {
     const auto sun_direction = [](float normalized_time) -> glm::vec4
     {

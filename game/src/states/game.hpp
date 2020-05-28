@@ -9,6 +9,9 @@
 
 #include <entt/entity/registry.hpp>
 
+#include "../clock.hpp"
+#include "../map.hpp"
+
 namespace mpr
 {
 
@@ -26,14 +29,18 @@ public:
     game& operator=(game&&) noexcept = delete;
 
 protected:
-    virtual void on_enter(cpt::state_stack& stack) override;
-    virtual void on_leave(cpt::state_stack& stack) override;
-    virtual void on_update(cpt::state_stack& stack, float elapsed_time) override;
+    void on_enter(cpt::state_stack& stack) override;
+    void on_leave(cpt::state_stack& stack) override;
+    void on_update(cpt::state_stack& stack, float elapsed_time) override;
 
 private:
     cpt::render_window_ptr m_window{};
     entt::registry m_world{};
     entt::entity m_view_entity{};
+
+    map m_map{};
+    time::minute m_time{};
+
     std::vector<sigslot::scoped_connection> m_connections{};
 };
 

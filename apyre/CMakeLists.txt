@@ -20,12 +20,14 @@ set(HEADERS
     "src/application.hpp"
     "src/monitor.hpp"
     "src/window.hpp"
-    "src/event.hpp")
+    "src/event.hpp"
+    "src/messagebox.hpp")
 
 set(SOURCES
     "src/application.cpp"
     "src/window.cpp"
-    "src/event.cpp")
+    "src/event.cpp"
+    "src/messagebox.cpp")
 
 add_definitions(-DSDL_MAIN_HANDLED -DAPYRE_SHARED_BUILD)
 

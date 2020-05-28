@@ -35,6 +35,7 @@ add_executable(${PROJECT_NAME} ${HEADERS} ${SOURCES})
 add_compile_definitions(MY_PROJECT_MAJOR_VERSION=${PROJECT_VERSION_MAJOR})
 add_compile_definitions(MY_PROJECT_MINOR_VERSION=${PROJECT_VERSION_MINOR})
 add_compile_definitions(MY_PROJECT_PATCH_VERSION=${PROJECT_VERSION_PATCH})
+add_compile_definitions(FMT_HEADER_ONLY)
 
 target_include_directories(${PROJECT_NAME} PRIVATE ${GLOBAL_INCLUDES})
 

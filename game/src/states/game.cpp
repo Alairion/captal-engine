@@ -35,13 +35,18 @@ void game::on_leave(cpt::state_stack& stack [[maybe_unused]])
     m_connections.clear();
 }
 
-void game::on_update(cpt::state_stack& stack, float elapsed_time [[maybe_unused]])
+void game::on_update(cpt::state_stack& stack, float elapsed_time)
 {
-    if(stack.is_top(this))
+    if(!stack.is_top(this))
     {
-        cpt::systems::render(m_world);
-        cpt::systems::end_frame(m_world);
+        return;
     }
+
+    m_time += time::minute{elapsed_time};
+
+
+    cpt::systems::render(m_world);
+    cpt::systems::end_frame(m_world);
 }
 
 }

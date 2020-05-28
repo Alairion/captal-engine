@@ -325,6 +325,11 @@ enum class keycode : std::uint32_t
     right_gui = 231 | impl::scancode_to_keycode,
 };
 
+APYRE_API scancode to_scancode(keycode key) noexcept;
+APYRE_API keycode to_keycode(scancode scan) noexcept;
+APYRE_API std::string to_string(keycode key);
+APYRE_API std::string to_string(scancode scan);
+
 enum class key_modifier : std::uint32_t
 {
     none = 0x0000,
@@ -428,9 +433,13 @@ public:
     event_iterator& operator++()
     {
         if(m_window)
+        {
             m_current_event = m_queue->next(*m_window, m_mode);
+        }
         else
+        {
             m_current_event = m_queue->next(m_mode);
+        }
 
         return *this;
     }
@@ -445,14 +454,9 @@ public:
         return event_iterator{};
     }
 
-    bool operator==(const event_iterator& other)
-    {
-        return m_current_event.has_value() == other.m_current_event.has_value();
-    }
-
     bool operator!=(const event_iterator& other)
     {
-        return !(*this == other);
+        return m_current_event.has_value() != other.m_current_event.has_value();
     }
 
 private:

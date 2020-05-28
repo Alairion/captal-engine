@@ -17,24 +17,37 @@ static std::uint32_t to_sdl_options(window_options options) noexcept
     std::uint32_t output{SDL_WINDOW_VULKAN};
 
     if(static_cast<bool>(options & window_options::fullscreen))
+    {
         output |= SDL_WINDOW_FULLSCREEN;
+    }
 
     if(static_cast<bool>(options & window_options::hidden))
+    {
         output |= SDL_WINDOW_HIDDEN;
-    else
+    }
+    else{
         output |= SDL_WINDOW_SHOWN;
+    }
 
     if(static_cast<bool>(options & window_options::borderless))
+    {
         output |= SDL_WINDOW_BORDERLESS;
+    }
 
     if(static_cast<bool>(options & window_options::resizable))
+    {
         output |= SDL_WINDOW_RESIZABLE;
+    }
 
     if(static_cast<bool>(options & window_options::minimized))
+    {
         output |= SDL_WINDOW_MINIMIZED;
+    }
 
     if(static_cast<bool>(options & window_options::maximized))
+    {
         output |= SDL_WINDOW_MAXIMIZED;
+    }
 
     return output;
 }

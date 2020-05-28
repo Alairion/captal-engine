@@ -14,6 +14,8 @@
 
 #include <entt/entity/registry.hpp>
 
+#include "clock.hpp"
+
 namespace mpr
 {
 
@@ -71,9 +73,12 @@ private:
     map* m_map{};
     std::uint32_t m_x{};
     std::uint32_t m_y{};
+
     cpt::tiled::map m_tiled_map{};
     std::unordered_map<std::string, entt::entity> m_entities{};
     std::vector<std::pair<std::uint32_t, cpt::tileset>> m_tilesets{};
+
+    glm::vec2 m_spawn_point{};
 };
 
 class map
@@ -89,6 +94,14 @@ public:
     void update(float time);
     void render();
     void view(float x, float y, std::uint32_t width, std::uint32_t height);
+
+    template<typename Rep, typename Period>
+    void update_directional_lights(const std::chrono::duration<Rep, Period>& total_time)
+    {
+        auto& lights{m_lights_buffer->get<uniform_lights>(0)};
+        lights.directional_light_count = directional_light_count(total_time);
+        lights.directional_lights = compute_directional_lights(total_time);
+    }
 
     const cpt::render_texture_ptr& texture() const noexcept
     {
@@ -134,6 +147,7 @@ private:
 
     //Render:
     cpt::framed_buffer_ptr m_lights_buffer{};
+
     cpt::render_texture_ptr m_height_map{};
     cpt::view_ptr m_height_map_view{};
 

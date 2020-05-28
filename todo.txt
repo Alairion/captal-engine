@@ -10,6 +10,7 @@ H: Complete commands list
 A: Queue family ownership transfer support (tph::texture::transition and tph::buffer::???, or free functions)
 A: Complete physical devices properties structures
 L: Performance query support
+L: Multiple applications/renderer support
 I: Multiple queue support ? (maybe overkill for 2D, but may be useful for 3D (since tephra is a generic renderer))
 
 Swell:
@@ -20,12 +21,12 @@ L: Custom exception type
 
 Apyre:
 A: Game controller / joystick support
-A: Dialogbox support (with native style, mainly for error reports)
-A: Clipboard support
+L: Clipboard support
 L: Custom exception type
 
 Captal:
 H: Complete text rendering support (alignments, stylized)
 A: More primitive shapes (circles, ellipses, convex polygons)
+A: Particles support
 I: Virtual file archive system ? (already prototyped)
 L: Custom exception type

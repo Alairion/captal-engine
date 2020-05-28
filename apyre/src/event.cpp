@@ -12,6 +12,26 @@
 namespace apr
 {
 
+scancode to_scancode(keycode key) noexcept
+{
+    return static_cast<scancode>(SDL_GetScancodeFromKey(static_cast<SDL_Keycode>(key)));
+}
+
+keycode to_keycode(scancode scan) noexcept
+{
+    return static_cast<keycode>(SDL_GetScancodeFromKey(static_cast<SDL_Scancode>(scan)));
+}
+
+std::string to_string(keycode key)
+{
+    return SDL_GetKeyName(static_cast<SDL_Keycode>(key));
+}
+
+std::string to_string(scancode scan)
+{
+    return SDL_GetScancodeName(static_cast<SDL_Scancode>(scan));
+}
+
 static std::optional<event> translate(const SDL_Event& sdl_event)
 {
     if(sdl_event.type == SDL_WINDOWEVENT)
@@ -78,15 +98,25 @@ static std::optional<event> translate(const SDL_Event& sdl_event)
         output.y = sdl_event.motion.y;
 
         if(sdl_event.motion.state & SDL_BUTTON_LMASK)
+        {
             output.button |= mouse_button::left;
+        }
         if(sdl_event.motion.state & SDL_BUTTON_RMASK)
+        {
             output.button |= mouse_button::right;
+        }
         if(sdl_event.motion.state & SDL_BUTTON_MMASK)
+        {
             output.button |= mouse_button::middle;
+        }
         if(sdl_event.motion.state & SDL_BUTTON_X1MASK)
+        {
             output.button |= mouse_button::side1;
+        }
         if(sdl_event.motion.state & SDL_BUTTON_X2MASK)
+        {
             output.button |= mouse_button::side2;
+        }
 
         return std::make_optional(event{output});
     }
@@ -100,15 +130,25 @@ static std::optional<event> translate(const SDL_Event& sdl_event)
         output.clicks = sdl_event.button.clicks;
 
         if(sdl_event.button.button == SDL_BUTTON_LEFT)
+        {
             output.button |= mouse_button::left;
+        }
         else if(sdl_event.button.button == SDL_BUTTON_RIGHT)
+        {
             output.button |= mouse_button::right;
+        }
         else if(sdl_event.button.button == SDL_BUTTON_MIDDLE)
+        {
             output.button |= mouse_button::middle;
+        }
         else if(sdl_event.button.button == SDL_BUTTON_X1)
+        {
             output.button |= mouse_button::side1;
+        }
         else if(sdl_event.button.button == SDL_BUTTON_X2)
+        {
             output.button |= mouse_button::side2;
+        }
 
         return std::make_optional(event{output});
     }
@@ -122,15 +162,25 @@ static std::optional<event> translate(const SDL_Event& sdl_event)
         output.clicks = sdl_event.button.clicks;
 
         if(sdl_event.button.button == SDL_BUTTON_LEFT)
+        {
             output.button |= mouse_button::left;
+        }
         else if(sdl_event.button.button == SDL_BUTTON_RIGHT)
+        {
             output.button |= mouse_button::right;
+        }
         else if(sdl_event.button.button == SDL_BUTTON_MIDDLE)
+        {
             output.button |= mouse_button::middle;
+        }
         else if(sdl_event.button.button == SDL_BUTTON_X1)
+        {
             output.button |= mouse_button::side1;
+        }
         else if(sdl_event.button.button == SDL_BUTTON_X2)
+        {
             output.button |= mouse_button::side2;
+        }
 
         return std::make_optional(event{output});
     }
@@ -181,18 +231,26 @@ static std::optional<event> translate(const SDL_Event& sdl_event)
 std::uint32_t event_window_id(const event& event)
 {
     if(std::holds_alternative<window_event>(event))
+    {
         return std::get<window_event>(event).window;
+    }
     else if(std::holds_alternative<mouse_event>(event))
+    {
         return std::get<mouse_event>(event).window;
+    }
     else if(std::holds_alternative<keyboard_event>(event))
+    {
         return std::get<keyboard_event>(event).window;
+    }
     else if(std::holds_alternative<text_event>(event))
+    {
         return std::get<text_event>(event).window;
+    }
 
     return 0;
 }
 
-void flush(std::vector<event>& events, event_mode mode, std::optional<std::uint32_t> window_id)
+static void flush(std::vector<event>& events, event_mode mode, std::optional<std::uint32_t> window_id)
 {
     if(mode == event_mode::poll)
     {
@@ -201,7 +259,9 @@ void flush(std::vector<event>& events, event_mode mode, std::optional<std::uint3
         {
             const std::optional<event> new_event{translate(sdl_event)};
             if(new_event)
+            {
                 events.push_back(new_event.value());
+            }
         }
     }
     else if(mode == event_mode::wait)
@@ -224,10 +284,14 @@ void flush(std::vector<event>& events, event_mode mode, std::optional<std::uint3
 std::optional<event> event_queue::next(event_mode mode)
 {
     if(std::empty(m_events))
+    {
         flush(m_events, mode, std::nullopt);
+    }
 
     if(std::empty(m_events))
+    {
         return std::nullopt;
+    }
 
     const event output{m_events[0]};
     m_events.erase(std::begin(m_events));
@@ -248,10 +312,14 @@ std::optional<event> event_queue::next(window& window, event_mode mode)
     };
 
     if(find_event() == std::cend(m_events))
+    {
         flush(m_events, mode, window.id());
+    }
 
     if(find_event() == std::cend(m_events))
+    {
         return std::nullopt;
+    }
 
     const auto it{find_event()};
 

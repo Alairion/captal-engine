@@ -21,6 +21,8 @@
 #include "src/systems/physics.hpp"
 #include "src/systems/sorting.hpp"
 
+#include <apyre/messagebox.hpp>
+
 class sawtooth_generator : public swl::sound_reader
 {
 public:
@@ -373,10 +375,10 @@ int main()
     }
     catch(const std::exception& e)
     {
-        std::cerr << e.what() << std::endl;
+        apr::message_box(apr::message_box_type::error, "Error", "An exception as been throw:\n" + std::string{e.what()});
     }
     catch(...)
     {
-        std::cerr << "Unknown error (exception's type does not inherit from std::exception)" << std::endl;
+        apr::message_box(apr::message_box_type::error, "Unknown error", "Exception's type does not inherit from std::exception");
     }
 }
