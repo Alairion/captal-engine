@@ -50,6 +50,7 @@ set(HEADERS
     "src/components/listener.hpp"
     "src/components/audio_emiter.hpp"
     "src/components/physical_body.hpp"
+    "src/components/controller.hpp"
 
     "src/systems/frame.hpp"
     "src/systems/sorting.hpp"

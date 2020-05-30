@@ -24,7 +24,6 @@ inline constexpr std::uint32_t tile_size{24};
 
 inline constexpr const char* camera_entity_name{"camera"};
 inline constexpr const char* player_entity_name{"player"};
-inline constexpr const char* player_controller_entity_name{"playerctrlr"};
 
 class map;
 
@@ -84,7 +83,7 @@ private:
 class map
 {
 public:
-    map();
+    map(std::uint32_t chunk_x, std::uint32_t chunk_y);
     ~map() = default;
     map(const map&) = delete;
     map& operator=(const map&) = delete;

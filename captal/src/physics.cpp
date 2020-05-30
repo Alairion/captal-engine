@@ -685,11 +685,15 @@ glm::vec2 physical_body::local_to_world(const glm::vec2& vec) noexcept
 cpt::bounding_box physical_body::bounding_box() const noexcept
 {
     if(std::empty(m_shapes))
+    {
         return cpt::bounding_box{};
+    }
 
     cpBB bb{};
     for(auto shape : m_shapes)
+    {
         bb = cpBBMerge(bb, cpShapeGetBB(shape->handle()));
+    }
 
     return cpt::bounding_box{fromcp(bb.l), fromcp(bb.b), fromcp(bb.r - bb.l), fromcp(bb.t - bb.b)};
 }

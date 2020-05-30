@@ -233,13 +233,14 @@ cpt::texture_ptr chunk::load_emission_map(const cpt::tiled::properties_set& prop
     return m_map->texture_pool().load(dummy_emission_map_name);
 }
 
-map::map()
+map::map(std::uint32_t chunk_x, std::uint32_t chunk_y)
 :m_physical_world{cpt::make_physical_world()}
 {
     init_render();
     init_entities();
 
     m_physical_world->set_damping(0.1f);
+    m_physical_world->set_sleep_threshold(0.5f);
 
     constexpr tph::sampling_options sampling{tph::filter::nearest, tph::filter::nearest, tph::address_mode::repeat};
     m_texture_pool.emplace(dummy_normal_map_name, cpt::make_texture(1, 1, std::data(dummy_normal_map_data), sampling, cpt::color_space::linear));
@@ -247,7 +248,7 @@ map::map()
     m_texture_pool.emplace(dummy_specular_map_name, cpt::make_texture(1, 1, std::data(dummy_specular_map_data), sampling, cpt::color_space::linear));
     m_texture_pool.emplace(dummy_emission_map_name, cpt::make_texture(1, 1, std::data(dummy_emission_map_data), sampling));
 
-    /*view(...);*/
+    m_chunks.emplace_back(*this, chunk_x, chunk_y);
 }
 
 void map::update(float time)
@@ -329,19 +330,21 @@ void map::init_render()
 
 void map::init_entities()
 {
-    const auto camera_entity{m_world.create()};
-    m_entities.emplace(camera_entity_name, camera_entity);
+    const auto camera{m_world.create()};
+    m_entities.emplace(camera_entity_name, camera);
 
-    m_world.assign<cpt::components::node>(camera_entity);
-    m_world.assign<cpt::components::camera>(camera_entity);
-    m_world.assign<cpt::components::listener>(camera_entity);
+    m_world.assign<cpt::components::node>(camera);
+    m_world.assign<cpt::components::camera>(camera);
+    m_world.assign<cpt::components::listener>(camera);
 
-    const auto player_entity{m_world.create()};
-    m_entities.emplace(player_entity_name, player_entity);
+    const auto player{m_world.create()};
+    m_entities.emplace(player_entity_name, player);
 
-    m_world.assign<cpt::components::node>(player_entity, glm::vec3{}, glm::vec3{8.0f, 8.0f, 0.0f});
-    m_world.assign<cpt::components::physical_body>(player_entity, cpt::make_physical_body(m_physical_world, cpt::physical_body_type::dynamic, 1.0f, std::numeric_limits<float>::infinity()));
-    m_world.assign<cpt::components::drawable>(player_entity, cpt::make_sprite(16, 16));
+    m_world.assign<cpt::components::node>(player, glm::vec3{}, glm::vec3{8.0f, 8.0f, 0.0f});
+    m_world.assign<cpt::components::physical_body>(player, cpt::make_physical_body(m_physical_world, cpt::physical_body_type::dynamic, 1.0f, std::numeric_limits<float>::infinity())).add_shape(cpt::make_physical_shape(16.0f, 16.0f, 2.0f));
+    m_world.assign<cpt::components::drawable>(player, cpt::make_sprite(16, 16));
+
+
 }
 
 }
