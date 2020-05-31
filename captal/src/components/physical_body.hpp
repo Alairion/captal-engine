@@ -21,7 +21,7 @@ public:
 public:
     physical_body() = default;
 
-    physical_body(physical_body_ptr attachment)
+    explicit physical_body(physical_body_ptr attachment)
     :m_attachment{std::move(attachment)}
     {
 

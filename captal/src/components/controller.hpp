@@ -3,6 +3,8 @@
 
 #include "../config.hpp"
 
+#include <vector>
+
 #include "../physics.hpp"
 
 namespace cpt
@@ -14,12 +16,14 @@ namespace components
 struct controller
 {
 public:
-    using value_type = physical_body;
+    using value_type = cpt::physical_body;
 
 public:
-    controller(physical_body_weak_ptr controlled)
+    controller() = default;
+
+    explicit controller(cpt::physical_body_weak_ptr controlled)
     :m_controlled{std::move(controlled)}
-    ,m_body{cpt::make_physical_body(m_controlled.lock()->world(), cpt::physical_body_type::kinematic)}
+    ,m_body{cpt::make_physical_body(m_controlled.lock()->world(), physical_body_type::kinematic)}
     {
 
     }
@@ -30,14 +34,14 @@ public:
     controller(controller&&) noexcept = default;
     controller& operator=(controller&&) noexcept = default;
 
-    void attach(physical_body_weak_ptr controlled)
+    void attach(cpt::physical_body_weak_ptr controlled)
     {
         m_controlled = std::move(controlled);
-        m_body = cpt::make_physical_body(m_controlled.lock()->world(), cpt::physical_body_type::kinematic);
+        m_body = cpt::make_physical_body(m_controlled.lock()->world(), physical_body_type::kinematic);
         m_constraints.clear();
     }
 
-    void attach(physical_constraint_ptr constraint)
+    void attach(cpt::physical_constraint_ptr constraint)
     {
         assert((constraint->bodies_ptr().first == m_controlled.lock() || constraint->bodies_ptr().second == m_controlled.lock()) && "cpt::component::physical_body::attach can only attach constraint links its attachment and its body.");
         assert((constraint->bodies_ptr().first == m_body || constraint->bodies_ptr().second == m_body) && "cpt::component::physical_body::attach can only attach constraint links its attachment and its body.");
@@ -46,9 +50,9 @@ public:
     }
 
     template<typename DisambiguationTag, typename... Args>
-    const physical_constraint_ptr& add_constraint(DisambiguationTag tag, Args&&... args)
+    const cpt::physical_constraint_ptr& add_constraint(DisambiguationTag tag, Args&&... args)
     {
-        return m_constraints.emplace_back(make_physical_constraint(tag, m_controlled, m_body, std::forward<Args>(args)...));
+        return m_constraints.emplace_back(make_physical_constraint(tag, m_controlled.lock(), m_body, std::forward<Args>(args)...));
     }
 
     void detach()
@@ -63,9 +67,9 @@ public:
         m_constraints.erase(std::begin(m_constraints) + index);
     }
 
-    void detach(const physical_shape_ptr& shape)
+    void detach(const cpt::physical_constraint_ptr& constraint)
     {
-        m_constraints.erase(std::find(std::begin(m_constraints), std::end(m_constraints), shape));
+        m_constraints.erase(std::find(std::begin(m_constraints), std::end(m_constraints), constraint));
     }
 
     const cpt::physical_body_weak_ptr& controlled() const noexcept
@@ -78,15 +82,20 @@ public:
         return m_body;
     }
 
-    const physical_constraint_ptr& constraint(std::size_t index) const noexcept
+    const cpt::physical_constraint_ptr& constraint(std::size_t index) const noexcept
     {
         return m_constraints[index];
+    }
+
+    cpt::physical_body* operator->() const noexcept
+    {
+        return m_body.get();
     }
 
 private:
     cpt::physical_body_weak_ptr m_controlled{};
     cpt::physical_body_ptr m_body{};
-    std::vector<physical_constraint_ptr> m_constraints{};
+    std::vector<cpt::physical_constraint_ptr> m_constraints{};
 };
 
 }

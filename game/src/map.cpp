@@ -297,7 +297,6 @@ void map::init_render()
 {
     m_lights_buffer = cpt::make_framed_buffer(uniform_lights{});
 
-    //Height map
     tph::shader height_vertex_shader{cpt::engine::instance().renderer(), tph::shader_stage::vertex, std::filesystem::u8path(u8"shaders/height.vert.spv")};
     tph::shader height_fragment_shader{cpt::engine::instance().renderer(), tph::shader_stage::fragment, std::filesystem::u8path(u8"shaders/height.frag.spv")};
     cpt::render_technique_info height_info{};
@@ -310,7 +309,6 @@ void map::init_render()
     m_height_map_view = cpt::make_view(m_height_map, height_info);
     m_height_map_view->fit_to(m_height_map);
 
-    //Color "diffuse" map
     tph::shader diffuse_vertex_shader{cpt::engine::instance().renderer(), tph::shader_stage::vertex, std::filesystem::u8path(u8"shaders/lighting.vert.spv")};
     tph::shader diffuse_fragment_shader{cpt::engine::instance().renderer(), tph::shader_stage::fragment, std::filesystem::u8path(u8"shaders/lighting.frag.spv")};
     cpt::render_technique_info diffuse_info{};

@@ -19,7 +19,7 @@ public:
 public:
     camera() = default;
 
-    camera(view_ptr attachment)
+    explicit camera(view_ptr attachment)
     :m_attachment{std::move(attachment)}
     {
 

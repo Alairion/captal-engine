@@ -18,7 +18,7 @@ class node
 public:
     node() = default;
 
-    node(const glm::vec3& position, const glm::vec3& origin = glm::vec3{0.0f, 0.0f, 0.0f}, float scale = 1.0f, float angle = 0.0f)
+    explicit node(const glm::vec3& position, const glm::vec3& origin = glm::vec3{0.0f, 0.0f, 0.0f}, float scale = 1.0f, float angle = 0.0f)
     :m_position{position}
     ,m_origin{origin}
     ,m_rotation{std::fmod(angle, pi<float> * 2.0f)}

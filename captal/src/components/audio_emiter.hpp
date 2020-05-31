@@ -18,7 +18,8 @@ public:
 
 public:
     audio_emiter() = default;
-    audio_emiter(sound_ptr attachment)
+
+    explicit audio_emiter(sound_ptr attachment)
     :m_attachment{std::move(attachment)}
     {
 

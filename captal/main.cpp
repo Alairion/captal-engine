@@ -14,6 +14,7 @@
 #include "src/components/audio_emiter.hpp"
 #include "src/components/listener.hpp"
 #include "src/components/physical_body.hpp"
+#include "src/components/controller.hpp"
 
 #include "src/systems/frame.hpp"
 #include "src/systems/audio.hpp"
@@ -97,20 +98,10 @@ static constexpr const char sansation_regular_font_data[]
     #include "Sansation_Regular.ttf.txt"
 };
 
-//Needed information to control player's physical body
-struct physical_body_controller
-{
-    cpt::physical_world_ptr physical_world{};
-    cpt::physical_body_ptr player_controller{};
-    cpt::physical_constraint_ptr player_pivot_joint{};
-    cpt::physical_constraint_ptr player_gear_joint{};
-    entt::entity player_entity{};
-};
-
 static constexpr cpt::collision_type_t player_type{1};
 static constexpr cpt::collision_type_t wall_type{2};
 
-static physical_body_controller add_physics(entt::registry& world, const cpt::physical_world_ptr& physical_world)
+static entt::entity add_physics(entt::registry& world, const cpt::physical_world_ptr& physical_world)
 {
     //A background (to slighlty increase scene's complexity)
     const auto background_entity{world.create()};
@@ -144,26 +135,23 @@ static physical_body_controller add_physics(entt::registry& world, const cpt::ph
     player_physical_body->set_position(glm::vec2{320.0f, 240.0f});
 
     const auto player{world.create()};
-    world.assign<cpt::components::node>(player, glm::vec3{0.0f, 0.0f, 1.0f}, glm::vec3{16.0f, 16.0f, 0.0f});
+    world.assign<cpt::components::node>(player, glm::vec3{320.0f, 240.0f, 1.0f}, glm::vec3{16.0f, 16.0f, 0.0f});
     world.assign<cpt::components::drawable>(player, cpt::make_sprite(32, 32, cpt::colors::black));
     world.assign<cpt::components::physical_body>(player, player_physical_body).add_shape(32.0f, 32.0f)->set_collision_type(player_type);
     world.assign<cpt::components::audio_emiter>(player, cpt::make_sound(swl::sound_file_reader{std::make_unique<sawtooth_generator>(44100, 2, 240)}));
+    auto& controller{world.assign<cpt::components::controller>(player, cpt::physical_body_weak_ptr{player_physical_body})};
 
-    //The player is controlled by a kinetic body jointed to the dynamic one
-    const auto player_controller{cpt::make_physical_body(physical_world, cpt::physical_body_type::kinematic)};
-    player_controller->set_position(glm::vec2{320.0f, 240.0f});
+    auto& pivot{controller.add_constraint(cpt::pivot_joint, glm::vec2{}, glm::vec2{})};
+    pivot->set_max_bias(0.0f);
+    pivot->set_max_force(10000.0f);
 
-    const auto player_joint{cpt::make_physical_constraint(cpt::pivot_joint, player_controller, player_physical_body, glm::vec2{}, glm::vec2{})};
-    player_joint->set_max_bias(0.0f);
-    player_joint->set_max_force(10000.0f);
-
-    const auto player_pivot{cpt::make_physical_constraint(cpt::gear_joint, player_controller, player_physical_body, 0.0f, 1.0f)};
-    player_pivot->set_error_bias(0.0f);
-    player_pivot->set_max_bias(1.0f);
-    player_pivot->set_max_force(10000.0f);
+    auto& gear{controller.add_constraint(cpt::gear_joint, 0.0f, 1.0f)};
+    gear->set_error_bias(0.0f);
+    gear->set_max_bias(1.0f);
+    gear->set_max_force(10000.0f);
 
     //This set of variables is required to control the player entity
-    return physical_body_controller{physical_world, player_controller, player_joint, player_pivot, player};
+    return player;
 }
 
 static void add_logic(const cpt::render_window_ptr& window, entt::registry& world, const cpt::physical_world_ptr& physical_world, entt::entity camera)
@@ -217,10 +205,9 @@ static void add_logic(const cpt::render_window_ptr& window, entt::registry& worl
     });
 
     //Add all physics to the world.
-    auto item_controller{add_physics(world, physical_world)};
+    auto player{add_physics(world, physical_world)};
 
     //Add some physics based behaviour.
-    const auto player{item_controller.player_entity};
     //The player can collide with multiple walls at the same time, so we don't use a boolean but an integer.
     auto current_collisions{std::make_shared<std::uint32_t>()};
 
@@ -259,7 +246,7 @@ static void add_logic(const cpt::render_window_ptr& window, entt::registry& worl
 
     //This signal will be called withing cpt::engine::instanc()::run()
     //We could have write this code inside the main loop instead.
-    cpt::engine::instance().on_update().connect([pressed_keys, item_controller](float time)
+    cpt::engine::instance().on_update().connect([pressed_keys, physical_world, &world, player](float time)
     {
         glm::vec2 new_velocity{};
 
@@ -269,9 +256,9 @@ static void add_logic(const cpt::render_window_ptr& window, entt::registry& worl
         if(pressed_keys[3]) new_velocity += glm::vec2{0.0f, -256.0f};
 
         //Update player controller based on user inputs.
-        item_controller.player_controller->set_velocity(new_velocity);
+        world.get<cpt::components::controller>(player)->set_velocity(new_velocity);
         //Update the physical world with the elapsed time.
-        item_controller.physical_world->update(time);
+        physical_world->update(time);
     });
 }
 
@@ -362,15 +349,22 @@ static void run()
     std::cout << "Host shared : " << memory_used.host_shared << " / " << memory_alloc.host_shared << "\n";
 }
 
-
 int main()
 {
     try
     {
+        //The first value is the number of channels, 2 is stereo.
+        //The second value is the frequency of the output stream.
         const cpt::audio_parameters audio{2, 44100};
+        //The first value is the renderer options (c.f. tph::renderer_options)
         const cpt::graphics_parameters graphics{tph::renderer_options::tiny_memory_heaps};
+
+        //The engine instance. It must be created before most call to captal functions.
+        //The first value is your application name. It will be passed to Tephra's instance then to Vulkan's instance.
+        //The second value is your application version. It will be passed to Tephra's instance then to Vulkan's instance.
         cpt::engine engine{"captal_test", cpt::version{0, 1, 0}, audio, graphics};
 
+        //The engine is reachable by its static address. We don't need to keep a reference on it.
         run();
     }
     catch(const std::exception& e)

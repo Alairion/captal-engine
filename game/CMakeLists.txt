@@ -23,7 +23,6 @@ set(SOURCES
     "src/main.cpp"
 
     "src/map.cpp"
-    "src/clock.cpp"
 
     "src/states/splash_screen.cpp"
     "src/states/main_menu.cpp"

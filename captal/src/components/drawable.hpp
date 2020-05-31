@@ -18,7 +18,8 @@ public:
 
 public:
     drawable() = default;
-    drawable(renderable_ptr attachment)
+
+    explicit drawable(renderable_ptr attachment)
     :m_attachment{std::move(attachment)}
     {
 
