@@ -1,5 +1,6 @@
 *.user
 *.bat
+*.autosave
 bin
 test
 libs
