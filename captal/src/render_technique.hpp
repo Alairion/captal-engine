@@ -118,7 +118,9 @@ class CAPTAL_API render_technique : public asynchronous_resource
 {
 public:
     render_technique() = default;
+
     render_technique(const render_target_ptr& target, const render_technique_info& info);
+
     ~render_technique() = default;
     render_technique(const render_technique&) = delete;
     render_technique& operator=(const render_technique&) = delete;

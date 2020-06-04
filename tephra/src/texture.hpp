@@ -74,12 +74,14 @@ public:
 public:
     constexpr texture() = default;
 
-    texture(renderer& renderer, size_type width, texture_format format, texture_usage usage);
-    texture(renderer& renderer, size_type width, const sampling_options& options, texture_format format, texture_usage usage);
-    texture(renderer& renderer, size_type width, size_type height, texture_format format, texture_usage usage);
-    texture(renderer& renderer, size_type width, size_type height, const sampling_options& options, texture_format format, texture_usage usage);
-    texture(renderer& renderer, size_type width, size_type height, size_type depth, texture_format format, texture_usage usage);
-    texture(renderer& renderer, size_type width, size_type height, size_type depth, const sampling_options& options, texture_format format, texture_usage usage);
+    texture(renderer& renderer, size_type width, texture_format format, texture_usage usage, tph::sample_count sample_count = tph::sample_count::msaa_x1);
+    texture(renderer& renderer, size_type width, const sampling_options& options, texture_format format, texture_usage usage, tph::sample_count sample_count = tph::sample_count::msaa_x1);
+
+    texture(renderer& renderer, size_type width, size_type height, texture_format format, texture_usage usage, tph::sample_count sample_count = tph::sample_count::msaa_x1);
+    texture(renderer& renderer, size_type width, size_type height, const sampling_options& options, texture_format format, texture_usage usage, tph::sample_count sample_count = tph::sample_count::msaa_x1);
+
+    texture(renderer& renderer, size_type width, size_type height, size_type depth, texture_format format, texture_usage usage, tph::sample_count sample_count = tph::sample_count::msaa_x1);
+    texture(renderer& renderer, size_type width, size_type height, size_type depth, const sampling_options& options, texture_format format, texture_usage usage, tph::sample_count sample_count = tph::sample_count::msaa_x1);
 
     ~texture() = default;
     texture(const texture&) = delete;
@@ -90,11 +92,6 @@ public:
     texture_format format() const noexcept
     {
         return m_format;
-    }
-
-    texture_layout layout() const noexcept
-    {
-        return m_layout;
     }
 
     texture_aspect aspect() const noexcept
@@ -117,7 +114,6 @@ public:
         return m_depth;
     }
 
-    void transition(command_buffer& command_buffer, resource_access source_access, resource_access destination_access, pipeline_stage source_stage, pipeline_stage destination_stage, texture_layout layout);
     void transition(command_buffer& command_buffer, resource_access source_access, resource_access destination_access, pipeline_stage source_stage, pipeline_stage destination_stage, texture_layout current_layout, texture_layout next_layout);
 
 private:
@@ -126,8 +122,7 @@ private:
     vulkan::image_view m_image_view{};
     vulkan::sampler m_sampler{};
     texture_format m_format{texture_format::undefined};
-    texture_layout m_layout{texture_layout::undefined};
-    texture_aspect m_aspect{texture_layout::undefined};
+    texture_aspect m_aspect{};
     size_type m_width{};
     size_type m_height{};
     size_type m_depth{};

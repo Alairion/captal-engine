@@ -26,13 +26,10 @@ class CAPTAL_API texture : public asynchronous_resource
 {
 public:
     texture() = default;
-    texture(std::uint32_t width, std::uint32_t height, tph::texture_usage usage, color_space space = color_space::srgb);
-    texture(std::uint32_t width, std::uint32_t height, tph::texture_usage usage, const tph::sampling_options& options, color_space space = color_space::srgb);
 
     texture(const std::filesystem::path& file, const tph::sampling_options& sampling = tph::sampling_options{}, color_space space = color_space::srgb);
     texture(const std::string_view& data, const tph::sampling_options& sampling = tph::sampling_options{}, color_space space = color_space::srgb);
     texture(std::istream& stream, const tph::sampling_options& sampling = tph::sampling_options{}, color_space space = color_space::srgb);
-
     texture(std::uint32_t width, std::uint32_t height, const std::uint8_t* rgba, const tph::sampling_options& sampling = tph::sampling_options{}, color_space space = color_space::srgb);
     texture(tph::image image, const tph::sampling_options& sampling = tph::sampling_options{}, color_space space = color_space::srgb);
 
@@ -62,6 +59,16 @@ public:
     tph::texture::size_type depth() const noexcept
     {
         return m_texture.depth();
+    }
+
+    tph::texture_format format() const noexcept
+    {
+        return m_texture.format();
+    }
+
+    tph::texture_aspect aspect() const noexcept
+    {
+        return m_texture.aspect();
     }
 
     tph::texture& get_texture() noexcept

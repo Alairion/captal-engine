@@ -6,13 +6,13 @@
 #include "vulkan/vulkan.hpp"
 
 #include "renderer.hpp"
-#include "enumerations.hpp"
 #include "render_target.hpp"
+#include "enumerations.hpp"
 
 namespace tph
 {
 
-class render_target;
+class render_pass;
 class pipeline;
 class pipeline_layout;
 class command_buffer;
@@ -168,7 +168,7 @@ namespace cmd
 {
 
 command_buffer begin(command_pool& pool, command_buffer_level level = command_buffer_level::primary, command_buffer_flags flags = command_buffer_flags::none);
-command_buffer begin(command_pool& pool, render_target& target, std::optional<std::size_t> image_index = std::nullopt, command_buffer_flags flags = command_buffer_flags::none);
+command_buffer begin(command_pool& pool, render_pass& render_pass, optional_ref<framebuffer> framebuffer, command_buffer_flags flags = command_buffer_flags::none);
 
 void copy(command_buffer& command_buffer, buffer& source, buffer& destination, const buffer_copy& region);
 void copy(command_buffer& command_buffer, buffer& source, buffer& destination, const std::vector<buffer_copy>& regions);
@@ -195,12 +195,11 @@ void blit(command_buffer& command_buffer, texture& source, texture& destination,
 void blit(command_buffer& command_buffer, texture& source, texture& destination, filter filter, const std::vector<texture_blit>& regions);
 void blit(command_buffer& command_buffer, texture& source, texture& destination, filter filter);
 
+void transition(command_buffer& command_buffer, texture& texture, resource_access source_access, resource_access destination_access, pipeline_stage source_stage, pipeline_stage destination_stage, texture_layout current_layout, texture_layout next_layout);
 void pipeline_barrier(command_buffer& command_buffer, pipeline_stage source_stage, pipeline_stage destination_stage);
-void prepare(command_buffer& command_buffer, texture& texture, pipeline_stage stage);
 
 void push_constants(command_buffer& command_buffer, pipeline_layout& layout, shader_stage stages, std::uint32_t offset, std::uint32_t size, const void* data);
 
-void begin_render_pass(command_buffer& command_buffer, render_target& target, std::uint32_t image_index, render_pass_content content = render_pass_content::inlined);
 void begin_render_pass(command_buffer& command_buffer, const render_pass& render_pass, const framebuffer& framebuffer, render_pass_content content = render_pass_content::inlined);
 void begin_render_pass(command_buffer& command_buffer, const render_pass& render_pass, const framebuffer& framebuffer, const scissor& area, render_pass_content content = render_pass_content::inlined);
 void next_subpass(command_buffer& command_buffer, render_pass_content content = render_pass_content::inlined);

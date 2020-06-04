@@ -2,7 +2,6 @@
 
 #include "vulkan/vulkan_functions.hpp"
 
-#include "renderer.hpp"
 #include "pipeline.hpp"
 #include "render_target.hpp"
 #include "buffer.hpp"
@@ -51,14 +50,14 @@ command_buffer begin(command_pool& pool, command_buffer_level level, command_buf
     return command_buffer{std::move(buffer)};
 }
 
-command_buffer begin(command_pool& pool, render_target& target, std::optional<std::size_t> image_index, command_buffer_flags flags)
+command_buffer begin(command_pool& pool, render_pass& render_pass, optional_ref<framebuffer> framebuffer, command_buffer_flags flags)
 {
     vulkan::command_buffer buffer{underlying_cast<VkDevice>(pool), underlying_cast<VkCommandPool>(pool), VK_COMMAND_BUFFER_LEVEL_SECONDARY};
 
     VkCommandBufferInheritanceInfo inheritance_info{};
     inheritance_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO;
-    inheritance_info.renderPass = underlying_cast<VkRenderPass>(target);
-    inheritance_info.framebuffer = image_index.has_value() ? underlying_cast<VkFramebuffer>(target, image_index.value()) : VkFramebuffer{};
+    inheritance_info.renderPass = underlying_cast<VkRenderPass>(render_pass);
+    inheritance_info.framebuffer = framebuffer.has_value() ? underlying_cast<VkFramebuffer>(*framebuffer) : VkFramebuffer{};
 
     VkCommandBufferBeginInfo begin_info{};
     begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -104,8 +103,6 @@ void copy(command_buffer& command_buffer, buffer& source, image& destination, co
 
 void copy(command_buffer& command_buffer, buffer& source, texture& destination, const buffer_texture_copy& region)
 {
-    destination.transition(command_buffer, resource_access::none, resource_access::transfer_write, pipeline_stage::top_of_pipe, pipeline_stage::transfer, texture_layout::transfer_destination_optimal);
-
     VkBufferImageCopy native_region{};
     native_region.bufferOffset = region.buffer_offset;
     native_region.bufferRowLength = region.buffer_image_width;
@@ -129,8 +126,6 @@ void copy(command_buffer& command_buffer, buffer& source, texture& destination, 
 
 void copy(command_buffer& command_buffer, buffer& source, texture& destination, const std::vector<buffer_texture_copy>& regions)
 {
-    destination.transition(command_buffer, resource_access::none, resource_access::transfer_write, pipeline_stage::top_of_pipe, pipeline_stage::transfer, texture_layout::transfer_destination_optimal);
-
     std::vector<VkBufferImageCopy> native_regions{};
     native_regions.reserve(std::size(regions));
 
@@ -174,8 +169,6 @@ void copy(command_buffer& command_buffer, image& source, buffer& destination, co
 
 void copy(command_buffer& command_buffer, image& source, texture& destination, const image_texture_copy& region)
 {
-    destination.transition(command_buffer, resource_access::none, resource_access::transfer_write, pipeline_stage::top_of_pipe, pipeline_stage::transfer, texture_layout::transfer_destination_optimal);
-
     VkBufferImageCopy native_region{};
     native_region.bufferRowLength = static_cast<std::uint32_t>(source.width());
     native_region.bufferImageHeight = static_cast<std::uint32_t>(source.height());
@@ -198,8 +191,6 @@ void copy(command_buffer& command_buffer, image& source, texture& destination, c
 
 void copy(command_buffer& command_buffer, image& source, texture& destination, const std::vector<image_texture_copy>& regions)
 {
-    destination.transition(command_buffer, resource_access::none, resource_access::transfer_write, pipeline_stage::top_of_pipe, pipeline_stage::transfer, texture_layout::transfer_destination_optimal);
-
     std::vector<VkBufferImageCopy> native_regions{};
     native_regions.reserve(std::size(regions));
 
@@ -229,8 +220,6 @@ void copy(command_buffer& command_buffer, image& source, texture& destination, c
 
 void copy(command_buffer& command_buffer, texture& source, buffer& destination, const buffer_texture_copy& region)
 {
-    source.transition(command_buffer, resource_access::none, resource_access::transfer_read, pipeline_stage::top_of_pipe, pipeline_stage::transfer, texture_layout::transfer_source_optimal);
-
     VkBufferImageCopy native_region{};
     native_region.bufferOffset = region.buffer_offset;
     native_region.bufferRowLength = region.buffer_image_width;
@@ -254,8 +243,6 @@ void copy(command_buffer& command_buffer, texture& source, buffer& destination, 
 
 void copy(command_buffer& command_buffer, texture& source, buffer& destination, const std::vector<buffer_texture_copy>& regions)
 {
-    source.transition(command_buffer, resource_access::none, resource_access::transfer_read, pipeline_stage::top_of_pipe, pipeline_stage::transfer, texture_layout::transfer_source_optimal);
-
     std::vector<VkBufferImageCopy> native_regions{};
     native_regions.reserve(std::size(regions));
 
@@ -285,8 +272,6 @@ void copy(command_buffer& command_buffer, texture& source, buffer& destination, 
 
 void copy(command_buffer& command_buffer, texture& source, image& destination, const image_texture_copy& region)
 {
-    source.transition(command_buffer, resource_access::none, resource_access::transfer_read, pipeline_stage::top_of_pipe, pipeline_stage::transfer, texture_layout::transfer_source_optimal);
-
     VkBufferImageCopy native_region{};
     native_region.bufferRowLength = static_cast<std::uint32_t>(destination.width());
     native_region.bufferImageHeight = static_cast<std::uint32_t>(destination.height());
@@ -309,8 +294,6 @@ void copy(command_buffer& command_buffer, texture& source, image& destination, c
 
 void copy(command_buffer& command_buffer, texture& source, image& destination, const std::vector<image_texture_copy>& regions)
 {
-    source.transition(command_buffer, resource_access::none, resource_access::transfer_read, pipeline_stage::top_of_pipe, pipeline_stage::transfer, texture_layout::transfer_source_optimal);
-
     std::vector<VkBufferImageCopy> native_regions{};
     native_regions.reserve(std::size(regions));
 
@@ -339,9 +322,6 @@ void copy(command_buffer& command_buffer, texture& source, image& destination, c
 
 void copy(command_buffer& command_buffer, texture& source, texture& destination, const texture_copy& region)
 {
-    source.transition(command_buffer, resource_access::none, resource_access::transfer_read, pipeline_stage::top_of_pipe, pipeline_stage::transfer, texture_layout::transfer_source_optimal);
-    destination.transition(command_buffer, resource_access::none, resource_access::transfer_write, pipeline_stage::top_of_pipe, pipeline_stage::transfer, texture_layout::transfer_destination_optimal);
-
     VkImageCopy native_region{};
     native_region.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     native_region.srcSubresource.mipLevel = 0;
@@ -369,9 +349,6 @@ void copy(command_buffer& command_buffer, texture& source, texture& destination,
 
 void copy(command_buffer& command_buffer, texture& source, texture& destination, const std::vector<texture_copy>& regions)
 {
-    source.transition(command_buffer, resource_access::none, resource_access::transfer_read, pipeline_stage::top_of_pipe, pipeline_stage::transfer, texture_layout::transfer_source_optimal);
-    destination.transition(command_buffer, resource_access::none, resource_access::transfer_write, pipeline_stage::top_of_pipe, pipeline_stage::transfer, texture_layout::transfer_destination_optimal);
-
     std::vector<VkImageCopy> native_regions{};
     native_regions.reserve(std::size(regions));
 
@@ -432,8 +409,6 @@ void copy(command_buffer& command_buffer, image& source, image& destination)
 
 void copy(command_buffer& command_buffer, image& source, texture& destination)
 {
-    destination.transition(command_buffer, resource_access::none, resource_access::transfer_write, pipeline_stage::top_of_pipe, pipeline_stage::transfer, texture_layout::transfer_destination_optimal);
-
     VkBufferImageCopy native_region{};
     native_region.bufferRowLength = static_cast<std::uint32_t>(source.width());
     native_region.bufferImageHeight = static_cast<std::uint32_t>(source.height());
@@ -453,8 +428,6 @@ void copy(command_buffer& command_buffer, image& source, texture& destination)
 
 void copy(command_buffer& command_buffer, texture& source, image& destination)
 {
-    source.transition(command_buffer, resource_access::none, resource_access::transfer_read, pipeline_stage::top_of_pipe, pipeline_stage::transfer, texture_layout::transfer_source_optimal);
-
     VkBufferImageCopy native_region{};
     native_region.bufferRowLength = static_cast<std::uint32_t>(destination.width());
     native_region.bufferImageHeight = static_cast<std::uint32_t>(destination.height());
@@ -475,9 +448,6 @@ void copy(command_buffer& command_buffer, texture& source, image& destination)
 void copy(command_buffer& command_buffer, texture& source, texture& destination)
 {
     assert((source.width() <= destination.width() && source.height() <= destination.height() && source.depth() <= destination.depth()) && "tph::cmd::copy called with too small destination texture");
-
-    source.transition(command_buffer, resource_access::none, resource_access::transfer_read, pipeline_stage::top_of_pipe, pipeline_stage::transfer, texture_layout::transfer_source_optimal);
-    destination.transition(command_buffer, resource_access::none, resource_access::transfer_write, pipeline_stage::top_of_pipe, pipeline_stage::transfer, texture_layout::transfer_destination_optimal);
 
     VkImageCopy native_region{};
     native_region.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -500,9 +470,6 @@ void copy(command_buffer& command_buffer, texture& source, texture& destination)
 
 void blit(command_buffer& command_buffer, texture& source, texture& destination, filter filter, const texture_blit& region)
 {
-    source.transition(command_buffer, resource_access::none, resource_access::transfer_read, pipeline_stage::top_of_pipe, pipeline_stage::transfer, texture_layout::transfer_source_optimal);
-    destination.transition(command_buffer, resource_access::none, resource_access::transfer_write, pipeline_stage::top_of_pipe, pipeline_stage::transfer, texture_layout::transfer_destination_optimal);
-
     VkImageBlit native_region{};
     native_region.srcOffsets[0].x = region.source_offset.x;
     native_region.srcOffsets[0].y = region.source_offset.y;
@@ -533,9 +500,6 @@ void blit(command_buffer& command_buffer, texture& source, texture& destination,
 
 void blit(command_buffer& command_buffer, texture& source, texture& destination, filter filter, const std::vector<texture_blit>& regions)
 {
-    source.transition(command_buffer, resource_access::none, resource_access::transfer_read, pipeline_stage::top_of_pipe, pipeline_stage::transfer, texture_layout::transfer_source_optimal);
-    destination.transition(command_buffer, resource_access::none, resource_access::transfer_write, pipeline_stage::top_of_pipe, pipeline_stage::transfer, texture_layout::transfer_destination_optimal);
-
     std::vector<VkImageBlit> native_regions{};
     native_regions.reserve(std::size(regions));
 
@@ -572,9 +536,6 @@ void blit(command_buffer& command_buffer, texture& source, texture& destination,
 
 void blit(command_buffer& command_buffer, texture& source, texture& destination, filter filter)
 {
-    source.transition(command_buffer, resource_access::none, resource_access::transfer_read, pipeline_stage::top_of_pipe, pipeline_stage::transfer, texture_layout::transfer_source_optimal);
-    destination.transition(command_buffer, resource_access::none, resource_access::transfer_write, pipeline_stage::top_of_pipe, pipeline_stage::transfer, texture_layout::transfer_destination_optimal);
-
     VkImageBlit native_region{};
     native_region.srcOffsets[0].x = 0;
     native_region.srcOffsets[0].y = 0;
@@ -603,6 +564,11 @@ void blit(command_buffer& command_buffer, texture& source, texture& destination,
                    1, &native_region, static_cast<VkFilter>(filter));
 }
 
+void transition(command_buffer& command_buffer, texture& texture, resource_access source_access, resource_access destination_access, pipeline_stage source_stage, pipeline_stage destination_stage, texture_layout current_layout, texture_layout next_layout)
+{
+    texture.transition(command_buffer, source_access, destination_access, source_stage, destination_stage, current_layout, next_layout);
+}
+
 void pipeline_barrier(command_buffer& command_buffer, pipeline_stage source_stage, pipeline_stage destination_stage)
 {
     vkCmdPipelineBarrier(underlying_cast<VkCommandBuffer>(command_buffer),
@@ -610,30 +576,9 @@ void pipeline_barrier(command_buffer& command_buffer, pipeline_stage source_stag
                          0, nullptr, 0, nullptr, 0, nullptr);
 }
 
-void prepare(command_buffer& command_buffer, texture& texture, pipeline_stage stage)
-{
-    if(texture.layout() == texture_layout::transfer_source_optimal)
-    {
-        texture.transition(command_buffer, resource_access::transfer_read, resource_access::shader_read, pipeline_stage::transfer, stage, texture_layout::shader_read_only_optimal);
-    }
-    else if(texture.layout() == texture_layout::transfer_destination_optimal)
-    {
-        texture.transition(command_buffer, resource_access::transfer_write, resource_access::shader_read, pipeline_stage::transfer, stage, texture_layout::shader_read_only_optimal);
-    }
-    else
-    {
-        texture.transition(command_buffer, resource_access::none, resource_access::shader_read, pipeline_stage::top_of_pipe, stage, texture_layout::shader_read_only_optimal);
-    }
-}
-
 void push_constants(command_buffer& command_buffer, pipeline_layout& layout, shader_stage stages, std::uint32_t offset, std::uint32_t size, const void* data)
 {
     vkCmdPushConstants(underlying_cast<VkCommandBuffer>(command_buffer), underlying_cast<VkPipelineLayout>(layout), static_cast<VkShaderStageFlags>(stages), offset, size, data);
-}
-
-void begin_render_pass(command_buffer& command_buffer, render_target& target, uint32_t image_index, render_pass_content content)
-{
-    target.begin(command_buffer, image_index, content);
 }
 
 void begin_render_pass(command_buffer& command_buffer, const render_pass& render_pass, const framebuffer& framebuffer, render_pass_content content)

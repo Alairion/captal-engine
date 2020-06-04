@@ -72,6 +72,11 @@ public:
         return m_textures[index];
     }
 
+    std::uint32_t image_index() const noexcept
+    {
+        return m_image_index;
+    }
+
 private:
     VkDevice m_device{};
     VkQueue m_queue{};

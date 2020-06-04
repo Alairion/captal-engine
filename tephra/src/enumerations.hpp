@@ -213,13 +213,14 @@ enum class texture_layout : std::uint32_t
 {
     undefined = VK_IMAGE_LAYOUT_UNDEFINED,
     general = VK_IMAGE_LAYOUT_GENERAL,
-    color_attchment_optimal = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+    color_attachment_optimal = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
     depth_stencil_attachment_optimal = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
     depth_stencil_read_only_optimal = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL,
     shader_read_only_optimal = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
     transfer_source_optimal = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
     transfer_destination_optimal = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
     preinitialized = VK_IMAGE_LAYOUT_PREINITIALIZED,
+    present_source = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
 };
 
 enum class descriptor_type : std::uint32_t
@@ -422,13 +423,6 @@ enum class format_feature : std::uint32_t
     sampled_image_filter_linear = VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT,
     transfer_source = VK_FORMAT_FEATURE_TRANSFER_SRC_BIT,
     transfer_destination = VK_FORMAT_FEATURE_TRANSFER_DST_BIT,
-};
-
-enum class attachment_load_op : std::uint32_t
-{
-    load = VK_ATTACHMENT_LOAD_OP_LOAD,
-    clear = VK_ATTACHMENT_LOAD_OP_CLEAR,
-    dont_care = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
 };
 
 enum class dependency_flags : std::uint32_t

@@ -11,13 +11,23 @@
 namespace cpt
 {
 
+struct render_texture_info
+{
+    std::uint32_t width{};
+    std::uint32_t height{};
+    tph::texture_format format{tph::texture_format::r8g8b8a8_srgb};
+    tph::sample_count sample_count{tph::sample_count::msaa_x1}; //if not msaa_x1 uses multisampling with specified depth
+    tph::texture_format depth_format{tph::texture_format::undefined}; //ifdef uses depth buffering with specified format
+};
+
 class CAPTAL_API render_texture : public texture, public render_target
 {
 public:
     render_texture() = default;
-    render_texture(std::uint32_t width, std::uint32_t height, color_space space = color_space::srgb, tph::render_target_options target_options = tph::render_target_options::none, tph::sample_count sample_count = tph::sample_count::msaa_x1);
-    render_texture(std::uint32_t width, std::uint32_t height, const tph::sampling_options& sampling, color_space space = color_space::srgb, tph::render_target_options target_options = tph::render_target_options::none, tph::sample_count sample_count = tph::sample_count::msaa_x1);
-    render_texture(texture other, tph::render_target_options target_options = tph::render_target_options::none, tph::sample_count sample_count = tph::sample_count::msaa_x1);
+
+    render_texture(const render_texture_info& info);
+    render_texture(const render_texture_info& info, const tph::sampling_options& sampling);
+
     ~render_texture();
     render_texture(const render_texture&) = delete;
     render_texture& operator=(const render_texture&) = delete;
@@ -27,14 +37,19 @@ public:
     std::pair<tph::command_buffer&, frame_presented_signal&> begin_render();
     void present();
 
-    tph::render_target_options options() const noexcept
+    const render_texture_info& info() const noexcept
     {
-        return m_options;
+        return m_info;
     }
 
     tph::sample_count sample_count() const noexcept
     {
-        return m_sample_count;
+        return m_info.sample_count;
+    }
+
+    tph::texture_format depth_format() const noexcept
+    {
+        return m_info.depth_format;
     }
 
 private:
@@ -52,8 +67,10 @@ private:
     void wait_all();
 
 private:
-    tph::render_target_options m_options{};
-    tph::sample_count m_sample_count{};
+    render_texture_info m_info{};
+    tph::texture m_multisampling_texture{};
+    tph::texture m_depth_texture{};
+    tph::framebuffer m_framebuffer{};
     std::vector<frame_data> m_frames_data{};
 };
 

@@ -13,7 +13,7 @@ using namespace tph::vulkan::functions;
 
 namespace tph
 {
-
+/*
 static VkExtent2D choose_extent(const VkSurfaceCapabilitiesKHR& capabilities) noexcept
 {
     if(capabilities.currentExtent.width == 0xFFFFFFFF || capabilities.currentExtent.height == 0xFFFFFFFF)
@@ -655,7 +655,7 @@ void render_target::recreate()
 
         build_surface_target_render_pass_data();
     }
-}
+}*/
 
 static std::vector<VkImageView> make_image_views(const std::vector<std::reference_wrapper<texture>>& attachments)
 {
@@ -677,7 +677,7 @@ static std::vector<clear_value_t> make_clear_values(const std::vector<std::refer
 
     for(const tph::texture& attachment : attachments)
     {
-        if(static_cast<bool>(aspect_from_format(attachment.format()) & texture_aspect::color))
+        if(static_cast<bool>(attachment.aspect() & texture_aspect::color))
         {
             output.emplace_back(clear_color_value{});
         }

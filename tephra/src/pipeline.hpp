@@ -16,7 +16,7 @@ namespace tph
 {
 
 class renderer;
-class render_target;
+class render_pass;
 class shader;
 class descriptor_set_layout;
 
@@ -162,6 +162,7 @@ struct pipeline_rasterization
 
 struct pipeline_multisample
 {
+    sample_count sample_count{sample_count::msaa_x1};
     float sample_shading{};
     const std::uint32_t* sample_mask{};
     bool alpha_to_coverage{};
@@ -252,8 +253,8 @@ class pipeline
 
 public:
     constexpr pipeline() = default;
-    pipeline(renderer& renderer, render_target& render_target, const graphics_pipeline_info& info, const pipeline_layout& layout, optional_ref<pipeline_cache> cache = nullref, optional_ref<pipeline> parent = nullref);
-    pipeline(renderer& renderer, render_target& render_target, std::uint32_t subpass, const graphics_pipeline_info& info, const pipeline_layout& layout, optional_ref<pipeline_cache> cache = nullref, optional_ref<pipeline> parent = nullref);
+    pipeline(renderer& renderer, render_pass& render_pass, const graphics_pipeline_info& info, const pipeline_layout& layout, optional_ref<pipeline_cache> cache = nullref, optional_ref<pipeline> parent = nullref);
+    pipeline(renderer& renderer, render_pass& render_pass, std::uint32_t subpass, const graphics_pipeline_info& info, const pipeline_layout& layout, optional_ref<pipeline_cache> cache = nullref, optional_ref<pipeline> parent = nullref);
     pipeline(renderer& renderer, const compute_pipeline_info& info, const pipeline_layout& layout, optional_ref<pipeline_cache> cache = nullref, optional_ref<pipeline> parent = nullref);
 
     ~pipeline() = default;

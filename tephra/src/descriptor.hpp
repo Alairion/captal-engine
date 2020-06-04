@@ -109,6 +109,7 @@ inline VkDescriptorSet underlying_cast(const descriptor_set& descriptor_set) noe
 struct descriptor_texture_info
 {
     texture& texture;
+    tph::texture_layout layout{};
 };
 
 struct descriptor_buffer_info
@@ -128,7 +129,7 @@ struct descriptor_write
 };
 
 void write_descriptor(renderer& renderer, descriptor_set& descriptor_set, std::uint32_t binding, std::uint32_t array_index, descriptor_type type, buffer& buffer, std::uint64_t offset, std::uint64_t size);
-void write_descriptor(renderer& renderer, descriptor_set& descriptor_set, std::uint32_t binding, std::uint32_t array_index, descriptor_type type, texture& texture);
+void write_descriptor(renderer& renderer, descriptor_set& descriptor_set, std::uint32_t binding, std::uint32_t array_index, descriptor_type type, texture& texture, tph::texture_layout layout);
 void write_descriptors(renderer& renderer, const std::vector<descriptor_write>& writes);
 
 }

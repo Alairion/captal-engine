@@ -6,6 +6,8 @@
 #include <apyre/window.hpp>
 #include <apyre/event.hpp>
 
+#include <tephra/surface.hpp>
+#include <tephra/swapchain.hpp>
 #include <tephra/render_target.hpp>
 #include <tephra/commands.hpp>
 
@@ -22,8 +24,9 @@ struct video_mode
     std::uint32_t height{};
     std::uint32_t image_count{2};
     tph::present_mode present_mode{tph::present_mode::fifo};
-    tph::render_target_options target_options{tph::render_target_options::clipping};
     tph::sample_count sample_count{tph::sample_count::msaa_x1};
+    tph::texture_format depth_format{tph::texture_format::undefined};
+    bool clipping{true};
 };
 
 using window_event_signal = sigslot::signal<const apr::window_event&>;
@@ -31,7 +34,7 @@ using mouse_event_signal = sigslot::signal<const apr::mouse_event&>;
 using keyboard_event_signal = sigslot::signal<const apr::keyboard_event&>;
 using text_event_signal = sigslot::signal<const apr::text_event&>;
 
-class CAPTAL_API render_window : apr::window, tph::surface, public render_target
+class CAPTAL_API render_window : apr::window, public render_target
 {
 public:
     render_window() = default;
@@ -87,6 +90,7 @@ public:
     {
         return *this;
     }
+
     const apr::window& get_window() const noexcept
     {
         return *this;
@@ -94,11 +98,22 @@ public:
 
     tph::surface& get_surface() noexcept
     {
-        return *this;
+        return m_surface;
     }
+
     const tph::surface& get_surface() const noexcept
     {
-        return *this;
+        return m_surface;
+    }
+
+    tph::swapchain& get_swapchain() noexcept
+    {
+        return m_swapchain;
+    }
+
+    const tph::swapchain& get_swapchain() const noexcept
+    {
+        return m_swapchain;
     }
 
     const cpt::video_mode& video_mode() const noexcept
@@ -140,6 +155,7 @@ public:
 private:
     struct frame_data
     {
+        tph::framebuffer framebuffer{};
         tph::command_pool pool{};
         tph::command_buffer buffer{};
         tph::semaphore image_available{};
@@ -155,8 +171,10 @@ private:
     void wait_all();
 
 private:
-    cpt::video_mode m_video_mode{};
+    tph::surface m_surface{};
+    tph::swapchain m_swapchain{};
     std::vector<frame_data> m_frames_data{};
+    cpt::video_mode m_video_mode{};
     std::uint32_t m_frame_index{};
 
     bool m_closed{};

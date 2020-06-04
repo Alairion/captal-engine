@@ -45,18 +45,6 @@ static tph::texture make_texture(const tph::sampling_options& sampling, tph::tex
     return texture;
 }
 
-texture::texture(std::uint32_t width, std::uint32_t height, tph::texture_usage usage, color_space space)
-:m_texture{engine::instance().renderer(), width, height, format_from_color_space(space), usage}
-{
-
-}
-
-texture::texture(std::uint32_t width, std::uint32_t height, tph::texture_usage usage, const tph::sampling_options& options, color_space space)
-:m_texture{engine::instance().renderer(), width, height, options, format_from_color_space(space), usage}
-{
-
-}
-
 texture::texture(const std::filesystem::path& file, const tph::sampling_options& sampling, color_space space)
 :m_texture{make_texture(sampling, format_from_color_space(space), file)}
 {

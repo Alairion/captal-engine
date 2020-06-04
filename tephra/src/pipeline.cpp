@@ -111,13 +111,13 @@ std::string pipeline_cache::data() const
     return output;
 }
 
-pipeline::pipeline(renderer& renderer, render_target& render_target, const graphics_pipeline_info& info, const pipeline_layout& layout, optional_ref<pipeline_cache> cache, optional_ref<pipeline> parent)
-:pipeline{renderer, render_target, 0, info, layout, cache, parent}
+pipeline::pipeline(renderer& renderer, render_pass& render_pass, const graphics_pipeline_info& info, const pipeline_layout& layout, optional_ref<pipeline_cache> cache, optional_ref<pipeline> parent)
+:pipeline{renderer, render_pass, 0, info, layout, cache, parent}
 {
 
 }
 
-pipeline::pipeline(renderer& renderer, render_target& render_target, std::uint32_t subpass, const graphics_pipeline_info& info, const pipeline_layout& layout, optional_ref<pipeline_cache> cache, optional_ref<pipeline> parent)
+pipeline::pipeline(renderer& renderer, render_pass& render_pass, std::uint32_t subpass, const graphics_pipeline_info& info, const pipeline_layout& layout, optional_ref<pipeline_cache> cache, optional_ref<pipeline> parent)
 :m_type{pipeline_type::graphics}
 {
     VkGraphicsPipelineCreateInfo create_info{};
@@ -200,7 +200,7 @@ pipeline::pipeline(renderer& renderer, render_target& render_target, std::uint32
 
     VkPipelineMultisampleStateCreateInfo multisampling{};
     multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-    multisampling.rasterizationSamples = static_cast<VkSampleCountFlagBits>(render_target.sample_count(subpass));
+    multisampling.rasterizationSamples = static_cast<VkSampleCountFlagBits>(info.multisample.sample_count);
     multisampling.sampleShadingEnable = static_cast<VkBool32>(info.multisample.sample_shading != 0.0f);
     multisampling.minSampleShading = info.multisample.sample_shading;
     multisampling.pSampleMask = info.multisample.sample_mask;
@@ -269,7 +269,7 @@ pipeline::pipeline(renderer& renderer, render_target& render_target, std::uint32
     create_info.pDynamicState = &dynamic_state;
 
     create_info.layout = underlying_cast<VkPipelineLayout>(layout);
-    create_info.renderPass = underlying_cast<VkRenderPass>(render_target);
+    create_info.renderPass = underlying_cast<VkRenderPass>(render_pass);
     create_info.subpass = subpass;
 
     if(parent.has_value())

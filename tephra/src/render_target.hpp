@@ -21,7 +21,7 @@ namespace tph
 
 class renderer;
 class command_buffer;
-
+/*
 enum class render_target_options : std::uint32_t
 {
     none = 0x00,
@@ -29,13 +29,13 @@ enum class render_target_options : std::uint32_t
     depth_buffering = 0x02,
     all = 0xFFFFFFFF
 };
-
+*/
 enum class render_pass_content : std::uint32_t
 {
     inlined = VK_SUBPASS_CONTENTS_INLINE,
     recorded = VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS,
 };
-
+/*
 enum class render_target_status : std::uint32_t
 {
     valid = 0,
@@ -213,15 +213,29 @@ inline VkFramebuffer underlying_cast(const render_target& render_target, const s
 
     return render_target.m_surface_target->render_pass_data[image_index].framebuffer;
 }
+*/
+
+enum class attachment_load_op : std::uint32_t
+{
+    load = VK_ATTACHMENT_LOAD_OP_LOAD,
+    clear = VK_ATTACHMENT_LOAD_OP_CLEAR,
+    dont_care = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+};
+
+enum class attachment_store_op : std::uint32_t
+{
+    store = VK_ATTACHMENT_STORE_OP_STORE,
+    dont_care = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+};
 
 struct attachment_description
 {
     texture_format format{};
     tph::sample_count sample_count{};
     attachment_load_op load_op{};
-    attachment_load_op store_op{};
+    attachment_store_op store_op{};
     attachment_load_op stencil_load_op{};
-    attachment_load_op stencil_store_op{};
+    attachment_store_op stencil_store_op{};
     texture_layout initial_layout{};
     texture_layout final_layout{};
 };
@@ -364,6 +378,6 @@ inline VkRenderPass underlying_cast(const render_pass& render_pass) noexcept
 
 }
 
-template<> struct tph::enable_enum_operations<tph::render_target_options> {static constexpr bool value{true};};
+//template<> struct tph::enable_enum_operations<tph::render_target_options> {static constexpr bool value{true};};
 
 #endif

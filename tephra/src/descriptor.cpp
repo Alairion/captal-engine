@@ -81,10 +81,10 @@ void write_descriptor(renderer& renderer, descriptor_set& descriptor_set, std::u
     vkUpdateDescriptorSets(underlying_cast<VkDevice>(renderer), 1, &write, 0, nullptr);
 }
 
-void write_descriptor(renderer& renderer, descriptor_set& descriptor_set, std::uint32_t binding, std::uint32_t array_index, descriptor_type type, texture& texture)
+void write_descriptor(renderer& renderer, descriptor_set& descriptor_set, std::uint32_t binding, std::uint32_t array_index, descriptor_type type, texture& texture, texture_layout layout)
 {
     VkDescriptorImageInfo image_info{};
-    image_info.imageLayout = static_cast<VkImageLayout>(texture.layout());
+    image_info.imageLayout = static_cast<VkImageLayout>(layout);
     image_info.imageView = underlying_cast<VkImageView>(texture);
     image_info.sampler = underlying_cast<VkSampler>(texture); //will be null if the texture has no sampler
 
@@ -141,7 +141,7 @@ void write_descriptors(renderer& renderer, const std::vector<descriptor_write>& 
             auto& write_info{std::get<descriptor_texture_info>(write.info)};
 
             VkDescriptorImageInfo image_info{};
-            image_info.imageLayout = static_cast<VkImageLayout>(write_info.texture.layout());
+            image_info.imageLayout = static_cast<VkImageLayout>(write_info.layout);
             image_info.imageView = underlying_cast<VkImageView>(write_info.texture);
             image_info.sampler = underlying_cast<VkSampler>(write_info.texture); //will be null if the texture has no sampler
 

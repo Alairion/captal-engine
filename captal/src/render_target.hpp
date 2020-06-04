@@ -17,12 +17,7 @@ class CAPTAL_API render_target
 public:
     render_target() = default;
 
-    template<typename... Args>
-    render_target(Args&&... args)
-    :m_render_target{std::forward<Args>(args)...}
-    {
-
-    }
+    render_target(const tph::render_pass_info& info);
 
     virtual ~render_target() = default;
     render_target(const render_target&) = delete;
@@ -33,14 +28,14 @@ public:
     virtual std::pair<tph::command_buffer&, frame_presented_signal&> begin_render() = 0;
     virtual void present() = 0;
 
-    tph::render_target& get_target() noexcept
+    tph::render_pass& get_render_pass() noexcept
     {
-        return m_render_target;
+        return m_render_pass;
     }
 
-    const tph::render_target& get_target() const noexcept
+    const tph::render_pass& get_render_pass() const noexcept
     {
-        return m_render_target;
+        return m_render_pass;
     }
 
     void disable_rendering() noexcept
@@ -59,7 +54,7 @@ public:
     }
 
 private:
-    tph::render_target m_render_target{};
+    tph::render_pass m_render_pass{};
     bool m_enable{true};
 };
 
