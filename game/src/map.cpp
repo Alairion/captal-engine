@@ -12,6 +12,7 @@
 #include <captal/components/camera.hpp>
 #include <captal/components/listener.hpp>
 #include <captal/components/draw_index.hpp>
+#include <captal/components/controller.hpp>
 
 #include <captal/systems/render.hpp>
 #include <captal/systems/frame.hpp>
@@ -115,42 +116,44 @@ cpt::tilemap_ptr chunk::parse_tiles(const cpt::tiled::layer::tiles& tiles, cpt::
     cpt::tilemap_ptr tilemap{cpt::make_tilemap(m_tiled_map.width, m_tiled_map.height, m_tiled_map.tile_width, m_tiled_map.tile_height)};
 
     const auto it{std::find_if(std::begin(tiles.gid), std::end(tiles.gid), [](std::uint32_t value){return value != 0;})};
-    if(it != std::end(tiles.gid))
+    if(it == std::end(tiles.gid))
     {
-        const cpt::tiled::tileset& map_tileset{m_tiled_map.tilesets[tileset_index(*it)]};
-        auto&& [first_gid, tileset] = tileset_from_gid(*it);
+        return tilemap;
+    }
 
-        for(std::uint32_t i{}; i < m_tiled_map.width * m_tiled_map.height; ++i)
+    const cpt::tiled::tileset& map_tileset{m_tiled_map.tilesets[tileset_index(*it)]};
+    auto&& [first_gid, tileset] = tileset_from_gid(*it);
+
+    for(std::uint32_t i{}; i < m_tiled_map.width * m_tiled_map.height; ++i)
+    {
+        const std::uint32_t lid{tiles.gid[i] - first_gid};
+
+        if(lid != 0)
         {
-            const std::uint32_t lid{tiles.gid[i] - first_gid};
+            tilemap->set_texture_rect(i / m_tiled_map.width, i % m_tiled_map.width, tileset.compute_rect(lid));
 
-            if(lid != 0)
+            for(auto&& hitbox : map_tileset.tiles[lid].hitboxes)
             {
-                tilemap->set_texture_rect(i / m_tiled_map.width, i % m_tiled_map.width, tileset.compute_rect(lid));
-
-                for(auto&& hitbox : map_tileset.tiles[lid].hitboxes)
+                if(std::holds_alternative<cpt::tiled::object::square>(hitbox.content))
                 {
-                    if(std::holds_alternative<cpt::tiled::object::square>(hitbox.content))
-                    {
-                        const auto& square{std::get<cpt::tiled::object::square>(hitbox.content)};
-                        const float x{static_cast<float>((i % m_tiled_map.width) * m_tiled_map.tile_width) + square.position.x};
-                        const float y{static_cast<float>((i / m_tiled_map.width) * m_tiled_map.tile_height) + square.position.y};
+                    const auto& square{std::get<cpt::tiled::object::square>(hitbox.content)};
+                    const float x{static_cast<float>((i % m_tiled_map.width) * m_tiled_map.tile_width) + square.position.x};
+                    const float y{static_cast<float>((i / m_tiled_map.width) * m_tiled_map.tile_height) + square.position.y};
 
-                        body.add_shape(glm::vec2{x, y}, glm::vec2{x + square.width, y});
-                        body.add_shape(glm::vec2{x + square.width, y}, glm::vec2{x + square.width, y + square.height});
-                        body.add_shape(glm::vec2{x + square.width, y + square.height}, glm::vec2{x, y + square.height});
-                        body.add_shape(glm::vec2{x, y + square.height}, glm::vec2{x, y});
-                    }
+                    body.add_shape(glm::vec2{x, y}, glm::vec2{x + square.width, y});
+                    body.add_shape(glm::vec2{x + square.width, y}, glm::vec2{x + square.width, y + square.height});
+                    body.add_shape(glm::vec2{x + square.width, y + square.height}, glm::vec2{x, y + square.height});
+                    body.add_shape(glm::vec2{x, y + square.height}, glm::vec2{x, y});
                 }
             }
         }
-
-        tilemap->set_texture(tileset.texture());
-        tilemap->add_uniform_binding(height_map_binding, load_height_map(map_tileset.properties));
-        tilemap->add_uniform_binding(normal_map_binding, load_normal_map(map_tileset.properties));
-        tilemap->add_uniform_binding(specular_map_binding, load_specular_map(map_tileset.properties));
-        tilemap->add_uniform_binding(emission_map_binding, load_emission_map(map_tileset.properties));
     }
+
+    tilemap->set_texture(tileset.texture());
+    tilemap->add_uniform_binding(height_map_binding, load_height_map(map_tileset.properties));
+    tilemap->add_uniform_binding(normal_map_binding, load_normal_map(map_tileset.properties));
+    tilemap->add_uniform_binding(specular_map_binding, load_specular_map(map_tileset.properties));
+    tilemap->add_uniform_binding(emission_map_binding, load_emission_map(map_tileset.properties));
 
     return tilemap;
 }
@@ -297,11 +300,14 @@ void map::init_render()
 {
     m_lights_buffer = cpt::make_framed_buffer(uniform_lights{});
 
-    tph::shader height_vertex_shader{cpt::engine::instance().renderer(), tph::shader_stage::vertex, std::filesystem::u8path(u8"shaders/height.vert.spv")};
-    tph::shader height_fragment_shader{cpt::engine::instance().renderer(), tph::shader_stage::fragment, std::filesystem::u8path(u8"shaders/height.frag.spv")};
+    tph::shader height_vertex_shader{cpt::engine::instance().renderer(), tph::shader_stage::vertex, std::filesystem::u8path("shaders/height.vert.spv")};
+    tph::shader height_fragment_shader{cpt::engine::instance().renderer(), tph::shader_stage::fragment, std::filesystem::u8path("shaders/height.frag.spv")};
     cpt::render_technique_info height_info{};
+
+    height_info.stages.reserve(2);
     height_info.stages.emplace_back(tph::pipeline_shader_stage{height_vertex_shader});
     height_info.stages.emplace_back(tph::pipeline_shader_stage{height_fragment_shader});
+
     height_info.stages_bindings.emplace_back(tph::descriptor_set_layout_binding{tph::shader_stage::fragment, height_map_binding, tph::descriptor_type::image_sampler});
 
     m_height_map = cpt::make_render_texture(1920, 540, tph::sampling_options{}, cpt::color_space::linear);
@@ -309,11 +315,15 @@ void map::init_render()
     m_height_map_view = cpt::make_view(m_height_map, height_info);
     m_height_map_view->fit_to(m_height_map);
 
-    tph::shader diffuse_vertex_shader{cpt::engine::instance().renderer(), tph::shader_stage::vertex, std::filesystem::u8path(u8"shaders/lighting.vert.spv")};
-    tph::shader diffuse_fragment_shader{cpt::engine::instance().renderer(), tph::shader_stage::fragment, std::filesystem::u8path(u8"shaders/lighting.frag.spv")};
+    tph::shader diffuse_vertex_shader{cpt::engine::instance().renderer(), tph::shader_stage::vertex, std::filesystem::u8path("shaders/lighting.vert.spv")};
+    tph::shader diffuse_fragment_shader{cpt::engine::instance().renderer(), tph::shader_stage::fragment, std::filesystem::u8path("shaders/lighting.frag.spv")};
     cpt::render_technique_info diffuse_info{};
+
+    diffuse_info.stages.reserve(2);
     diffuse_info.stages.emplace_back(tph::pipeline_shader_stage{diffuse_vertex_shader});
     diffuse_info.stages.emplace_back(tph::pipeline_shader_stage{diffuse_fragment_shader});
+
+    diffuse_info.stages_bindings.reserve(5);
     diffuse_info.stages_bindings.emplace_back(tph::descriptor_set_layout_binding{tph::shader_stage::fragment, normal_map_binding, tph::descriptor_type::image_sampler});
     diffuse_info.stages_bindings.emplace_back(tph::descriptor_set_layout_binding{tph::shader_stage::fragment, height_map_binding, tph::descriptor_type::image_sampler});
     diffuse_info.stages_bindings.emplace_back(tph::descriptor_set_layout_binding{tph::shader_stage::fragment, specular_map_binding, tph::descriptor_type::image_sampler});
@@ -333,16 +343,20 @@ void map::init_entities()
 
     m_world.assign<cpt::components::node>(camera);
     m_world.assign<cpt::components::camera>(camera);
-    m_world.assign<cpt::components::listener>(camera);
 
     const auto player{m_world.create()};
     m_entities.emplace(player_entity_name, player);
 
+    const auto player_physical_body{cpt::make_physical_body(m_physical_world, cpt::physical_body_type::dynamic, 1.0f, std::numeric_limits<float>::infinity())};
+
     m_world.assign<cpt::components::node>(player, glm::vec3{}, glm::vec3{8.0f, 8.0f, 0.0f});
-    m_world.assign<cpt::components::physical_body>(player, cpt::make_physical_body(m_physical_world, cpt::physical_body_type::dynamic, 1.0f, std::numeric_limits<float>::infinity())).add_shape(cpt::make_physical_shape(16.0f, 16.0f, 2.0f));
+    m_world.assign<cpt::components::listener>(player);
     m_world.assign<cpt::components::drawable>(player, cpt::make_sprite(16, 16));
-
-
+    m_world.assign<cpt::components::physical_body>(player, player_physical_body).add_shape(cpt::make_physical_shape(16.0f, 16.0f, 2.0f));
+    auto& player_controller{m_world.assign<cpt::components::controller>(player, player_physical_body)};
+    const auto& joint{player_controller.add_constraint(cpt::pivot_joint, glm::vec2{}, glm::vec2{})};
+    joint->set_max_bias(0.0f);
+    joint->set_max_force(10000.0f);
 }
 
 }

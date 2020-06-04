@@ -291,6 +291,12 @@ public:
 
     }
 
+    explicit image(VkImage image) noexcept //Non-owning (useful for swapchain images)
+    :m_image{image}
+    {
+
+    }
+
     operator VkImage() const noexcept
     {
         return m_image;
@@ -365,7 +371,7 @@ class framebuffer
 {
 public:
     constexpr framebuffer() = default;
-    framebuffer(VkDevice device, VkRenderPass render_pass, const std::vector<VkImageView>& attachments, VkExtent2D size);
+    framebuffer(VkDevice device, VkRenderPass render_pass, const std::vector<VkImageView>& attachments, VkExtent2D size, std::uint32_t layers = 1);
     ~framebuffer();
 
     framebuffer(const framebuffer&) = delete;

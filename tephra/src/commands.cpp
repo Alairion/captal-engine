@@ -636,6 +636,44 @@ void begin_render_pass(command_buffer& command_buffer, render_target& target, ui
     target.begin(command_buffer, image_index, content);
 }
 
+void begin_render_pass(command_buffer& command_buffer, const render_pass& render_pass, const framebuffer& framebuffer, render_pass_content content)
+{
+    begin_render_pass(command_buffer, render_pass, framebuffer, scissor{0, 0, framebuffer.width(), framebuffer.height()}, content);
+}
+
+void begin_render_pass(command_buffer& command_buffer, const render_pass& render_pass, const framebuffer& framebuffer, const scissor& area, render_pass_content content)
+{
+    std::vector<VkClearValue> clear_values{};
+    clear_values.reserve(std::size(framebuffer.clear_values()));
+
+    for(auto&& value : framebuffer.clear_values())
+    {
+        VkClearValue& native_value{clear_values.emplace_back()};
+
+        if(std::holds_alternative<clear_color_value>(value))
+        {
+            auto&& color{std::get<clear_color_value>(value)};
+            native_value.color = VkClearColorValue{{color.red, color.green, color.blue, color.alpha}};
+        }
+        else if(std::holds_alternative<clear_depth_stencil_value>(value))
+        {
+            auto&& depth_stencil{std::get<clear_depth_stencil_value>(value)};
+            native_value.depthStencil = VkClearDepthStencilValue{depth_stencil.depth, depth_stencil.stencil};
+        }
+    }
+
+    VkRenderPassBeginInfo render_pass_info{};
+    render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    render_pass_info.renderPass = underlying_cast<VkRenderPass>(render_pass);
+    render_pass_info.framebuffer = underlying_cast<VkFramebuffer>(framebuffer);
+    render_pass_info.renderArea.offset = VkOffset2D{area.x, area.x};
+    render_pass_info.renderArea.extent = VkExtent2D{area.width, area.height};
+    render_pass_info.clearValueCount = static_cast<std::uint32_t>(std::size(clear_values));
+    render_pass_info.pClearValues = std::data(clear_values);
+
+    vkCmdBeginRenderPass(underlying_cast<VkCommandBuffer>(command_buffer), &render_pass_info, static_cast<VkSubpassContents>(content));
+}
+
 void next_subpass(command_buffer& command_buffer, render_pass_content content)
 {
     vkCmdNextSubpass(underlying_cast<VkCommandBuffer>(command_buffer), static_cast<VkSubpassContents>(content));
@@ -751,22 +789,30 @@ void submit(renderer& renderer, queue queue, const submit_info& info, optional_r
     std::vector<VkSemaphore> wait_semaphores{};
     wait_semaphores.reserve(std::size(info.wait_semaphores));
     for(const semaphore& semaphore : info.wait_semaphores)
+    {
         wait_semaphores.push_back(underlying_cast<VkSemaphore>(semaphore));
+    }
 
     std::vector<VkPipelineStageFlags> wait_stages{};
     wait_stages.reserve(std::size(info.wait_stages));
     for(auto wait_stage : info.wait_stages)
+    {
         wait_stages.push_back(static_cast<VkPipelineStageFlags>(wait_stage));
+    }
 
     std::vector<VkCommandBuffer> command_buffers{};
     command_buffers.reserve(std::size(info.command_buffers));
     for(const command_buffer& command_buffer : info.command_buffers)
+    {
         command_buffers.push_back(underlying_cast<VkCommandBuffer>(command_buffer));
+    }
 
     std::vector<VkSemaphore> signal_semaphores{};
     signal_semaphores.reserve(std::size(info.signal_semaphores));
     for(const semaphore& signal_semaphore : info.signal_semaphores)
+    {
         signal_semaphores.push_back(underlying_cast<VkSemaphore>(signal_semaphore));
+    }
 
     VkSubmitInfo native_submit{};
     native_submit.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -805,19 +851,27 @@ void submit(renderer& renderer, queue queue, const std::vector<submit_info>& sub
 
         temp_submit.wait_semaphores.reserve(std::size(submit.wait_semaphores));
         for(const semaphore& semaphore : submit.wait_semaphores)
+        {
             temp_submit.wait_semaphores.push_back(underlying_cast<VkSemaphore>(semaphore));
+        }
 
         temp_submit.wait_stages.reserve(std::size(submit.wait_stages));
         for(auto wait_stage : submit.wait_stages)
+        {
             temp_submit.wait_stages.push_back(static_cast<VkPipelineStageFlags>(wait_stage));
+        }
 
         temp_submit.command_buffers.reserve(std::size(submit.command_buffers));
         for(const command_buffer& command_buffer : submit.command_buffers)
+        {
             temp_submit.command_buffers.push_back(underlying_cast<VkCommandBuffer>(command_buffer));
+        }
 
         temp_submit.signal_semaphores.reserve(std::size(submit.signal_semaphores));
         for(const semaphore& signal_semaphore : submit.signal_semaphores)
+        {
             temp_submit.signal_semaphores.push_back(underlying_cast<VkSemaphore>(signal_semaphore));
+        }
 
         temp_submits.push_back(std::move(temp_submit));
     }

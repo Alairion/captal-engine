@@ -201,6 +201,8 @@ void prepare(command_buffer& command_buffer, texture& texture, pipeline_stage st
 void push_constants(command_buffer& command_buffer, pipeline_layout& layout, shader_stage stages, std::uint32_t offset, std::uint32_t size, const void* data);
 
 void begin_render_pass(command_buffer& command_buffer, render_target& target, std::uint32_t image_index, render_pass_content content = render_pass_content::inlined);
+void begin_render_pass(command_buffer& command_buffer, const render_pass& render_pass, const framebuffer& framebuffer, render_pass_content content = render_pass_content::inlined);
+void begin_render_pass(command_buffer& command_buffer, const render_pass& render_pass, const framebuffer& framebuffer, const scissor& area, render_pass_content content = render_pass_content::inlined);
 void next_subpass(command_buffer& command_buffer, render_pass_content content = render_pass_content::inlined);
 void end_render_pass(command_buffer& command_buffer);
 

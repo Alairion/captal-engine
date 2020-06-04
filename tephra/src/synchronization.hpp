@@ -19,6 +19,7 @@ class semaphore
 
 public:
     constexpr semaphore() = default;
+
     semaphore(renderer& renderer);
 
     ~semaphore() = default;
@@ -44,6 +45,7 @@ class fence
 
 public:
     constexpr fence() = default;
+
     fence(renderer& renderer, bool signaled = false);
 
     ~fence() = default;
@@ -73,7 +75,9 @@ public:
     {
         const auto current_time{Clock::now()};
         if(time < current_time)
+        {
             return try_wait();
+        }
 
         return wait_impl(std::chrono::duration_cast<std::chrono::nanoseconds>(time - current_time).count());
     }
@@ -101,6 +105,7 @@ class event
 
 public:
     constexpr event() = default;
+
     event(renderer& renderer);
 
     ~event() = default;

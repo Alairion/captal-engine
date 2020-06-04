@@ -15,6 +15,8 @@ namespace tph
 
 class renderer;
 class command_buffer;
+class render_target;
+class swapchain;
 
 enum class texture_usage : std::uint32_t
 {
@@ -56,12 +58,15 @@ struct sampling_options
     bool normalized_coordinates{true};
 };
 
+texture_aspect aspect_from_format(texture_format format) noexcept;
+
 class texture
 {
     template<typename VulkanObject, typename... Args>
     friend VulkanObject underlying_cast(const Args&...) noexcept;
 
     friend class render_target;
+    friend class swapchain;
 
 public:
     using size_type = std::uint32_t;

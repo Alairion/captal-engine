@@ -11,6 +11,51 @@ using namespace tph::vulkan::functions;
 namespace tph
 {
 
+static surface_capabilities convert_capabilities(VkPhysicalDevice physical_device, VkSurfaceKHR surface)
+{
+    VkSurfaceCapabilitiesKHR capabilities{};
+    if(auto result{vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_device, surface, &capabilities)}; result != VK_SUCCESS)
+        throw vulkan::error{result};
+
+    surface_capabilities output{};
+    output.min_image_count = capabilities.minImageCount;
+    output.max_image_count = capabilities.maxImageCount;
+    output.current_width = capabilities.currentExtent.width;
+    output.current_height = capabilities.currentExtent.height;
+    output.min_width = capabilities.minImageExtent.width;
+    output.min_height = capabilities.minImageExtent.height;
+    output.max_width = capabilities.maxImageExtent.width;
+    output.max_height = capabilities.maxImageExtent.height;
+    output.max_array_layers = capabilities.maxImageArrayLayers;
+    output.supported_transforms = static_cast<surface_transform>(capabilities.supportedTransforms);
+    output.current_transform = static_cast<surface_transform>(capabilities.currentTransform);
+    output.supported_composites = static_cast<surface_composite>(capabilities.supportedCompositeAlpha);
+    output.supported_usages = static_cast<texture_usage>(capabilities.supportedUsageFlags);
+
+    return output;
+}
+
+static std::vector<texture_format> convert_formats(VkPhysicalDevice physical_device, VkSurfaceKHR surface)
+{
+    std::uint32_t count{};
+    if(auto result{vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device, surface, &count, nullptr)}; result != VK_SUCCESS)
+        throw vulkan::error{result};
+
+    std::vector<VkSurfaceFormatKHR> formats{};
+    formats.resize(count);
+    if(auto result{vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device, surface, &count, std::data(formats))}; result != VK_SUCCESS)
+        throw vulkan::error{result};
+
+    std::vector<texture_format> output{};
+    output.reserve(std::size(formats));
+    for(auto format : formats)
+    {
+        output.emplace_back(static_cast<texture_format>(format.format));
+    }
+
+    return output;
+}
+
 #ifdef TPH_PLATFORM_ANDROID
 surface::surface(application& application, const vulkan::android_surface_info& info)
 :m_surface{underlying_cast<VkInstance>(application), info}
@@ -67,28 +112,25 @@ surface::surface(application& application, const vulkan::wayland_surface_info& i
 }
 #endif
 
-std::pair<std::uint32_t, std::uint32_t> surface::size(const physical_device& physical_device) const
+
+surface_capabilities surface::capabilities(const physical_device& physical_device) const
 {
-    VkSurfaceCapabilitiesKHR capabilities{};
-    if(auto result{vkGetPhysicalDeviceSurfaceCapabilitiesKHR(underlying_cast<VkPhysicalDevice>(physical_device), m_surface, &capabilities)}; result != VK_SUCCESS)
-        throw vulkan::error{result};
-
-    if(capabilities.currentExtent.width == 0xFFFFFFFF || capabilities.currentExtent.height == 0xFFFFFFFF)
-        return std::make_pair(capabilities.maxImageExtent.width, capabilities.maxImageExtent.height);
-
-    return std::make_pair(capabilities.currentExtent.width, capabilities.currentExtent.height);
+    return convert_capabilities(underlying_cast<VkPhysicalDevice>(physical_device), m_surface);
 }
 
-std::pair<std::uint32_t, std::uint32_t> surface::size(renderer& renderer) const
+surface_capabilities surface::capabilities(const renderer& renderer) const
 {
-    VkSurfaceCapabilitiesKHR capabilities{};
-    if(auto result{vkGetPhysicalDeviceSurfaceCapabilitiesKHR(underlying_cast<VkPhysicalDevice>(renderer), m_surface, &capabilities)}; result != VK_SUCCESS)
-        throw vulkan::error{result};
+    return convert_capabilities(underlying_cast<VkPhysicalDevice>(renderer), m_surface);
+}
 
-    if(capabilities.currentExtent.width == 0xFFFFFFFF || capabilities.currentExtent.height == 0xFFFFFFFF)
-        return std::make_pair(capabilities.maxImageExtent.width, capabilities.maxImageExtent.height);
+std::vector<texture_format> surface::formats(const physical_device& physical_device) const
+{
+    return convert_formats(underlying_cast<VkPhysicalDevice>(physical_device), m_surface);
+}
 
-    return std::make_pair(capabilities.currentExtent.width, capabilities.currentExtent.height);
+std::vector<texture_format> surface::formats(const renderer& renderer) const
+{
+    return convert_formats(underlying_cast<VkPhysicalDevice>(renderer), m_surface);
 }
 
 }

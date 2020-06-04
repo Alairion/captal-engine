@@ -14,13 +14,13 @@ std::uint32_t find_memory_type(const VkPhysicalDeviceMemoryProperties& memory_pr
 VkFormat find_format(VkPhysicalDevice physical_device, std::initializer_list<VkFormat> candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
 
 template<typename T>
-T align_down(T offset, T alignment) noexcept
+constexpr T align_down(T offset, T alignment) noexcept
 {
     return offset & ~(alignment - 1);
 }
 
 template<typename T>
-T align_up(T offset, T alignment) noexcept
+constexpr T align_up(T offset, T alignment) noexcept
 {
     return align_down(offset + alignment - 1, alignment);
 }
@@ -31,7 +31,7 @@ std::size_t hash(const T& value)
     return std::hash<T>{}(value);
 }
 
-inline std::size_t combine_hash(std::size_t first, std::size_t second) noexcept
+constexpr std::size_t combine_hash(std::size_t first, std::size_t second) noexcept
 {
     return first ^ (second << 1);
 }

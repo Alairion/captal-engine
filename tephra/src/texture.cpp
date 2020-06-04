@@ -26,7 +26,15 @@ static vulkan::sampler make_sampler(renderer& renderer, const sampling_options& 
     };
 }
 
-static texture_aspect aspect_from_format(texture_format format) noexcept
+static bool need_image_view(texture_usage usage) noexcept
+{
+    return static_cast<bool>(usage & texture_usage::sampled)
+        || static_cast<bool>(usage & texture_usage::color_attachment)
+        || static_cast<bool>(usage & texture_usage::depth_stencil_attachment)
+        || static_cast<bool>(usage & texture_usage::input_attachment);
+}
+
+texture_aspect aspect_from_format(texture_format format) noexcept
 {
     switch(format)
     {
@@ -39,14 +47,6 @@ static texture_aspect aspect_from_format(texture_format format) noexcept
         case texture_format::d32_sfloat_s8_uint: return texture_aspect::depth | texture_aspect::stencil;
         default:                                 return texture_aspect::color;
     }
-}
-
-static bool need_image_view(texture_usage usage) noexcept
-{
-    return static_cast<bool>(usage & texture_usage::sampled)
-        || static_cast<bool>(usage & texture_usage::color_attachment)
-        || static_cast<bool>(usage & texture_usage::depth_stencil_attachment)
-        || static_cast<bool>(usage & texture_usage::input_attachment);
 }
 
 texture::texture(renderer& renderer, size_type width, texture_format format, texture_usage usage)

@@ -346,7 +346,7 @@ image::image(VkDevice device, VkExtent2D size, VkImageType type, VkFormat format
 
 image::~image()
 {
-    if(m_image)
+    if(m_device && m_image)
         vkDestroyImage(m_device, m_image, nullptr);
 }
 
@@ -460,7 +460,7 @@ sampler& sampler::operator=(sampler&& other) noexcept
 
 /////////////////////////////////////////////////////////////////////
 
-framebuffer::framebuffer(VkDevice device, VkRenderPass render_pass, const std::vector<VkImageView>& attachments, VkExtent2D size)
+framebuffer::framebuffer(VkDevice device, VkRenderPass render_pass, const std::vector<VkImageView>& attachments, VkExtent2D size, std::uint32_t layers)
 :m_device{device}
 {
     VkFramebufferCreateInfo create_info{};
@@ -470,7 +470,7 @@ framebuffer::framebuffer(VkDevice device, VkRenderPass render_pass, const std::v
     create_info.pAttachments = std::data(attachments);
     create_info.width = size.width;
     create_info.height = size.height;
-    create_info.layers = 1;
+    create_info.layers = layers;
 
     if(auto result{vkCreateFramebuffer(m_device, &create_info, nullptr, &m_framebuffer)}; result != VK_SUCCESS)
         throw error{result};

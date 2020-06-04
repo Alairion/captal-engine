@@ -15,8 +15,6 @@ set(HEADERS
     "src/states/splash_screen.hpp"
     "src/states/main_menu.hpp"
     "src/states/game.hpp"
-
-    "src/components/player_controller.hpp"
     )
 
 set(SOURCES

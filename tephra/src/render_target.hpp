@@ -44,64 +44,6 @@ enum class render_target_status : std::uint32_t
     surface_lost = 3,
 };
 
-struct attachment_description
-{
-    texture_format format{texture_format::undefined};
-    tph::sample_count sample_count{tph::sample_count::msaa_x1};
-    attachment_load_op load_op{attachment_load_op::dont_care};
-    attachment_load_op store_op{attachment_load_op::dont_care};
-    attachment_load_op stencil_load_op{attachment_load_op::dont_care};
-    attachment_load_op stencil_store_op{attachment_load_op::dont_care};
-    texture_layout initial_layout{texture_layout::undefined};
-    texture_layout final_layout{texture_layout::undefined};
-};
-
-inline constexpr std::uint32_t unused_attachment{VK_ATTACHMENT_UNUSED};
-
-struct attachment_reference
-{
-    std::uint32_t attachment{unused_attachment};
-    texture_layout layout{texture_layout::undefined};
-};
-
-struct subpass_description
-{
-    std::vector<attachment_reference> input_attachments{};
-    std::vector<attachment_reference> color_attachments{};
-    std::vector<attachment_reference> resolve_attachments{};
-    attachment_reference depth_attachment{};
-    std::vector<std::uint32_t> preserve_attachments{};
-};
-
-inline constexpr std::uint32_t external_subpass{VK_SUBPASS_EXTERNAL};
-
-struct subpass_dependency
-{
-    std::uint32_t source_subpass{external_subpass};
-    std::uint32_t destination_subpass{external_subpass};
-    pipeline_stage source_stage{};
-    pipeline_stage destination_stage{};
-    resource_access source_access{};
-    resource_access destination_access{};
-    dependency_flags dependency_flags{};
-};
-
-struct render_target_framebuffer
-{
-    std::vector<std::variant<std::reference_wrapper<texture>, std::uint32_t>> attachments{};
-    std::uint32_t width{};
-    std::uint32_t height{};
-    std::uint32_t layers{};
-};
-
-struct render_pass_info
-{
-    std::vector<attachment_description> attachments{};
-    std::vector<subpass_description> subpasses{};
-    std::vector<subpass_dependency> dependencies{};
-    std::vector<render_target_framebuffer> framebuffers{};
-};
-
 class render_target
 {
     template<typename VulkanObject, typename... Args>
@@ -198,53 +140,10 @@ private:
         VkClearDepthStencilValue clear_depth{};
     };
 
-    struct complex_surface_target
-    {
-        struct render_pass_data
-        {
-            //Presentation
-            VkImage swapchain_image{};
-            vulkan::image_view swapchain_image_view{};
-            vulkan::framebuffer framebuffer{};
-        };
-
-        //Links
-        VkPhysicalDevice physical_device{};
-        VkDevice device{};
-        VkSurfaceKHR surface{};
-        vulkan::memory_allocator* allocator{};
-        std::uint32_t graphics_family{};
-        VkQueue present_queue{};
-
-        //User parameters
-        render_pass_info info{};
-        std::uint32_t image_count{};
-        VkPresentModeKHR present_mode{};
-
-        //Swapchain
-        VkSurfaceCapabilitiesKHR surface_capabilities{};
-        VkSurfaceFormatKHR swapchain_format{};
-        VkExtent2D swapchain_extent{};
-        vulkan::swapchain swapchain{};
-
-        //Renderpass
-        vulkan::render_pass render_pass{};
-        std::vector<render_pass_data> render_pass_data{};
-
-        //Runtime
-        std::uint32_t image_index{};
-
-        //Dynamic user parameters
-        VkClearColorValue clear_color{};
-        VkClearDepthStencilValue clear_depth{};
-    };
-
 public:
     constexpr render_target() = default;
     render_target(renderer& renderer, texture& texture, render_target_options options = render_target_options::none, tph::sample_count sample_count = sample_count::msaa_x1);
     render_target(renderer& renderer, surface& surface, present_mode mode, std::uint32_t image_count, render_target_options options = render_target_options::none, tph::sample_count sample_count = sample_count::msaa_x1);
-    render_target(renderer& renderer, surface& surface, present_mode mode, std::uint32_t image_count, render_pass_info info, render_target_options options = render_target_options::none);
-
 
     ~render_target() = default;
     render_target(const render_target&) = delete;
@@ -313,6 +212,154 @@ inline VkFramebuffer underlying_cast(const render_target& render_target, const s
         return render_target.m_offscreen_target->framebuffer;
 
     return render_target.m_surface_target->render_pass_data[image_index].framebuffer;
+}
+
+struct attachment_description
+{
+    texture_format format{};
+    tph::sample_count sample_count{};
+    attachment_load_op load_op{};
+    attachment_load_op store_op{};
+    attachment_load_op stencil_load_op{};
+    attachment_load_op stencil_store_op{};
+    texture_layout initial_layout{};
+    texture_layout final_layout{};
+};
+
+static constexpr std::uint32_t unused_attachment{VK_ATTACHMENT_UNUSED};
+
+struct attachment_reference
+{
+    std::uint32_t attachment{};
+    texture_layout layout{};
+};
+
+struct subpass_description
+{
+    std::vector<attachment_reference> input_attachments{};
+    std::vector<attachment_reference> color_attachments{};
+    std::vector<attachment_reference> resolve_attachments{};
+    std::optional<attachment_reference> depth_attachment{};
+    std::vector<std::uint32_t> preserve_attachments{};
+};
+
+static constexpr std::uint32_t external_subpass{VK_SUBPASS_EXTERNAL};
+
+struct subpass_dependency
+{
+    std::uint32_t source_subpass{};
+    std::uint32_t destination_subpass{};
+    pipeline_stage source_stage{};
+    pipeline_stage destination_stage{};
+    resource_access source_access{};
+    resource_access destination_access{};
+    dependency_flags dependency_flags{};
+};
+
+struct render_pass_info
+{
+    std::vector<attachment_description> attachments{};
+    std::vector<subpass_description> subpasses{};
+    std::vector<subpass_dependency> dependencies{};
+};
+
+class render_pass;
+
+struct clear_color_value
+{
+    float red{};
+    float green{};
+    float blue{};
+    float alpha{1.0f};
+};
+
+struct clear_depth_stencil_value
+{
+    float depth{};
+    std::uint32_t stencil{};
+};
+
+using clear_value_t = std::variant<clear_color_value, clear_depth_stencil_value>;
+
+class framebuffer
+{
+    template<typename VulkanObject, typename... Args>
+    friend VulkanObject underlying_cast(const Args&...) noexcept;
+
+public:
+    constexpr framebuffer() = default;
+
+    framebuffer(renderer& renderer, const render_pass& render_pass, const std::vector<std::reference_wrapper<texture>>& attachments, std::uint32_t width, std::uint32_t height, std::uint32_t layers);
+
+    ~framebuffer() = default;
+    framebuffer(const framebuffer&) = delete;
+    framebuffer& operator=(const framebuffer&) = delete;
+    framebuffer(framebuffer&& other) noexcept = default;
+    framebuffer& operator=(framebuffer&& other) noexcept = default;
+
+    void set_clear_value(std::uint32_t attachment_index, const clear_color_value& value);
+    void set_clear_value(std::uint32_t attachment_index, const clear_depth_stencil_value& value);
+    void set_clear_values(std::vector<clear_value_t> clear_values);
+
+    const std::vector<clear_value_t>& clear_values() const noexcept
+    {
+        return m_clear_values;
+    }
+
+    std::uint32_t width() const noexcept
+    {
+        return m_width;
+    }
+
+    std::uint32_t height() const noexcept
+    {
+        return m_height;
+    }
+
+    std::uint32_t layers() const noexcept
+    {
+        return m_layers;
+    }
+
+private:
+    vulkan::framebuffer m_framebuffer{};
+    std::vector<clear_value_t> m_clear_values{};
+    std::uint32_t m_width{};
+    std::uint32_t m_height{};
+    std::uint32_t m_layers{};
+};
+
+template<>
+inline VkFramebuffer underlying_cast(const framebuffer& framebuffer) noexcept
+{
+    return framebuffer.m_framebuffer;
+}
+
+class render_pass
+{
+    template<typename VulkanObject, typename... Args>
+    friend VulkanObject underlying_cast(const Args&...) noexcept;
+
+public:
+    constexpr render_pass() = default;
+
+    render_pass(renderer& renderer, const render_pass_info& info);
+
+    ~render_pass() = default;
+    render_pass(const render_pass&) = delete;
+    render_pass& operator=(const render_pass&) = delete;
+    render_pass(render_pass&& other) noexcept = default;
+    render_pass& operator=(render_pass&& other) noexcept = default;
+
+private:
+    VkDevice m_device{};
+    vulkan::render_pass m_render_pass{};
+};
+
+template<>
+inline VkRenderPass underlying_cast(const render_pass& render_pass) noexcept
+{
+    return render_pass.m_render_pass;
 }
 
 }
