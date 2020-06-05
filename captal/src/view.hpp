@@ -63,12 +63,6 @@ public:
         m_scissor = scissor;
     }
 
-    void resize(float witdh, float height) noexcept
-    {
-        m_size = glm::vec2{witdh, height};
-        m_need_upload = true;
-    }
-
     void move_to(const glm::vec3& position) noexcept
     {
         m_position = position;
@@ -114,6 +108,24 @@ public:
     void move_origin(float x, float y, float z = 0.0f) noexcept
     {
         m_origin += glm::vec3{x, y, z};
+        m_need_upload = true;
+    }
+
+    void resize(float witdh, float height) noexcept
+    {
+        m_size = glm::vec2{witdh, height};
+        m_need_upload = true;
+    }
+
+    void set_z_near(float z_near) noexcept
+    {
+        m_z_near = z_near;
+        m_need_upload = true;
+    }
+
+    void set_z_far(float z_far) noexcept
+    {
+        m_z_far = z_far;
         m_need_upload = true;
     }
 
@@ -212,6 +224,16 @@ public:
         return m_size.y;
     }
 
+    float z_near() const noexcept
+    {
+        return m_z_near;
+    }
+
+    float z_far() const noexcept
+    {
+        return m_z_far;
+    }
+
     float scale() const noexcept
     {
         return m_scale;
@@ -300,6 +322,8 @@ private:
     glm::vec3 m_position{};
     glm::vec3 m_origin{};
     glm::vec2 m_size{};
+    float m_z_near{1.0f};
+    float m_z_far{};
     float m_scale{1.0f};
     float m_rotation{};
     view_type m_type{};

@@ -432,8 +432,7 @@ void render_window::setup_frame_data()
         data.pool = tph::command_pool{engine::instance().renderer()};
         data.image_available = tph::semaphore{engine::instance().renderer()};
         data.image_presentable = tph::semaphore{engine::instance().renderer()};
-        data.fence = tph::fence{engine::instance().renderer()};
-        data.begin = true;
+        data.fence = tph::fence{engine::instance().renderer(), true};
 
         m_frames_data.push_back(std::move(data));
     }

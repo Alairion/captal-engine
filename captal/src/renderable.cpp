@@ -48,12 +48,17 @@ void renderable::set_indices(const std::vector<std::uint32_t>& indices) noexcept
     assert(m_index_count > 0 && "cpt::renderable::set_indexes called on a renderable without index buffer");
 
     std::memcpy(&m_buffer.get<std::uint32_t>(1), std::data(indices), std::size(indices) * sizeof(std::uint32_t));
+
     m_need_upload = true;
 }
 
 void renderable::set_vertices(const std::vector<vertex>& vertices) noexcept
 {
-    std::memcpy(&m_buffer.get<vertex>(m_index_count > 0 ? 2 : 1), std::data(vertices), std::size(vertices) * sizeof(vertex));
+    const bool has_indexes{m_index_count > 0};
+    const auto index{static_cast<std::size_t>(has_indexes ? 2 : 1)};
+
+    std::memcpy(&m_buffer.get<vertex>(index), std::data(vertices), std::size(vertices) * sizeof(vertex));
+
     m_need_upload = true;
 }
 
@@ -78,29 +83,37 @@ void renderable::set_view(const view_ptr& view)
         return false;
     };
 
-    const auto write_binding = [](const descriptor_set_ptr& set, std::uint32_t binding, cpt::uniform_binding& data)
+    const auto write = [](const descriptor_set_ptr& set, std::uint32_t binding, cpt::uniform_binding& data)
     {
         if(get_uniform_binding_type(data) == uniform_binding_type::buffer)
         {
-            tph::write_descriptor(engine::instance().renderer(), set->set(), binding, 0, tph::descriptor_type::uniform_buffer, std::get<framed_buffer_ptr>(data)->buffer(), 0, std::get<framed_buffer_ptr>(data)->size());
+            const tph::descriptor_buffer_info info{std::get<framed_buffer_ptr>(data)->buffer(), 0, std::get<framed_buffer_ptr>(data)->size()};
+
+            return tph::descriptor_write{set->set(), binding, 0, tph::descriptor_type::uniform_buffer, info};
         }
-        else if(get_uniform_binding_type(data) == uniform_binding_type::texture)
+        else
         {
-            tph::write_descriptor(engine::instance().renderer(), set->set(), binding, 0, tph::descriptor_type::image_sampler, std::get<texture_ptr>(data)->get_texture());
+            const tph::descriptor_texture_info info{std::get<texture_ptr>(data)->get_texture(), tph::texture_layout::shader_read_only_optimal};
+
+            return tph::descriptor_write{set->set(), binding, 0, tph::descriptor_type::image_sampler, info};
         }
     };
 
-    const auto write_bindings = [has_binding, write_binding, &view, this](const descriptor_set_ptr& set)
+    const auto write_bindings = [has_binding, write, &view, this](const descriptor_set_ptr& set)
     {
-        tph::write_descriptor(engine::instance().renderer(), set->set(), 0, 0, tph::descriptor_type::uniform_buffer, view->buffer(), 0, view->buffer().size());
-        tph::write_descriptor(engine::instance().renderer(), set->set(), 1, 0, tph::descriptor_type::uniform_buffer, m_buffer.buffer(), 0, m_buffer.size());
-        tph::write_descriptor(engine::instance().renderer(), set->set(), 2, 0, tph::descriptor_type::image_sampler, m_texture ? m_texture->get_texture() : engine::instance().default_texture().get_texture());
+        auto& texture{m_texture ? m_texture->get_texture() : engine::instance().default_texture().get_texture()};
+
+        std::vector<tph::descriptor_write> writes{};
+
+        writes.emplace_back(tph::descriptor_write{set->set(), 0, 0, tph::descriptor_type::uniform_buffer, tph::descriptor_buffer_info{view->buffer(), 0, view->buffer().size()}});
+        writes.emplace_back(tph::descriptor_write{set->set(), 1, 0, tph::descriptor_type::uniform_buffer, tph::descriptor_buffer_info{m_buffer.buffer(), 0, m_buffer.size()}});
+        writes.emplace_back(tph::descriptor_write{set->set(), 2, 0, tph::descriptor_type::image_sampler, tph::descriptor_texture_info{texture, tph::texture_layout::shader_read_only_optimal}});
 
         for(auto&& [binding, data] : m_uniform_bindings)
         {
             if(has_binding(view, binding))
             {
-                write_binding(set, binding, data);
+                writes.emplace_back(write(set, binding, data));
             }
         }
 
@@ -108,9 +121,11 @@ void renderable::set_view(const view_ptr& view)
         {
             if(has_binding(view, binding))
             {
-                write_binding(set, binding, data);
+                writes.emplace_back(write(set, binding, data));
             }
         }
+
+        tph::write_descriptors(engine::instance().renderer(), writes);
     };
 
     const auto it{m_descriptor_sets.find(view.get())};

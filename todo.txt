@@ -5,13 +5,12 @@ L: low
 I: just an idea
 
 Tephra:
-H: Generic render target (complete render pass build with almost everything possible with pure Vulkan)
 H: Complete commands list
-A: Queue family ownership transfer support (tph::texture::transition and tph::buffer::???, or free functions)
+A: Queue family ownership transfer support (tph::texture::transition and tph::buffer::???, and free functions)
 A: Complete physical devices properties structures
 L: Performance query support
 L: Multiple applications/renderer support
-I: Multiple queue support ? (maybe overkill for 2D, but may be useful for 3D (since tephra is a generic renderer))
+I: Multiple queue support ? (maybe overkill for 2D, but may be useful for 3D (since tephra is becoming a generic renderer))
 
 Swell:
 H: Split mixer in multiple class: audio world responsible of spacialization and first mixing which contains sounds and a listener; the mixer contains audio worlds which outputs are mixed together by the mixer then gave to the user
@@ -25,8 +24,8 @@ L: Clipboard support
 L: Custom exception type
 
 Captal:
-H: View interface rework
-H: Complete text rendering support (alignments, stylized)
+H: View interface rework (view clipping, uniform bindings, ...)
+A: Complete text rendering support (alignments, stylized)
 A: More primitive shapes (circles, ellipses, convex polygons)
 A: Particles support
 I: Virtual file archive system ? (already prototyped)

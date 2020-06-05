@@ -289,9 +289,12 @@ static void run()
     entt::registry world{};
 
     //Our camera, it will hold the cpt::view for our scene.
+    cpt::render_technique_info technique_info{};
+    technique_info.multisample.sample_count = tph::sample_count::msaa_x4;
+
     const auto camera{world.create()};
     world.assign<cpt::components::node>(camera, glm::vec3{320.0f, 240.0f, 1.0f}, glm::vec3{320.0f, 240.0f, 0.0f});
-    world.assign<cpt::components::camera>(camera, cpt::make_view(window))->fit_to(window);
+    world.assign<cpt::components::camera>(camera, cpt::make_view(window, technique_info))->fit_to(window);
 
     //Our physical world. See add_logic() function for more informations.
     cpt::physical_world_ptr physical_world{cpt::make_physical_world()};

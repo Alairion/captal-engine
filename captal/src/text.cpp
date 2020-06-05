@@ -384,8 +384,6 @@ text_ptr text_drawer::draw(const std::string_view& string, const color& color)
        }
     }
 
-    tph::cmd::prepare(command_buffer, texture->get_texture(), tph::pipeline_stage::fragment_shader);
-
     signal.connect([cache = std::move(cache)](){});
 
     std::vector<std::uint32_t> indices{};
@@ -440,8 +438,6 @@ text_ptr text_drawer::draw(const std::string_view& string, std::uint32_t line_wi
         vertices.push_back(vertex{});
         vertices.push_back(vertex{});
     }
-
-    tph::cmd::prepare(command_buffer, texture->get_texture(), tph::pipeline_stage::fragment_shader);
 
     signal.connect([cache = std::move(cache)](){});
 
@@ -576,7 +572,9 @@ texture_ptr text_drawer::make_texture(const std::string_view& string, std::unord
         cache.emplace(std::make_pair(codepoint, std::make_pair(std::move(character_glyph), texture_pos)));
     }
 
-    texture_ptr texture{cpt::make_texture(texture_width, texture_height, tph::texture_usage::transfer_destination | tph::texture_usage::sampled, tph::sampling_options{})};
+    texture_ptr texture{cpt::make_texture(texture_width, texture_height, tph::sampling_options{}, tph::texture_format::r8g8b8a8_srgb, tph::texture_usage::transfer_destination | tph::texture_usage::sampled)};
+
+    tph::cmd::transition(command_buffer, texture->get_texture(), tph::resource_access::none, tph::resource_access::transfer_write, tph::pipeline_stage::top_of_pipe, tph::pipeline_stage::transfer, tph::texture_layout::undefined, tph::texture_layout::transfer_destination_optimal);
 
     for(auto&& [codepoint, slot] : cache)
     {
@@ -593,6 +591,8 @@ texture_ptr text_drawer::make_texture(const std::string_view& string, std::unord
             tph::cmd::copy(command_buffer, glyph->image, texture->get_texture(), copy_region);
         }
     }
+
+    tph::cmd::transition(command_buffer, texture->get_texture(), tph::resource_access::transfer_write, tph::resource_access::shader_read, tph::pipeline_stage::transfer, tph::pipeline_stage::fragment_shader, tph::texture_layout::transfer_destination_optimal, tph::texture_layout::shader_read_only_optimal);
 
     return texture;
 }
