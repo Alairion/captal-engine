@@ -277,12 +277,12 @@ static void run()
     //-The sample count enable MSAA (MultiSample Anti-Aliasing). (default: tph::sample_count::msaa_x1)
     //    MSAA will smoother the edges of polygons rendered in the window.
     //    MSAAx4 and no MSAA (MSAAx1), are always available (cf. Vulkan Specification)
-    const cpt::video_mode video_mode{640, 480, 2, tph::present_mode::fifo, tph::render_target_options::clipping, tph::sample_count::msaa_x4};
+    const cpt::video_mode video_mode{640, 480, 2, tph::present_mode::fifo, tph::sample_count::msaa_x4};
 
     //Create the window
     cpt::render_window_ptr window{cpt::engine::instance().make_window("Captal test", video_mode)};
     //Clear color is a part of tph::render_target, returned by cpt::render_target::get_target()
-    window->get_target().set_clear_color_value(1.0f, 1.0f, 1.0f);
+    //window->get_target().set_clear_color_value(1.0f, 1.0f, 1.0f);
 
     //Our world. Captal does not provide ECS (Entity Components Systems), but is designed to work with Entt.
     //Check out how Entt works on its Github repo: https://github.com/skypjack/entt

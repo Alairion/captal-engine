@@ -34,7 +34,7 @@ using mouse_event_signal = sigslot::signal<const apr::mouse_event&>;
 using keyboard_event_signal = sigslot::signal<const apr::keyboard_event&>;
 using text_event_signal = sigslot::signal<const apr::text_event&>;
 
-class CAPTAL_API render_window : apr::window, public render_target
+class CAPTAL_API render_window : apr::window, tph::surface, public render_target
 {
 public:
     render_window() = default;
@@ -98,12 +98,12 @@ public:
 
     tph::surface& get_surface() noexcept
     {
-        return m_surface;
+        return *this;
     }
 
     const tph::surface& get_surface() const noexcept
     {
-        return m_surface;
+        return *this;
     }
 
     tph::swapchain& get_swapchain() noexcept
@@ -166,13 +166,16 @@ private:
     };
 
 private:
-    void prepare_frame_data();
+    void setup_frame_data();
     void setup_signals();
     void wait_all();
+    void recreate(const tph::surface_capabilities& capabilities);
 
 private:
-    tph::surface m_surface{};
+    tph::texture_format m_surface_format{};
     tph::swapchain m_swapchain{};
+    tph::texture m_multisampling_texture{};
+    tph::texture m_depth_texture{};
     std::vector<frame_data> m_frames_data{};
     cpt::video_mode m_video_mode{};
     std::uint32_t m_frame_index{};

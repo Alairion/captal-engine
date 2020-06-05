@@ -142,32 +142,91 @@ static tph::render_pass_info make_render_pass_info(const video_mode& info, tph::
     return output;
 }
 
-static tph::swapchain_info make_swapchain_info(const video_mode& info)
+static tph::swapchain_info make_swapchain_info(const video_mode& info, const tph::surface_capabilities& capabilities, tph::texture_format surface_format)
 {
+    tph::swapchain_info output{};
+    output.image_count = info.image_count;
+    output.width = capabilities.current_width;
+    output.height = capabilities.current_height;
+    output.format = surface_format;
+    output.transform = capabilities.current_transform;
+    output.present_mode = info.present_mode;
+    output.clipping = info.clipping;
 
+    return output;
+}
+
+static tph::texture make_multisampling_texture(const video_mode& info, tph::texture_format surface_format)
+{
+    if(info.sample_count == tph::sample_count::msaa_x1)
+    {
+        return tph::texture{};
+    }
+
+    return tph::texture{engine::instance().renderer(), info.width, info.height, surface_format, tph::texture_usage::color_attachment, info.sample_count};
+}
+
+static tph::texture make_depth_texture(const video_mode& info)
+{
+    if(info.depth_format == tph::texture_format::undefined)
+    {
+        return tph::texture{};
+    }
+
+    return tph::texture{engine::instance().renderer(), info.width, info.height, info.depth_format, tph::texture_usage::depth_stencil_attachment, info.sample_count};
+}
+
+static std::vector<std::reference_wrapper<tph::texture>> make_attachments(const video_mode& info, tph::texture& color, tph::texture& multisampling, tph::texture& depth)
+{
+    const bool has_multisampling{info.sample_count != tph::sample_count::msaa_x1};
+    const bool has_depth_stencil{info.depth_format != tph::texture_format::undefined};
+
+    std::vector<std::reference_wrapper<tph::texture>> output{};
+
+    if(has_multisampling)
+    {
+        output.push_back(multisampling);
+
+        if(has_depth_stencil)
+        {
+            output.push_back(depth);
+        }
+
+        output.push_back(color);
+    }
+    else
+    {
+        output.push_back(color);
+
+        if(has_depth_stencil)
+        {
+            output.push_back(depth);
+        }
+    }
+
+    return output;
 }
 
 render_window::render_window(const std::string& title, const cpt::video_mode& mode, apr::window_options options)
-:apr::window{engine::instance().application().system_application(), title, mode.width, mode.height, options}
-,render_target{make_render_pass_info(mode)}
-,m_surface{make_window_surface(get_window())}
-,m_swapchain{engine::instance().renderer(), m_surface, make_swapchain_info(mode)}
-,m_video_mode{mode}
+:render_window{engine::instance().application().system_application().main_monitor(), title, mode, options}
 {
-    prepare_frame_data();
-    setup_signals();
+
 }
-/*
+
 render_window::render_window(const apr::monitor& monitor, const std::string& title, const cpt::video_mode& mode, apr::window_options options)
 :apr::window{engine::instance().application().system_application(), monitor, title, mode.width, mode.height, options}
-,render_target{engine::instance().renderer(), static_cast<tph::surface&>(*this), mode.present_mode, mode.image_count, mode.target_options, mode.sample_count}
-,m_surface{make_window_surface(*this)}
+,tph::surface{make_window_surface(get_window())}
+,render_target{make_render_pass_info(mode, choose_surface_format(get_surface()))}
+,m_surface_format{choose_surface_format(get_surface())}
+,m_swapchain{engine::instance().renderer(), get_surface(), make_swapchain_info(mode, tph::surface::capabilities(engine::instance().renderer()), m_surface_format)}
+,m_multisampling_texture{make_multisampling_texture(mode, m_surface_format)}
+,m_depth_texture{make_depth_texture(mode)}
 ,m_video_mode{mode}
 {
-    prepare_frame_data();
+    setup_frame_data();
     setup_signals();
 }
-*/
+
 render_window::~render_window()
 {
     wait_all();
@@ -276,13 +335,15 @@ void render_window::close()
      m_close(apr::window_event{apr::window_event::closed, id()});
      disable_rendering();
 }
-/*
+
 std::pair<tph::command_buffer&, frame_presented_signal&> render_window::begin_render()
 {
     frame_data& data{m_frames_data[m_frame_index]};
 
     if(data.begin)
+    {
         return {data.buffer, data.signal};
+    }
 
     data.fence.wait();
     data.signal();
@@ -291,28 +352,30 @@ std::pair<tph::command_buffer&, frame_presented_signal&> render_window::begin_re
     data.pool.reset();
     data.buffer = tph::cmd::begin(data.pool, tph::command_buffer_level::primary, tph::command_buffer_flags::one_time_submit);
 
-    tph::cmd::begin_render_pass(data.buffer, get_target(), m_frame_index);
+    tph::cmd::begin_render_pass(data.buffer, get_render_pass(), data.framebuffer);
 
-    tph::render_target_status status{get_target().acquire(data.image_available, tph::nullref)};
-    while(status == tph::render_target_status::out_of_date)
+    auto status{m_swapchain.acquire(data.image_available, tph::nullref)};
+    while(status == tph::swapchain_status::out_of_date)
     {
-        if(tph::surface::size(engine::instance().renderer()) == std::make_pair(0u, 0u))
+        const auto capabilities{tph::surface::capabilities(engine::instance().renderer())};
+        if(capabilities.current_width == 0 && capabilities.current_height == 0)
         {
             disable_rendering();
             return {data.buffer, data.signal};
         }
 
         wait_all();
-        get_target().recreate();
+        recreate(capabilities);
 
         data.pool.reset();
         data.buffer = tph::cmd::begin(data.pool, tph::command_buffer_level::primary, tph::command_buffer_flags::one_time_submit);
-        tph::cmd::begin_render_pass(data.buffer, get_target(), m_frame_index);
 
-        status = get_target().acquire(data.image_available, tph::nullref);
+        tph::cmd::begin_render_pass(data.buffer, get_render_pass(), data.framebuffer);
+
+        status = m_swapchain.acquire(data.image_available, tph::nullref);
     }
 
-    if(status == tph::render_target_status::surface_lost) //may happens on window closure
+    if(status == tph::swapchain_status::surface_lost) //may happens on window closure
     {
         disable_rendering();
     }
@@ -322,16 +385,15 @@ std::pair<tph::command_buffer&, frame_presented_signal&> render_window::begin_re
 
 void render_window::present()
 {
-    frame_data& data{m_frames_data[m_frame_index]};
-
-    data.begin = false;
-    m_frame_index = (m_frame_index + 1) % m_video_mode.image_count;
     engine::instance().flush_transfers();
+
+    frame_data& data{m_frames_data[m_frame_index]};
+    data.begin = false;
+
+    m_frame_index = (m_frame_index + 1) % m_swapchain.info().image_count;
 
     tph::cmd::end_render_pass(data.buffer);
     tph::cmd::end(data.buffer);
-
-    data.fence.reset();
 
     tph::submit_info submit_info{};
     submit_info.wait_semaphores.push_back(data.image_available);
@@ -339,35 +401,43 @@ void render_window::present()
     submit_info.command_buffers.push_back(data.buffer);
     submit_info.signal_semaphores.push_back(data.image_presentable);
 
+    data.fence.reset();
+
     std::unique_lock lock{engine::instance().submit_mutex()};
     tph::submit(engine::instance().renderer(), submit_info, data.fence);
     lock.unlock();
 
-    tph::render_target_status status{get_target().present(data.image_presentable)};
-    if(status != tph::render_target_status::valid)
+    if(m_swapchain.present(data.image_presentable) != tph::swapchain_status::valid)
     {
-        if(tph::surface::size(engine::instance().renderer()) == std::make_pair(0u, 0u))
+        const auto capabilities{tph::surface::capabilities(engine::instance().renderer())};
+        if(capabilities.current_width == 0 && capabilities.current_height == 0)
         {
             disable_rendering();
             return;
         }
 
         wait_all();
-        get_target().recreate();
+        recreate(capabilities);
     }
 }
 
-void render_window::prepare_frame_data()
+void render_window::setup_frame_data()
 {
-    for(std::uint32_t i{}; i < m_video_mode.image_count; ++i)
+    for(std::uint32_t i{}; i < m_swapchain.info().image_count; ++i)
     {
-        frame_data data{tph::command_pool{engine::instance().renderer()}, tph::command_buffer{},
-                        tph::semaphore{engine::instance().renderer()}, tph::semaphore{engine::instance().renderer()},
-                        tph::fence{engine::instance().renderer(), true}};
+        const auto attachments{make_attachments(m_video_mode, m_swapchain.texture(i), m_multisampling_texture, m_depth_texture)};
+
+        frame_data data{};
+        data.framebuffer = tph::framebuffer{engine::instance().renderer(), get_render_pass(), attachments, m_swapchain.info().width, m_swapchain.info().height, 1};
+        data.pool = tph::command_pool{engine::instance().renderer()};
+        data.image_available = tph::semaphore{engine::instance().renderer()};
+        data.image_presentable = tph::semaphore{engine::instance().renderer()};
+        data.fence = tph::fence{engine::instance().renderer()};
+        data.begin = true;
 
         m_frames_data.push_back(std::move(data));
     }
-}*/
+}
 
 void render_window::setup_signals()
 {
@@ -390,8 +460,20 @@ void render_window::wait_all()
         data.signal();
         data.signal.disconnect_all();
     }
+}
 
+void render_window::recreate(const tph::surface_capabilities& capabilities)
+{
     m_frame_index = 0;
+    m_swapchain = tph::swapchain{engine::instance().renderer(), get_surface(), make_swapchain_info(m_video_mode, capabilities, m_surface_format), m_swapchain};
+
+    for(std::uint32_t i{}; i < m_swapchain.info().image_count; ++i)
+    {
+        const auto attachments{make_attachments(m_video_mode, m_swapchain.texture(i), m_multisampling_texture, m_depth_texture)};
+
+        frame_data& data{m_frames_data[i]};
+        data.framebuffer = tph::framebuffer{engine::instance().renderer(), get_render_pass(), attachments, m_swapchain.info().width, m_swapchain.info().height, 1};
+    }
 }
 
 }
