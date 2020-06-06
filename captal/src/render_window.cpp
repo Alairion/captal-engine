@@ -458,13 +458,18 @@ void render_window::wait_all()
         data.fence.wait();
         data.signal();
         data.signal.disconnect_all();
+        data.begin = false;
     }
 }
 
 void render_window::recreate(const tph::surface_capabilities& capabilities)
 {
     m_frame_index = 0;
+    m_video_mode.width = capabilities.current_width;
+    m_video_mode.height = capabilities.current_height;
     m_swapchain = tph::swapchain{engine::instance().renderer(), get_surface(), make_swapchain_info(m_video_mode, capabilities, m_surface_format), m_swapchain};
+    m_multisampling_texture = make_multisampling_texture(m_video_mode, m_surface_format);
+    m_depth_texture = make_depth_texture(m_video_mode);
 
     for(std::uint32_t i{}; i < m_swapchain.info().image_count; ++i)
     {

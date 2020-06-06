@@ -24,6 +24,8 @@
 
 #include <apyre/messagebox.hpp>
 
+using namespace cpt::enum_operations;
+
 class sawtooth_generator : public swl::sound_reader
 {
 public:
@@ -116,7 +118,7 @@ static entt::entity add_physics(entt::registry& world, const cpt::physical_world
         sprite_body->set_position(position);
 
         const auto item{world.create()};
-        world.assign<cpt::components::node>(item, glm::vec3{position, 1.0f}, glm::vec3{12.0f, 12.0f, 0.0f});
+        world.assign<cpt::components::node>(item, glm::vec3{position, 0.5f}, glm::vec3{12.0f, 12.0f, 0.0f});
         world.assign<cpt::components::drawable>(item, cpt::make_sprite(24, 24, cpt::colors::blue));
         world.assign<cpt::components::physical_body>(item, std::move(sprite_body)).add_shape(24.0f, 24.0f);
     }
@@ -135,8 +137,8 @@ static entt::entity add_physics(entt::registry& world, const cpt::physical_world
     player_physical_body->set_position(glm::vec2{320.0f, 240.0f});
 
     const auto player{world.create()};
-    world.assign<cpt::components::node>(player, glm::vec3{320.0f, 240.0f, 1.0f}, glm::vec3{16.0f, 16.0f, 0.0f});
-    world.assign<cpt::components::drawable>(player, cpt::make_sprite(32, 32, cpt::colors::black));
+    world.assign<cpt::components::node>(player, glm::vec3{320.0f, 240.0f, 0.5f}, glm::vec3{16.0f, 16.0f, 0.0f});
+    world.assign<cpt::components::drawable>(player, cpt::make_sprite(32, 32, cpt::colors::orange));
     world.assign<cpt::components::physical_body>(player, player_physical_body).add_shape(32.0f, 32.0f)->set_collision_type(player_type);
     world.assign<cpt::components::audio_emiter>(player, cpt::make_sound(swl::sound_file_reader{std::make_unique<sawtooth_generator>(44100, 2, 240)}));
     auto& controller{world.assign<cpt::components::controller>(player, cpt::physical_body_weak_ptr{player_physical_body})};
@@ -160,12 +162,44 @@ static void add_logic(const cpt::render_window_ptr& window, entt::registry& worl
 
     const auto text{world.create()};
     world.assign<cpt::components::node>(text, glm::vec3{4.0f, 4.0f, 1.0f});
-    world.assign<cpt::components::drawable>(text, drawer.draw("0"));
+    world.assign<cpt::components::drawable>(text);
 
-    //Display current FPS in window title
+    //Display current FPS in window title, and GPU memory usage (only memory allocated using Tephra's renderer's allocator)
     cpt::engine::instance().frame_per_second_update_signal().connect([&world, text, drawer = std::move(drawer)](std::uint32_t frame_per_second) mutable
     {
-        world.get<cpt::components::drawable>(text).attach(drawer.draw(std::to_string(frame_per_second)));
+        const auto format_data = [](std::size_t amount)
+        {
+            std::stringstream ss{};
+            ss << std::setprecision(2);
+
+            if(amount < 1024)
+            {
+                ss << amount << " o";
+            }
+            else if(amount < 1024 * 1024)
+            {
+                ss << std::fixed << static_cast<double>(amount) / 1024.0 << " kio";
+            }
+            else
+            {
+                ss << std::fixed << static_cast<double>(amount) / (1024.0 * 1024.0) << " Mio";
+            }
+
+            return ss.str();
+        };
+
+        cpt::engine::instance().renderer().free_memory();
+
+        //Just some info displayed at the end of the demo.
+        const auto memory_used{cpt::engine::instance().renderer().allocator().used_memory()};
+        const auto memory_alloc{cpt::engine::instance().renderer().allocator().allocated_memory()};
+
+        std::string info{};
+        info += "Device local : " + format_data(memory_used.device_local) + " / " + format_data(memory_alloc.device_local) + "\n";
+        info += "Host shared : " + format_data(memory_used.host_shared) + " / " + format_data(memory_alloc.host_shared) + "\n";
+        info += std::to_string(frame_per_second) + " FPS";
+
+        world.get<cpt::components::drawable>(text).attach(drawer.draw(info, cpt::colors::black));
         world.get<cpt::components::node>(text).update();
     });
 
@@ -271,16 +305,13 @@ static void run()
     //    This value is limited in a specific interval by the implementation, but 2 is one of the commonest value and should work everywhere.
     //-The fourth value is the present mode. (default: tph::present_mode::fifo)
     //    FIFO is the only one available on any hardware (cf. Vulkan Specification), and correspond to V-Sync.
-    //-The fifth value correpond to additionnal render target options. (default: tph::render_target_options::clipping)
-    //    Clipping may increase perfomance when parts of the window are not visible (for any reason)
-    //    by skipping the fragment shader stage for hidden pixels
     //-The sample count enable MSAA (MultiSample Anti-Aliasing). (default: tph::sample_count::msaa_x1)
     //    MSAA will smoother the edges of polygons rendered in the window.
     //    MSAAx4 and no MSAA (MSAAx1), are always available (cf. Vulkan Specification)
-    const cpt::video_mode video_mode{640, 480, 2, tph::present_mode::fifo, tph::sample_count::msaa_x4};
+    constexpr cpt::video_mode video_mode{640, 480, 2, tph::present_mode::fifo, tph::sample_count::msaa_x4};
 
     //Create the window
-    cpt::render_window_ptr window{cpt::engine::instance().make_window("Captal test", video_mode)};
+    cpt::render_window_ptr window{cpt::engine::instance().make_window("Captal test", video_mode, apr::window_options::resizable)};
     //Clear color is a part of tph::render_target, returned by cpt::render_target::get_target()
     //window->get_target().set_clear_color_value(1.0f, 1.0f, 1.0f);
 
@@ -288,10 +319,13 @@ static void run()
     //Check out how Entt works on its Github repo: https://github.com/skypjack/entt
     entt::registry world{};
 
-    //Our camera, it will hold the cpt::view for our scene.
+    //Since we use multisampling, we must use a compatible pipeline.
+    //A render technique describes how a view will render the scene it seens.
+    //Here we just need to turn on multisampling within the technique's pipeline.
     cpt::render_technique_info technique_info{};
     technique_info.multisample.sample_count = tph::sample_count::msaa_x4;
 
+    //Our camera, it will hold the cpt::view for our scene.
     const auto camera{world.create()};
     world.assign<cpt::components::node>(camera, glm::vec3{320.0f, 240.0f, 1.0f}, glm::vec3{320.0f, 240.0f, 0.0f});
     world.assign<cpt::components::camera>(camera, cpt::make_view(window, technique_info))->fit_to(window);
@@ -325,7 +359,7 @@ static void run()
         //Window rendering may be disabled when it is closed or minimized.
         if(window->is_rendering_enable())
         {
-            //Z-Sorting system will sort drawable components by their node's z component.
+            //Sort draw order by renderable z-coord
             cpt::systems::z_sorting(world);
 
             //Render system will update all views within the world,
@@ -337,19 +371,15 @@ static void run()
             //It will then display it on screen. It's accual behaviour will depends on window presention mode.
             window->present();
         }
+        else
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds{1});
+        }
 
         //End frame system marks the end of the current frame.
         //It will reset some states within the world to prepare it for a new frame.
         cpt::systems::end_frame(world);
     }
-
-    //Just some info displayed at the end of the demo.
-    const auto memory_used{cpt::engine::instance().renderer().allocator().used_memory()};
-    const auto memory_alloc{cpt::engine::instance().renderer().allocator().allocated_memory()};
-
-    std::cout << "Device local : " << memory_used.device_local << " / " << memory_alloc.device_local << "\n";
-    std::cout << "Device shared : " << memory_used.device_shared << " / " << memory_alloc.device_shared << "\n";
-    std::cout << "Host shared : " << memory_used.host_shared << " / " << memory_alloc.host_shared << "\n";
 }
 
 int main()

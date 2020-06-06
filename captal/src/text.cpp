@@ -91,7 +91,9 @@ std::optional<glyph> font::load(char32_t codepoint)
        return std::nullopt;
 
     if(m_loader->face->glyph->format == FT_GLYPH_FORMAT_OUTLINE && static_cast<bool>(m_info.style & font_style::bold))
+    {
         FT_Outline_Embolden(&m_loader->face->glyph->outline, 64);
+    }
 
     if(FT_Render_Glyph(m_loader->face->glyph, FT_RENDER_MODE_NORMAL))
         return std::nullopt;
@@ -99,7 +101,9 @@ std::optional<glyph> font::load(char32_t codepoint)
     FT_Bitmap& bitmap = m_loader->face->glyph->bitmap;
 
     if(m_loader->face->glyph->format == FT_GLYPH_FORMAT_OUTLINE && static_cast<bool>(m_info.style & font_style::bold))
+    {
         FT_Bitmap_Embolden(m_loader->library, &bitmap, 64, 64);
+    }
 
     glyph output{};
     output.origin = glm::vec2{m_loader->face->glyph->metrics.horiBearingX / 64.0f, -m_loader->face->glyph->metrics.horiBearingY / 64.0f};
@@ -207,7 +211,9 @@ void text::set_color(const color& color)
     const glm::vec4 native_color{static_cast<glm::vec4>(color)};
 
     for(std::uint32_t i{}; i < vertex_count(); ++i)
+    {
         vertices[i].color = native_color;
+    }
 
     update();
 }
@@ -384,7 +390,7 @@ text_ptr text_drawer::draw(const std::string_view& string, const color& color)
        }
     }
 
-    signal.connect([cache = std::move(cache)](){});
+    signal.connect([cache = std::move(cache), texture](){});
 
     std::vector<std::uint32_t> indices{};
     indices.reserve(codepoint_count * 6);
@@ -403,7 +409,9 @@ text_ptr text_drawer::draw(const std::string_view& string, const color& color)
 
     const glm::vec3 shift{-lowest_x, -lowest_y, 0.0f};
     for(auto& vertex : vertices)
+    {
         vertex.position += shift;
+    }
 
     return std::make_shared<text>(indices, vertices, std::move(texture), static_cast<std::uint32_t>(greatest_x - lowest_x), static_cast<std::uint32_t>(greatest_y - lowest_y), std::size(string));
 }
@@ -439,7 +447,7 @@ text_ptr text_drawer::draw(const std::string_view& string, std::uint32_t line_wi
         vertices.push_back(vertex{});
     }
 
-    signal.connect([cache = std::move(cache)](){});
+    signal.connect([cache = std::move(cache), texture](){});
 
     std::vector<std::uint32_t> indices{};
     indices.reserve(codepoint_count * 6);
@@ -457,7 +465,9 @@ text_ptr text_drawer::draw(const std::string_view& string, std::uint32_t line_wi
 
     const glm::vec3 shift{-state.lowest_x, -state.lowest_y, 0.0f};
     for(auto& vertex : vertices)
+    {
         vertex.position += shift;
+    }
 
     const std::uint32_t text_width{static_cast<std::uint32_t>(state.greatest_x - state.lowest_x)};
     const std::uint32_t text_height{static_cast<std::uint32_t>(state.greatest_y - state.lowest_y)};
@@ -477,7 +487,9 @@ void text_drawer::draw_line(const std::string_view& line, std::uint32_t line_wid
 
             float word_advance{};
             for(auto codepoint : word)
+            {
                 word_advance += cache.at(codepoint).first->advance;
+            }
 
             if(static_cast<std::uint32_t>(state.current_x + word_advance) > line_width)
             {

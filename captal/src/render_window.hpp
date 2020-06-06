@@ -38,6 +38,7 @@ class CAPTAL_API render_window : apr::window, tph::surface, public render_target
 {
 public:
     render_window() = default;
+
     render_window(const std::string& title, const cpt::video_mode& mode, apr::window_options options = apr::window_options::none);
     render_window(const apr::monitor& monitor, const std::string& title, const cpt::video_mode& mode, apr::window_options options = apr::window_options::none);
 
@@ -179,7 +180,6 @@ private:
     std::vector<frame_data> m_frames_data{};
     cpt::video_mode m_video_mode{};
     std::uint32_t m_frame_index{};
-
     bool m_closed{};
 
     window_event_signal m_gained_focus{};

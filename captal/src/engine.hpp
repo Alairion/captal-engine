@@ -228,7 +228,7 @@ private:
 
     tph::command_pool m_transfer_pool{};
     std::vector<transfer_buffer> m_transfer_buffers{};
-    transfer_buffer* m_current_transfer_buffer{};
+    bool m_transfer_began{};
 /*
     tph::command_pool m_render_pool{};
     std::vector<render_buffer> m_render_buffers{};

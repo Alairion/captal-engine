@@ -24,7 +24,6 @@ L: Clipboard support
 L: Custom exception type
 
 Captal:
-H: View interface rework (view clipping, uniform bindings, ...)
 A: Complete text rendering support (alignments, stylized)
 A: More primitive shapes (circles, ellipses, convex polygons)
 A: Particles support

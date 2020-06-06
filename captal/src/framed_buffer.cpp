@@ -35,11 +35,17 @@ static tph::buffer_usage compute_usage(const std::vector<buffer_part>& parts)
     for(auto&& part : parts)
     {
         if(part.type == buffer_part_type::uniform)
+        {
             output |= tph::buffer_usage::uniform;
+        }
         else if(part.type == buffer_part_type::index)
+        {
             output |= tph::buffer_usage::index;
+        }
         else if(part.type == buffer_part_type::vertex)
+        {
             output |= tph::buffer_usage::vertex;
+        }
     }
 
     return output;

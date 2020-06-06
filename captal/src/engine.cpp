@@ -134,30 +134,28 @@ void engine::remove_window(render_window_ptr window)
 
 std::pair<tph::command_buffer&, transfer_ended_signal&> engine::begin_transfer()
 {
-    if(!m_current_transfer_buffer)
+    if(!m_transfer_began)
     {
-        m_transfer_buffers.push_back(transfer_buffer{m_frame_id, tph::cmd::begin(m_transfer_pool, tph::command_buffer_level::primary, tph::command_buffer_flags::one_time_submit), tph::fence{m_renderer}});
-        m_current_transfer_buffer = &m_transfer_buffers.back();
+        m_transfer_buffers.emplace_back(transfer_buffer{m_frame_id, tph::cmd::begin(m_transfer_pool, tph::command_buffer_level::primary, tph::command_buffer_flags::one_time_submit), tph::fence{m_renderer}});
+        m_transfer_began = true;
 
-        tph::cmd::pipeline_barrier(m_current_transfer_buffer->buffer, tph::pipeline_stage::color_attachment_output, tph::pipeline_stage::transfer);
+        tph::cmd::pipeline_barrier(m_transfer_buffers.back().buffer, tph::pipeline_stage::color_attachment_output, tph::pipeline_stage::transfer);
     }
 
-    return {m_current_transfer_buffer->buffer, m_current_transfer_buffer->signal};
+    return {m_transfer_buffers.back().buffer, m_transfer_buffers.back().signal};
 }
 
 void engine::flush_transfers()
 {
-    if(m_current_transfer_buffer)
+    if(std::exchange(m_transfer_began, false))
     {
-        tph::cmd::end(m_current_transfer_buffer->buffer);
+        tph::cmd::end(m_transfer_buffers.back().buffer);
 
         tph::submit_info info{};
-        info.command_buffers.push_back(m_current_transfer_buffer->buffer);
+        info.command_buffers.push_back(m_transfer_buffers.back().buffer);
 
         std::lock_guard lock{m_queue_mutex};
-        tph::submit(m_renderer, info, m_current_transfer_buffer->fence);
-
-        m_current_transfer_buffer = nullptr;
+        tph::submit(m_renderer, info, m_transfer_buffers.back().fence);
     }
 
     for(auto it{std::begin(m_transfer_buffers)}; it != std::end(m_transfer_buffers);)
@@ -253,6 +251,12 @@ void engine::update_frame()
     m_last_update = clock::now();
 
     m_frame_per_second_timer += m_frame_time;
+
+    while(m_frame_per_second_timer > 2.0f)
+    {
+        m_frame_per_second_timer -= 1.0f;
+    }
+
     if(m_frame_per_second_timer > 1.0f)
     {
         m_frame_per_second = m_frame_per_second_counter;
