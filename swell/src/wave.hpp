@@ -51,7 +51,7 @@ protected:
     std::uint32_t get_channels() override;
 
 private:
-    void swap_header_bytes();
+    void read_header(const std::array<char, 44>& data);
     void check_header();
 
     std::size_t sample_size(std::size_t frame_count);

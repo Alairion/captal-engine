@@ -292,8 +292,12 @@ bool ogg_reader::read_samples_from_vorbis(float* output, std::size_t frame_count
         const auto read{ov_read_float(m_vorbis.get(), &data, static_cast<int>(frame_count - total_read), &m_current_section)};
 
         for(std::size_t i{}; i < static_cast<std::size_t>(read); ++i)
+        {
             for(std::size_t j{}; j < m_channel_count; ++j)
+            {
                 output[(i * m_channel_count) + j] = data[j][i];
+            }
+        }
 
         if(read > 0)
         {

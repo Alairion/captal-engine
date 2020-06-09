@@ -14,6 +14,7 @@
 #include <sigslots/signal.hpp>
 
 #include "render_target.hpp"
+#include "color.hpp"
 
 namespace cpt
 {
@@ -86,6 +87,21 @@ public:
 
     std::pair<tph::command_buffer&, frame_presented_signal&> begin_render();
     void present();
+
+    void set_clear_color(const color& color) noexcept
+    {
+        m_clear_color = tph::clear_color_value{color.red, color.green, color.blue, color.alpha};
+    }
+
+    void set_clear_color(const tph::clear_color_value& color) noexcept
+    {
+        m_clear_color = color;
+    }
+
+    void set_clear_depth_stencil(float depth, std::uint32_t stencil) noexcept
+    {
+        m_clear_depth_stencil = tph::clear_depth_stencil_value{depth, stencil};
+    }
 
     apr::window& get_window() noexcept
     {
@@ -169,6 +185,7 @@ private:
 private:
     void setup_frame_data();
     void setup_signals();
+    void update_clear_values(tph::framebuffer& framebuffer);
     void wait_all();
     void recreate(const tph::surface_capabilities& capabilities);
 
@@ -180,6 +197,8 @@ private:
     std::vector<frame_data> m_frames_data{};
     cpt::video_mode m_video_mode{};
     std::uint32_t m_frame_index{};
+    tph::clear_color_value m_clear_color{};
+    tph::clear_depth_stencil_value m_clear_depth_stencil{};
     bool m_closed{};
 
     window_event_signal m_gained_focus{};

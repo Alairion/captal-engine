@@ -74,7 +74,7 @@ std::vector<std::basic_string_view<CharT, Traits>> split(std::basic_string_view<
 
     std::size_t position{};
     std::size_t last{};
-    while(position != std::u32string_view::npos)
+    while(position != std::basic_string_view<CharT, Traits>::npos)
     {
         position = string.find(delimiter, last);
         substrings.push_back(string.substr(last, position - last));
@@ -91,7 +91,7 @@ std::vector<std::basic_string_view<CharT, Traits>> split(std::basic_string_view<
 
     std::size_t position{};
     std::size_t last{};
-    while(position != std::u32string_view::npos)
+    while(position != std::basic_string_view<CharT, Traits>::npos)
     {
         position = string.find(delimiter, last);
         substrings.push_back(string.substr(last, position - last));

@@ -351,6 +351,7 @@ std::pair<tph::command_buffer&, frame_presented_signal&> render_window::begin_re
     data.begin = true;
     data.pool.reset();
     data.buffer = tph::cmd::begin(data.pool, tph::command_buffer_level::primary, tph::command_buffer_flags::one_time_submit);
+    update_clear_values(data.framebuffer);
 
     tph::cmd::begin_render_pass(data.buffer, get_render_pass(), data.framebuffer);
 
@@ -449,6 +450,28 @@ void render_window::setup_signals()
     {
         enable_rendering();
     });
+}
+
+void render_window::update_clear_values(tph::framebuffer& framebuffer)
+{
+    const bool has_multisampling{m_video_mode.sample_count != tph::sample_count::msaa_x1};
+    const bool has_depth_stencil{m_video_mode.depth_format != tph::texture_format::undefined};
+
+    framebuffer.set_clear_value(0, m_clear_color);
+
+    if(has_depth_stencil)
+    {
+        framebuffer.set_clear_value(1, m_clear_depth_stencil);
+
+        if(has_multisampling)
+        {
+            framebuffer.set_clear_value(2, m_clear_color);
+        }
+    }
+    else if(has_multisampling)
+    {
+        framebuffer.set_clear_value(1, m_clear_color);
+    }
 }
 
 void render_window::wait_all()

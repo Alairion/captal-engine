@@ -98,7 +98,7 @@ static const tph::physical_device& default_graphics_device(const tph::applicatio
 engine::engine(const std::string& application_name, cpt::version version, const audio_parameters& audio, const graphics_parameters& graphics)
 :m_application{application_name, version}
 ,m_audio_device{default_audio_device(m_application.audio_application(), audio)}
-,m_audio_mixer{m_audio_device.default_low_latency_buffer_size(), audio.channel_count, audio.frequency}
+,m_audio_mixer{m_audio_device.default_low_latency_buffer_size(audio.frequency), audio.channel_count, audio.frequency}
 ,m_audio_stream{m_application.audio_application(), m_audio_device, m_audio_mixer}
 ,m_graphics_device{default_graphics_device(m_application.graphics_application(), graphics)}
 ,m_renderer{m_application.graphics_application(), m_graphics_device, graphics.options, graphics.features}
@@ -109,7 +109,7 @@ engine::engine(const std::string& application_name, cpt::version version, const 
 engine::engine(cpt::application application, const audio_parameters& audio, const graphics_parameters& graphics)
 :m_application{std::move(application)}
 ,m_audio_device{default_audio_device(m_application.audio_application(), audio)}
-,m_audio_mixer{m_audio_device.default_low_latency_buffer_size(), audio.channel_count, audio.frequency}
+,m_audio_mixer{m_audio_device.default_low_latency_buffer_size(audio.frequency), audio.channel_count, audio.frequency}
 ,m_audio_stream{m_application.audio_application(), m_audio_device, m_audio_mixer}
 ,m_graphics_device{default_graphics_device(m_application.graphics_application(), graphics)}
 ,m_renderer{m_application.graphics_application(), m_graphics_device, graphics.options, graphics.features}

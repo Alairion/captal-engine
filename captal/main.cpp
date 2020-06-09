@@ -107,7 +107,7 @@ static entt::entity add_physics(entt::registry& world, const cpt::physical_world
 {
     //A background (to slighlty increase scene's complexity)
     const auto background_entity{world.create()};
-    world.assign<cpt::components::node>(background_entity);
+    world.assign<cpt::components::node>(background_entity, glm::vec3{0.0f, 0.0f, 0.0f});
     world.assign<cpt::components::drawable>(background_entity, cpt::make_sprite(640, 480, cpt::colors::yellowgreen));
 
     //Add some squares to the scene
@@ -138,9 +138,9 @@ static entt::entity add_physics(entt::registry& world, const cpt::physical_world
 
     const auto player{world.create()};
     world.assign<cpt::components::node>(player, glm::vec3{320.0f, 240.0f, 0.5f}, glm::vec3{16.0f, 16.0f, 0.0f});
-    world.assign<cpt::components::drawable>(player, cpt::make_sprite(32, 32, cpt::colors::orange));
+    world.assign<cpt::components::drawable>(player, cpt::make_sprite(32, 32, cpt::colors::red));
     world.assign<cpt::components::physical_body>(player, player_physical_body).add_shape(32.0f, 32.0f)->set_collision_type(player_type);
-    world.assign<cpt::components::audio_emiter>(player, cpt::make_sound(swl::sound_file_reader{std::make_unique<sawtooth_generator>(44100, 2, 240)}));
+    world.assign<cpt::components::audio_emiter>(player, cpt::make_sound(swl::sound_file_reader{std::make_unique<sawtooth_generator>(44100, 2, 240)}))->set_volume(0.5f);
     auto& controller{world.assign<cpt::components::controller>(player, cpt::physical_body_weak_ptr{player_physical_body})};
 
     auto& pivot{controller.add_constraint(cpt::pivot_joint, glm::vec2{}, glm::vec2{})};
@@ -303,17 +303,19 @@ static void run()
     //-The third value is the number of image in the swapchain of the window's surface. (default: 2)
     //    2 means double buffering, 3 triple buffering and so on.
     //    This value is limited in a specific interval by the implementation, but 2 is one of the commonest value and should work everywhere.
-    //-The fourth value is the present mode. (default: tph::present_mode::fifo)
+    //-The present mode defines window behaviour on presentation. (default: tph::present_mode::fifo)
     //    FIFO is the only one available on any hardware (cf. Vulkan Specification), and correspond to V-Sync.
     //-The sample count enable MSAA (MultiSample Anti-Aliasing). (default: tph::sample_count::msaa_x1)
     //    MSAA will smoother the edges of polygons rendered in the window.
     //    MSAAx4 and no MSAA (MSAAx1), are always available (cf. Vulkan Specification)
-    constexpr cpt::video_mode video_mode{640, 480, 2, tph::present_mode::fifo, tph::sample_count::msaa_x4};
+    //-The texture format is given to enable depth buffering.
+    //    Depth format "d32_sfloat" is widely available, so it is hardcoded. But in real world appliction you should check for it's availability.
+    constexpr cpt::video_mode video_mode{640, 480, 2, tph::present_mode::fifo, tph::sample_count::msaa_x4, tph::texture_format::d32_sfloat};
 
     //Create the window
     cpt::render_window_ptr window{cpt::engine::instance().make_window("Captal test", video_mode, apr::window_options::resizable)};
     //Clear color is a part of tph::render_target, returned by cpt::render_target::get_target()
-    //window->get_target().set_clear_color_value(1.0f, 1.0f, 1.0f);
+    window->set_clear_color(cpt::colors::white);
 
     //Our world. Captal does not provide ECS (Entity Components Systems), but is designed to work with Entt.
     //Check out how Entt works on its Github repo: https://github.com/skypjack/entt
@@ -321,9 +323,13 @@ static void run()
 
     //Since we use multisampling, we must use a compatible pipeline.
     //A render technique describes how a view will render the scene it seens.
-    //Here we just need to turn on multisampling within the technique's pipeline.
+    //Here we need to turn on multisampling within the technique's pipeline...
     cpt::render_technique_info technique_info{};
     technique_info.multisample.sample_count = tph::sample_count::msaa_x4;
+    //And also depth buffering.
+    technique_info.depth_stencil.depth_test = true;
+    technique_info.depth_stencil.depth_write = true;
+    technique_info.depth_stencil.depth_compare_op = tph::compare_op::greater_or_equal;
 
     //Our camera, it will hold the cpt::view for our scene.
     const auto camera{world.create()};
@@ -359,9 +365,6 @@ static void run()
         //Window rendering may be disabled when it is closed or minimized.
         if(window->is_rendering_enable())
         {
-            //Sort draw order by renderable z-coord
-            cpt::systems::z_sorting(world);
-
             //Render system will update all views within the world,
             //and draw all drawable items to all render targets associated to the views.
             cpt::systems::render(world);

@@ -12,9 +12,6 @@ namespace swl
 class physical_device
 {
 public:
-    using time_type = std::chrono::duration<double>;
-
-public:
     physical_device() = default;
 
     physical_device(std::int32_t id, std::uint32_t output_channel, time_type default_low_output_latency, time_type default_high_output_latency, std::uint32_t default_sample_rate, std::string name)

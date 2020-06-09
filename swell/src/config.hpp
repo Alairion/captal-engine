@@ -3,10 +3,14 @@
 
 #include <captal_foundation/config.hpp>
 
+#include <chrono>
+
 namespace swl
 {
 
 using namespace cpt::foundation;
+
+using time_type = std::chrono::duration<double>;
 
 }
 

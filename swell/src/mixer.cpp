@@ -17,6 +17,11 @@ constexpr T pi{static_cast<T>(3.1415926535897932385)};
 namespace ressample
 {
 /*
+constepxr float lerp(float first, float second, float t) noexcept
+{
+  return first + t * (second - first);
+}
+
 template<typename T>
 T sinc(T value)
 {
@@ -26,11 +31,11 @@ T sinc(T value)
     return static_cast<T>(1);
 }
 
-static std::vector<float> ressample(std::uint32_t input_frequency, std::vector<float> signal, std::uint32_t output_frequency)
+static std::vector<float> ressample(std::uint32_t input_sample_rate, std::vector<float> signal, std::uint32_t output_sample_rate)
 {
-    const std::uint32_t gcd{std::gcd(input_frequency, output_frequency)};
-    const std::uint32_t up_factor{input_frequency / gcd};
-    const std::uint32_t down_factor{output_frequency / gcd};
+    const std::uint32_t gcd{std::gcd(input_sample_rate, output_sample_rate)};
+    const std::uint32_t up_factor{input_sample_rate / gcd};
+    const std::uint32_t down_factor{output_sample_rate / gcd};
 
     if(up_factor == down_factor)
         return signal;
@@ -49,9 +54,16 @@ static std::vector<float> ressample(std::uint32_t input_frequency, std::vector<f
 static float get_volume_multiplier(float value) noexcept
 {
     if(value == 0.0f)
+    {
         return 0.0f;
+    }
 
     return std::sqrt(std::pow(10.0f, value * 3.0f) / 1e3f);
+}
+
+static constexpr glm::vec3 to_glm(const impl::vec3& vec) noexcept
+{
+    return glm::vec3{vec.x, vec.y, vec.z};
 }
 
 sound::sound(mixer& mixer, sound_reader& reader)
@@ -86,8 +98,9 @@ void sound::start()
 {
     std::lock_guard lock{m_data->mutex};
 
-    m_data->reader->seek(0);
+    snapshot();
 
+    m_data->reader->seek(0);
     m_data->state.status = sound_status::playing;
     m_data->state.current_sample = 0;
     m_data->state.current_fading = 0;
@@ -97,24 +110,42 @@ void sound::start()
 void sound::stop()
 {
     std::lock_guard lock{m_data->mutex};
+
+    snapshot();
+
     m_data->state.status = sound_status::stopped;
 }
 
 void sound::pause()
 {
     std::lock_guard lock{m_data->mutex};
+
+    assert((m_data->state.status == sound_status::playing || m_data->state.status == sound_status::fading_in || m_data->state.status == sound_status::fading_out) && "swl::sound::pause() can only be called on playing or fading sound.");
+
+    snapshot();
+
     m_data->state.status = sound_status::paused;
 }
 
 void sound::resume()
 {
     std::lock_guard lock{m_data->mutex};
+
+    assert(m_data->state.status == sound_status::paused && "swl::sound::resume() can only be called on paused sound.");
+
+    snapshot();
+
     m_data->state.status = sound_status::playing;
 }
 
 void sound::fade_out(std::uint64_t samples)
 {
     std::lock_guard lock{m_data->mutex};
+
+    assert(m_data->state.status == sound_status::playing && "swl::sound::fade_out() can only be called on playing sound.");
+
+    snapshot();
+
     m_data->state.status = sound_status::fading_out;
     m_data->state.fading = samples;
 }
@@ -122,6 +153,16 @@ void sound::fade_out(std::uint64_t samples)
 void sound::fade_in(std::uint64_t samples)
 {
     std::lock_guard lock{m_data->mutex};
+
+    assert((m_data->state.status == sound_status::stopped || m_data->state.status == sound_status::paused) && "swl::sound::fade_in() can only be called on stopped or paused sound.");
+
+    snapshot();
+
+    if(m_data->state.status == sound_status::stopped)
+    {
+        start();
+    }
+
     m_data->state.status = sound_status::fading_in;
     m_data->state.fading = samples;
 }
@@ -129,12 +170,18 @@ void sound::fade_in(std::uint64_t samples)
 void sound::set_volume(float volume)
 {
     std::lock_guard lock{m_data->mutex};
+
+    snapshot();
+
     m_data->state.volume = get_volume_multiplier(volume);
 }
 
 void sound::set_loop_points(std::uint64_t begin_frame, std::uint64_t end_frame)
 {
     std::lock_guard lock{m_data->mutex};
+
+    snapshot();
+
     m_data->state.loop_begin = begin_frame * m_data->reader->channels_count();
     m_data->state.loop_end = end_frame * m_data->reader->channels_count();
 }
@@ -142,73 +189,101 @@ void sound::set_loop_points(std::uint64_t begin_frame, std::uint64_t end_frame)
 void sound::enable_spatialization()
 {
     std::lock_guard lock{m_data->mutex};
-    m_data->spatialization.enable = true;
+
+    snapshot();
+
+    m_data->state.spatialization.enable = true;
 }
 
 void sound::disable_spatialization()
 {
     std::lock_guard lock{m_data->mutex};
-    m_data->spatialization.enable = false;
+
+    snapshot();
+
+    m_data->state.spatialization.enable = false;
 }
 
 void sound::set_relative_spatialization()
 {
     std::lock_guard lock{m_data->mutex};
-    m_data->spatialization.relative = true;
+
+    snapshot();
+
+    m_data->state.spatialization.relative = true;
 }
 
 void sound::set_absolute_spatialization()
 {
     std::lock_guard lock{m_data->mutex};
-    m_data->spatialization.relative = false;
+
+    snapshot();
+
+    m_data->state.spatialization.relative = false;
 }
 
 void sound::set_minimum_distance(float distance)
 {
     std::lock_guard lock{m_data->mutex};
-    m_data->spatialization.minimum_distance = distance;
+
+    snapshot();
+
+    m_data->state.spatialization.minimum_distance = distance;
 }
 
 void sound::set_attenuation(float attenuation)
 {
     std::lock_guard lock{m_data->mutex};
-    m_data->spatialization.attenuation = attenuation;
+
+    snapshot();
+
+    m_data->state.spatialization.attenuation = attenuation;
 }
 
 void sound::move(float x, float y, float z)
 {
     std::lock_guard lock{m_data->mutex};
-    m_data->spatialization.position = impl::vec3{x, y, z};
+
+    snapshot();
+
+    m_data->state.spatialization.position = impl::vec3{x, y, z};
 }
 
 sound_status sound::status() const
 {
     std::lock_guard lock{m_data->mutex};
+
     return m_data->state.status;
+}
+
+void sound::snapshot()
+{
+    m_data->timeline.emplace_back(impl::sound_snapshot{m_data->state, clock::now()});
 }
 
 template<typename T>
 static float sgn(T value)
 {
-    return value >= T{} ? 1 : -1;
+    return value >= T{} ? 1.0f : -1.0f;
 }
 
-static inline float mix_amplitude(float value, std::size_t count) noexcept
+static float mix_amplitude(float value, std::size_t count) noexcept
 {
     return sgn(value) * (1.0f - std::pow(1.0f - std::abs(value), static_cast<float>(count)));
 }
 
-mixer::mixer(std::size_t frame_per_buffer, std::uint32_t channel_count, std::uint32_t frequency)
+mixer::mixer(std::size_t frame_per_buffer, std::uint32_t channel_count, std::uint32_t sample_rate, time_type minimum_latency)
 :m_buffer_size{frame_per_buffer}
 ,m_channel_count{channel_count}
-,m_frequency{frequency}
+,m_sample_rate{sample_rate}
+,m_minimum_latency{minimum_latency}
 ,m_data_future{m_data_promise.get_future()}
 ,m_next_future{m_next_promise.get_future()}
 ,m_running{true}
 ,m_ok{true}
 ,m_process_thread{&mixer::process, this}
 {
-
+    assert(m_minimum_latency >= std::chrono::milliseconds{1} && "swl::mixer latency must be greater than or equal to 1ms.");
 }
 
 mixer::~mixer()
@@ -251,7 +326,9 @@ void mixer::set_listener_direction(float x, float y, float z)
 impl::sound_data* mixer::make_sound()
 {
     std::lock_guard lock{m_mutex};
+
     m_sounds.push_back(std::make_unique<impl::sound_data>());
+
     return m_sounds.back().get();
 }
 
@@ -259,13 +336,52 @@ void mixer::process() noexcept
 {
     try
     {
-        while(m_running.load(std::memory_order_acquire))
+        sample_buffer_type output{};
+        output.resize(m_buffer_size * m_channel_count);
+
+        const auto flush = [this, &output]
         {
-            m_data_promise.set_value(mix_sounds(get_sounds_data()));
+            m_data_promise.set_value(output);
+            std::fill(std::begin(output), std::end(output), 0.0f);
+            m_buffered = 0;
 
             m_next_future.get();
             m_next_promise = std::promise<void>{};
             m_next_future = m_next_promise.get_future();
+        };
+
+        while(m_running.load(std::memory_order_acquire))
+        {
+            const clock::time_point now{clock::now()};
+            const time_type elapsed{std::chrono::duration_cast<time_type>(now - m_last_tick)};
+
+            if(elapsed >= m_minimum_latency)
+            {
+                const std::size_t frame_count{static_cast<std::size_t>(elapsed.count() * m_sample_rate)};
+                const auto data{mix_sounds(get_sounds_data(now, frame_count))};
+
+                if(m_buffered + std::size(data) > std::size(output))
+                {
+                    const std::size_t first_part{std::size(output) - m_buffered};
+                    std::copy(std::begin(data), std::begin(data) + first_part, std::begin(output) + m_buffered);
+
+                    flush();
+
+                    std::copy(std::begin(data) + first_part, std::end(data), std::begin(output));
+                    m_buffered += std::size(data) - first_part;
+                }
+                else
+                {
+                    std::copy(std::begin(data), std::end(data), std::begin(output) + m_buffered);
+                    m_buffered += std::size(data);
+                }
+
+                m_last_tick = clock::now();
+            }
+            else
+            {
+                std::this_thread::sleep_for(std::chrono::milliseconds{1});
+            }
         }
     }
     catch(...)
@@ -280,7 +396,7 @@ void mixer::process() noexcept
     }
 }
 
-std::vector<mixer::sample_buffer_type> mixer::get_sounds_data()
+std::vector<mixer::sample_buffer_type> mixer::get_sounds_data(clock::time_point now, std::size_t frame_count)
 {
     std::unique_lock lock{m_mutex};
 
@@ -293,18 +409,55 @@ std::vector<mixer::sample_buffer_type> mixer::get_sounds_data()
 
         try
         {
-            if(sound.state.status == sound_status::playing || sound.state.status == sound_status::fading_in || sound.state.status == sound_status::fading_out)
+            const std::uint32_t sound_channels{sound.reader->channels_count()};
+
+            sample_buffer_type sound_data{};
+
+            if(std::empty(sound.timeline)) //Nothing changed during elapsed time
             {
-                const auto sound_channels{sound.reader->channels_count()};
-
-                sample_buffer_type sound_data{};
-
-                sound_data = get_sound_data(sound, sound_channels);
-                sound_data = spatialize(sound, std::move(sound_data), sound_channels);
-                sound_data = apply_volume(sound, std::move(sound_data), sound_channels);
-
-                sounds_data.push_back(std::move(sound_data));
+                if(sound.state.status == sound_status::playing || sound.state.status == sound_status::fading_in || sound.state.status == sound_status::fading_out)
+                {
+                    sound_data = get_sound_data(sound, frame_count, sound_channels);
+                    sound_data = spatialize(sound, std::move(sound_data), sound_channels);
+                    sound_data = apply_volume(sound, std::move(sound_data), sound_channels);
+                }
             }
+            else
+            {
+                const impl::sound_state save_state{sound.state};
+                impl::sound_state current_state{sound.timeline.front().state};
+
+                const auto read = [this, &sound, &sound_data, &current_state, sound_channels](clock::time_point begin, clock::time_point end, const impl::sound_state& state)
+                {
+                    const time_type elapsed{std::chrono::duration_cast<time_type>(end - begin)};
+                    const std::size_t frame_count{static_cast<std::size_t>(elapsed.count() * m_sample_rate)};
+
+                    current_state.status = state.status;
+                    current_state.volume = state.volume;
+                    current_state.loop_begin = state.loop_begin;
+                    current_state.loop_end = state.loop_end;
+                    current_state.spatialization = state.spatialization;
+                    current_state.fading = state.fading;
+
+                    sound.state = current_state;
+
+                    sample_buffer_type data{get_sound_data(sound, frame_count, sound_channels)};
+                    sound_data = spatialize(sound, std::move(data), sound_channels);
+                    sound_data = apply_volume(sound, std::move(data), sound_channels);
+
+                    sound_data.insert(std::end(sound_data), std::begin(data), std::end(data));
+                };
+
+                sound_data.reserve(frame_count * sound_channels);
+
+                read(m_last_tick, sound.timeline.front().end, sound.timeline.front().state);
+                for(auto it{std::begin(sound.timeline) + 1}; it != std::end(sound.timeline); ++it)
+                {
+                    read((it - 1)->end, it->end, it->state);
+                }
+            }
+
+            sounds_data.push_back(std::move(sound_data));
         }
         catch(...)
         {
@@ -354,38 +507,39 @@ mixer::sample_buffer_type mixer::mix_sounds(const std::vector<sample_buffer_type
         }
 
         const float average{sum / static_cast<float>(std::size(sounds_data))};
+
         out_data[i] = mix_amplitude(average, std::size(sounds_data));
     }
 
     return out_data;
 }
 
-mixer::sample_buffer_type mixer::get_sound_data(impl::sound_data& sound, std::uint32_t channels)
+mixer::sample_buffer_type mixer::get_sound_data(impl::sound_data& sound, std::size_t frame_count, std::uint32_t channels)
 {
-    sample_buffer_type sound_data{};
-    sound_data.resize(m_buffer_size * channels);
+    sample_buffer_type output{};
+    output.resize(frame_count * channels);
 
-    if((sound.state.current_sample + m_buffer_size) > sound.state.loop_end) //Loop
+    if((sound.state.current_sample + frame_count) > sound.state.loop_end) //Loop
     {
         const std::uint64_t first_size = sound.state.loop_end - sound.state.current_sample;
-        sound.reader->read(std::data(sound_data), first_size);
+        sound.reader->read(std::data(output), first_size);
 
         sound.reader->seek(sound.state.loop_begin);
-        sound.reader->read(std::data(sound_data) + first_size, m_buffer_size - first_size);
+        sound.reader->read(std::data(output) + first_size, frame_count - first_size);
 
-        sound.state.current_sample = sound.state.loop_begin + (m_buffer_size - first_size);
+        sound.state.current_sample = sound.state.loop_begin + (frame_count - first_size);
     }
     else
     {
-        if(!sound.reader->read(std::data(sound_data), m_buffer_size))
+        if(!sound.reader->read(std::data(output), frame_count))
         {
             sound.state.status = sound_status::ended;
         }
 
-        sound.state.current_sample += m_buffer_size;
+        sound.state.current_sample += frame_count;
     }
 
-    return sound_data;
+    return output;
 }
 
 mixer::sample_buffer_type mixer::apply_volume(impl::sound_data& sound, sample_buffer_type data, std::uint32_t channels)
@@ -403,9 +557,11 @@ mixer::sample_buffer_type mixer::apply_volume(impl::sound_data& sound, sample_bu
             }
 
             const float fading_multiplier{get_volume_multiplier(fading_percent)};
+            const float multiplier{sound.state.volume * fading_multiplier};
+
             for(std::uint32_t j{}; j < channels; ++j)
             {
-                data[i + j] *= sound.state.volume * fading_multiplier;
+                data[i + j] *= multiplier;
             }
         }
 
@@ -426,14 +582,15 @@ mixer::sample_buffer_type mixer::spatialize(impl::sound_data& sound, sample_buff
 {
     if(channels != m_channel_count)
     {
-        if(channels == 1 && sound.spatialization.enable)
+        if(channels == 1 && sound.state.spatialization.enable)
         {
-            const glm::vec3 listener_position{m_position.x, m_position.y, m_position.z};
-            const glm::vec3 sound_position{sound.spatialization.relative ? listener_position + glm::vec3{sound.spatialization.position.x, sound.spatialization.position.y, sound.spatialization.position.z} : glm::vec3{sound.spatialization.position.x, sound.spatialization.position.y, sound.spatialization.position.z}};
+            const glm::vec3 listener_position{to_glm(m_position)};
+            const glm::vec3 sound_base_position{to_glm(sound.state.spatialization.position)};
+            const glm::vec3 sound_position{sound.state.spatialization.relative ? listener_position + sound_base_position : sound_base_position};
 
             const float distance{glm::distance(sound_position, listener_position)};
-            const float minimum{sound.spatialization.minimum_distance};
-            const float attenuation{sound.spatialization.attenuation};
+            const float minimum{sound.state.spatialization.minimum_distance};
+            const float attenuation{sound.state.spatialization.attenuation};
             const float factor{minimum / (minimum + attenuation * (std::max(distance, minimum) - minimum))};
 
             for(auto& sample : data)
@@ -446,14 +603,13 @@ mixer::sample_buffer_type mixer::spatialize(impl::sound_data& sound, sample_buff
                 return data;
             }
 
-            const glm::vec3 up{glm::normalize(glm::vec3{m_up.x, m_up.y, m_up.z})};
-            const glm::vec3 listener_direction{glm::normalize(glm::vec3{m_direction.x, m_direction.y, m_direction.z})};
+            const glm::vec3 up{glm::normalize(to_glm(m_up))};
+            const glm::vec3 listener_direction{glm::normalize(to_glm(m_direction))};
             const glm::vec3 sound_direction{sound_position == listener_position ? -listener_direction : glm::normalize(sound_position - listener_position)};
 
             const glm::vec3 cross{glm::cross(sound_direction, listener_direction)};
             const float determinant{glm::dot(up, cross)};
             const float dot{glm::dot(sound_direction, listener_direction)};
-
             const float angle{std::atan2(determinant, dot)};
             const float cosine{std::cos(angle - (pi<float> / 2.0f))};
 

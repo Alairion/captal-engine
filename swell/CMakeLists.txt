@@ -33,6 +33,7 @@ set(HEADERS
     "src/application.hpp"
     "src/physical_device.hpp"
     "src/mixer.hpp"
+    #"src/audio_world.hpp"
     "src/stream.hpp"
     "src/wave.hpp"
     "src/ogg.hpp"
@@ -41,6 +42,7 @@ set(HEADERS
 set(SOURCES
     "src/application.cpp"
     "src/mixer.cpp"
+    #"src/audio_world.cpp"
     "src/stream.cpp"
     "src/wave.cpp"
     "src/ogg.cpp"

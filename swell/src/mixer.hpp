@@ -7,9 +7,12 @@
 #include <thread>
 #include <mutex>
 #include <future>
+#include <chrono>
 
 namespace swl
 {
+
+using clock = std::chrono::steady_clock;
 
 enum class sound_reader_options : std::uint32_t
 {
@@ -118,15 +121,22 @@ struct sound_state
     std::uint64_t current_sample{};
     std::uint64_t loop_begin{};
     std::uint64_t loop_end{std::numeric_limits<std::uint64_t>::max()};
-    std::uint64_t fading{std::numeric_limits<std::uint64_t>::max()}; //Number of samples to fade out.
+    std::uint64_t fading{std::numeric_limits<std::uint64_t>::max()};
     std::uint64_t current_fading{};
+    sound_spatialization spatialization{};
+};
+
+struct sound_snapshot
+{
+    sound_state state{};
+    clock::time_point end{};
 };
 
 struct sound_data
 {
     sound_reader* reader{};
     sound_state state{};
-    sound_spatialization spatialization{};
+    std::vector<sound_snapshot> timeline{};
     std::mutex mutex{};
 };
 
@@ -150,13 +160,11 @@ public:
     void stop();
     void pause();
     void resume();
-
     void fade_out(std::uint64_t samples);
     void fade_in(std::uint64_t samples);
 
     void set_volume(float volume);
     void set_loop_points(std::uint64_t begin_frame, std::uint64_t end_frame);
-
     void enable_spatialization();
     void disable_spatialization();
     void set_relative_spatialization();
@@ -168,6 +176,9 @@ public:
     sound_status status() const;
 
 private:
+    void snapshot();
+
+private:
     impl::sound_data* m_data{};
 };
 
@@ -177,7 +188,7 @@ public:
     using sample_buffer_type = std::vector<float>;
 
 public:
-    mixer(std::size_t frame_per_buffer, std::uint32_t channel_count, std::uint32_t frequency);
+    mixer(std::size_t frame_per_buffer, std::uint32_t channel_count, std::uint32_t sample_rate, time_type minimum_latency = time_type{0.002});
     ~mixer();
     mixer(const mixer&) = delete;
     mixer& operator=(const mixer&) = delete;
@@ -201,9 +212,9 @@ public:
         return m_channel_count;
     }
 
-    std::uint32_t frequency() const noexcept
+    std::uint32_t sample_rate() const noexcept
     {
-        return m_frequency;
+        return m_sample_rate;
     }
 
     bool is_ok() const noexcept
@@ -213,18 +224,20 @@ public:
 
 private:
     void process() noexcept;
-    std::vector<sample_buffer_type> get_sounds_data();
-    void free_sounds();
-    sample_buffer_type mix_sounds(const std::vector<sample_buffer_type>& sounds_data);
 
-    sample_buffer_type get_sound_data(impl::sound_data& sound, std::uint32_t channels);
+    std::vector<sample_buffer_type> get_sounds_data(std::chrono::steady_clock::time_point now, std::size_t frame_count);
+    sample_buffer_type get_sound_data(impl::sound_data& sound, std::size_t frame_count, std::uint32_t channels);
     sample_buffer_type apply_volume(impl::sound_data& sound, sample_buffer_type data, std::uint32_t channels);
     sample_buffer_type spatialize(impl::sound_data& sound, sample_buffer_type data, std::uint32_t channels);
+    sample_buffer_type mix_sounds(const std::vector<sample_buffer_type>& sounds_data);
+
+    void free_sounds();
 
 private:
     std::size_t m_buffer_size{};
     std::uint32_t m_channel_count{};
-    std::uint32_t m_frequency{};
+    std::uint32_t m_sample_rate{};
+    time_type m_minimum_latency{};
     impl::vec3 m_position{0.0f, 0.0f, 0.0f};
     impl::vec3 m_up{0.0f, 1.0f, 0.0f};
     impl::vec3 m_direction{0.0f, 0.0f, 1.0f};
@@ -237,6 +250,8 @@ private:
     std::atomic<bool> m_ok{};
     std::mutex m_mutex{};
     std::thread m_process_thread{};
+    clock::time_point m_last_tick{clock::now()};
+    std::size_t m_buffered{};
 };
 
 }

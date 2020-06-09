@@ -183,10 +183,10 @@ struct stencil_op_description
 struct pipeline_depth_stencil
 {
     bool depth_test{};
-    bool depth_write{true};
+    bool depth_write{};
     bool stencil_test{};
     bool depth_bounds_test{};
-    compare_op depth_compare_op{compare_op::less_or_equal};
+    compare_op depth_compare_op{compare_op::less};
     stencil_op_description front{};
     stencil_op_description back{};
     float min_depth_bounds{0.0f};
