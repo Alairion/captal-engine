@@ -43,12 +43,12 @@ public:
     wave_reader(wave_reader&& other) noexcept = default;
     wave_reader& operator=(wave_reader&& other) noexcept = default;
 
-protected:
-    bool read_samples(float* output, std::size_t frame_count) override;
-    void seek_samples(std::uint64_t frame_offset) override;
-    std::uint64_t get_frame_count() override;
-    std::uint32_t get_frequency() override;
-    std::uint32_t get_channels() override;
+    bool read(float* output, std::size_t frame_count) override;
+    void seek(std::uint64_t frame_offset) override;
+    std::uint64_t tell() override;
+    std::uint64_t frame_count() override;
+    std::uint32_t frequency() override;
+    std::uint32_t channel_count() override;
 
 private:
     void read_header(const std::array<char, 44>& data);

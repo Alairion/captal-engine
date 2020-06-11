@@ -2,6 +2,10 @@
 
 #include "texture.hpp"
 
+#ifdef CAPTAL_DEBUG
+    #include <iostream>
+#endif
+
 namespace cpt
 {
 
@@ -24,7 +28,7 @@ engine* engine::m_instance{nullptr};
 engine::engine(const std::string& application_name, cpt::version version)
 :m_application{application_name, version}
 ,m_audio_device{m_application.audio_application().default_device()}
-,m_audio_mixer{m_audio_device.default_low_latency_buffer_size(), std::min(m_audio_device.max_output_channel(), 2u), m_audio_device.default_sample_rate()}
+,m_audio_mixer{m_audio_device.default_sample_rate(), std::min(m_audio_device.max_output_channel(), 2u)}
 ,m_audio_stream{m_application.audio_application(), m_audio_device, m_audio_mixer}
 ,m_graphics_device{m_application.graphics_application().default_physical_device()}
 ,m_renderer{m_application.graphics_application(), m_graphics_device}
@@ -96,20 +100,15 @@ static const tph::physical_device& default_graphics_device(const tph::applicatio
 }
 
 engine::engine(const std::string& application_name, cpt::version version, const audio_parameters& audio, const graphics_parameters& graphics)
-:m_application{application_name, version}
-,m_audio_device{default_audio_device(m_application.audio_application(), audio)}
-,m_audio_mixer{m_audio_device.default_low_latency_buffer_size(audio.frequency), audio.channel_count, audio.frequency}
-,m_audio_stream{m_application.audio_application(), m_audio_device, m_audio_mixer}
-,m_graphics_device{default_graphics_device(m_application.graphics_application(), graphics)}
-,m_renderer{m_application.graphics_application(), m_graphics_device, graphics.options, graphics.features}
+:engine{cpt::application{application_name, version}, audio, graphics}
 {
-    init();
+
 }
 
 engine::engine(cpt::application application, const audio_parameters& audio, const graphics_parameters& graphics)
 :m_application{std::move(application)}
 ,m_audio_device{default_audio_device(m_application.audio_application(), audio)}
-,m_audio_mixer{m_audio_device.default_low_latency_buffer_size(audio.frequency), audio.channel_count, audio.frequency}
+,m_audio_mixer{audio.frequency, audio.channel_count}
 ,m_audio_stream{m_application.audio_application(), m_audio_device, m_audio_mixer}
 ,m_graphics_device{default_graphics_device(m_application.graphics_application(), graphics)}
 ,m_renderer{m_application.graphics_application(), m_graphics_device, graphics.options, graphics.features}
@@ -120,6 +119,7 @@ engine::engine(cpt::application application, const audio_parameters& audio, cons
 engine::~engine()
 {
     m_renderer.wait();
+    m_instance = nullptr;
 }
 
 void engine::remove_window(render_window_ptr window)
@@ -220,18 +220,74 @@ bool engine::run()
 
 void engine::init()
 {
+    assert(!m_instance && "Can not create a new engine if one already exists.");
+
     m_instance = this;
 
-    m_audio_mixer.set_up(0.0f, 0.0f, 1.0f);
-    m_audio_mixer.set_listener_direction(0.0f, 1.0f, 0.0f);
+    m_audio_mixer.set_up(glm::vec3{0.0f, 0.0f, 1.0f});
+    m_audio_mixer.set_listener_direction(glm::vec3{0.0f, 1.0f, 0.0f});
     m_audio_stream.start();
 
     m_transfer_pool = tph::command_pool{m_renderer};
-
     m_default_vertex_shader = tph::shader{m_renderer, tph::shader_stage::vertex, std::string_view{default_vertex_shader_spv, std::size(default_vertex_shader_spv) - 1}};
     m_default_fragment_shader = tph::shader{m_renderer, tph::shader_stage::fragment, std::string_view{default_fragment_shader_spv, std::size(default_fragment_shader_spv) - 1}};
-
     m_default_texture = texture{1, 1, std::data(default_texture_data), tph::sampling_options{tph::filter::nearest, tph::filter::nearest, tph::address_mode::repeat}};
+
+#ifdef CAPTAL_DEBUG
+    const auto format_uuid = [](const std::array<std::uint8_t, 16>& uuid)
+    {
+        std::stringstream ss{};
+        ss << std::hex << std::setfill('0');
+
+        for(std::size_t i{}; i < std::size(uuid); ++i)
+        {
+            if(i == 4 || i == 6 || i == 8 || i == 10)
+            {
+                ss << '-';
+            }
+
+            ss << std::setw(2) << static_cast<std::uint32_t>(uuid[i]);
+        }
+
+        return ss.str();
+    };
+
+    const auto format_data = [](std::size_t amount)
+    {
+        std::stringstream ss{};
+        ss << std::setprecision(2);
+
+        if(amount < 1024)
+        {
+            ss << amount << " o";
+        }
+        else if(amount < 1024 * 1024)
+        {
+            ss << std::fixed << static_cast<double>(amount) / 1024.0 << " kio";
+        }
+        else
+        {
+            ss << std::fixed << static_cast<double>(amount) / (1024.0 * 1024.0) << " Mio";
+        }
+
+        return ss.str();
+    };
+
+    std::cout << "Captal engine initialized.\n";
+
+    std::cout << "  Audio device: " << m_audio_device.name() << "\n";
+    std::cout << "  | Channels: " << m_audio_mixer.channel_count() << "\n";
+    std::cout << "  | Sample rate: " << m_audio_mixer.sample_rate() << "Hz\n";
+    std::cout << "  | Output latency: " << m_audio_device.default_low_output_latency().count() << "s\n";
+    std::cout << "  Graphics device: " << m_graphics_device.properties().name << "\n";
+    std::cout << "  | Pipeline Cache UUID: " << format_uuid(m_graphics_device.properties().uuid) << "\n";
+    std::cout << "  | Heap sizes:\n";
+    std::cout << "    | Host shared: " << format_data(m_renderer.allocator().default_heap_sizes().host_shared) << "\n";
+    std::cout << "    | Device shared: " << format_data(m_renderer.allocator().default_heap_sizes().device_shared) << "\n";
+    std::cout << "    | Device local: " << format_data(m_renderer.allocator().default_heap_sizes().device_local) << "\n";
+
+    std::cout << std::flush;
+#endif
 }
 
 void engine::update_window()

@@ -1,6 +1,7 @@
 #include "stream.hpp"
 
 #include <stdexcept>
+#include <iostream>
 
 #include <portaudio.h>
 
@@ -12,13 +13,22 @@ namespace swl
 namespace impl
 {
 
-int callback(const void*, void* output, unsigned long, const PaStreamCallbackTimeInfo*, unsigned long, void* user_data)
+int callback(const void*, void* output, unsigned long frame_count, const PaStreamCallbackTimeInfo*, unsigned long, void* user_data)
 {
-    const auto data{static_cast<mixer*>(user_data)->next()};
+    auto& mixer{*static_cast<swl::mixer*>(user_data)};
 
-    std::copy(std::begin(data), std::end(data), static_cast<float*>(output));
+    try
+    {
+        mixer.next(static_cast<float*>(output), static_cast<std::size_t>(frame_count));
+    }
+    catch(const std::exception& e)
+    {
+        std::cerr << "Audio stream aborted. " << e.what() << std::endl;
 
-    return static_cast<mixer*>(user_data)->is_ok() ? paContinue : paAbort;
+        return paAbort;
+    }
+
+    return mixer.is_ok() ? paContinue : paAbort;
 }
 
 }
@@ -29,9 +39,9 @@ stream::stream(application& application [[maybe_unused]], const physical_device&
     output_info.device = physical_device.id();
     output_info.channelCount = mixer.channel_count();
     output_info.sampleFormat = paFloat32;
-    output_info.suggestedLatency = static_cast<double>(mixer.frame_per_buffer()) / static_cast<double>(mixer.sample_rate());
+    output_info.suggestedLatency = physical_device.default_low_output_latency().count();
 
-    if(auto err{Pa_OpenStream(&m_stream, nullptr, &output_info, static_cast<double>(mixer.sample_rate()), static_cast<std::uint32_t>(mixer.frame_per_buffer()), 0, &impl::callback, &mixer)}; err != paNoError)
+    if(auto err{Pa_OpenStream(&m_stream, nullptr, &output_info, static_cast<double>(mixer.sample_rate()), 0, 0, &impl::callback, &mixer)}; err != paNoError)
         throw std::runtime_error{"Can not open audio stream (" + std::string{Pa_GetErrorText(err)} + "; Host: " + std::to_string(Pa_GetLastHostErrorInfo()->hostApiType) + "; Error: " + std::to_string(Pa_GetLastHostErrorInfo()->errorCode) + "; Decription: " +  Pa_GetLastHostErrorInfo()->errorText + ")"};
 }
 

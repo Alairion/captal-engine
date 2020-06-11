@@ -22,8 +22,8 @@ application::application()
         {
             i,
             static_cast<std::uint32_t>(device->maxOutputChannels),
-            physical_device::time_type{device->defaultLowOutputLatency},
-            physical_device::time_type{device->defaultHighOutputLatency},
+            time_type{device->defaultLowOutputLatency},
+            time_type{device->defaultHighOutputLatency},
             static_cast<std::uint32_t>(device->defaultSampleRate),
             device->name
         };

@@ -158,7 +158,7 @@ wave_reader::wave_reader(std::istream& stream, sound_reader_options options)
     m_stream = &stream;
 }
 
-bool wave_reader::read_samples(float* output, std::size_t frame_count)
+bool wave_reader::read(float* output, std::size_t frame_count)
 {
     if(static_cast<bool>(m_options & sound_reader_options::buffered))
     {
@@ -176,7 +176,7 @@ bool wave_reader::read_samples(float* output, std::size_t frame_count)
     return false;
 }
 
-void wave_reader::seek_samples(std::uint64_t frame_offset)
+void wave_reader::seek(std::uint64_t frame_offset)
 {
     m_current_frame = static_cast<std::uint32_t>(frame_offset);
 
@@ -192,17 +192,22 @@ void wave_reader::seek_samples(std::uint64_t frame_offset)
     }
 }
 
-std::uint64_t wave_reader::get_frame_count()
+std::uint64_t wave_reader::tell()
+{
+    return static_cast<std::uint64_t>(m_current_frame);
+}
+
+std::uint64_t wave_reader::frame_count()
 {
     return m_header.data_size / (m_header.bits_per_sample / 8u) / m_header.channel_count;
 }
 
-std::uint32_t wave_reader::get_frequency()
+std::uint32_t wave_reader::frequency()
 {
     return m_header.frequency;
 }
 
-std::uint32_t wave_reader::get_channels()
+std::uint32_t wave_reader::channel_count()
 {
     return static_cast<std::uint32_t>(m_header.channel_count);
 }

@@ -9,14 +9,14 @@
 namespace cpt
 {
 
-class CAPTAL_API sound : swl::sound_file_reader, swl::sound
+class CAPTAL_API sound : swl::sound
 {
 public:
     sound();
     sound(const std::filesystem::path& file, swl::sound_reader_options options = swl::sound_reader_options::none);
     sound(const std::string_view& data, swl::sound_reader_options options = swl::sound_reader_options::none);
     sound(std::istream& stream, swl::sound_reader_options options = swl::sound_reader_options::none);
-    sound(swl::sound_file_reader reader);
+    sound(std::unique_ptr<swl::sound_reader> reader);
 
     ~sound() = default;
     sound(const sound&) = delete;
@@ -28,49 +28,34 @@ public:
     using swl::sound::stop;
     using swl::sound::pause;
     using swl::sound::resume;
-
     using swl::sound::fade_out;
     using swl::sound::fade_in;
 
     using swl::sound::set_volume;
     using swl::sound::set_loop_points;
-
     using swl::sound::enable_spatialization;
     using swl::sound::disable_spatialization;
-    using swl::sound::set_relative_spatialization;
-    using swl::sound::set_absolute_spatialization;
+    using swl::sound::relative_spatialization;
+    using swl::sound::absolute_spatialization;
     using swl::sound::set_minimum_distance;
     using swl::sound::set_attenuation;
     using swl::sound::move;
+    using swl::sound::move_to;
+    using swl::sound::change_reader;
 
     using swl::sound::status;
+    using swl::sound::volume;
+    using swl::sound::loop_points;
+    using swl::sound::is_spatialization_enabled;
+    using swl::sound::is_spatialization_relative;
+    using swl::sound::minimum_distance;
+    using swl::sound::attenuation;
+    using swl::sound::position;
+    using swl::sound::tell;
+    using swl::sound::reader;
 
-    using swl::sound_reader::seek;
-
-    template<typename Rep, typename Period>
-    void fade_in(std::chrono::duration<Rep, Period> time)
-    {
-        fade_in(static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::duration<double>>(time).count() * frequency()));
-    }
-
-    template<typename Rep, typename Period>
-    void fade_out(std::chrono::duration<Rep, Period> time)
-    {
-        fade_out(static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::duration<double>>(time).count() * frequency()));
-    }
-
-    template<typename Rep1, typename Period1, typename Rep2, typename Period2>
-    void set_loop_points(std::chrono::duration<Rep1, Period1> begin, std::chrono::duration<Rep2, Period2> end)
-    {
-        set_loop_points(static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::duration<double>>(begin).count() * frequency()),
-                        static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::duration<double>>(end).count() * frequency()));
-    }
-
-    template<typename Rep, typename Period>
-    void seek(std::chrono::duration<Rep, Period> time)
-    {
-        seek(static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::duration<double>>(time).count() * frequency()));
-    }
+    using swl::sound::frames_to_time;
+    using swl::sound::time_to_frame;
 
     swl::sound& get_sound() noexcept
     {
@@ -78,16 +63,6 @@ public:
     }
 
     const swl::sound& get_sound() const noexcept
-    {
-        return *this;
-    }
-
-    swl::sound_file_reader& get_sound_file_reader() noexcept
-    {
-        return *this;
-    }
-
-    const swl::sound_file_reader& get_sound_file_reader() const noexcept
     {
         return *this;
     }

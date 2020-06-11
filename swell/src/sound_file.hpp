@@ -29,30 +29,34 @@ public:
     sound_file_reader(sound_file_reader&& other) noexcept = default;
     sound_file_reader& operator=(sound_file_reader&& other) noexcept = default;
 
-protected:
-    virtual bool read_samples(float* output, std::size_t frame_count)
+    bool read(float* output, std::size_t frame_count) override
     {
         return m_reader->read(output, frame_count);
     }
 
-    virtual void seek_samples(std::uint64_t frame_offset)
+    void seek(std::uint64_t frame_offset) override
     {
         m_reader->seek(frame_offset);
     }
 
-    virtual std::uint64_t get_frame_count()
+    std::uint64_t tell() override
+    {
+        return m_reader->tell();
+    }
+
+    std::uint64_t frame_count() override
     {
         return m_reader->frame_count();
     }
 
-    virtual std::uint32_t get_frequency()
+    std::uint32_t frequency() override
     {
         return m_reader->frequency();
     }
 
-    virtual std::uint32_t get_channels()
+    std::uint32_t channel_count() override
     {
-        return m_reader->channels_count();
+        return m_reader->channel_count();
     }
 
 private:

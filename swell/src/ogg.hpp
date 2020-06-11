@@ -39,13 +39,14 @@ public:
     ogg_reader(ogg_reader&& other) noexcept = default;
     ogg_reader& operator=(ogg_reader&& other) noexcept = default;
 
-protected:
-    bool read_samples(float* output, std::size_t frame_count) override;
-    void seek_samples(std::uint64_t frame_offset) override;
-    std::uint64_t get_frame_count() override;
-    std::uint32_t get_frequency() override;
-    std::uint32_t get_channels() override;
+    bool read(float* output, std::size_t frame_count) override;
+    void seek(std::uint64_t frame_offset) override;
+    std::uint64_t tell() override;
+    std::uint64_t frame_count() override;
+    std::uint32_t frequency() override;
+    std::uint32_t channel_count() override;
 
+private:
     void fill_buffer();
     void close();
 

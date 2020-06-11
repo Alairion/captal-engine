@@ -19,8 +19,7 @@ static void update_listener(entt::registry& world)
     {
         if(node.is_updated())
         {
-            engine::instance().audio_mixer().move_listener(node.position().x, node.position().y, node.position().z);
-            //engine::instance().audio_mixer().set_listener_direction();
+            engine::instance().audio_mixer().move_listener_to(node.position());
         }
     });
 }
@@ -33,7 +32,7 @@ static void update_emiters(entt::registry& world)
         {
             if(emiter.attachment())
             {
-                emiter.attachment()->move(node.position().x, node.position().y, node.position().z);
+                emiter.attachment()->move_to(node.position());
             }
         }
     });

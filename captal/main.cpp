@@ -43,8 +43,7 @@ public:
     sawtooth_generator(sawtooth_generator&& other) noexcept = default;
     sawtooth_generator& operator=(sawtooth_generator&& other) noexcept = default;
 
-protected:
-    bool read_samples(float* output, std::size_t frame_count) override
+    bool read(float* output, std::size_t frame_count) override
     {
         for(std::size_t i{}; i < frame_count; ++i)
         {
@@ -59,17 +58,17 @@ protected:
         return true;
     }
 
-    std::uint64_t get_frame_count() override
+    std::uint64_t frame_count() override
     {
         return std::numeric_limits<std::uint64_t>::max();
     }
 
-    std::uint32_t get_frequency() override
+    std::uint32_t frequency() override
     {
         return m_frequency;
     }
 
-    std::uint32_t get_channels() override
+    std::uint32_t channel_count() override
     {
         return m_channels;
     }
@@ -140,7 +139,7 @@ static entt::entity add_physics(entt::registry& world, const cpt::physical_world
     world.assign<cpt::components::node>(player, glm::vec3{320.0f, 240.0f, 0.5f}, glm::vec3{16.0f, 16.0f, 0.0f});
     world.assign<cpt::components::drawable>(player, cpt::make_sprite(32, 32, cpt::colors::red));
     world.assign<cpt::components::physical_body>(player, player_physical_body).add_shape(32.0f, 32.0f)->set_collision_type(player_type);
-    world.assign<cpt::components::audio_emiter>(player, cpt::make_sound(swl::sound_file_reader{std::make_unique<sawtooth_generator>(44100, 2, 240)}))->set_volume(0.5f);
+    world.assign<cpt::components::audio_emiter>(player, cpt::make_sound(std::make_unique<sawtooth_generator>(44100, 2, 240)))->set_volume(0.5f);
     auto& controller{world.assign<cpt::components::controller>(player, cpt::physical_body_weak_ptr{player_physical_body})};
 
     auto& pivot{controller.add_constraint(cpt::pivot_joint, glm::vec2{}, glm::vec2{})};

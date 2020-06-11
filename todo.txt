@@ -13,9 +13,8 @@ L: Multiple applications/renderer support
 I: Multiple queue support ? (maybe overkill for 2D, but may be useful for 3D (since tephra is becoming a generic renderer))
 
 Swell:
-H: Rework mixer
-L: Rewrite audio stream to reduce the number of internal threads by 1 (write to the stream without using port audio callback)
-L: Support other platforms (as of 18 may 2020 only Win32/OSX/Linux are supported)
+A: Rework mixer (already a bit reworked, but not the definitive one)
+L: Support other platforms (as of 18 may 2020 only Win32/OSX/Linux are supported (Portaudio limitation))
 L: Custom exception type
 
 Apyre:

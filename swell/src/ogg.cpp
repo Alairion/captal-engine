@@ -170,7 +170,7 @@ ogg_reader::~ogg_reader()
         ov_clear(m_vorbis.get());
 }
 
-bool ogg_reader::read_samples(float* output, std::size_t frame_count)
+bool ogg_reader::read(float* output, std::size_t frame_count)
 {
     if(static_cast<bool>(m_options & sound_reader_options::buffered))
     {
@@ -184,7 +184,7 @@ bool ogg_reader::read_samples(float* output, std::size_t frame_count)
     return false;
 }
 
-void ogg_reader::seek_samples(std::uint64_t frame_offset)
+void ogg_reader::seek(std::uint64_t frame_offset)
 {
     if(static_cast<bool>(m_options & sound_reader_options::buffered))
     {
@@ -197,17 +197,29 @@ void ogg_reader::seek_samples(std::uint64_t frame_offset)
     }
 }
 
-std::uint64_t ogg_reader::get_frame_count()
+std::uint64_t ogg_reader::tell()
+{
+    if(static_cast<bool>(m_options & sound_reader_options::buffered))
+    {
+        return static_cast<std::uint64_t>(m_current_frame);
+    }
+    else
+    {
+        return ov_pcm_tell(m_vorbis.get());
+    }
+}
+
+std::uint64_t ogg_reader::frame_count()
 {
     return m_frame_count;
 }
 
-std::uint32_t ogg_reader::get_frequency()
+std::uint32_t ogg_reader::frequency()
 {
     return m_frequency;
 }
 
-std::uint32_t ogg_reader::get_channels()
+std::uint32_t ogg_reader::channel_count()
 {
     return static_cast<std::uint32_t>(m_channel_count);
 }
