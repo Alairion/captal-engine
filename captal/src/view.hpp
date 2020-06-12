@@ -43,19 +43,9 @@ public:
     view(view&&) noexcept = default;
     view& operator=(view&&) noexcept = default;
 
-    void set_viewport(float x, float y, float width, float height, float min_depth, float max_depth) noexcept
-    {
-        m_viewport = tph::viewport{x, y, width, height, min_depth, max_depth};
-    }
-
     void set_viewport(const tph::viewport& viewport) noexcept
     {
         m_viewport = viewport;
-    }
-
-    void set_scissor(std::int32_t x, std::int32_t y, std::uint32_t width, std::uint32_t height) noexcept
-    {
-        m_scissor = tph::scissor{x, y, width, height};
     }
 
     void set_scissor(const tph::scissor& scissor) noexcept
@@ -66,91 +56,67 @@ public:
     void move_to(const glm::vec3& position) noexcept
     {
         m_position = position;
-        m_need_upload = true;
-    }
-
-    void move_to(float x, float y, float z = 1.0f) noexcept
-    {
-        m_position = glm::vec3{x, y, z};
-        m_need_upload = true;
+        update();
     }
 
     void move(const glm::vec3& relative) noexcept
     {
         m_position += relative;
-        m_need_upload = true;
-    }
-
-    void move(float x, float y, float z = 0.0f) noexcept
-    {
-        m_position += glm::vec3{x, y, z};
-        m_need_upload = true;
+        update();
     }
 
     void set_origin(const glm::vec3& origin) noexcept
     {
         m_origin = origin;
-        m_need_upload = true;
-    }
-
-    void set_origin(float x, float y, float z = 0.0f) noexcept
-    {
-        m_origin = glm::vec3{x, y, z};
-        m_need_upload = true;
+        update();
     }
 
     void move_origin(const glm::vec3& relative) noexcept
     {
         m_origin += relative;
-        m_need_upload = true;
-    }
-
-    void move_origin(float x, float y, float z = 0.0f) noexcept
-    {
-        m_origin += glm::vec3{x, y, z};
-        m_need_upload = true;
+        update();
     }
 
     void resize(float witdh, float height) noexcept
     {
         m_size = glm::vec2{witdh, height};
-        m_need_upload = true;
+        update();
     }
 
     void set_z_near(float z_near) noexcept
     {
         m_z_near = z_near;
-        m_need_upload = true;
+        update();
     }
 
     void set_z_far(float z_far) noexcept
     {
         m_z_far = z_far;
-        m_need_upload = true;
+        update();
     }
 
     void set_rotation(float angle) noexcept
     {
         m_rotation = angle;
-        m_need_upload = true;
+        update();
     }
 
     void rotate(float angle) noexcept
     {
         m_rotation = std::fmod(m_rotation + angle, pi<float> * 2.0f);
-        m_need_upload = true;
+        update();
     }
 
     void set_scale(float scale) noexcept
     {
         m_scale = scale;
-        m_need_upload = true;
+        update();
     }
 
     void scale(float scale) noexcept
     {
         m_scale *= scale;
-        m_need_upload = true;
+        update();
     }
 
     void set_render_technique(render_technique_ptr technique) noexcept
@@ -207,11 +173,6 @@ public:
     const glm::vec3& origin() const noexcept
     {
         return m_origin;
-    }
-
-    const glm::vec2& size() const noexcept
-    {
-        return m_size;
     }
 
     float width() const noexcept

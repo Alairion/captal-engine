@@ -346,10 +346,10 @@ text_ptr text_drawer::draw(const std::string_view& string, const color& color)
             current_y += m_font.info().line_height;
             last = 0;
 
-            vertices.push_back(vertex{});
-            vertices.push_back(vertex{});
-            vertices.push_back(vertex{});
-            vertices.push_back(vertex{});
+            vertices.emplace_back(vertex{});
+            vertices.emplace_back(vertex{});
+            vertices.emplace_back(vertex{});
+            vertices.emplace_back(vertex{});
         }
         else
         {
@@ -367,10 +367,10 @@ text_ptr text_drawer::draw(const std::string_view& string, const color& color)
                 const float x{current_x + glyph.origin.x + kerning};
                 const float y{current_y + glyph.origin.y};
 
-                vertices.push_back(vertex{{x, y, 0.0f}, static_cast<glm::vec4>(color), {(texture_pos.x) / texture_width, (texture_pos.y) / texture_height}});
-                vertices.push_back(vertex{{x + width, y, 0.0f}, static_cast<glm::vec4>(color), {(texture_pos.x + width) / texture_width, (texture_pos.y) / texture_height}});
-                vertices.push_back(vertex{{x + width, y + height, 0.0f}, static_cast<glm::vec4>(color), {(texture_pos.x + width) / texture_width, (texture_pos.y + height) / texture_height}});
-                vertices.push_back(vertex{{x, y + height, 0.0f}, static_cast<glm::vec4>(color), {(texture_pos.x) / texture_width, (texture_pos.y + height) / texture_height}});
+                vertices.emplace_back(vertex{{x, y, 0.0f}, static_cast<glm::vec4>(color), {(texture_pos.x) / texture_width, (texture_pos.y) / texture_height}});
+                vertices.emplace_back(vertex{{x + width, y, 0.0f}, static_cast<glm::vec4>(color), {(texture_pos.x + width) / texture_width, (texture_pos.y) / texture_height}});
+                vertices.emplace_back(vertex{{x + width, y + height, 0.0f}, static_cast<glm::vec4>(color), {(texture_pos.x + width) / texture_width, (texture_pos.y + height) / texture_height}});
+                vertices.emplace_back(vertex{{x, y + height, 0.0f}, static_cast<glm::vec4>(color), {(texture_pos.x) / texture_width, (texture_pos.y + height) / texture_height}});
 
                 lowest_x = std::min(lowest_x, x);
                 lowest_y = std::min(lowest_y, y);
@@ -379,10 +379,10 @@ text_ptr text_drawer::draw(const std::string_view& string, const color& color)
             }
             else
             {
-                vertices.push_back(vertex{});
-                vertices.push_back(vertex{});
-                vertices.push_back(vertex{});
-                vertices.push_back(vertex{});
+                vertices.emplace_back(vertex{});
+                vertices.emplace_back(vertex{});
+                vertices.emplace_back(vertex{});
+                vertices.emplace_back(vertex{});
             }
 
             current_x += glyph.advance;
@@ -399,12 +399,12 @@ text_ptr text_drawer::draw(const std::string_view& string, const color& color)
     {
         const std::size_t shift{i * 4};
 
-        indices.push_back(static_cast<std::uint32_t>(shift + 0));
-        indices.push_back(static_cast<std::uint32_t>(shift + 1));
-        indices.push_back(static_cast<std::uint32_t>(shift + 2));
-        indices.push_back(static_cast<std::uint32_t>(shift + 2));
-        indices.push_back(static_cast<std::uint32_t>(shift + 3));
-        indices.push_back(static_cast<std::uint32_t>(shift + 0));
+        indices.emplace_back(static_cast<std::uint32_t>(shift + 0));
+        indices.emplace_back(static_cast<std::uint32_t>(shift + 1));
+        indices.emplace_back(static_cast<std::uint32_t>(shift + 2));
+        indices.emplace_back(static_cast<std::uint32_t>(shift + 2));
+        indices.emplace_back(static_cast<std::uint32_t>(shift + 3));
+        indices.emplace_back(static_cast<std::uint32_t>(shift + 0));
     }
 
     const glm::vec3 shift{-lowest_x, -lowest_y, 0.0f};
@@ -441,10 +441,10 @@ text_ptr text_drawer::draw(const std::string_view& string, std::uint32_t line_wi
         state.current_x = 0.0f;
         state.current_y += m_font.info().line_height;
 
-        vertices.push_back(vertex{});
-        vertices.push_back(vertex{});
-        vertices.push_back(vertex{});
-        vertices.push_back(vertex{});
+        vertices.emplace_back(vertex{});
+        vertices.emplace_back(vertex{});
+        vertices.emplace_back(vertex{});
+        vertices.emplace_back(vertex{});
     }
 
     signal.connect([cache = std::move(cache), texture](){});
@@ -455,12 +455,12 @@ text_ptr text_drawer::draw(const std::string_view& string, std::uint32_t line_wi
     {
         const std::size_t shift{i * 4};
 
-        indices.push_back(static_cast<std::uint32_t>(shift + 0));
-        indices.push_back(static_cast<std::uint32_t>(shift + 1));
-        indices.push_back(static_cast<std::uint32_t>(shift + 2));
-        indices.push_back(static_cast<std::uint32_t>(shift + 2));
-        indices.push_back(static_cast<std::uint32_t>(shift + 3));
-        indices.push_back(static_cast<std::uint32_t>(shift + 0));
+        indices.emplace_back(static_cast<std::uint32_t>(shift + 0));
+        indices.emplace_back(static_cast<std::uint32_t>(shift + 1));
+        indices.emplace_back(static_cast<std::uint32_t>(shift + 2));
+        indices.emplace_back(static_cast<std::uint32_t>(shift + 2));
+        indices.emplace_back(static_cast<std::uint32_t>(shift + 3));
+        indices.emplace_back(static_cast<std::uint32_t>(shift + 0));
     }
 
     const glm::vec3 shift{-state.lowest_x, -state.lowest_y, 0.0f};
@@ -514,10 +514,10 @@ void text_drawer::draw_line(const std::string_view& line, std::uint32_t line_wid
                     const float x{state.current_x + glyph.origin.x + kerning};
                     const float y{state.current_y + glyph.origin.y};
 
-                    vertices.push_back(vertex{{x, y, 0.0f}, static_cast<glm::vec4>(color), {(texture_pos.x) / state.texture_width, (texture_pos.y) / state.texture_height}});
-                    vertices.push_back(vertex{{x + width, y, 0.0f}, static_cast<glm::vec4>(color), {(texture_pos.x + width) / state.texture_width, (texture_pos.y) / state.texture_height}});
-                    vertices.push_back(vertex{{x + width, y + height, 0.0f}, static_cast<glm::vec4>(color), {(texture_pos.x + width) / state.texture_width, (texture_pos.y + height) / state.texture_height}});
-                    vertices.push_back(vertex{{x, y + height, 0.0f}, static_cast<glm::vec4>(color), {(texture_pos.x) / state.texture_width, (texture_pos.y + height) / state.texture_height}});
+                    vertices.emplace_back(vertex{{x, y, 0.0f}, static_cast<glm::vec4>(color), {(texture_pos.x) / state.texture_width, (texture_pos.y) / state.texture_height}});
+                    vertices.emplace_back(vertex{{x + width, y, 0.0f}, static_cast<glm::vec4>(color), {(texture_pos.x + width) / state.texture_width, (texture_pos.y) / state.texture_height}});
+                    vertices.emplace_back(vertex{{x + width, y + height, 0.0f}, static_cast<glm::vec4>(color), {(texture_pos.x + width) / state.texture_width, (texture_pos.y + height) / state.texture_height}});
+                    vertices.emplace_back(vertex{{x, y + height, 0.0f}, static_cast<glm::vec4>(color), {(texture_pos.x) / state.texture_width, (texture_pos.y + height) / state.texture_height}});
 
                     state.lowest_x = std::min(state.lowest_x, x);
                     state.lowest_y = std::min(state.lowest_y, y);
@@ -526,20 +526,20 @@ void text_drawer::draw_line(const std::string_view& line, std::uint32_t line_wid
                 }
                 else
                 {
-                    vertices.push_back(vertex{});
-                    vertices.push_back(vertex{});
-                    vertices.push_back(vertex{});
-                    vertices.push_back(vertex{});
+                    vertices.emplace_back(vertex{});
+                    vertices.emplace_back(vertex{});
+                    vertices.emplace_back(vertex{});
+                    vertices.emplace_back(vertex{});
                 }
 
                 state.current_x += glyph.advance;
                 last = codepoint;
             }
 
-            vertices.push_back(vertex{});
-            vertices.push_back(vertex{});
-            vertices.push_back(vertex{});
-            vertices.push_back(vertex{});
+            vertices.emplace_back(vertex{});
+            vertices.emplace_back(vertex{});
+            vertices.emplace_back(vertex{});
+            vertices.emplace_back(vertex{});
 
             state.current_x += space_glyph.advance;
         }

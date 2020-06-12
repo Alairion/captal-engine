@@ -40,10 +40,13 @@ void deflate::compress_impl(const std::uint8_t*& input, std::size_t input_size, 
     const auto result{::deflate(m_stream.get(), finish ? Z_FINISH : Z_NO_FLUSH)};
 
     if(result == Z_STREAM_ERROR)
+    {
         throw std::runtime_error{"Error in deflate stream. " + std::string{zError(Z_STREAM_ERROR)}};
-
-    if(result == Z_STREAM_END)
+    }
+    else if(result == Z_STREAM_END)
+    {
         m_valid = false;
+    }
 
     input = reinterpret_cast<const std::uint8_t*>(m_stream->next_in);
     output = reinterpret_cast<std::uint8_t*>(m_stream->next_out);
@@ -88,10 +91,13 @@ void inflate::decompress_impl(const std::uint8_t*& input, std::size_t input_size
     const auto result{::inflate(m_stream.get(), flush ? Z_FINISH : Z_NO_FLUSH)};
 
     if(result == Z_STREAM_ERROR || result == Z_MEM_ERROR)
+    {
         throw std::runtime_error{"Error in inflate stream. " + std::string{zError(Z_STREAM_ERROR)}};
-
-    if(result == Z_STREAM_END || result == Z_NEED_DICT || result == Z_DATA_ERROR)
+    }
+    else if(result == Z_STREAM_END || result == Z_NEED_DICT || result == Z_DATA_ERROR)
+    {
         m_valid = false;
+    }
 
     input = reinterpret_cast<const std::uint8_t*>(m_stream->next_in);
     output = reinterpret_cast<std::uint8_t*>(m_stream->next_out);

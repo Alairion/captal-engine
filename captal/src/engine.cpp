@@ -152,7 +152,7 @@ void engine::flush_transfers()
         tph::cmd::end(m_transfer_buffers.back().buffer);
 
         tph::submit_info info{};
-        info.command_buffers.push_back(m_transfer_buffers.back().buffer);
+        info.command_buffers.emplace_back(m_transfer_buffers.back().buffer);
 
         std::lock_guard lock{m_queue_mutex};
         tph::submit(m_renderer, info, m_transfer_buffers.back().fence);

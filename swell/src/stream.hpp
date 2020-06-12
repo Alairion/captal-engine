@@ -5,20 +5,11 @@
 
 #include "physical_device.hpp"
 
-struct PaStreamCallbackTimeInfo;
-
 namespace swl
 {
 
 class application;
 class mixer;
-
-namespace impl
-{
-
-int callback(const void*, void* output, unsigned long, const PaStreamCallbackTimeInfo*, unsigned long, void* user_data);
-
-}
 
 class stream
 {
@@ -36,7 +27,8 @@ public:
     bool active();
 
 private:
-    void* m_stream;
+    void* m_stream{};
+    mixer* m_mixer{};
 };
 
 }

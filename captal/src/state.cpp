@@ -12,7 +12,7 @@ state_stack::state_stack(state_ptr initial_state)
 
 void state_stack::push(state_ptr state)
 {
-    m_states.push_back(std::move(state));
+    m_states.emplace_back(std::move(state));
     m_states.back()->enter(*this);
 }
 
@@ -56,7 +56,7 @@ void state_stack::raise(const state_ptr& state)
     const auto it{std::find(std::begin(m_states), std::end(m_states), state)};
     state_ptr last_top{m_states.back()};
 
-    m_states.push_back(*it);
+    m_states.emplace_back(*it);
     m_states.erase(it);
 
     last_top->leave(*this);
@@ -73,7 +73,7 @@ void state_stack::raise(state* state)
     const auto it{std::find_if(std::begin(m_states), std::end(m_states), find_state)};
     state_ptr last_top{m_states.back()};
 
-    m_states.push_back(*it);
+    m_states.emplace_back(*it);
     m_states.erase(it);
 
     last_top->leave(*this);
@@ -97,7 +97,7 @@ void state_stack::update(float elapsed_time)
 
 void state_stack::add_post_update_callback(post_update_callback_type callback)
 {
-    m_post_update_callbacks.push_back(std::move(callback));
+    m_post_update_callbacks.emplace_back(std::move(callback));
 }
 
 bool state_stack::is_top(const state* state) const noexcept

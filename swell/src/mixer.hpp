@@ -152,6 +152,13 @@ public:
         m_data.erase(std::begin(m_data), std::begin(m_data) + count);
     }
 
+    void discard()
+    {
+        std::unique_lock lock{m_mutex};
+
+        m_data.clear();
+    }
+
     std::size_t buffered()
     {
         std::unique_lock lock{m_mutex};
@@ -253,10 +260,18 @@ private:
     impl::sound_data* m_data{};
 };
 
+enum class mixer_status : std::uint32_t
+{
+    paused = 0,
+    running = 1,
+    stopped = 2,
+    aborted = 3
+};
+
 class mixer
 {
 public:
-    mixer(std::uint32_t sample_rate, std::uint32_t channel_count, time_type minimum_latency = time_type{0.002}, time_type discard_threshold = time_type{0.005});
+    mixer(std::uint32_t sample_rate, std::uint32_t channel_count, time_type minimum_latency = time_type{0.002});
     ~mixer();
     mixer(const mixer&) = delete;
     mixer& operator=(const mixer&) = delete;
@@ -269,12 +284,19 @@ public:
         m_queue.drain(output, frame_count * m_channel_count);
     }
 
+    void start();
+    void stop();
     void move_listener(const glm::vec3& relative);
     void move_listener_to(const glm::vec3& position);
     void set_listener_direction(const glm::vec3& direction);
     void set_up(const glm::vec3& direction);
-
+    void set_volume(float volume);
     impl::sound_data* make_sound();
+
+    glm::vec3 listener_position();
+    glm::vec3 listener_direction();
+    glm::vec3 up();
+    float volume();
 
     std::uint32_t sample_rate() const noexcept
     {
@@ -286,9 +308,9 @@ public:
         return m_channel_count;
     }
 
-    bool is_ok() const noexcept
+    mixer_status status() const noexcept
     {
-        return m_ok.load(std::memory_order_acquire);
+        return m_status.load(std::memory_order_acquire);
     }
 
 private:
@@ -306,17 +328,18 @@ private:
     std::uint32_t m_sample_rate{};
     std::uint32_t m_channel_count{};
     time_type m_minimum_latency{};
-    time_type m_discard_threshold{};
 
     glm::vec3 m_position{0.0f, 0.0f, 0.0f};
     glm::vec3 m_up{0.0f, 1.0f, 0.0f};
     glm::vec3 m_direction{0.0f, 0.0f, 1.0f};
+    float m_volume{1.0f};
 
     std::vector<std::unique_ptr<impl::sound_data>> m_sounds{};
 
     impl::audio_queue m_queue{};
-    std::atomic<bool> m_running{};
-    std::atomic<bool> m_ok{};
+    clock::time_point m_last{};
+    std::atomic<mixer_status> m_status{};
+    std::condition_variable m_start_condition{};
     std::mutex m_mutex{};
     std::thread m_process_thread{};
 };

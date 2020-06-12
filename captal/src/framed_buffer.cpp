@@ -73,7 +73,7 @@ void framed_buffer::upload()
 
     if(staging_index == std::numeric_limits<std::size_t>::max())
     {
-        m_stagings.push_back(staging_buffer{tph::buffer{engine::instance().renderer(), m_size, tph::buffer_usage::transfer_source}});
+        m_stagings.emplace_back(staging_buffer{tph::buffer{engine::instance().renderer(), m_size, tph::buffer_usage::transfer_source}});
         staging_index = std::size(m_stagings) - 1;
     }
 

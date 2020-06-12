@@ -2,7 +2,6 @@
 
 #include "src/engine.hpp"
 #include "src/texture.hpp"
-#include "src/sprite.hpp"
 #include "src/sound.hpp"
 #include "src/view.hpp"
 #include "src/physics.hpp"
@@ -136,9 +135,9 @@ static entt::entity add_physics(entt::registry& world, const cpt::physical_world
     player_physical_body->set_position(glm::vec2{320.0f, 240.0f});
 
     const auto player{world.create()};
-    world.assign<cpt::components::node>(player, glm::vec3{320.0f, 240.0f, 0.5f}, glm::vec3{16.0f, 16.0f, 0.0f});
-    world.assign<cpt::components::drawable>(player, cpt::make_sprite(32, 32, cpt::colors::red));
-    world.assign<cpt::components::physical_body>(player, player_physical_body).add_shape(32.0f, 32.0f)->set_collision_type(player_type);
+    world.assign<cpt::components::node>(player, glm::vec3{320.0f, 240.0f, 0.5f});
+    world.assign<cpt::components::drawable>(player, cpt::make_circle(128.0f, cpt::colors::red));
+    world.assign<cpt::components::physical_body>(player, player_physical_body).add_shape(128.0f)->set_collision_type(player_type);
     world.assign<cpt::components::audio_emiter>(player, cpt::make_sound(std::make_unique<sawtooth_generator>(44100, 2, 240)))->set_volume(0.5f);
     auto& controller{world.assign<cpt::components::controller>(player, cpt::physical_body_weak_ptr{player_physical_body})};
 

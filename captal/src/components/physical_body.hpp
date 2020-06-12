@@ -42,7 +42,7 @@ public:
     {
         assert(attachment->body() == m_attachment && "cpt::component::physical_body::attach can only attach shape that belong to its attachment.");
 
-        m_shapes.push_back(std::move(attachment));
+        m_shapes.emplace_back(std::move(attachment));
     }
 
     template<typename... Args>

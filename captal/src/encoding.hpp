@@ -239,7 +239,7 @@ struct is_encoding<T, std::void_t<
 struct utf8
 {
 private:
-    static constexpr std::array<std::size_t, 256> trailing
+    static constexpr std::array<std::uint8_t, 256> trailing
     {
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -273,7 +273,7 @@ public:
     template<typename InputIt, typename T>
     static constexpr InputIt decode(InputIt begin, InputIt end, T& output) noexcept
     {
-        const std::size_t trailing_bytes{trailing[static_cast<std::uint8_t>(*begin)]};
+        const std::size_t trailing_bytes{static_cast<std::size_t>(trailing[static_cast<std::uint8_t>(*begin)])};
 
         if(std::next(begin, trailing_bytes) < end && trailing_bytes < 4)
         {
@@ -336,7 +336,9 @@ public:
             }
 
             for(std::size_t i{}; i < count; ++i)
+            {
                 *output++ = bytes[i];
+            }
         }
 
         return output;
@@ -637,7 +639,9 @@ constexpr OutputIt to_lower(InputIt begin, InputIt end, OutputIt output)
 
         const auto it{std::lower_bound(std::begin(impl::uppers), std::end(impl::uppers), code)};
         if(it != std::end(impl::uppers) && *it == code)
+        {
             code = impl::lowers[std::distance(std::begin(impl::uppers), it)];
+        }
 
         output = Encoding::encode(code, output);
     }
@@ -666,7 +670,9 @@ constexpr OutputIt to_upper(InputIt begin, InputIt end, OutputIt output)
 
         const auto it{std::lower_bound(std::begin(impl::lowers), std::end(impl::lowers), code)};
         if(it != std::end(impl::lowers) && *it == code)
+        {
             code = impl::uppers[std::distance(std::begin(impl::lowers), it)];
+        }
 
         output = Encoding::encode(code, output);
     }

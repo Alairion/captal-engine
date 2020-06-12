@@ -82,7 +82,9 @@ public:
                 std::copy(std::begin(output_buffer), output_buffer_begin, output);
 
                 if(!m_valid)
+                {
                     return false;
+                }
             }
         }
 
@@ -183,7 +185,9 @@ public:
                 std::copy(std::begin(output_buffer), output_buffer_begin, output);
 
                 if(!m_valid)
+                {
                     return false;
+                }
             }
         }
 

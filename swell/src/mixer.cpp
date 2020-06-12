@@ -132,7 +132,7 @@ void sound::resume()
 
 void sound::fade_in(std::uint64_t frames)
 {
-    std::unique_lock lock{m_data->mutex};
+    std::lock_guard lock{m_data->mutex};
 
     assert((m_data->state.status == sound_status::stopped || m_data->state.status == sound_status::paused || m_data->state.status == sound_status::aborted) && "swl::sound::fade_in() can only be called on stopped, paused or aborted sound.");
 
@@ -331,13 +331,10 @@ static float mix_amplitude(float value, std::size_t count) noexcept
     return sgn(value) * (1.0f - std::pow(1.0f - std::abs(value), static_cast<float>(count)));
 }
 
-mixer::mixer(std::uint32_t sample_rate, std::uint32_t channel_count, time_type minimum_latency, time_type discard_threshold)
+mixer::mixer(std::uint32_t sample_rate, std::uint32_t channel_count, time_type minimum_latency)
 :m_sample_rate{sample_rate}
 ,m_channel_count{channel_count}
 ,m_minimum_latency{minimum_latency}
-,m_discard_threshold{discard_threshold}
-,m_running{true}
-,m_ok{true}
 ,m_process_thread{&mixer::process, this}
 {
 
@@ -347,37 +344,64 @@ mixer::~mixer()
 {
     if(m_process_thread.joinable())
     {
-        m_running.store(false, std::memory_order_release);
+        std::lock_guard lock{m_mutex};
+        m_status.store(mixer_status::stopped, std::memory_order_release);
+        m_start_condition.notify_one();
+
         m_process_thread.join();
     }
 }
 
+void mixer::start()
+{
+    std::lock_guard lock{m_mutex};
+
+    m_status.store(mixer_status::running, std::memory_order_release);
+    m_last = clock::now();
+
+    m_start_condition.notify_one();
+}
+
+void mixer::stop()
+{
+    std::lock_guard lock{m_mutex};
+
+    m_status.store(mixer_status::paused, std::memory_order_release);
+}
+
 void mixer::move_listener(const glm::vec3& relative)
 {
-    std::unique_lock lock{m_mutex};
+    std::lock_guard lock{m_mutex};
 
     m_position += relative;
 }
 
 void mixer::move_listener_to(const glm::vec3& position)
 {
-    std::unique_lock lock{m_mutex};
+    std::lock_guard lock{m_mutex};
 
     m_position = position;
 }
 
 void mixer::set_up(const glm::vec3& direction)
 {
-    std::unique_lock lock{m_mutex};
+    std::lock_guard lock{m_mutex};
 
     m_up = direction;
 }
 
 void mixer::set_listener_direction(const glm::vec3& direction)
 {
-    std::unique_lock lock{m_mutex};
+    std::lock_guard lock{m_mutex};
 
     m_direction = direction;
+}
+
+void mixer::set_volume(float volume)
+{
+    std::lock_guard lock{m_mutex};
+
+    m_volume = get_volume_multiplier(volume);
 }
 
 impl::sound_data* mixer::make_sound()
@@ -389,42 +413,57 @@ impl::sound_data* mixer::make_sound()
     return m_sounds.back().get();
 }
 
+glm::vec3 mixer::listener_position()
+{
+    std::lock_guard lock{m_mutex};
+
+    return m_position;
+}
+
+glm::vec3 mixer::listener_direction()
+{
+    std::lock_guard lock{m_mutex};
+
+    return m_direction;
+}
+
+glm::vec3 mixer::up()
+{
+    std::lock_guard lock{m_mutex};
+
+    return m_up;
+}
+
+float mixer::volume()
+{
+    std::lock_guard lock{m_mutex};
+
+    return m_volume;
+}
+
 void mixer::process() noexcept
 {
     try
     {
-        clock::time_point last{clock::now()};
-
-        while(m_running.load(std::memory_order_acquire))
+        while(m_status.load(std::memory_order_acquire) != mixer_status::stopped)
         {
+            if(m_status.load(std::memory_order_acquire) == mixer_status::paused)
+            {
+                std::unique_lock lock{m_mutex};
+                m_start_condition.wait(lock, [this]
+                {
+                    return m_status.load(std::memory_order_acquire) == mixer_status::running || m_status.load(std::memory_order_acquire) == mixer_status::stopped;
+                });
+            }
+
             const clock::time_point now{clock::now()};
-            time_type elapsed{std::chrono::duration_cast<time_type>(now - last)};
-
-            #ifndef NDEBUG
-            time_type discaded{};
-            #endif
-
-            while(elapsed > m_discard_threshold)
-            {
-                elapsed -= m_discard_threshold;
-
-                #ifndef NDEBUG
-                discaded += m_discard_threshold;
-                #endif
-            }
-
-            #ifndef NDEBUG
-            if(discaded > time_type::zero())
-            {
-                std::cerr << discaded.count() << "s of audio processing discarded." << std::endl;
-            }
-            #endif
+            const time_type elapsed{std::chrono::duration_cast<time_type>(now - m_last)};
 
             if(elapsed >= m_minimum_latency)
             {
-                last = now;
+                m_last = now;
 
-                const std::size_t frame_count{static_cast<std::size_t>(elapsed.count() * static_cast<double>(m_sample_rate))};
+                const auto frame_count{static_cast<std::size_t>(elapsed.count() * m_sample_rate)};
                 const sample_buffer_type data{mix_sounds(get_sounds_data(frame_count), frame_count)};
 
                 m_queue.push(std::begin(data), std::end(data));
@@ -437,31 +476,32 @@ void mixer::process() noexcept
     }
     catch(...)
     {
-        m_ok.store(false, std::memory_order_release);
+        m_status.store(mixer_status::aborted, std::memory_order_release);
     }
 }
 
 
 std::vector<sample_buffer_type> mixer::get_sounds_data(std::size_t frame_count)
 {
-    std::unique_lock lock{m_mutex};
-
     std::vector<sample_buffer_type> sounds_data{};
 
     for(auto& sound_ptr : m_sounds)
     {
         impl::sound_data& sound{*sound_ptr};
-        std::unique_lock lock{sound.mutex};
 
         try
         {
+            std::lock_guard sound_lock{sound.mutex};
+
             if(sound.state.status == sound_status::playing || sound.state.status == sound_status::fading_in || sound.state.status == sound_status::fading_out)
             {
                 const std::uint32_t sound_channels{sound.reader->channel_count()};
 
                 sample_buffer_type sound_data{};
-
                 sound_data = get_sound_data(sound, frame_count, sound_channels);
+
+                std::lock_guard mixer_lock{m_mutex};
+
                 sound_data = spatialize(sound, std::move(sound_data), frame_count, sound_channels);
                 sound_data = apply_volume(sound, std::move(sound_data), frame_count, sound_channels);
 
@@ -522,7 +562,7 @@ sample_buffer_type mixer::apply_volume(impl::sound_data& sound, sample_buffer_ty
             }
 
             const float fading_multiplier{get_volume_multiplier(fading_percent)};
-            const float multiplier{sound.state.volume * fading_multiplier};
+            const float multiplier{sound.state.volume * m_volume * fading_multiplier};
 
             for(std::uint32_t j{}; j < channels; ++j)
             {
@@ -534,9 +574,11 @@ sample_buffer_type mixer::apply_volume(impl::sound_data& sound, sample_buffer_ty
     }
     else if(sound.state.volume != 1.0f)
     {
+        const float multiplier{sound.state.volume * m_volume};
+
         for(auto& sample : data)
         {
-            sample *= sound.state.volume;
+            sample *= multiplier;
         }
     }
 

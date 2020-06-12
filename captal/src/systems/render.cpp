@@ -72,8 +72,10 @@ static void draw(entt::registry& world)
             }
 
             std::vector<std::shared_ptr<asynchronous_resource>> to_keep_alive{};
-            to_keep_alive.reserve(world.size<components::drawable>() + 1);
-            to_keep_alive.push_back(view);
+            to_keep_alive.reserve(world.size<components::drawable>() * 2 + 2);
+
+            to_keep_alive.emplace_back(view);
+            to_keep_alive.emplace_back(technique);
 
             world.view<components::drawable>().each([&, &buffer = buffer](entt::entity entity [[maybe_unused]], const components::drawable& drawable)
             {
@@ -87,7 +89,8 @@ static void draw(entt::registry& world)
                         renderable->upload();
                         renderable->draw(buffer);
 
-                        to_keep_alive.push_back(renderable);
+                        to_keep_alive.emplace_back(renderable);
+                        to_keep_alive.emplace_back(renderable->set());
                     }
                 }
             });

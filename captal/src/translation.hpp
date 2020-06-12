@@ -570,6 +570,8 @@ public:
         cpt::version version{};
     };
 
+    static constexpr std::size_t file_information_size{sizeof(translation_magic_word_t) + sizeof(cpt::version)};
+
     struct header_information
     {
         language source_language{};
@@ -580,12 +582,16 @@ public:
         std::uint64_t translation_count{};
     };
 
+    static constexpr std::size_t header_information_size{sizeof(std::uint32_t) * 4 + sizeof(std::uint64_t) * 2};
+
     struct section_information
     {
         translation_context_t context{};
         std::uint64_t begin{};
         std::uint64_t translation_count{};
     };
+
+    static constexpr std::size_t section_information_size{sizeof(translation_context_t) + sizeof(std::uint64_t) * 2};
 
     struct translation
     {
@@ -655,6 +661,9 @@ public:
 private:
     void read(void* output, std::size_t size);
     void seek(std::size_t position, std::ios_base::seekdir dir = std::ios_base::beg);
+    std::uint32_t read_uint32();
+    std::uint64_t read_uint64();
+    translation_context_t read_context();
     void read_header();
     void read_sections();
     void init();

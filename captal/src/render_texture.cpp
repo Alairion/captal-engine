@@ -131,22 +131,22 @@ static std::vector<std::reference_wrapper<tph::texture>> make_attachments(const 
 
     if(has_multisampling)
     {
-        output.push_back(multisampling);
+        output.emplace_back(multisampling);
 
         if(has_depth_stencil)
         {
-            output.push_back(depth);
+            output.emplace_back(depth);
         }
 
-        output.push_back(color);
+        output.emplace_back(color);
     }
     else
     {
-        output.push_back(color);
+        output.emplace_back(color);
 
         if(has_depth_stencil)
         {
-            output.push_back(depth);
+            output.emplace_back(depth);
         }
     }
 
@@ -242,7 +242,7 @@ void render_texture::present()
     data.fence.reset();
 
     tph::submit_info submit_info{};
-    submit_info.command_buffers.push_back(data.buffer);
+    submit_info.command_buffers.emplace_back(data.buffer);
 
     std::unique_lock lock{engine::instance().submit_mutex()};
     tph::submit(engine::instance().renderer(), submit_info, data.fence);

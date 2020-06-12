@@ -5,9 +5,9 @@
 #include <charconv>
 #include <cassert>
 
-#include <zlib/zlib.h>
-
 #include "external/pugixml.hpp"
+
+#include "zlib.hpp"
 
 namespace cpt
 {
@@ -19,30 +19,29 @@ using namespace std::string_view_literals;
 
 using tmx_data_t = std::vector<std::uint32_t>;
 
+static constexpr std::array<std::uint8_t, 128> base64_table
+{
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x3e, 0x00, 0x00, 0x00, 0x3f,
+    0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x3a, 0x3b,
+    0x3c, 0x3d, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06,
+    0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e,
+    0x0f, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16,
+    0x17, 0x18, 0x19, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f, 0x20,
+    0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28,
+    0x29, 0x2a, 0x2b, 0x2c, 0x2d, 0x2e, 0x2f, 0x30,
+    0x31, 0x32, 0x33, 0x00, 0x00, 0x00, 0x00, 0x00
+};
+
 static constexpr std::uint32_t from_base64(char value) noexcept
 {
-    if(value >= 'A' && value <= 'Z')
-    {
-        return static_cast<std::uint32_t>(value - 'A');
-    }
-    else if(value >= 'a' && value <= 'z')
-    {
-        return static_cast<std::uint32_t>(value - 'a' + 26);
-    }
-    else if(value >= '0' && value <= '9')
-    {
-        return static_cast<std::uint32_t>(value - '0' + 52);
-    }
-    else if(value == '+')
-    {
-        return 62;
-    }
-    else if (value == '/')
-    {
-        return 63;
-    }
-
-    return 0;
+    return base64_table[static_cast<std::uint8_t>(value)];
 }
 
 static std::vector<std::uint8_t> parse_base64(const std::string_view& data)
@@ -60,51 +59,30 @@ static std::vector<std::uint8_t> parse_base64(const std::string_view& data)
         buffer |= from_base64(data[i + 2]) << 6;
         buffer |= from_base64(data[i + 3]);
 
-        output.push_back(static_cast<std::uint8_t>(buffer >> 16));
-        output.push_back(static_cast<std::uint8_t>(buffer >> 8));
-        output.push_back(static_cast<std::uint8_t>(buffer));
+        output.emplace_back(static_cast<std::uint8_t>(buffer >> 16));
+        output.emplace_back(static_cast<std::uint8_t>(buffer >> 8));
+        output.emplace_back(static_cast<std::uint8_t>(buffer));
     }
 
     return output;
 }
 
-static std::vector<std::uint8_t> uncompress(const std::vector<std::uint8_t>& data)
+static std::vector<std::uint8_t> uncompress(const std::vector<std::uint8_t>& data, std::size_t output_size)
 {
-    struct stream_deleter
-    {
-        ~stream_deleter() {inflateEnd(&stream);}
-        z_stream& stream;
-    };
-
-    z_stream stream{};
-    if(inflateInit(&stream) != Z_OK)
-        throw std::runtime_error{"Can not init inflate stream."};
-    stream_deleter deleter{stream};
-
-    stream.next_in = std::data(data);
-    stream.avail_in = static_cast<std::uint32_t>(std::size(data));
-
-    std::array<std::uint8_t, 1024 * 16> buffer{};
     std::vector<std::uint8_t> output{};
+    output.resize(output_size);
 
-    std::int32_t status{Z_OK};
-    while(status != Z_STREAM_END)
+    const auto [it, success] = decompress<zlib_inflate>(std::begin(data), std::end(data), std::begin(output), std::end(output));
+
+    if(!success || it != std::end(output))
     {
-        stream.next_out = std::data(buffer);
-        stream.avail_out = static_cast<std::uint32_t>(std::size(buffer));
-
-        status = inflate(&stream, Z_NO_FLUSH);
-        if(status != Z_OK && status != Z_STREAM_END)
-            throw std::runtime_error{"Error during data decompression in tmx loader."};
-
-        const std::size_t buffered{std::size(buffer) - stream.avail_out};
-        output.insert(std::end(output), std::begin(buffer), std::begin(buffer) + buffered);
+        throw std::runtime_error{"Can not decompress tiled map layer data."};
     }
 
     return output;
 }
 
-static tmx_data_t parse_data(const pugi::xml_node& node)
+static tmx_data_t parse_data(const pugi::xml_node& node, std::uint32_t width, std::uint32_t height)
 {
     const std::string_view encoding{node.attribute("encoding").as_string()};
     const std::string_view compression{node.attribute("compression").as_string()};
@@ -113,18 +91,19 @@ static tmx_data_t parse_data(const pugi::xml_node& node)
     if(encoding == "csv")
     {
         data.erase(std::remove_if(std::begin(data), std::end(data), [](char c){return !std::isdigit(c) && c != ',';}), std::end(data));
-        data.push_back(',');
+        data += ',';
+
+        std::vector<std::uint32_t> output{};
+        output.reserve(width * height);
 
         std::uint32_t value{};
-        std::vector<std::uint32_t> output{};
-        output.reserve(static_cast<std::size_t>(std::count(std::begin(data), std::end(data), ',')) + 1);
-
         const char* const end{std::data(data) + std::size(data)};
+
         for(const char* it{std::data(data)}; it != end; ++it)
         {
-            if(auto [ptr, result] = std::from_chars(it, end, value); result == std::errc{})
+            if(const auto [ptr, result] = std::from_chars(it, end, value); result == std::errc{})
             {
-                output.push_back(value);
+                output.emplace_back(value);
                 it = ptr;
             }
             else
@@ -138,10 +117,13 @@ static tmx_data_t parse_data(const pugi::xml_node& node)
     else if(encoding == "base64")
     {
         data.erase(std::remove_if(std::begin(data), std::end(data), [](char c){return !std::isalnum(c) && c != '+' && c != '/' && c != '=';}), std::end(data));
+
         std::vector<std::uint8_t> raw_data{parse_base64(data)};
 
         if(compression == "zlib" || compression == "gzip")
-            raw_data = uncompress(raw_data);
+        {
+            raw_data = uncompress(raw_data, width * height * sizeof(std::uint32_t));
+        }
 
         std::vector<std::uint32_t> output{};
         output.reserve(std::size(raw_data) / 4);
@@ -154,7 +136,7 @@ static tmx_data_t parse_data(const pugi::xml_node& node)
             value |= raw_data[i + 2] << 16;
             value |= raw_data[i + 3] << 24;
 
-            output.push_back(value);
+            output.emplace_back(value);
         }
 
         return output;
@@ -167,15 +149,19 @@ static cpt::color parse_color(std::string_view attribute)
 {
     if(std::size(attribute) == 9)
     {
-        std::uint32_t rgba{};
-        if(auto [ptr, result] = std::from_chars(std::data(attribute) + 1, std::data(attribute) + std::size(attribute), rgba, 16); result == std::errc{})
-            return cpt::color{rgba};
+        std::uint32_t argb{};
+        if(auto [ptr, result] = std::from_chars(std::data(attribute) + 1, std::data(attribute) + std::size(attribute), argb, 16); result == std::errc{})
+        {
+            return cpt::color{argb};
+        }
     }
     else if(std::size(attribute) == 7)
     {
-        std::uint32_t rgba{};
-        if(auto [ptr, result] = std::from_chars(std::data(attribute) + 1, std::data(attribute) + std::size(attribute), rgba, 16); result == std::errc{})
-            return cpt::color{0xFF000000 | rgba};
+        std::uint32_t rgb{};
+        if(auto [ptr, result] = std::from_chars(std::data(attribute) + 1, std::data(attribute) + std::size(attribute), rgb, 16); result == std::errc{})
+        {
+            return cpt::color{0xFF000000 | rgb};
+        }
     }
 
     throw std::runtime_error{"Invalid color in tmx map."};
@@ -249,7 +235,7 @@ static std::vector<tile::animation> parse_animations(const pugi::xml_node& node)
             animation.lid = child.attribute("tileid").as_uint();
             animation.duration = static_cast<float>(child.attribute("duration").as_uint()) / 1000.0f;
 
-            output.push_back(animation);
+            output.emplace_back(animation);
         }
     }
 
@@ -288,16 +274,26 @@ static object parse_object(const pugi::xml_node& node, const std::filesystem::pa
             text.color = parse_color(child.attribute("color").as_string("#000000"));
 
             if(child.attribute("bold").as_uint() != 0)
+            {
                 text.style |= font_style::bold;
+            }
+
             if(child.attribute("underline").as_uint() != 0)
+            {
                 text.style |= font_style::underlined;
+            }
+
             if(child.attribute("strikeout").as_uint() != 0)
+            {
                 text.style |= font_style::strikethrough;
+            }
 
             text.italic = child.attribute("italic").as_uint() != 0;
 
             if(child.attribute("kerning").as_uint(1) != 0)
+            {
                 text.drawer_options |= text_drawer_options::kerning;
+            }
 
             output.content = std::move(text);
         }
@@ -343,7 +339,7 @@ static std::vector<object> parse_hitboxes(const pugi::xml_node& node, const std:
     {
         if(child.name() == "object"sv)
         {
-            output.push_back(parse_object(child, root, load_callback));
+            output.emplace_back(parse_object(child, root, load_callback));
         }
     }
 
@@ -447,8 +443,11 @@ static layer parse_layer(const pugi::xml_node& node, const std::filesystem::path
     {
         if(child.name() == "data"sv)
         {
+            const std::uint32_t width{node.attribute("width").as_uint()};
+            const std::uint32_t height{node.attribute("height").as_uint()};
+
             layer::tiles tiles{};
-            tiles.gid = parse_data(child);
+            tiles.gid = parse_data(child, width, height);
 
             output.content = std::move(tiles);
         }
@@ -477,7 +476,7 @@ static layer parse_object_group(const pugi::xml_node& node, const std::filesyste
     {
         if(child.name() == "object"sv)
         {
-            objects.objects.push_back(parse_object(child, root, load_callback));
+            objects.objects.emplace_back(parse_object(child, root, load_callback));
         }
         else if(child.name() == "properties"sv)
         {
@@ -528,19 +527,19 @@ static layer parse_group_layer(const pugi::xml_node& node, const std::filesystem
     {
         if(child.name() == "layer"sv)
         {
-            group.layers.push_back(parse_layer(child, root, load_callback));
+            group.layers.emplace_back(parse_layer(child, root, load_callback));
         }
         else if(child.name() == "objectgroup"sv)
         {
-            group.layers.push_back(parse_object_group(child, root, load_callback));
+            group.layers.emplace_back(parse_object_group(child, root, load_callback));
         }
         else if(child.name() == "imagelayer"sv)
         {
-            group.layers.push_back(parse_image_layer(child, root, load_callback));
+            group.layers.emplace_back(parse_image_layer(child, root, load_callback));
         }
         else if(child.name() == "group"sv)
         {
-            group.layers.push_back(parse_group_layer(child, root, load_callback));
+            group.layers.emplace_back(parse_group_layer(child, root, load_callback));
         }
         else if(child.name() == "properties"sv)
         {
@@ -561,30 +560,33 @@ static map parse_map(const pugi::xml_node& node, const external_load_callback_ty
     output.height = node.attribute("height").as_uint();
     output.tile_width = node.attribute("tilewidth").as_uint();
     output.tile_height = node.attribute("tileheight").as_uint();
+
     if(const auto attribute{node.attribute("backgroundcolor")}; !std::empty(attribute))
+    {
         output.background_color = parse_color(attribute.as_string());
+    }
 
     for(auto&& child : node)
     {
         if(child.name() == "tileset"sv)
         {
-            output.tilesets.push_back(parse_map_tileset(child, load_callback));
+            output.tilesets.emplace_back(parse_map_tileset(child, load_callback));
         }
         else if(child.name() == "layer"sv)
         {
-            output.layers.push_back(parse_layer(child, "", load_callback));
+            output.layers.emplace_back(parse_layer(child, "", load_callback));
         }
         else if(child.name() == "objectgroup"sv)
         {
-            output.layers.push_back(parse_object_group(child, "", load_callback));
+            output.layers.emplace_back(parse_object_group(child, "", load_callback));
         }
         else if(child.name() == "imagelayer"sv)
         {
-            output.layers.push_back(parse_image_layer(child, "", load_callback));
+            output.layers.emplace_back(parse_image_layer(child, "", load_callback));
         }
         else if(child.name() == "group"sv)
         {
-            output.layers.push_back(parse_group_layer(child, "", load_callback));
+            output.layers.emplace_back(parse_group_layer(child, "", load_callback));
         }
         else if(child.name() == "properties"sv)
         {

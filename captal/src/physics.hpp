@@ -357,7 +357,7 @@ public:
 private:
     void register_shape(physical_shape* shape)
     {
-        m_shapes.push_back(shape);
+        m_shapes.emplace_back(shape);
     }
 
     void unregister_shape(physical_shape* shape)

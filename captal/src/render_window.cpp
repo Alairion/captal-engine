@@ -185,22 +185,22 @@ static std::vector<std::reference_wrapper<tph::texture>> make_attachments(const 
 
     if(has_multisampling)
     {
-        output.push_back(multisampling);
+        output.emplace_back(multisampling);
 
         if(has_depth_stencil)
         {
-            output.push_back(depth);
+            output.emplace_back(depth);
         }
 
-        output.push_back(color);
+        output.emplace_back(color);
     }
     else
     {
-        output.push_back(color);
+        output.emplace_back(color);
 
         if(has_depth_stencil)
         {
-            output.push_back(depth);
+            output.emplace_back(depth);
         }
     }
 
@@ -397,10 +397,10 @@ void render_window::present()
     tph::cmd::end(data.buffer);
 
     tph::submit_info submit_info{};
-    submit_info.wait_semaphores.push_back(data.image_available);
-    submit_info.wait_stages.push_back(tph::pipeline_stage::color_attachment_output);
-    submit_info.command_buffers.push_back(data.buffer);
-    submit_info.signal_semaphores.push_back(data.image_presentable);
+    submit_info.wait_semaphores.emplace_back(data.image_available);
+    submit_info.wait_stages.emplace_back(tph::pipeline_stage::color_attachment_output);
+    submit_info.command_buffers.emplace_back(data.buffer);
+    submit_info.signal_semaphores.emplace_back(data.image_presentable);
 
     data.fence.reset();
 
@@ -435,7 +435,7 @@ void render_window::setup_frame_data()
         data.image_presentable = tph::semaphore{engine::instance().renderer()};
         data.fence = tph::fence{engine::instance().renderer(), true};
 
-        m_frames_data.push_back(std::move(data));
+        m_frames_data.emplace_back(std::move(data));
     }
 }
 

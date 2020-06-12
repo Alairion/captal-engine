@@ -180,7 +180,7 @@ std::vector<physical_world::point_hit> physical_world::point_query(const glm::ve
 
     point_query(point, max_distance, group, id, mask, [&output](point_hit hit)
     {
-        output.push_back(hit);
+        output.emplace_back(hit);
     });
 
     return output;
@@ -192,7 +192,7 @@ std::vector<physical_world::region_hit> physical_world::region_query(float x, fl
 
     region_query(x, y, width, height, group, id, mask, [&output](region_hit hit)
     {
-        output.push_back(hit);
+        output.emplace_back(hit);
     });
 
     return output;
@@ -204,7 +204,7 @@ std::vector<physical_world::ray_hit> physical_world::ray_query(const glm::vec2& 
 
     ray_query(from, to, thickness, group, id, mask, [&output](ray_hit hit)
     {
-        output.push_back(hit);
+        output.emplace_back(hit);
     });
 
     return output;
@@ -471,7 +471,7 @@ physical_shape::physical_shape(physical_body_ptr body, const std::vector<glm::ve
     std::vector<cpVect> native_vertices{};
     native_vertices.reserve(std::size(vertices));
     for(auto&& vertex : vertices)
-        native_vertices.push_back(tocp(vertex));
+        native_vertices.emplace_back(tocp(vertex));
 
     m_shape = cpPolyShapeNew(m_body->handle(), static_cast<int>(std::size(vertices)), std::data(native_vertices), cpTransformIdentity, tocp(radius));
     if(!m_shape)
