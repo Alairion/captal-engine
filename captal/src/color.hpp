@@ -3,6 +3,8 @@
 
 #include "config.hpp"
 
+#include <cmath>
+
 #include <tephra/image.hpp>
 
 #include <glm/vec3.hpp>
@@ -65,6 +67,35 @@ struct color
     float blue{};
     float alpha{};
 };
+
+inline color hsv_to_rgb(float hue, float saturation, float value, float alpha = 1.0f) noexcept
+{
+    assert((0.0f <= hue && hue <= 360.0f) && "HSV value out of range.");
+    assert((0.0f <= saturation && saturation <= 1.0f) && "HSV value out of range.");
+    assert((0.0f <= value && value <= 1.0f) && "HSV value out of range.");
+
+    const float chroma{value * saturation};
+    const float prime{hue / 60.0f};
+    const float discriminant{chroma * (1.0f - std::fabs(std::fmod(prime, 2.0f) - 1.0f))};
+    const float remainder{value - chroma};
+
+    const auto convert = [prime, chroma, discriminant, remainder, alpha]
+    {
+        switch (static_cast<std::int32_t>(prime))
+        {
+            case 0:  return color{chroma + remainder, discriminant + remainder, remainder, alpha};
+            case 1:  return color{discriminant + remainder, chroma + remainder, remainder, alpha};
+            case 2:  return color{remainder, chroma + remainder, discriminant + remainder, alpha};
+            case 3:  return color{remainder, discriminant + remainder, chroma + remainder, alpha};
+            case 4:  return color{discriminant + remainder, remainder, chroma + remainder, alpha};
+            case 5:  return color{chroma + remainder, remainder, discriminant + remainder, alpha};
+            default: return color{0.0f, 0.0f, 0.0f, alpha};
+        }
+
+    };
+
+    return convert();
+}
 
 constexpr color gradient(const color& first, const color& second, float advance) noexcept
 {

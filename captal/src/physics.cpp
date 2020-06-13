@@ -465,15 +465,17 @@ physical_shape::physical_shape(physical_body_ptr body, const glm::vec2& first, c
     m_body->register_shape(this);
 }
 
-physical_shape::physical_shape(physical_body_ptr body, const std::vector<glm::vec2>& vertices, float radius)
+physical_shape::physical_shape(physical_body_ptr body, const std::vector<glm::vec2>& points, float radius)
 :m_body{std::move(body)}
 {
     std::vector<cpVect> native_vertices{};
-    native_vertices.reserve(std::size(vertices));
-    for(auto&& vertex : vertices)
+    native_vertices.reserve(std::size(points));
+    for(auto&& vertex : points)
+    {
         native_vertices.emplace_back(tocp(vertex));
+    }
 
-    m_shape = cpPolyShapeNew(m_body->handle(), static_cast<int>(std::size(vertices)), std::data(native_vertices), cpTransformIdentity, tocp(radius));
+    m_shape = cpPolyShapeNew(m_body->handle(), static_cast<int>(std::size(points)), std::data(native_vertices), cpTransformIdentity, tocp(radius));
     if(!m_shape)
         throw std::runtime_error{"Can not allocate physical shape."};
 
@@ -572,12 +574,39 @@ collision_id_t physical_shape::collision_mask() const noexcept
     return cpShapeGetFilter(m_shape).mask;
 }
 
-physical_body::physical_body(physical_world_ptr world, physical_body_type type, float mass, float inertia)
+float circle_moment(float mass, float radius, const glm::vec2& origin, float inner_radius) noexcept
+{
+    return fromcp(cpMomentForCircle(tocp(mass), tocp(radius), tocp(inner_radius), tocp(origin)));
+}
+
+float segment_moment(float mass, const glm::vec2& first, const glm::vec2& second, float thickness) noexcept
+{
+    return fromcp(cpMomentForSegment(tocp(mass), tocp(first), tocp(second), tocp(thickness)));
+}
+
+float polygon_moment(float mass, const std::vector<glm::vec2>& points, const glm::vec2& offset, float radius) noexcept
+{
+    std::vector<cpVect> native_vertices{};
+    native_vertices.reserve(std::size(points));
+    for(auto&& vertex : points)
+    {
+        native_vertices.emplace_back(tocp(vertex));
+    }
+
+    return fromcp(cpMomentForPoly(tocp(mass), static_cast<int>(std::size(points)), std::data(native_vertices), tocp(offset), tocp(radius)));
+}
+
+float square_moment(float mass, float width, float height) noexcept
+{
+    return fromcp(cpMomentForBox(tocp(mass), tocp(width), tocp(height)));
+}
+
+physical_body::physical_body(physical_world_ptr world, physical_body_type type, float mass, float moment)
 :m_world{std::move(world)}
 {
     if(type == physical_body_type::dynamic)
     {
-        m_body = cpBodyNew(tocp(mass), tocp(inertia));
+        m_body = cpBodyNew(tocp(mass), tocp(moment));
     }
     else if(type == physical_body_type::steady)
     {

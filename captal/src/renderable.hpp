@@ -299,18 +299,26 @@ sprite_ptr make_sprite(Args&&... args)
     return std::make_shared<sprite>(std::forward<Args>(args)...);
 }
 
-class CAPTAL_API circle : public renderable
+struct circle_t{};
+inline constexpr circle_t circle{};
+struct ellipse_t{};
+inline constexpr ellipse_t ellipse{};
+
+class CAPTAL_API polygon : public renderable
 {
 public:
-    circle() = default;
-    circle(float radius, const color& color = colors::white);
-    circle(float radius, std::uint32_t point_count = 0, const color& color = colors::white);
+    polygon() = default;
+    polygon(std::vector<glm::vec2> points, const color& color = colors::white);
+    polygon(circle_t, float radius, std::uint32_t point_count, const color& color = colors::white);
+    polygon(circle_t, float radius, const color& color = colors::white);
+    polygon(ellipse_t, float width, float height, std::uint32_t point_count, const color& color = colors::white);
+    polygon(ellipse_t, float width, float height, const color& color = colors::white);
 
-    ~circle() = default;
-    circle(const circle&) = delete;
-    circle& operator=(const circle&) = delete;
-    circle(circle&&) noexcept = default;
-    circle& operator=(circle&&) noexcept = default;
+    ~polygon() = default;
+    polygon(const polygon&) = delete;
+    polygon& operator=(const polygon&) = delete;
+    polygon(polygon&&) noexcept = default;
+    polygon& operator=(polygon&&) noexcept = default;
 
     void set_color(const color& color) noexcept;
     void set_center_color(const color& color) noexcept;
@@ -323,23 +331,25 @@ public:
     void set_relative_texture_coords(float x1, float y1, float x2, float y2) noexcept;
     void set_relative_texture_rect(float x, float y, float width, float height) noexcept;
 
-    void resize(float radius);
+    const std::vector<glm::vec2>& points() const noexcept
+    {
+        return m_points;
+    }
 
 private:
-    void init(const color& color);
+    void init(std::vector<glm::vec2> points, const color& color);
 
 private:
-    float m_radius{};
-    std::uint32_t m_point_count{};
+    std::vector<glm::vec2> m_points{};
 };
 
-using circle_ptr = std::shared_ptr<circle>;
-using circle_weak_ptr = std::weak_ptr<circle>;
+using polygon_ptr = std::shared_ptr<polygon>;
+using polygon_weak_ptr = std::weak_ptr<polygon>;
 
 template<typename... Args>
-circle_ptr make_circle(Args&&... args)
+polygon_ptr make_polygon(Args&&... args)
 {
-    return std::make_shared<circle>(std::forward<Args>(args)...);
+    return std::make_shared<polygon>(std::forward<Args>(args)...);
 }
 
 class CAPTAL_API tilemap : public renderable

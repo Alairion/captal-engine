@@ -356,6 +356,7 @@ void mixer::start()
 {
     std::lock_guard lock{m_mutex};
 
+    m_queue.discard();
     m_status.store(mixer_status::running, std::memory_order_release);
     m_last = clock::now();
 

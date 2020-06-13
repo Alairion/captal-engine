@@ -274,38 +274,119 @@ void sprite::resize(std::uint32_t width, std::uint32_t height) noexcept
 void sprite::init(const color& color)
 {
     set_indices({0, 1, 2, 2, 3, 0});
-
     resize(m_width, m_height);
     set_color(color);
     set_relative_texture_coords(0.0f, 0.0f, 1.0f, 1.0f);
 }
 
-static std::uint32_t compute_point_count(float radius) noexcept
+polygon::polygon(std::vector<glm::vec2> points, const color& color)
+:renderable{static_cast<std::uint32_t>(std::size(points) * 3), static_cast<std::uint32_t>(std::size(points) + 1)}
 {
-    return static_cast<std::uint32_t>(std::ceil((2.0f * pi<float> * radius) / 64.0f) * 8.0f);
+    assert(std::size(points) > 2 && "cpt::polygon created with less than 3 points.");
+
+    init(std::move(points), color);
 }
 
-circle::circle(float radius, const color& color)
-:circle{radius, compute_point_count(radius), color}
+static std::uint32_t compute_circle_point_count(float radius) noexcept
 {
+    const float circumference{2.0f * pi<float> * radius};
 
+    return static_cast<std::uint32_t>(std::ceil(circumference / 8.0f) * 8.0f);
 }
 
-circle::circle(float radius, std::uint32_t point_count, const color& color)
+polygon::polygon(circle_t, float radius, std::uint32_t point_count, const color& color)
 :renderable{point_count * 3, point_count + 1}
-,m_radius{radius}
-,m_point_count{point_count}
 {
-    assert(m_point_count > 2 && "cpt::circle created with less than 3 points.");
+    assert(point_count > 2 && "cpt::polygon created with less than 3 points.");
 
-    init(color);
+    std::vector<glm::vec2> points{};
+    points.reserve(point_count);
+
+    const float step{(2.0f * pi<float>) / point_count};
+    for(std::uint32_t i{}; i < point_count; ++i)
+    {
+        const float angle{step * i};
+        points.emplace_back(glm::vec3{std::cos(angle) * radius, std::sin(angle) * radius, 0.0f});
+    }
+
+    init(std::move(points), color);
 }
 
-void circle::init(const color& color)
+polygon::polygon(circle_t, float radius, const color& color)
+:polygon{circle, radius, compute_circle_point_count(radius), color}
 {
-    std::uint32_t* const indices{get_indices()};
 
-    for(std::uint32_t i{1}; i < m_point_count; ++i)
+}
+
+static std::uint32_t compute_ellipse_point_count(float width, float height) noexcept
+{
+    const float circumference{pi<float> * std::sqrt(2.0f * (width * width + height * height))};
+
+    return static_cast<std::uint32_t>(std::ceil(circumference / 8.0f) * 8.0f);
+}
+
+polygon::polygon(ellipse_t, float width, float height, std::uint32_t point_count, const color& color)
+:renderable{point_count * 3, point_count + 1}
+{
+    assert(point_count > 2 && "cpt::polygon created with less than 3 points.");
+
+    std::vector<glm::vec2> points{};
+    points.reserve(point_count);
+
+    const float step{(2.0f * pi<float>) / point_count};
+    for(std::uint32_t i{}; i < point_count; ++i)
+    {
+        const float angle{step * i};
+        points.emplace_back(glm::vec3{std::cos(angle) * width, std::sin(angle) * height, 0.0f});
+    }
+
+    init(std::move(points), color);
+}
+
+polygon::polygon(ellipse_t, float width, float height, const color& color)
+:polygon{ellipse, width, height, compute_ellipse_point_count(width, height), color}
+{
+
+}
+
+void polygon::set_color(const color& color) noexcept
+{
+    set_center_color(color);
+    set_outline_color(color);
+}
+
+void polygon::set_center_color(const color& color) noexcept
+{
+    vertex* const vertices{get_vertices()};
+
+    vertices[0].color = static_cast<glm::vec4>(color);
+
+    update();
+}
+
+void polygon::set_outline_color(const color& color) noexcept
+{
+    for(std::uint32_t i{}; i < std::size(m_points); ++i)
+    {
+        set_point_color(i, color);
+    }
+}
+
+void polygon::set_point_color(std::uint32_t point, const color& color) noexcept
+{
+    assert(point < std::size(m_points) && "cpt::polygon::set_point_color out of range.");
+
+    get_vertices()[point + 1].color = static_cast<glm::vec4>(color);
+
+    update();
+}
+
+void polygon::init(std::vector<glm::vec2> points, const color& color)
+{
+    m_points = std::move(points);
+
+    std::uint32_t* const indices{get_indices()};
+    for(std::uint32_t i{1}; i < std::size(m_points); ++i)
     {
         std::uint32_t* const current{indices + (i - 1) * 3};
 
@@ -314,22 +395,23 @@ void circle::init(const color& color)
         current[2] = i + 1;
     }
 
-    std::uint32_t* const last_triangle{indices + (m_point_count - 1) * 3};
+    std::uint32_t* const last_triangle{indices + (std::size(m_points) - 1) * 3};
     last_triangle[0] = 0;
-    last_triangle[1] = 1;
-    last_triangle[2] = m_point_count;
+    last_triangle[1] = 1; //Loop on the first point
+    last_triangle[2] = static_cast<std::uint32_t>(std::size(m_points));
+
+    const glm::vec4 native_color{color};
 
     vertex* const vertices{get_vertices()};
-    vertices[0].color = static_cast<glm::vec4>(color);
+    vertices[0].color = native_color;
 
-    const float step{(2.0f * cpt::pi<float>) / m_point_count};
-    for(std::uint32_t i{}; i < m_point_count; ++i)
+    for(std::uint32_t i{}; i < std::size(m_points); ++i)
     {
-        const float angle{step * i};
-
-        vertices[i + 1].position = glm::vec3{std::cos(angle) * m_radius, std::sin(angle) * m_radius, 0.0f};
-        vertices[i + 1].color = static_cast<glm::vec4>(color);
+        vertices[i + 1].position = glm::vec3{m_points[i], 0.0f};
+        vertices[i + 1].color = native_color;
     }
+
+    update();
 }
 
 tilemap::tilemap(std::uint32_t width, std::uint32_t height, std::uint32_t tile_width, std::uint32_t tile_height)

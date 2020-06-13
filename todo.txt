@@ -13,7 +13,6 @@ L: Multiple applications/renderer support
 I: Multiple queue support ? (maybe overkill for 2D, but may be useful for 3D (since tephra is becoming a generic renderer))
 
 Swell:
-H: Stop/resume mixer
 A: Rework mixer (already a bit reworked, but not the definitive one)
 L: Support other platforms (as of 18 may 2020 only Win32/OSX/Linux are supported (Portaudio limitation))
 L: Custom exception type
@@ -24,6 +23,7 @@ A: Clipboard support
 L: Custom exception type
 
 Captal:
+H: Test initialization
 A: Complete text rendering support (alignments, stylized)
 A: More primitive shapes (circles, ellipses, convex polygons)
 A: Particles support

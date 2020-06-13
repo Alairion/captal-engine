@@ -214,8 +214,9 @@ class CAPTAL_API physical_shape
 public:
     physical_shape(physical_body_ptr body, float radius, const glm::vec2& offset = glm::vec2{});
     physical_shape(physical_body_ptr body, const glm::vec2& first, const glm::vec2& second, float thickness = 0.0f);
-    physical_shape(physical_body_ptr body, const std::vector<glm::vec2>& vertices, float radius = 0.0f);
+    physical_shape(physical_body_ptr body, const std::vector<glm::vec2>& points, float radius = 0.0f);
     physical_shape(physical_body_ptr body, float width, float height, float radius = 0.0f);
+
     ~physical_shape();
     physical_shape(const physical_shape&) = delete;
     physical_shape& operator=(const physical_shape&) = delete;
@@ -280,12 +281,19 @@ enum class physical_body_type : std::uint32_t
     kinematic = 2
 };
 
+CAPTAL_API float circle_moment(float mass, float radius, const glm::vec2& origin = glm::vec2{}, float inner_radius = 0.0f) noexcept;
+CAPTAL_API float segment_moment(float mass, const glm::vec2& first, const glm::vec2& second, float thickness = 0.0f) noexcept;
+CAPTAL_API float polygon_moment(float mass, const std::vector<glm::vec2>& points, const glm::vec2& offset = glm::vec2{}, float radius = 0.0f) noexcept;
+CAPTAL_API float square_moment(float mass, float width, float height) noexcept;
+
+inline constexpr float no_rotation{std::numeric_limits<float>::infinity()};
+
 class CAPTAL_API physical_body
 {
     friend class physical_shape;
 
 public:
-    physical_body(physical_world_ptr world, physical_body_type type, float mass = 1.0f, float inertia = 1.0f);
+    physical_body(physical_world_ptr world, physical_body_type type, float mass = 1.0f, float moment = no_rotation);
     ~physical_body();
     physical_body(const physical_body&) = delete;
     physical_body& operator=(const physical_body&) = delete;

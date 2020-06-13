@@ -29,7 +29,9 @@ application::application()
 application::~application()
 {
     if(m_free)
+    {
         SDL_Quit();
+    }
 }
 
 application::application(application&& other) noexcept
