@@ -412,8 +412,12 @@ int main()
         //The first value is the number of channels, 2 is stereo.
         //The second value is the frequency of the output stream.
         const cpt::audio_parameters audio{2, 44100};
+
+        tph::physical_device_features features{};
+        features.sample_shading = true;
         //The first value is the renderer options (c.f. tph::renderer_options)
-        const cpt::graphics_parameters graphics{tph::renderer_options::tiny_memory_heaps};
+        //The second value is the physical device's features
+        const cpt::graphics_parameters graphics{tph::renderer_options::tiny_memory_heaps, features};
 
         //The engine instance. It must be created before most call to captal functions.
         //The first value is your application name. It will be passed to Tephra's instance then to Vulkan's instance.
