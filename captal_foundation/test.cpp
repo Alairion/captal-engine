@@ -7,7 +7,7 @@
 #define CATCH_CONFIG_MAIN
 #define CATCH_CONFIG_CONSOLE_WIDTH 120
 #include "catch.hpp"
-/*
+
 TEST_CASE("Version check", "[version]")
 {
     const cpt::version lowest{1, 4, 12};
@@ -79,101 +79,63 @@ TEST_CASE("Enum operations test", "[enums_ops]")
 
 TEST_CASE("Stack allocator test", "[stack_alloc]")
 {
-    cpt::stack_memory_pool<4096> pool{};
-
-    SECTION("cpt::stack_memory_pool can allocate up to stack_size - block_size bytes")
+    SECTION("cpt::stack_memory_pool is able to allocate up to 'pool.stack_size - pool.block_size' bytes with a unique allocation")
     {
+        cpt::stack_memory_pool<512> pool{};
+
         void* memory{pool.allocate(pool.stack_size - pool.block_size)};
         REQUIRE(memory);
         pool.deallocate(memory);
     }
-}
-*/
 
-TEST_CASE("cpt::stack_vector vs std::vector")
-{
-    BENCHMARK("Small heap (~1Kio) stack_vector")
-    {
-        cpt::stack_memory_pool<1024> pool{};
-        auto vector{cpt::make_stack_vector<float>(pool)};
-        vector.resize(200);
-
-        return vector.capacity();
-    };
-
-    BENCHMARK("Small heap (1Kio) vector")
-    {
-        std::vector<float> vector{};
-        vector.resize(200);
-
-        return vector.capacity();
-    };
-
-    BENCHMARK("Medium heap (8Kio) stack_vector")
-    {
-        cpt::stack_memory_pool<1024 * 8> pool{};
-        auto vector{cpt::make_stack_vector<float>(pool)};
-        vector.resize(2000);
-
-        return vector.capacity();
-    };
-
-    BENCHMARK("Medium heap (8Kio) std::vector")
-    {
-        std::vector<float> vector{};
-        vector.resize(2000);
-
-        return vector.capacity();
-    };
-
-    BENCHMARK("Big heap (256Kio) stack_vector")
-    {
-        cpt::stack_memory_pool<1024 * 256> pool{};
-        auto vector{cpt::make_stack_vector<float>(pool)};
-        vector.resize(60000);
-
-        return vector.capacity();
-    };
-
-    BENCHMARK("Big heap (256Kio) std::vector")
-    {
-        std::vector<float> vector{};
-        vector.resize(60000);
-
-        return vector.capacity();
-    };
-
-    BENCHMARK("Small heap overflow (1Kio) stack_vector")
+    SECTION("cpt::stack_memory_pool is able to allocate multiple memory pages")
     {
         cpt::stack_memory_pool<512> pool{};
-        auto vector{cpt::make_stack_vector<float>(pool)};
-        vector.resize(200);
 
-        return vector.capacity();
-    };
+        void* memory1{pool.allocate(24)};
+        void* memory2{pool.allocate(24)};
+        REQUIRE(memory1);
+        REQUIRE(memory2);
+        pool.deallocate(memory1);
+        pool.deallocate(memory2);
+    }
 
-    BENCHMARK("Small heap overflow (1Kio) std::vector")
+    SECTION("cpt::stack_memory_pool is able to reallocate freed memory pages if subsecant allocations' size are <= that a freed one")
     {
-        std::vector<float> vector{};
-        vector.resize(200);
+        cpt::stack_memory_pool<512> pool{};
 
-        return vector.capacity();
-    };
+        void* memory1{pool.allocate(24)};
+        REQUIRE(memory1);
+        pool.deallocate(memory1);
 
-    BENCHMARK("Big heap overflow (256Kio) stack_vector")
+        void* memory2{pool.allocate(24)};
+        REQUIRE(memory2);
+        REQUIRE(memory1 == memory2);
+        pool.deallocate(memory2);
+
+        void* memory3{pool.allocate(8)};
+        REQUIRE(memory3);
+        REQUIRE(memory1 == memory3);
+        pool.deallocate(memory3);
+    }
+
+    SECTION("cpt::stack_allocator is an Allocator that allocate memory within a stack_memory_pool")
     {
-        cpt::stack_memory_pool<1024 * 64> pool{};
-        auto vector{cpt::make_stack_vector<float>(pool)};
-        vector.resize(60000);
+        cpt::stack_memory_pool<512> pool{};
+        cpt::stack_allocator<std::uint32_t, 512> allocator{pool};
 
-        return vector.capacity();
-    };
+        std::uint32_t* memory{allocator.allocate(42)};
+        REQUIRE(memory);
+        allocator.deallocate(memory, 42);
+    }
 
-    BENCHMARK("Big heap overflow (256Kio) std::vector")
+    SECTION("cpt::stack_allocator fallbacks on new/delete if the requested allocation fails")
     {
-        std::vector<float> vector{};
-        vector.resize(60000);
+        cpt::stack_memory_pool<512> pool{};
+        cpt::stack_allocator<std::uint32_t, 512> allocator{pool};
 
-        return vector.capacity();
-    };
+        std::uint32_t* memory{allocator.allocate(1000)};
+        REQUIRE(memory);
+        allocator.deallocate(memory, 1000);
+    }
 }
