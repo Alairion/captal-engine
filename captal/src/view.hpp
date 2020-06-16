@@ -35,8 +35,10 @@ public:
 
 public:
     view();
+
     view(const render_target_ptr& target, const render_technique_info& info = render_technique_info{});
     view(const render_target_ptr& target, render_technique_ptr technique);
+
     ~view() = default;
     view(const view&) = delete;
     view& operator=(const view&) = delete;
@@ -122,7 +124,7 @@ public:
     void set_render_technique(render_technique_ptr technique) noexcept
     {
         m_render_technique = std::move(technique);
-        m_need_descriptor_update = true;
+        update_uniforms();
     }
 
     void set_target(const render_target_ptr& target, const render_technique_info& info = render_technique_info{});
@@ -130,30 +132,40 @@ public:
     void fit_to(const render_texture_ptr& window);
     void fit_to(const render_window_ptr& texture);
 
-    void update() noexcept
-    {
-        m_need_upload = true;
-    }
-
-    void upload();
-
-    template<typename T>
-    T& get_push_constant(std::size_t index) noexcept
-    {
-        return m_render_technique->get_push_constant<T>(index);
-    }
-
-    template<typename T>
-    const T& get_push_constant(std::size_t index) const noexcept
-    {
-        return m_render_technique->get_push_constant<T>(index);
-    }
-
     template<typename T>
     void set_push_constant(std::size_t index, T&& value) noexcept
     {
         m_render_technique->set_push_constant(index, std::forward<T>(value));
     }
+
+    template<typename T>
+    cpt::uniform_binding& add_uniform(std::uint32_t binding, T&& data)
+    {
+        auto [it, success] = m_uniform_bindings.try_emplace(binding, cpt::uniform_binding{std::forward<T>(data)});
+        assert(success && "cpt::view::add_uniform_buffer called with already used binding.");
+
+        update_uniforms();
+        return it->second;
+    }
+
+    template<typename T>
+    void set_uniform(std::uint32_t binding, T&& data)
+    {
+        uniform_binding(binding) = std::forward<T>(data);
+        update_uniforms();
+    }
+
+    void update() noexcept
+    {
+        m_need_upload = true;
+    }
+
+    void update_uniforms() noexcept
+    {
+        m_need_descriptor_update = true;
+    }
+
+    void upload();
 
     const tph::viewport& viewport() const noexcept
     {
@@ -195,19 +207,24 @@ public:
         return m_z_far;
     }
 
-    float scale() const noexcept
-    {
-        return m_scale;
-    }
-
     float rotation() const noexcept
     {
         return m_rotation;
     }
 
+    float scale() const noexcept
+    {
+        return m_scale;
+    }
+
     view_type type() const noexcept
     {
         return m_type;
+    }
+
+    const render_technique_ptr& render_technique() const noexcept
+    {
+        return m_render_technique;
     }
 
     render_target& target() const noexcept
@@ -226,13 +243,15 @@ public:
     }
 
     template<typename T>
-    cpt::uniform_binding& add_uniform_binding(std::uint32_t binding, T&& data)
+    T& get_push_constant(std::size_t index) noexcept
     {
-        auto [it, success] = m_uniform_bindings.try_emplace(binding, cpt::uniform_binding{std::forward<T>(data)});
-        assert(success && "cpt::view::add_uniform_buffer called with already used binding.");
+        return m_render_technique->get_push_constant<T>(index);
+    }
 
-        m_need_descriptor_update = true;
-        return it->second;
+    template<typename T>
+    const T& get_push_constant(std::size_t index) const noexcept
+    {
+        return m_render_technique->get_push_constant<T>(index);
     }
 
     cpt::uniform_binding& uniform_binding(std::uint32_t binding)
@@ -243,13 +262,6 @@ public:
     const cpt::uniform_binding& uniform_binding(std::uint32_t binding) const
     {
         return m_uniform_bindings.at(binding);
-    }
-
-    template<typename T>
-    void set_uniform(std::uint32_t binding, T&& data)
-    {
-        uniform_binding(binding) = std::forward<T>(data);
-        m_need_descriptor_update = true;
     }
 
     bool has_binding(std::uint32_t binding) const
@@ -270,11 +282,6 @@ public:
     bool need_descriptor_update(bool new_value = false) noexcept
     {
         return std::exchange(m_need_descriptor_update, new_value);
-    }
-
-    const render_technique_ptr& render_technique() const noexcept
-    {
-        return m_render_technique;
     }
 
 private:

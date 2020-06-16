@@ -26,7 +26,7 @@ descriptor_pool::descriptor_pool(render_technique& parent, tph::descriptor_pool 
     }
 }
 
-std::optional<descriptor_set_ptr> descriptor_pool::allocate()
+std::optional<descriptor_set_ptr> descriptor_pool::allocate() noexcept
 {
     for(auto&& set : m_sets)
     {
@@ -114,7 +114,7 @@ render_technique::render_technique(const render_target_ptr& target, const render
         m_sizes.emplace_back(tph::descriptor_pool_size{binding.type, static_cast<std::uint32_t>(binding.count * descriptor_pool::pool_size)});
     }
 
-    m_push_constant_buffer.resize(static_cast<std::size_t>(engine::instance().graphics_device().limits().max_push_constant_size));
+    m_push_constant_buffer.resize(static_cast<std::size_t>(engine::instance().graphics_device().limits().max_push_constant_size / 4u));
 }
 
 descriptor_set_ptr render_technique::make_set()

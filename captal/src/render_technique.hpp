@@ -62,7 +62,7 @@ using descriptor_set_weak_ptr = std::weak_ptr<descriptor_set>;
 class CAPTAL_API descriptor_pool
 {
 public:
-    constexpr static std::size_t pool_size{16};
+    static constexpr std::size_t pool_size{16};
 
 public:
     descriptor_pool() = default;
@@ -73,7 +73,7 @@ public:
     descriptor_pool(descriptor_pool&&) noexcept = delete;
     descriptor_pool& operator=(descriptor_pool&&) noexcept = delete;
 
-    std::optional<descriptor_set_ptr> allocate();
+    std::optional<descriptor_set_ptr> allocate() noexcept;
     bool unused() const noexcept;
 
     render_technique& technique() noexcept
@@ -132,24 +132,24 @@ public:
     template<typename T>
     T& get_push_constant(std::size_t index) noexcept
     {
+        static_assert(alignof(T) <= 4, "Alignment of T is too big.");
         assert(m_ranges[index].size == sizeof(T) && "Size of T does not match range size.");
 
-        return *reinterpret_cast<T*>(std::data(m_push_constant_buffer) + m_ranges[index].offset);
+        return *reinterpret_cast<T*>(std::data(m_push_constant_buffer) + m_ranges[index].offset / 4u);
     }
 
     template<typename T>
     const T& get_push_constant(std::size_t index) const noexcept
     {
+        static_assert(alignof(T) <= 4, "Alignment of T is too big.");
         assert(m_ranges[index].size == sizeof(T) && "Size of T does not match range size.");
 
-        return *reinterpret_cast<const T*>(std::data(m_push_constant_buffer) + m_ranges[index].offset);
+        return *reinterpret_cast<const T*>(std::data(m_push_constant_buffer) + m_ranges[index].offset / 4u);
     }
 
     template<typename T>
     void set_push_constant(std::size_t index, T&& value) noexcept
     {
-        assert(m_ranges[index].size == sizeof(T) && "Size of T does not match range size.");
-
         get_push_constant<T>(index) = std::forward<T>(value);
     }
 
@@ -193,7 +193,7 @@ public:
         return m_pipeline;
     }
 
-    const std::vector<std::uint8_t>& push_constant_buffer() const noexcept
+    const std::vector<std::uint32_t>& push_constant_buffer() const noexcept
     {
         return m_push_constant_buffer;
     }
@@ -207,7 +207,7 @@ private:
     tph::pipeline m_pipeline{};
     std::mutex m_mutex{};
     std::vector<std::unique_ptr<descriptor_pool>> m_pools{};
-    std::vector<std::uint8_t> m_push_constant_buffer{};
+    std::vector<std::uint32_t> m_push_constant_buffer{};
 };
 
 using render_technique_ptr = std::shared_ptr<render_technique>;

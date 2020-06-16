@@ -149,7 +149,7 @@ struct pipeline_viewport
 struct pipeline_rasterization
 {
     polygon_mode polygon_mode{polygon_mode::fill};
-    cull_mode cull_mode{cull_mode::none};
+    cull_mode cull_mode{cull_mode::back};
     front_face front_face{front_face::counter_clockwise};
     float line_width{1.0f};
     bool depth_clamp{};

@@ -4,11 +4,18 @@ A: average
 L: low
 I: just an idea
 
+All:
+H: Switch to C++20
+
+Captal Foundation:
+A: Replace glm with homemade math library
+
 Tephra:
 A: Complete commands list
 A: Queue family ownership transfer support (tph::texture::transition and tph::buffer::???, and free functions)
 A: Complete physical devices properties structures
 L: Performance query support
+L: Windows export symbol
 L: Multiple applications/renderer support
 I: Multiple queue support ? (maybe overkill for 2D, but may be useful for 3D (since tephra is becoming a generic renderer))
 
@@ -23,9 +30,11 @@ A: Clipboard support
 L: Custom exception type
 
 Captal:
+H: Complete complex render targets
 H: Test initialization
 A: Complete text rendering support (alignments, stylized)
 A: More primitive shapes (circles, ellipses, convex polygons)
 A: Particles support
 L: Custom exception type
-I: Virtual file archive system ? (already prototyped)
+I: Virtual file archive system ? (based on something i wrote few wears ago)
+I: Inject entt namespace in cpt namespace ?

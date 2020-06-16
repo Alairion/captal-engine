@@ -68,7 +68,7 @@ static void draw(entt::registry& world)
 
             for(auto&& range : view->render_technique()->ranges())
             {
-                tph::cmd::push_constants(buffer, technique->pipeline_layout(), range.stages, range.offset, range.size, std::data(view->render_technique()->push_constant_buffer()) + range.offset);
+                tph::cmd::push_constants(buffer, technique->pipeline_layout(), range.stages, range.offset, range.size, std::data(view->render_technique()->push_constant_buffer()) + range.offset / 4u);
             }
 
             std::vector<std::shared_ptr<asynchronous_resource>> to_keep_alive{};

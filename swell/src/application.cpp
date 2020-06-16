@@ -53,7 +53,7 @@ application& application::operator=(application&& other) noexcept
     return *this;
 }
 
-const physical_device& application::default_device() const noexcept
+const physical_device& application::default_physical_device() const noexcept
 {
     return m_physical_devices[Pa_GetDefaultOutputDevice()];
 }

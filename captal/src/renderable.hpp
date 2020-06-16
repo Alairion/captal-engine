@@ -44,49 +44,49 @@ public:
     void move(const glm::vec3& relative) noexcept
     {
         m_position += relative;
-        m_need_upload = true;
+        update();
     }
 
     void move_to(const glm::vec3& position) noexcept
     {
         m_position = position;
-        m_need_upload = true;
+        update();
     }
 
     void set_origin(const glm::vec3& origin) noexcept
     {
         m_origin = origin;
-        m_need_upload = true;
+        update();
     }
 
     void move_origin(const glm::vec3& relative) noexcept
     {
         m_origin += relative;
-        m_need_upload = true;
+        update();
     }
 
     void rotate(float angle) noexcept
     {
         m_rotation = std::fmod(m_rotation + angle, pi<float> * 2.0f);
-        m_need_upload = true;
+        update();
     }
 
     void set_rotation(float angle) noexcept
     {
         m_rotation = std::fmod(angle, pi<float> * 2.0f);
-        m_need_upload = true;
+        update();
     }
 
     void scale(float scale) noexcept
     {
         m_scale += scale;
-        m_need_upload = true;
+        update();
     }
 
     void set_scale(float scale) noexcept
     {
         m_scale = scale;
-        m_need_upload = true;
+        update();
     }
 
     void hide() noexcept
@@ -99,9 +99,12 @@ public:
         m_hidden = false;
     }
 
-    void update();
-    void upload();
+    void update() noexcept
+    {
+        m_need_upload = true;
+    }
 
+    void upload();
     void draw(tph::command_buffer& buffer);
 
     const glm::vec3& position() const noexcept
@@ -134,11 +137,6 @@ public:
         return m_index_count;
     }
 
-    std::uint32_t vertex_count() const noexcept
-    {
-        return m_vertex_count;
-    }
-
     std::uint32_t* get_indices() noexcept
     {
         assert(m_index_count > 0 && "cpt::renderable::get_indices called on renderable with no index buffer");
@@ -151,6 +149,11 @@ public:
         assert(m_index_count > 0 && "cpt::renderable::get_indices called on renderable with no index buffer");
 
         return &m_buffer.get<const std::uint32_t>(1);
+    }
+
+    std::uint32_t vertex_count() const noexcept
+    {
+        return m_vertex_count;
     }
 
     vertex* get_vertices() noexcept
@@ -188,11 +191,6 @@ public:
         return it->second;
     }
 
-    cpt::uniform_binding& uniform_binding(std::uint32_t binding)
-    {
-        return m_uniform_bindings.at(binding);
-    }
-
     const cpt::uniform_binding& uniform_binding(std::uint32_t binding) const
     {
         return m_uniform_bindings.at(binding);
@@ -201,18 +199,13 @@ public:
     template<typename T>
     void set_uniform(std::uint32_t binding, T&& data)
     {
-        uniform_binding(binding) = std::forward<T>(data);
+        m_uniform_bindings.at(binding) = std::forward<T>(data);
         m_need_descriptor_update = true;
     }
 
     bool has_binding(std::uint32_t binding) const
     {
         return m_uniform_bindings.find(binding) != std::end(m_uniform_bindings);
-    }
-
-    std::unordered_map<std::uint32_t, cpt::uniform_binding>& uniform_bindings() noexcept
-    {
-        return m_uniform_bindings;
     }
 
     const std::unordered_map<std::uint32_t, cpt::uniform_binding>& uniform_bindings() const noexcept

@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <bit>
 
 namespace cpt
 {
@@ -12,23 +13,29 @@ inline namespace foundation
 
 struct alignas(std::uint64_t) version
 {
-    std::uint16_t major; //No default initializers because version must be trivial
-    std::uint16_t minor;
-    std::uint32_t patch;
+    std::uint16_t major{};
+    std::uint16_t minor{};
+    std::uint32_t patch{};
 };
 
-inline std::uint64_t from_version(version value) noexcept
+constexpr std::uint64_t pack_version(version value) noexcept
 {
     std::uint64_t output{};
-    std::memcpy(&output, &value, sizeof(version));
+
+    output |= static_cast<std::uint64_t>(value.major) << 48;
+    output |= static_cast<std::uint64_t>(value.minor) << 32;
+    output |= static_cast<std::uint64_t>(value.patch);
 
     return output;
 }
 
-inline version to_version(std::uint64_t value) noexcept
+constexpr version unpack_version(std::uint64_t value) noexcept
 {
     version output{};
-    std::memcpy(&output, &value, sizeof(std::uint64_t));
+
+    output.major = static_cast<std::uint16_t>(value >> 48);
+    output.minor = static_cast<std::uint16_t>(value >> 32);
+    output.patch = static_cast<std::uint32_t>(value);
 
     return output;
 }

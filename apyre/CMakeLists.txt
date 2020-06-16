@@ -40,6 +40,7 @@ target_link_libraries(${PROJECT_NAME} ${SDL_LIBRARIES})
 if(APYRE_BUILD_EXAMPLE)
     add_executable(${PROJECT_NAME}_test "main.cpp")
     target_link_libraries(${PROJECT_NAME}_test ${PROJECT_NAME})
+    target_include_directories(${PROJECT_NAME}_test PRIVATE ${GLOBAL_INCLUDES})
 endif()
 
 install(TARGETS ${PROJECT_NAME}

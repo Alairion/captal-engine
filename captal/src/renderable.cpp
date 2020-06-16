@@ -45,23 +45,24 @@ renderable::renderable(std::uint32_t index_count, std::uint32_t vertex_count)
 
 void renderable::set_indices(const std::vector<std::uint32_t>& indices) noexcept
 {
-    assert(m_index_count > 0 && "cpt::renderable::set_indices called with a wrong number of indices.");
+    assert(m_index_count > 0 && "cpt::renderable::set_indices called on a renderable without index buffer.");
+    assert(std::size(indices) == m_index_count && "cpt::renderable::set_indices called with a wrong number of indices.");
 
     std::memcpy(&m_buffer.get<std::uint32_t>(1), std::data(indices), std::size(indices) * sizeof(std::uint32_t));
 
-    m_need_upload = true;
+    update();
 }
 
 void renderable::set_vertices(const std::vector<vertex>& vertices) noexcept
 {
     assert(std::size(vertices) == m_vertex_count && "cpt::renderable::set_vertices called with a wrong number of vertices.");
 
-    const bool has_indexes{m_index_count > 0};
-    const auto index{static_cast<std::size_t>(has_indexes ? 2 : 1)};
+    const bool has_indices{m_index_count > 0};
+    const auto index{static_cast<std::size_t>(has_indices ? 2 : 1)};
 
     std::memcpy(&m_buffer.get<vertex>(index), std::data(vertices), std::size(vertices) * sizeof(vertex));
 
-    m_need_upload = true;
+    update();
 }
 
 void renderable::set_texture(texture_ptr texture) noexcept
@@ -72,41 +73,40 @@ void renderable::set_texture(texture_ptr texture) noexcept
 
 void renderable::set_view(const view_ptr& view)
 {
-    const auto has_binding = [](const view_ptr& view, std::uint32_t binding)
+    const auto write_set = [this](const view_ptr& view, const descriptor_set_ptr& set)
     {
-        for(auto&& layout_binding : view->render_technique()->bindings())
+        const auto has_binding = [](const view_ptr& view, std::uint32_t binding)
         {
-            if(layout_binding.binding == binding)
+            for(auto&& layout_binding : view->render_technique()->bindings())
             {
-                return true;
+                if(layout_binding.binding == binding)
+                {
+                    return true;
+                }
             }
-        }
 
-        return false;
-    };
+            return false;
+        };
 
-    const auto write = [](const descriptor_set_ptr& set, std::uint32_t binding, cpt::uniform_binding& data)
-    {
-        if(get_uniform_binding_type(data) == uniform_binding_type::buffer)
+        const auto write = [](const descriptor_set_ptr& set, std::uint32_t binding, cpt::uniform_binding& data)
         {
-            const tph::descriptor_buffer_info info{std::get<framed_buffer_ptr>(data)->buffer(), 0, std::get<framed_buffer_ptr>(data)->size()};
+            if(get_uniform_binding_type(data) == uniform_binding_type::buffer)
+            {
+                const tph::descriptor_buffer_info info{std::get<framed_buffer_ptr>(data)->buffer(), 0, std::get<framed_buffer_ptr>(data)->size()};
 
-            return tph::descriptor_write{set->set(), binding, 0, tph::descriptor_type::uniform_buffer, info};
-        }
-        else
-        {
-            const tph::descriptor_texture_info info{std::get<texture_ptr>(data)->get_texture(), tph::texture_layout::shader_read_only_optimal};
+                return tph::descriptor_write{set->set(), binding, 0, tph::descriptor_type::uniform_buffer, info};
+            }
+            else
+            {
+                const tph::descriptor_texture_info info{std::get<texture_ptr>(data)->get_texture(), tph::texture_layout::shader_read_only_optimal};
 
-            return tph::descriptor_write{set->set(), binding, 0, tph::descriptor_type::image_sampler, info};
-        }
-    };
+                return tph::descriptor_write{set->set(), binding, 0, tph::descriptor_type::image_sampler, info};
+            }
+        };
 
-    const auto write_set = [has_binding, write, &view, this](const descriptor_set_ptr& set)
-    {
         auto& texture{m_texture ? m_texture->get_texture() : engine::instance().default_texture().get_texture()};
 
         std::vector<tph::descriptor_write> writes{};
-
         writes.emplace_back(tph::descriptor_write{set->set(), 0, 0, tph::descriptor_type::uniform_buffer, tph::descriptor_buffer_info{view->buffer(), 0, view->buffer().size()}});
         writes.emplace_back(tph::descriptor_write{set->set(), 1, 0, tph::descriptor_type::uniform_buffer, tph::descriptor_buffer_info{m_buffer.buffer(), 0, m_buffer.size()}});
         writes.emplace_back(tph::descriptor_write{set->set(), 2, 0, tph::descriptor_type::image_sampler, tph::descriptor_texture_info{texture, tph::texture_layout::shader_read_only_optimal}});
@@ -136,32 +136,18 @@ void renderable::set_view(const view_ptr& view)
         const auto [new_item, success] = m_descriptor_sets.emplace(std::make_pair(view.get(), view->render_technique()->make_set()));
         assert(success);
 
-        const auto& [view, set] = *new_item;
-
-        write_set(set);
-        m_current_set = set;
-
-        update();
+        write_set(view, new_item->second);
+        m_current_set = new_item->second;
     }
-    else
+
+    if(m_need_descriptor_update || view->need_descriptor_update())
     {
-        if(m_need_descriptor_update || view->need_descriptor_update())
-        {
-            it->second = view->render_technique()->make_set();
-            write_set(it->second);
-        }
-
-        m_current_set = it->second;
-
-        update();
+        it->second = view->render_technique()->make_set();
+        write_set(view, it->second);
     }
 
+    m_current_set = it->second;
     m_need_descriptor_update = false;
-}
-
-void renderable::update()
-{
-    m_need_upload = true;
 }
 
 void renderable::upload()

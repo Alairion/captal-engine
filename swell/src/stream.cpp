@@ -10,6 +10,8 @@
 namespace swl
 {
 
+std::mutex stream::mutex{};
+
 static int callback(const void*, void* output, unsigned long frame_count, const PaStreamCallbackTimeInfo*, unsigned long, void* user_data)
 {
     auto& mixer{*static_cast<swl::mixer*>(user_data)};
@@ -21,7 +23,6 @@ static int callback(const void*, void* output, unsigned long frame_count, const 
     catch(const std::exception& e)
     {
         std::cerr << "Audio stream aborted. " << e.what() << std::endl;
-
         return paAbort;
     }
 
@@ -37,6 +38,7 @@ stream::stream(application& application [[maybe_unused]], const physical_device&
     output_info.sampleFormat = paFloat32;
     output_info.suggestedLatency = physical_device.default_low_output_latency().count();
 
+    std::lock_guard lock{mutex}; //Pa_OpenStream (and Pa_CloseStream) are not guaranteed to be thread safe
     if(auto err{Pa_OpenStream(&m_stream, nullptr, &output_info, static_cast<double>(mixer.sample_rate()), 0, 0, &callback, &mixer)}; err != paNoError)
         throw std::runtime_error{"Can not open audio stream (" + std::string{Pa_GetErrorText(err)} + "; Host: " + std::to_string(Pa_GetLastHostErrorInfo()->hostApiType) + "; Error: " + std::to_string(Pa_GetLastHostErrorInfo()->errorCode) + "; Decription: " +  Pa_GetLastHostErrorInfo()->errorText + ")"};
 }
@@ -44,7 +46,10 @@ stream::stream(application& application [[maybe_unused]], const physical_device&
 stream::~stream()
 {
     if(m_stream)
+    {
+        std::lock_guard lock{mutex};
         Pa_CloseStream(m_stream);
+    }
 }
 
 stream::stream(stream&& other) noexcept

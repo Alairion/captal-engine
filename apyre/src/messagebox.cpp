@@ -1,6 +1,7 @@
 #include "messagebox.hpp"
 
 #include <stdexcept>
+#include <vector>
 
 #include <SDL.h>
 
@@ -9,7 +10,7 @@
 namespace apr
 {
 
-std::uint32_t message_box(message_box_type type, const std::string& title, const std::string& message, const std::vector<message_box_button>& buttons)
+std::uint32_t message_box(message_box_type type, const std::string& title, const std::string& message, std::span<const message_box_button> buttons)
 {
     std::vector<SDL_MessageBoxButtonData> native_buttons{};
     native_buttons.reserve(std::size(buttons));
@@ -38,7 +39,7 @@ std::uint32_t message_box(message_box_type type, const std::string& title, const
     return static_cast<std::uint32_t>(id);
 }
 
-std::uint32_t message_box(window& window, message_box_type type, const std::string& title, const std::string& message, const std::vector<message_box_button>& buttons)
+std::uint32_t message_box(window& window, message_box_type type, const std::string& title, const std::string& message, std::span<const message_box_button> buttons)
 {
     std::vector<SDL_MessageBoxButtonData> native_buttons{};
     native_buttons.reserve(std::size(buttons));

@@ -4,6 +4,7 @@
 #include "config.hpp"
 
 #include <vector>
+#include <span>
 
 #include "physical_device.hpp"
 
@@ -20,12 +21,12 @@ public:
     application(application&& other) noexcept;
     application& operator=(application&& other) noexcept;
 
-    const std::vector<physical_device>& enumerate_physical_devices() const noexcept
+    std::span<const physical_device> enumerate_physical_devices() const noexcept
     {
         return m_physical_devices;
     }
 
-    const physical_device& default_device() const noexcept;
+    const physical_device& default_physical_device() const noexcept;
 
 private:
     std::vector<physical_device> m_physical_devices{};

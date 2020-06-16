@@ -61,40 +61,24 @@ public:
         return m_name;
     }
 
-    std::uint32_t default_low_latency_buffer_size() const noexcept
+    std::size_t default_low_latency_buffer_size() const noexcept
     {
-        return round_up(static_cast<std::uint32_t>(static_cast<double>(m_default_sample_rate) * m_default_low_output_latency.count()));
+        return static_cast<std::size_t>(static_cast<double>(m_default_sample_rate) * m_default_low_output_latency.count());
     }
 
-    std::uint32_t default_high_latency_buffer_size() const noexcept
+    std::size_t default_high_latency_buffer_size() const noexcept
     {
-        return round_up(static_cast<std::uint32_t>(static_cast<double>(m_default_sample_rate) * m_default_high_output_latency.count()));
+        return static_cast<std::size_t>(static_cast<double>(m_default_sample_rate) * m_default_high_output_latency.count());
     }
 
-    std::uint32_t default_low_latency_buffer_size(std::uint32_t sample_rate) const noexcept
+    std::size_t default_low_latency_buffer_size(std::uint32_t sample_rate) const noexcept
     {
-        return round_up(static_cast<std::uint32_t>(static_cast<double>(sample_rate) * m_default_low_output_latency.count()));
+        return static_cast<std::size_t>(static_cast<double>(sample_rate) * m_default_low_output_latency.count());
     }
 
-    std::uint32_t default_high_latency_buffer_size(std::uint32_t sample_rate) const noexcept
+    std::size_t default_high_latency_buffer_size(std::uint32_t sample_rate) const noexcept
     {
-        return round_up(static_cast<std::uint32_t>(static_cast<double>(sample_rate) * m_default_high_output_latency.count()));
-    }
-
-private:
-    static std::uint32_t round_up(std::uint32_t value) noexcept
-    {
-        value--;
-
-        value |= value >> 1;
-        value |= value >> 2;
-        value |= value >> 4;
-        value |= value >> 8;
-        value |= value >> 16;
-
-        value++;
-
-        return value;
+        return static_cast<std::size_t>(static_cast<double>(sample_rate) * m_default_high_output_latency.count());
     }
 
 private:

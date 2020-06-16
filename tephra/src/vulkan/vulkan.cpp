@@ -119,7 +119,7 @@ instance::instance(const std::string& application_name, version version, const s
     application_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
     application_info.pApplicationName = std::data(application_name);
     application_info.applicationVersion = VK_MAKE_VERSION(version.major, version.minor, version.patch);
-    application_info.pEngineName = u8"Tephra";
+    application_info.pEngineName = "Tephra";
     application_info.engineVersion = VK_MAKE_VERSION(1, 0, 0);
     application_info.apiVersion = VK_API_VERSION_1_1;
 

@@ -12,6 +12,7 @@
 #include <future>
 #include <chrono>
 
+#define GLM_FORCE_RADIANS
 #include <glm/vec3.hpp>
 
 namespace swl
@@ -310,7 +311,7 @@ public:
 
     mixer_status status() const noexcept
     {
-        return m_status.load(std::memory_order_acquire);
+        return m_status.load(std::memory_order::acquire);
     }
 
 private:

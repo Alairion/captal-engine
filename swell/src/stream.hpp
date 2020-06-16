@@ -3,6 +3,8 @@
 
 #include "config.hpp"
 
+#include <mutex>
+
 #include "physical_device.hpp"
 
 namespace swl
@@ -13,6 +15,8 @@ class mixer;
 
 class stream
 {
+    static std::mutex mutex;
+
 public:
     stream() = default;
     stream(application& application, const physical_device& physical_device, mixer& mixer);

@@ -25,7 +25,8 @@ static std::uint32_t to_sdl_options(window_options options) noexcept
     {
         output |= SDL_WINDOW_HIDDEN;
     }
-    else{
+    else
+    {
         output |= SDL_WINDOW_SHOWN;
     }
 
@@ -53,7 +54,7 @@ static std::uint32_t to_sdl_options(window_options options) noexcept
 }
 
 window::window(application& application, const std::string& title, std::uint32_t width, std::uint32_t height, window_options options)
-:m_monitors{std::data(application.enumerate_monitors())}
+:m_monitors{application.enumerate_monitors()}
 {
     m_window = SDL_CreateWindow(std::data(title), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, static_cast<int>(width), static_cast<int>(height), to_sdl_options(options));
     if(!m_window)

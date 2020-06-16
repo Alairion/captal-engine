@@ -3,12 +3,10 @@
 
 #include "config.hpp"
 
+#include <captal/render_texture.hpp>
+#include <captal/renderable.hpp>
 #include <captal/tiled_map.hpp>
 #include <captal/physics.hpp>
-#include <captal/render_texture.hpp>
-#include <captal/tileset.hpp>
-#include <captal/tilemap.hpp>
-#include <captal/texture_pool.hpp>
 
 #include <captal/components/physical_body.hpp>
 

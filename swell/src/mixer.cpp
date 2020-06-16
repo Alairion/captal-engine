@@ -3,20 +3,41 @@
 #include <cmath>
 #include <numeric>
 #include <algorithm>
+#include <numbers>
 
 #ifndef NDEBUG
     #include <iostream>
 #endif
 
-#define GLM_FORCE_RADIANS
-#include <glm/vec3.hpp>
+#if defined(_WIN32)
+    #include <Windows.h>
+
+    namespace swl
+    {
+
+    static void increase_thread_priority() noexcept
+    {
+        //Return value is not checked, we don't care if it failed since it's just a slight optimization
+        SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST);
+    }
+
+    }
+#else
+    namespace swl
+    {
+
+    static void increase_thread_priority() noexcept
+    {
+
+    }
+
+    }
+#endif
+
 #include <glm/geometric.hpp>
 
 namespace swl
 {
-
-template<typename T>
-constexpr T pi{static_cast<T>(3.1415926535897932385)};
 
 namespace ressample
 {
@@ -345,7 +366,7 @@ mixer::~mixer()
     if(m_process_thread.joinable())
     {
         std::lock_guard lock{m_mutex};
-        m_status.store(mixer_status::stopped, std::memory_order_release);
+        m_status.store(mixer_status::stopped, std::memory_order::release);
         m_start_condition.notify_one();
 
         m_process_thread.join();
@@ -357,7 +378,7 @@ void mixer::start()
     std::lock_guard lock{m_mutex};
 
     m_queue.discard();
-    m_status.store(mixer_status::running, std::memory_order_release);
+    m_status.store(mixer_status::running, std::memory_order::release);
     m_last = clock::now();
 
     m_start_condition.notify_one();
@@ -367,7 +388,7 @@ void mixer::stop()
 {
     std::lock_guard lock{m_mutex};
 
-    m_status.store(mixer_status::paused, std::memory_order_release);
+    m_status.store(mixer_status::paused, std::memory_order::release);
 }
 
 void mixer::move_listener(const glm::vec3& relative)
@@ -444,16 +465,18 @@ float mixer::volume()
 
 void mixer::process() noexcept
 {
+    increase_thread_priority();
+
     try
     {
-        while(m_status.load(std::memory_order_acquire) != mixer_status::stopped)
+        while(m_status.load(std::memory_order::acquire) != mixer_status::stopped)
         {
-            if(m_status.load(std::memory_order_acquire) == mixer_status::paused)
+            if(m_status.load(std::memory_order::acquire) == mixer_status::paused)
             {
                 std::unique_lock lock{m_mutex};
                 m_start_condition.wait(lock, [this]
                 {
-                    return m_status.load(std::memory_order_acquire) == mixer_status::running || m_status.load(std::memory_order_acquire) == mixer_status::stopped;
+                    return m_status.load(std::memory_order::acquire) == mixer_status::running || m_status.load(std::memory_order::acquire) == mixer_status::stopped;
                 });
             }
 
@@ -477,7 +500,7 @@ void mixer::process() noexcept
     }
     catch(...)
     {
-        m_status.store(mixer_status::aborted, std::memory_order_release);
+        m_status.store(mixer_status::aborted, std::memory_order::release);
     }
 }
 
@@ -619,7 +642,7 @@ sample_buffer_type mixer::spatialize(impl::sound_data& sound, sample_buffer_type
             const float determinant{glm::dot(up, cross)};
             const float dot{glm::dot(sound_direction, listener_direction)};
             const float angle{std::atan2(determinant, dot)};
-            const float cosine{std::cos(angle - (pi<float> / 2.0f))};
+            const float cosine{std::cos(angle - (std::numbers::pi_v<float> / 2.0f))};
 
             if(m_channel_count == 2)
             {

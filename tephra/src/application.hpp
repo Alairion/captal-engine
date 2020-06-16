@@ -4,6 +4,7 @@
 #include "config.hpp"
 
 #include <limits>
+#include <span>
 #include <functional>
 
 #include "vulkan/vulkan.hpp"
@@ -63,7 +64,7 @@ public:
         return m_options;
     }
 
-    const std::vector<physical_device>& enumerate_physical_devices() const noexcept
+    std::span<const physical_device> enumerate_physical_devices() const noexcept
     {
         return m_physical_devices;
     }

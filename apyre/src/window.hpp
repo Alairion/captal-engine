@@ -4,6 +4,7 @@
 #include "config.hpp"
 
 #include <string>
+#include <span>
 
 class SDL_Window;
 
@@ -96,7 +97,7 @@ public:
 
 private:
     SDL_Window* m_window{};
-    const monitor* m_monitors{};
+    std::span<const monitor> m_monitors{};
 };
 
 }

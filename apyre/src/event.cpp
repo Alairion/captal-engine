@@ -330,14 +330,14 @@ std::optional<event> event_queue::next(window& window, event_mode mode)
 }
 
 event_iterator::event_iterator(application& application, event_mode mode)
-:m_queue{application.m_event_queue.get()}
+:m_queue{&application.event_queue()}
 ,m_mode{mode}
 {
     operator++();
 }
 
 event_iterator::event_iterator(application& application, window& window, event_mode mode)
-:m_queue{application.m_event_queue.get()}
+:m_queue{&application.event_queue()}
 ,m_mode{mode}
 ,m_window{&window}
 {
