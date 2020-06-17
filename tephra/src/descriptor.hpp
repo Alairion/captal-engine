@@ -32,7 +32,7 @@ class descriptor_set_layout
 
 public:
     constexpr descriptor_set_layout() = default;
-    descriptor_set_layout(renderer& renderer, const std::vector<descriptor_set_layout_binding>& bindings);
+    descriptor_set_layout(renderer& renderer, std::span<const descriptor_set_layout_binding> bindings);
 
     ~descriptor_set_layout() = default;
     descriptor_set_layout(const descriptor_set_layout&) = delete;
@@ -63,7 +63,7 @@ class descriptor_pool
 
 public:
     constexpr descriptor_pool() = default;
-    descriptor_pool(renderer& renderer, const std::vector<descriptor_pool_size>& sizes, std::optional<std::uint32_t> max_sets = std::nullopt);
+    descriptor_pool(renderer& renderer, std::span<const descriptor_pool_size> sizes, std::optional<std::uint32_t> max_sets = std::nullopt);
 
     ~descriptor_pool() = default;
     descriptor_pool(const descriptor_pool&) = delete;
@@ -130,7 +130,7 @@ struct descriptor_write
 
 void write_descriptor(renderer& renderer, descriptor_set& descriptor_set, std::uint32_t binding, std::uint32_t array_index, descriptor_type type, buffer& buffer, std::uint64_t offset, std::uint64_t size);
 void write_descriptor(renderer& renderer, descriptor_set& descriptor_set, std::uint32_t binding, std::uint32_t array_index, descriptor_type type, texture& texture, tph::texture_layout layout);
-void write_descriptors(renderer& renderer, const std::vector<descriptor_write>& writes);
+void write_descriptors(renderer& renderer, std::span<const descriptor_write> writes);
 
 }
 

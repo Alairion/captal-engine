@@ -34,7 +34,7 @@ class pipeline_layout
 
 public:
     constexpr pipeline_layout() = default;
-    pipeline_layout(renderer& renderer, const std::vector<std::reference_wrapper<descriptor_set_layout>>& layouts = {}, const std::vector<push_constant_range>& ranges = {});
+    pipeline_layout(renderer& renderer, std::span<const std::reference_wrapper<descriptor_set_layout>> layouts = {}, std::span<const push_constant_range> ranges = {});
 
     ~pipeline_layout() = default;
     pipeline_layout(const pipeline_layout&) = delete;
@@ -61,7 +61,7 @@ public:
     constexpr pipeline_cache() = default;
     pipeline_cache(renderer& renderer);
     pipeline_cache(renderer& renderer, const std::filesystem::path& file);
-    pipeline_cache(renderer& renderer, const std::string_view& data);
+    pipeline_cache(renderer& renderer, std::string_view data);
     pipeline_cache(renderer& renderer, std::istream& stream);
 
     ~pipeline_cache() = default;

@@ -22,10 +22,14 @@ static VkMemoryPropertyFlags optimal_memory_types(image_usage usage)
     VkMemoryPropertyFlags optimal{VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT};
 
     if(static_cast<bool>(usage & image_usage::host_access))
+    {
         return optimal | VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
+    }
 
     if(static_cast<bool>(usage & image_usage::transfer_source) && !static_cast<bool>(usage & image_usage::transfer_destination))
+    {
         return optimal | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+    }
 
     return optimal;
 }
@@ -53,13 +57,15 @@ image::image(renderer& renderer, const std::filesystem::path& file, image_usage 
     std::memcpy(m_map, pixels.get(), static_cast<std::size_t>(width * height * 4));
 
     if(!static_cast<bool>(usage & image_usage::persistant_mapping))
+    {
         m_memory.unmap();
+    }
 
     m_width = static_cast<size_type>(width);
     m_height = static_cast<size_type>(height);
 }
 
-image::image(renderer& renderer, const std::string_view& data, image_usage usage)
+image::image(renderer& renderer, std::string_view data, image_usage usage)
 :m_usage{usage}
 {
     int width{};
@@ -77,7 +83,9 @@ image::image(renderer& renderer, const std::string_view& data, image_usage usage
     std::memcpy(m_map, pixels.get(), static_cast<std::size_t>(width * height * 4));
 
     if(!static_cast<bool>(usage & image_usage::persistant_mapping))
+    {
         m_memory.unmap();
+    }
 
     m_width = static_cast<size_type>(width);
     m_height = static_cast<size_type>(height);
@@ -104,7 +112,9 @@ image::image(renderer& renderer, std::istream& stream, image_usage usage)
     std::memcpy(m_map, pixels.get(), static_cast<std::size_t>(width * height * 4));
 
     if(!static_cast<bool>(usage & image_usage::persistant_mapping))
+    {
         m_memory.unmap();
+    }
 
     m_width = static_cast<size_type>(width);
     m_height = static_cast<size_type>(height);
@@ -125,7 +135,9 @@ image::image(renderer& renderer, size_type width, size_type height, const std::u
     std::memcpy(m_map, data, static_cast<std::size_t>(width * height * 4));
 
     if(!static_cast<bool>(usage & image_usage::persistant_mapping))
+    {
         m_memory.unmap();
+    }
 }
 
 image::image(renderer& renderer, size_type width, size_type height, image_usage usage)
@@ -140,7 +152,9 @@ image::image(renderer& renderer, size_type width, size_type height, image_usage 
     m_memory = renderer.allocator().allocate_bound(m_buffer, vulkan::memory_resource_type::linear, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, optimal_memory_types(usage));
 
     if(static_cast<bool>(usage & image_usage::persistant_mapping))
+    {
         m_map = m_memory.map();
+    }
 }
 
 static void write_func(void* context, void* data, int size)
@@ -163,7 +177,7 @@ struct unmapper
 
 std::string image::write(image_format format, std::int32_t quality) const
 {
-    const bool was_mapped{m_map};
+    const bool was_mapped{static_cast<bool>(m_map)};
     const unmapper unmapper{m_memory, !was_mapped};
 
     const void* input{};

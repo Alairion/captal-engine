@@ -1,5 +1,7 @@
 #include "commands.hpp"
 
+#include <captal_foundation/stack_allocator.hpp>
+
 #include "vulkan/vulkan_functions.hpp"
 
 #include "pipeline.hpp"
@@ -72,18 +74,35 @@ command_buffer begin(command_pool& pool, render_pass& render_pass, optional_ref<
 
 void copy(command_buffer& command_buffer, buffer& source, buffer& destination, const buffer_copy& region)
 {
+    VkBufferCopy native_region{};
+    native_region.srcOffset = region.source_offset;
+    native_region.dstOffset = region.destination_offset;
+    native_region.size = region.size;
+
     vkCmdCopyBuffer(underlying_cast<VkCommandBuffer>(command_buffer),
                     underlying_cast<VkBuffer>(source),
                     underlying_cast<VkBuffer>(destination),
-                    1, reinterpret_cast<const VkBufferCopy*>(&region));
+                    1, &native_region);
 }
 
-void copy(command_buffer& command_buffer, buffer& source, buffer& destination, const std::vector<buffer_copy>& regions)
+void copy(command_buffer& command_buffer, buffer& source, buffer& destination, std::span<const buffer_copy> regions)
 {
+    stack_memory_pool<1024 * 2> pool{};
+    auto native_regions{make_stack_vector<VkBufferCopy>(pool)};
+    native_regions.reserve(std::size(regions));
+
+    for(auto&& region : regions)
+    {
+        VkBufferCopy& native_region{native_regions.emplace_back()};
+        native_region.srcOffset = region.source_offset;
+        native_region.dstOffset = region.destination_offset;
+        native_region.size = region.size;
+    }
+
     vkCmdCopyBuffer(underlying_cast<VkCommandBuffer>(command_buffer),
                     underlying_cast<VkBuffer>(source),
                     underlying_cast<VkBuffer>(destination),
-                    static_cast<std::uint32_t>(std::size(regions)), reinterpret_cast<const VkBufferCopy*>(std::data(regions)));
+                    static_cast<std::uint32_t>(std::size(native_regions)), std::data(native_regions));
 }
 
 void copy(command_buffer& command_buffer, buffer& source, image& destination, const buffer_image_copy& region)
@@ -124,9 +143,10 @@ void copy(command_buffer& command_buffer, buffer& source, texture& destination, 
                            1, &native_region);
 }
 
-void copy(command_buffer& command_buffer, buffer& source, texture& destination, const std::vector<buffer_texture_copy>& regions)
+void copy(command_buffer& command_buffer, buffer& source, texture& destination, std::span<const buffer_texture_copy> regions)
 {
-    std::vector<VkBufferImageCopy> native_regions{};
+    stack_memory_pool<1024 * 2> pool{};
+    auto native_regions{make_stack_vector<VkBufferImageCopy>(pool)};
     native_regions.reserve(std::size(regions));
 
     for(auto&& region : regions)
@@ -189,9 +209,10 @@ void copy(command_buffer& command_buffer, image& source, texture& destination, c
                            1, &native_region);
 }
 
-void copy(command_buffer& command_buffer, image& source, texture& destination, const std::vector<image_texture_copy>& regions)
+void copy(command_buffer& command_buffer, image& source, texture& destination, std::span<const image_texture_copy> regions)
 {
-    std::vector<VkBufferImageCopy> native_regions{};
+    stack_memory_pool<1024 * 2> pool{};
+    auto native_regions{make_stack_vector<VkBufferImageCopy>(pool)};
     native_regions.reserve(std::size(regions));
 
     for(auto&& region : regions)
@@ -209,7 +230,6 @@ void copy(command_buffer& command_buffer, image& source, texture& destination, c
         native_region.imageExtent.width = region.texture_size.width;
         native_region.imageExtent.height = region.texture_size.height;
         native_region.imageExtent.depth = region.texture_size.depth;
-
     }
 
     vkCmdCopyBufferToImage(underlying_cast<VkCommandBuffer>(command_buffer),
@@ -241,9 +261,10 @@ void copy(command_buffer& command_buffer, texture& source, buffer& destination, 
                            1, &native_region);
 }
 
-void copy(command_buffer& command_buffer, texture& source, buffer& destination, const std::vector<buffer_texture_copy>& regions)
+void copy(command_buffer& command_buffer, texture& source, buffer& destination, std::span<const buffer_texture_copy> regions)
 {
-    std::vector<VkBufferImageCopy> native_regions{};
+    stack_memory_pool<1024 * 2> pool{};
+    auto native_regions{make_stack_vector<VkBufferImageCopy>(pool)};
     native_regions.reserve(std::size(regions));
 
     for(auto&& region : regions)
@@ -292,9 +313,10 @@ void copy(command_buffer& command_buffer, texture& source, image& destination, c
                            1, &native_region);
 }
 
-void copy(command_buffer& command_buffer, texture& source, image& destination, const std::vector<image_texture_copy>& regions)
+void copy(command_buffer& command_buffer, texture& source, image& destination, std::span<const image_texture_copy> regions)
 {
-    std::vector<VkBufferImageCopy> native_regions{};
+    stack_memory_pool<1024 * 2> pool{};
+    auto native_regions{make_stack_vector<VkBufferImageCopy>(pool)};
     native_regions.reserve(std::size(regions));
 
     for(auto&& region : regions)
@@ -347,15 +369,15 @@ void copy(command_buffer& command_buffer, texture& source, texture& destination,
                    1, &native_region);
 }
 
-void copy(command_buffer& command_buffer, texture& source, texture& destination, const std::vector<texture_copy>& regions)
+void copy(command_buffer& command_buffer, texture& source, texture& destination, std::span<const texture_copy> regions)
 {
-    std::vector<VkImageCopy> native_regions{};
+    stack_memory_pool<1024 * 2> pool{};
+    auto native_regions{make_stack_vector<VkImageCopy>(pool)};
     native_regions.reserve(std::size(regions));
 
     for(auto&& region : regions)
     {
         VkImageCopy& native_region{native_regions.emplace_back()};
-
         native_region.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
         native_region.srcSubresource.mipLevel = 0;
         native_region.srcSubresource.baseArrayLayer = 0;
@@ -390,8 +412,8 @@ void copy(command_buffer& command_buffer, buffer& source, buffer& destination)
 
     vkCmdCopyBuffer(underlying_cast<VkCommandBuffer>(command_buffer),
                     underlying_cast<VkBuffer>(source),
-                     underlying_cast<VkBuffer>(destination),
-                     1, &native_region);
+                    underlying_cast<VkBuffer>(destination),
+                    1, &native_region);
 }
 
 void copy(command_buffer& command_buffer, image& source, image& destination)
@@ -498,9 +520,10 @@ void blit(command_buffer& command_buffer, texture& source, texture& destination,
                    1, &native_region, static_cast<VkFilter>(filter));
 }
 
-void blit(command_buffer& command_buffer, texture& source, texture& destination, filter filter, const std::vector<texture_blit>& regions)
+void blit(command_buffer& command_buffer, texture& source, texture& destination, filter filter, std::span<const texture_blit> regions)
 {
-    std::vector<VkImageBlit> native_regions{};
+    stack_memory_pool<1024 * 2> pool{};
+    auto native_regions{make_stack_vector<VkImageBlit>(pool)};
     native_regions.reserve(std::size(regions));
 
     for(auto&& region : regions)
@@ -588,7 +611,8 @@ void begin_render_pass(command_buffer& command_buffer, const render_pass& render
 
 void begin_render_pass(command_buffer& command_buffer, const render_pass& render_pass, const framebuffer& framebuffer, const scissor& area, render_pass_content content)
 {
-    std::vector<VkClearValue> clear_values{};
+    stack_memory_pool<1024 * 2> pool{};
+    auto clear_values{make_stack_vector<VkClearValue>(pool)};
     clear_values.reserve(std::size(framebuffer.clear_values()));
 
     for(auto&& value : framebuffer.clear_values())
@@ -704,13 +728,30 @@ void execute(command_buffer& buffer, command_buffer& secondary_buffer)
     vkCmdExecuteCommands(underlying_cast<VkCommandBuffer>(buffer), 1, &native_secondary_buffer);
 }
 
-void execute(command_buffer& buffer, const std::vector<std::reference_wrapper<command_buffer>>& secondary_buffers)
+void execute(command_buffer& buffer, std::span<const command_buffer> secondary_buffers)
 {
-    std::vector<VkCommandBuffer> native_secondary_buffers{};
+    stack_memory_pool<1024 * 2> pool{};
+    auto native_secondary_buffers{make_stack_vector<VkCommandBuffer>(pool)};
     native_secondary_buffers.reserve(std::size(secondary_buffers));
 
     for(const command_buffer& secondary_buffer : secondary_buffers)
-        native_secondary_buffers.push_back(underlying_cast<VkCommandBuffer>(secondary_buffer));
+    {
+        native_secondary_buffers.emplace_back(underlying_cast<VkCommandBuffer>(secondary_buffer));
+    }
+
+    vkCmdExecuteCommands(underlying_cast<VkCommandBuffer>(buffer), static_cast<std::uint32_t>(std::size(native_secondary_buffers)), std::data(native_secondary_buffers));
+}
+
+void execute(command_buffer& buffer, std::span<const std::reference_wrapper<command_buffer>> secondary_buffers)
+{
+    stack_memory_pool<1024 * 2> pool{};
+    auto native_secondary_buffers{make_stack_vector<VkCommandBuffer>(pool)};
+    native_secondary_buffers.reserve(std::size(secondary_buffers));
+
+    for(const command_buffer& secondary_buffer : secondary_buffers)
+    {
+        native_secondary_buffers.emplace_back(underlying_cast<VkCommandBuffer>(secondary_buffer));
+    }
 
     vkCmdExecuteCommands(underlying_cast<VkCommandBuffer>(buffer), static_cast<std::uint32_t>(std::size(native_secondary_buffers)), std::data(native_secondary_buffers));
 }
@@ -722,7 +763,7 @@ void submit(renderer& renderer, const submit_info& info, optional_ref<fence> fen
     submit(renderer, queue::graphics, info, fence);
 }
 
-void submit(renderer& renderer, const std::vector<submit_info>& submits, optional_ref<fence> fence)
+void submit(renderer& renderer, std::span<const submit_info> submits, optional_ref<fence> fence)
 {
     submit(renderer, queue::graphics, submits, fence);
 }
@@ -731,32 +772,34 @@ void submit(renderer& renderer, queue queue, const submit_info& info, optional_r
 {
     assert(std::size(info.wait_semaphores) == std::size(info.wait_stages) && "tph::submit_info::wait_semaphores and tph::submit_info::wait_stages must have the same size.");
 
-    std::vector<VkSemaphore> wait_semaphores{};
+    stack_memory_pool<1024 * 2> pool{};
+
+    auto wait_semaphores{make_stack_vector<VkSemaphore>(pool)};
     wait_semaphores.reserve(std::size(info.wait_semaphores));
     for(const semaphore& semaphore : info.wait_semaphores)
     {
-        wait_semaphores.push_back(underlying_cast<VkSemaphore>(semaphore));
+        wait_semaphores.emplace_back(underlying_cast<VkSemaphore>(semaphore));
     }
 
-    std::vector<VkPipelineStageFlags> wait_stages{};
+    auto wait_stages{make_stack_vector<VkPipelineStageFlags>(pool)};
     wait_stages.reserve(std::size(info.wait_stages));
-    for(auto wait_stage : info.wait_stages)
+    for(pipeline_stage wait_stage : info.wait_stages)
     {
-        wait_stages.push_back(static_cast<VkPipelineStageFlags>(wait_stage));
+        wait_stages.emplace_back(static_cast<VkPipelineStageFlags>(wait_stage));
     }
 
-    std::vector<VkCommandBuffer> command_buffers{};
+    auto command_buffers{make_stack_vector<VkCommandBuffer>(pool)};
     command_buffers.reserve(std::size(info.command_buffers));
     for(const command_buffer& command_buffer : info.command_buffers)
     {
-        command_buffers.push_back(underlying_cast<VkCommandBuffer>(command_buffer));
+        command_buffers.emplace_back(underlying_cast<VkCommandBuffer>(command_buffer));
     }
 
-    std::vector<VkSemaphore> signal_semaphores{};
+    auto signal_semaphores{make_stack_vector<VkSemaphore>(pool)};
     signal_semaphores.reserve(std::size(info.signal_semaphores));
     for(const semaphore& signal_semaphore : info.signal_semaphores)
     {
-        signal_semaphores.push_back(underlying_cast<VkSemaphore>(signal_semaphore));
+        signal_semaphores.emplace_back(underlying_cast<VkSemaphore>(signal_semaphore));
     }
 
     VkSubmitInfo native_submit{};
@@ -775,58 +818,64 @@ void submit(renderer& renderer, queue queue, const submit_info& info, optional_r
         throw vulkan::error{result};
 }
 
-void submit(renderer& renderer, queue queue, const std::vector<submit_info>& submits, optional_ref<fence> fence)
+void submit(renderer& renderer, queue queue, std::span<const submit_info> submits, optional_ref<fence> fence)
 {
+    constexpr std::size_t pool_size{1024 * 4};
+
     struct temp_submit_info
     {
-        std::vector<VkSemaphore> wait_semaphores{};
-        std::vector<VkPipelineStageFlags> wait_stages{};
-        std::vector<VkCommandBuffer> command_buffers{};
-        std::vector<VkSemaphore> signal_semaphores{};
+        stack_vector<VkSemaphore, pool_size> wait_semaphores{};
+        stack_vector<VkPipelineStageFlags, pool_size> wait_stages{};
+        stack_vector<VkCommandBuffer, pool_size> command_buffers{};
+        stack_vector<VkSemaphore, pool_size> signal_semaphores{};
     };
 
-    std::vector<temp_submit_info> temp_submits{};
+    stack_memory_pool<pool_size> pool{};
+
+    auto temp_submits{make_stack_vector<temp_submit_info>(pool)};
     temp_submits.reserve(std::size(submits));
 
     for(const auto& submit : submits)
     {
         assert(std::size(submit.wait_semaphores) == std::size(submit.wait_stages) && "tph::submit_info::wait_semaphores and tph::submit_info::wait_stages must have the same size.");
 
-        temp_submit_info temp_submit{};
-
-        temp_submit.wait_semaphores.reserve(std::size(submit.wait_semaphores));
+        auto wait_semaphores{make_stack_vector<VkSemaphore>(pool)};
+        wait_semaphores.reserve(std::size(submit.wait_semaphores));
         for(const semaphore& semaphore : submit.wait_semaphores)
         {
-            temp_submit.wait_semaphores.push_back(underlying_cast<VkSemaphore>(semaphore));
+            wait_semaphores.emplace_back(underlying_cast<VkSemaphore>(semaphore));
         }
 
-        temp_submit.wait_stages.reserve(std::size(submit.wait_stages));
-        for(auto wait_stage : submit.wait_stages)
+        auto wait_stages{make_stack_vector<VkPipelineStageFlags>(pool)};
+        wait_stages.reserve(std::size(submit.wait_stages));
+        for(pipeline_stage wait_stage : submit.wait_stages)
         {
-            temp_submit.wait_stages.push_back(static_cast<VkPipelineStageFlags>(wait_stage));
+            wait_stages.emplace_back(static_cast<VkPipelineStageFlags>(wait_stage));
         }
 
-        temp_submit.command_buffers.reserve(std::size(submit.command_buffers));
+        auto command_buffers{make_stack_vector<VkCommandBuffer>(pool)};
+        command_buffers.reserve(std::size(submit.command_buffers));
         for(const command_buffer& command_buffer : submit.command_buffers)
         {
-            temp_submit.command_buffers.push_back(underlying_cast<VkCommandBuffer>(command_buffer));
+            command_buffers.emplace_back(underlying_cast<VkCommandBuffer>(command_buffer));
         }
 
-        temp_submit.signal_semaphores.reserve(std::size(submit.signal_semaphores));
+        auto signal_semaphores{make_stack_vector<VkSemaphore>(pool)};
+        signal_semaphores.reserve(std::size(submit.signal_semaphores));
         for(const semaphore& signal_semaphore : submit.signal_semaphores)
         {
-            temp_submit.signal_semaphores.push_back(underlying_cast<VkSemaphore>(signal_semaphore));
+            signal_semaphores.emplace_back(underlying_cast<VkSemaphore>(signal_semaphore));
         }
 
-        temp_submits.push_back(std::move(temp_submit));
+        temp_submits.emplace_back(temp_submit_info{std::move(wait_semaphores), std::move(wait_stages), std::move(command_buffers), std::move(signal_semaphores)});
     }
 
-    std::vector<VkSubmitInfo> native_submits{};
+    auto native_submits{make_stack_vector<VkSubmitInfo>(pool)};
     native_submits.reserve(std::size(temp_submits));
 
     for(const auto& temp_submit : temp_submits)
     {
-        VkSubmitInfo native_submit{};
+        VkSubmitInfo& native_submit{native_submits.emplace_back()};
         native_submit.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
         native_submit.waitSemaphoreCount = static_cast<std::uint32_t>(std::size(temp_submit.wait_semaphores));
         native_submit.pWaitSemaphores = std::data(temp_submit.wait_semaphores);
@@ -835,8 +884,6 @@ void submit(renderer& renderer, queue queue, const std::vector<submit_info>& sub
         native_submit.pCommandBuffers = std::data(temp_submit.command_buffers);
         native_submit.signalSemaphoreCount = static_cast<std::uint32_t>(std::size(temp_submit.signal_semaphores));
         native_submit.pSignalSemaphores = std::data(temp_submit.signal_semaphores);
-
-        native_submits.push_back(native_submit);
     }
 
     VkFence native_fence{fence.has_value() ? underlying_cast<VkFence>(fence.value()) : VkFence{}};

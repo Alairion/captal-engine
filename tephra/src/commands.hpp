@@ -3,6 +3,8 @@
 
 #include "config.hpp"
 
+#include <span>
+
 #include "vulkan/vulkan.hpp"
 
 #include "renderer.hpp"
@@ -171,19 +173,19 @@ command_buffer begin(command_pool& pool, command_buffer_level level = command_bu
 command_buffer begin(command_pool& pool, render_pass& render_pass, optional_ref<framebuffer> framebuffer, command_buffer_flags flags = command_buffer_flags::none);
 
 void copy(command_buffer& command_buffer, buffer& source, buffer& destination, const buffer_copy& region);
-void copy(command_buffer& command_buffer, buffer& source, buffer& destination, const std::vector<buffer_copy>& regions);
+void copy(command_buffer& command_buffer, buffer& source, buffer& destination, std::span<const buffer_copy> regions);
 void copy(command_buffer& command_buffer, buffer& source, image& destination, const buffer_image_copy& region);
 void copy(command_buffer& command_buffer, buffer& source, texture& destination, const buffer_texture_copy& region);
-void copy(command_buffer& command_buffer, buffer& source, texture& destination, const std::vector<buffer_texture_copy>& regions);
+void copy(command_buffer& command_buffer, buffer& source, texture& destination, std::span<const buffer_texture_copy> regions);
 void copy(command_buffer& command_buffer, image& source, buffer& destination, const buffer_image_copy& region);
 void copy(command_buffer& command_buffer, image& source, texture& destination, const image_texture_copy& region);
-void copy(command_buffer& command_buffer, image& source, texture& destination, const std::vector<image_texture_copy>& regions);
+void copy(command_buffer& command_buffer, image& source, texture& destination, std::span<const image_texture_copy> regions);
 void copy(command_buffer& command_buffer, texture& source, buffer& destination, const buffer_texture_copy& region);
-void copy(command_buffer& command_buffer, texture& source, buffer& destination, const std::vector<buffer_texture_copy>& regions);
+void copy(command_buffer& command_buffer, texture& source, buffer& destination, std::span<const buffer_texture_copy> regions);
 void copy(command_buffer& command_buffer, texture& source, image& destination, const image_texture_copy& region);
-void copy(command_buffer& command_buffer, texture& source, image& destination, const std::vector<image_texture_copy>& regions);
+void copy(command_buffer& command_buffer, texture& source, image& destination, std::span<const image_texture_copy> regions);
 void copy(command_buffer& command_buffer, texture& source, texture& destination, const texture_copy& region);
-void copy(command_buffer& command_buffer, texture& source, texture& destination, const std::vector<texture_copy>& regions);
+void copy(command_buffer& command_buffer, texture& source, texture& destination, std::span<const texture_copy> regions);
 
 void copy(command_buffer& command_buffer, buffer& source, buffer& destination);
 void copy(command_buffer& command_buffer, image& source, image& destination);
@@ -192,7 +194,7 @@ void copy(command_buffer& command_buffer, texture& source, image& destination);
 void copy(command_buffer& command_buffer, texture& source, texture& destination);
 
 void blit(command_buffer& command_buffer, texture& source, texture& destination, filter filter, const texture_blit& region);
-void blit(command_buffer& command_buffer, texture& source, texture& destination, filter filter, const std::vector<texture_blit>& regions);
+void blit(command_buffer& command_buffer, texture& source, texture& destination, filter filter, std::span<const texture_blit> regions);
 void blit(command_buffer& command_buffer, texture& source, texture& destination, filter filter);
 
 void transition(command_buffer& command_buffer, texture& texture, resource_access source_access, resource_access destination_access, pipeline_stage source_stage, pipeline_stage destination_stage, texture_layout current_layout, texture_layout next_layout);
@@ -224,14 +226,15 @@ void dispatch_indirect(command_buffer& command_buffer, buffer& buffer, std::uint
 void end(command_buffer& command_buffer);
 
 void execute(command_buffer& buffer, command_buffer& secondary_buffer);
-void execute(command_buffer& buffer, const std::vector<std::reference_wrapper<command_buffer>>& secondary_buffers);
+void execute(command_buffer& buffer, std::span<const command_buffer> secondary_buffers);
+void execute(command_buffer& buffer, std::span<const std::reference_wrapper<command_buffer>> secondary_buffers);
 
 }
 
 void submit(renderer& renderer, const submit_info& info, optional_ref<fence> fence);
-void submit(renderer& renderer, const std::vector<submit_info>& submits, optional_ref<fence> fence);
+void submit(renderer& renderer, std::span<const submit_info> submits, optional_ref<fence> fence);
 void submit(renderer& renderer, queue queue, const submit_info& info, optional_ref<fence> fence);
-void submit(renderer& renderer, queue queue, const std::vector<submit_info>& submits, optional_ref<fence> fence);
+void submit(renderer& renderer, queue queue, std::span<const submit_info> submits, optional_ref<fence> fence);
 
 }
 

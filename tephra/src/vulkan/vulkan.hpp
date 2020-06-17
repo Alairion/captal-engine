@@ -5,6 +5,7 @@
 
 #include <string>
 #include <vector>
+#include <span>
 #include <exception>
 
 #include <vulkan/vulkan_core.h>
@@ -128,7 +129,7 @@ class instance
 {
 public:
     constexpr instance() = default;
-    explicit instance(const std::string& application_name, tph::version version, const std::vector<const char*>& extensions, const std::vector<const char*>& layers);
+    explicit instance(const std::string& application_name, tph::version version, std::span<const char* const> extensions, std::span<const char* const> layers);
     ~instance();
 
     instance(const instance&) = delete;
@@ -156,7 +157,7 @@ class device
 {
 public:
     constexpr device() = default;
-    explicit device(VkPhysicalDevice physical_device, const std::vector<const char*>& extensions, const std::vector<const char*>& layers, const std::vector<VkDeviceQueueCreateInfo>& queues, const VkPhysicalDeviceFeatures& features);
+    explicit device(VkPhysicalDevice physical_device, std::span<const char* const> extensions, std::span<const char* const> layers, std::span<const VkDeviceQueueCreateInfo> queues, const VkPhysicalDeviceFeatures& features);
     ~device();
 
     device(const device&) = delete;
@@ -371,7 +372,7 @@ class framebuffer
 {
 public:
     constexpr framebuffer() = default;
-    framebuffer(VkDevice device, VkRenderPass render_pass, const std::vector<VkImageView>& attachments, VkExtent2D size, std::uint32_t layers = 1);
+    framebuffer(VkDevice device, VkRenderPass render_pass, std::span<const VkImageView> attachments, VkExtent2D size, std::uint32_t layers = 1);
     ~framebuffer();
 
     framebuffer(const framebuffer&) = delete;
@@ -583,7 +584,7 @@ class descriptor_set_layout
 {
 public:
     constexpr descriptor_set_layout() = default;
-    descriptor_set_layout(VkDevice device, const std::vector<VkDescriptorSetLayoutBinding>& bindings);
+    descriptor_set_layout(VkDevice device, std::span<const VkDescriptorSetLayoutBinding> bindings);
     ~descriptor_set_layout();
 
     descriptor_set_layout(const descriptor_set_layout&) = delete;
@@ -613,7 +614,7 @@ class descriptor_pool
 {
 public:
     constexpr descriptor_pool() = default;
-    descriptor_pool(VkDevice device, const std::vector<VkDescriptorPoolSize>& sizes, std::uint32_t max_sets);
+    descriptor_pool(VkDevice device, std::span<const VkDescriptorPoolSize> sizes, std::uint32_t max_sets);
     ~descriptor_pool();
 
     descriptor_pool(const descriptor_pool&) = delete;
@@ -673,7 +674,7 @@ class render_pass
 {
 public:
     constexpr render_pass() = default;
-    render_pass(VkDevice device, const std::vector<VkAttachmentDescription>& attachments, const std::vector<VkSubpassDescription>& subpasses, const std::vector<VkSubpassDependency>& dependencies);
+    render_pass(VkDevice device, std::span<const VkAttachmentDescription> attachments, std::span<const VkSubpassDescription> subpasses, std::span<const VkSubpassDependency> dependencies);
     ~render_pass();
 
     render_pass(const render_pass&) = delete;
@@ -703,7 +704,7 @@ class pipeline_layout
 {
 public:
     constexpr pipeline_layout() = default;
-    pipeline_layout(VkDevice device, const std::vector<VkDescriptorSetLayout>& layouts, const std::vector<VkPushConstantRange>& ranges);
+    pipeline_layout(VkDevice device, std::span<const VkDescriptorSetLayout> layouts, std::span<const VkPushConstantRange> ranges);
     ~pipeline_layout();
 
     pipeline_layout(const pipeline_layout&) = delete;
@@ -882,7 +883,7 @@ class swapchain
 {
 public:
     constexpr swapchain() = default;
-    swapchain(VkDevice device, VkSurfaceKHR surface, VkExtent2D size, std::uint32_t image_count, VkSurfaceFormatKHR format, VkImageUsageFlags usage, const std::vector<std::uint32_t>& families, VkSurfaceTransformFlagBitsKHR transform, VkCompositeAlphaFlagBitsKHR composite, VkPresentModeKHR present_mode, VkBool32 clipped, VkSwapchainKHR old = nullptr);
+    swapchain(VkDevice device, VkSurfaceKHR surface, VkExtent2D size, std::uint32_t image_count, VkSurfaceFormatKHR format, VkImageUsageFlags usage, std::span<const std::uint32_t> families, VkSurfaceTransformFlagBitsKHR transform, VkCompositeAlphaFlagBitsKHR composite, VkPresentModeKHR present_mode, VkBool32 clipped, VkSwapchainKHR old = nullptr);
     ~swapchain();
 
     swapchain(const swapchain&) = delete;

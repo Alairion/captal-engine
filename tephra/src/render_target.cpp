@@ -2,6 +2,8 @@
 
 #include <cassert>
 
+#include <captal_foundation/stack_allocator.hpp>
+
 #include "vulkan/vulkan_functions.hpp"
 
 #include "vulkan/helper.hpp"
@@ -14,20 +16,21 @@ using namespace tph::vulkan::functions;
 namespace tph
 {
 
-static std::vector<VkImageView> make_image_views(const std::vector<std::reference_wrapper<texture>>& attachments)
+static vulkan::framebuffer make_framebuffer(renderer& renderer, const render_pass& render_pass, std::span<const std::reference_wrapper<texture>> attachments, std::uint32_t width, std::uint32_t height, std::uint32_t layers)
 {
-    std::vector<VkImageView> output{};
-    output.reserve(std::size(attachments));
+    stack_memory_pool<1024 / 2> pool{};
 
+    auto native_attachments{make_stack_vector<VkImageView>(pool)};
+    native_attachments.reserve(std::size(attachments));
     for(const tph::texture& attachment : attachments)
     {
-        output.emplace_back(underlying_cast<VkImageView>(attachment));
+        native_attachments.emplace_back(underlying_cast<VkImageView>(attachment));
     }
 
-    return output;
+    return vulkan::framebuffer{underlying_cast<VkDevice>(renderer), underlying_cast<VkRenderPass>(render_pass), native_attachments, VkExtent2D{width, height}, layers};
 }
 
-static std::vector<clear_value_t> make_clear_values(const std::vector<std::reference_wrapper<texture>>& attachments)
+static std::vector<clear_value_t> make_clear_values(std::span<const std::reference_wrapper<texture>> attachments)
 {
     std::vector<clear_value_t> output{};
     output.reserve(std::size(attachments));
@@ -47,8 +50,8 @@ static std::vector<clear_value_t> make_clear_values(const std::vector<std::refer
     return output;
 }
 
-framebuffer::framebuffer(renderer& renderer, const render_pass& render_pass, const std::vector<std::reference_wrapper<texture>>& attachments, std::uint32_t width, std::uint32_t height, std::uint32_t layers)
-:m_framebuffer{underlying_cast<VkDevice>(renderer), underlying_cast<VkRenderPass>(render_pass), make_image_views(attachments), VkExtent2D{width, height}, layers}
+framebuffer::framebuffer(renderer& renderer, const render_pass& render_pass, std::span<const std::reference_wrapper<texture>> attachments, std::uint32_t width, std::uint32_t height, std::uint32_t layers)
+:m_framebuffer{make_framebuffer(renderer, render_pass, attachments, width, height, layers)}
 ,m_clear_values{make_clear_values(attachments)}
 ,m_width{width}
 ,m_height{height}
@@ -76,9 +79,15 @@ void framebuffer::set_clear_values(std::vector<clear_value_t> clear_values)
     m_clear_values = std::move(clear_values);
 }
 
-static std::vector<VkAttachmentDescription> make_attachments(const std::vector<attachment_description>& attachments)
+//Don't know if I should keep this lul
+static constexpr std::size_t stack_size{1024 * 4};
+using memory_pool_t = stack_memory_pool<stack_size>;
+template<typename T>
+using stack_vector_t = stack_vector<T, stack_size>;
+
+static stack_vector_t<VkAttachmentDescription> make_attachments(memory_pool_t& pool, std::span<const attachment_description> attachments)
 {
-    std::vector<VkAttachmentDescription> output{};
+    auto output{make_stack_vector<VkAttachmentDescription>(pool)};
     output.reserve(std::size(attachments));
 
     for(auto&& attachment : attachments)
@@ -108,11 +117,11 @@ static VkAttachmentReference convert_attachment(const attachment_reference& atta
     return output;
 }
 
-static std::vector<VkAttachmentReference> convert_attachments(const std::vector<attachment_reference>& attachments)
+static stack_vector_t<VkAttachmentReference> convert_attachments(memory_pool_t& pool, std::span<const attachment_reference> attachments)
 {
-    std::vector<VkAttachmentReference> output{};
-
+    auto output{make_stack_vector<VkAttachmentReference>(pool)};
     output.reserve(std::size(attachments));
+
     for(auto&& attachment : attachments)
     {
         output.emplace_back(convert_attachment(attachment));
@@ -123,40 +132,40 @@ static std::vector<VkAttachmentReference> convert_attachments(const std::vector<
 
 struct subpass_data
 {
-    std::vector<VkAttachmentReference> input_attachments{};
-    std::vector<VkAttachmentReference> color_attachments{};
-    std::vector<VkAttachmentReference> resolve_attachments{};
-    std::unique_ptr<VkAttachmentReference> depth_attachment{};
-    std::vector<std::uint32_t> preserve_attachments{};
+    stack_vector_t<VkAttachmentReference> input_attachments{};
+    stack_vector_t<VkAttachmentReference> color_attachments{};
+    stack_vector_t<VkAttachmentReference> resolve_attachments{};
+    std::optional<VkAttachmentReference> depth_attachment{};
+    const std::vector<std::uint32_t>* preserve_attachments{};
 };
 
-static std::vector<subpass_data> make_subpasses_data(const std::vector<subpass_description>& subpasses)
+static stack_vector_t<subpass_data> make_subpasses_data(memory_pool_t& pool, std::span<const subpass_description> subpasses)
 {
-    std::vector<subpass_data> output{};
+    auto output{make_stack_vector<subpass_data>(pool)};
     output.reserve(std::size(subpasses));
 
     for(auto&& subpass : subpasses)
     {
         auto& native_subpass{output.emplace_back()};
 
-        native_subpass.input_attachments = convert_attachments(subpass.input_attachments);
-        native_subpass.color_attachments = convert_attachments(subpass.color_attachments);
-        native_subpass.resolve_attachments = convert_attachments(subpass.resolve_attachments);
+        native_subpass.input_attachments = convert_attachments(pool, subpass.input_attachments);
+        native_subpass.color_attachments = convert_attachments(pool, subpass.color_attachments);
+        native_subpass.resolve_attachments = convert_attachments(pool, subpass.resolve_attachments);
 
-        if(subpass.depth_attachment)
+        if(subpass.depth_attachment.has_value())
         {
-            native_subpass.depth_attachment = std::make_unique<VkAttachmentReference>(convert_attachment(subpass.depth_attachment.value()));
+            native_subpass.depth_attachment = convert_attachment(subpass.depth_attachment.value());
         }
 
-        native_subpass.preserve_attachments = subpass.preserve_attachments;
+        native_subpass.preserve_attachments = &subpass.preserve_attachments;
     }
 
     return output;
 }
 
-static std::vector<VkSubpassDescription> make_subpasses(const std::vector<subpass_data>& subpasses_data)
+static stack_vector_t<VkSubpassDescription> make_subpasses(memory_pool_t& pool, std::span<const subpass_data> subpasses_data)
 {
-    std::vector<VkSubpassDescription> output{};
+    auto output{make_stack_vector<VkSubpassDescription>(pool)};
     output.reserve(std::size(subpasses_data));
 
     for(auto&& data : subpasses_data)
@@ -168,17 +177,21 @@ static std::vector<VkSubpassDescription> make_subpasses(const std::vector<subpas
         native_subpass.colorAttachmentCount = static_cast<std::uint32_t>(std::size(data.color_attachments));
         native_subpass.pColorAttachments = std::data(data.color_attachments);
         native_subpass.pResolveAttachments = std::data(data.resolve_attachments);
-        native_subpass.preserveAttachmentCount = static_cast<std::uint32_t>(std::size(data.preserve_attachments));
-        native_subpass.pPreserveAttachments = std::data(data.preserve_attachments);
-        native_subpass.pDepthStencilAttachment = data.depth_attachment.get();
+        native_subpass.preserveAttachmentCount = static_cast<std::uint32_t>(std::size(*data.preserve_attachments));
+        native_subpass.pPreserveAttachments = std::data(*data.preserve_attachments);
+
+        if(data.depth_attachment.has_value())
+        {
+            native_subpass.pDepthStencilAttachment = &data.depth_attachment.value();
+        }
     }
 
     return output;
 }
 
-static std::vector<VkSubpassDependency> make_dependencies(const std::vector<subpass_dependency>& dependencies)
+static stack_vector_t<VkSubpassDependency> make_dependencies(memory_pool_t& pool, std::span<const subpass_dependency> dependencies)
 {
-    std::vector<VkSubpassDependency> output{};
+    auto output{make_stack_vector<VkSubpassDependency>(pool)};
     output.reserve(std::size(dependencies));
 
     for(auto&& dependency : dependencies)
@@ -200,10 +213,12 @@ static std::vector<VkSubpassDependency> make_dependencies(const std::vector<subp
 render_pass::render_pass(renderer& renderer, const render_pass_info& info)
 :m_device{underlying_cast<VkDevice>(renderer)}
 {
-    const auto attachments{make_attachments(info.attachments)};
-    const auto subpasses_data{make_subpasses_data(info.subpasses)};
-    const auto subpass{make_subpasses(subpasses_data)};
-    const auto dependencies{make_dependencies(info.dependencies)};
+    memory_pool_t pool{};
+
+    const auto attachments{make_attachments(pool, info.attachments)};
+    const auto subpasses_data{make_subpasses_data(pool, info.subpasses)};
+    const auto subpass{make_subpasses(pool, subpasses_data)};
+    const auto dependencies{make_dependencies(pool, info.dependencies)};
 
     m_render_pass = vulkan::render_pass{underlying_cast<VkDevice>(renderer), attachments, subpass, dependencies};
 }

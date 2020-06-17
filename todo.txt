@@ -5,9 +5,10 @@ L: low
 I: just an idea
 
 All:
-H: Switch to C++20
+H: Switch to C++20 (captal remaining)
 
 Captal Foundation:
+A: Add swap overload for stack_allocator
 A: Replace glm with homemade math library
 
 Tephra:

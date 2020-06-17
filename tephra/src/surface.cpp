@@ -1,5 +1,7 @@
 #include "surface.hpp"
 
+#include <captal_foundation/stack_allocator.hpp>
+
 #include "vulkan/vulkan_functions.hpp"
 
 #include "application.hpp"
@@ -41,8 +43,9 @@ static std::vector<texture_format> convert_formats(VkPhysicalDevice physical_dev
     if(auto result{vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device, surface, &count, nullptr)}; result != VK_SUCCESS)
         throw vulkan::error{result};
 
-    std::vector<VkSurfaceFormatKHR> formats{};
-    formats.resize(count);
+    stack_memory_pool<512> pool{};
+    auto formats{make_stack_vector<VkSurfaceFormatKHR>(pool)};
+    formats.reserve(count);
     if(auto result{vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device, surface, &count, std::data(formats))}; result != VK_SUCCESS)
         throw vulkan::error{result};
 
@@ -111,7 +114,6 @@ surface::surface(application& application, const vulkan::wayland_surface_info& i
 
 }
 #endif
-
 
 surface_capabilities surface::capabilities(const physical_device& physical_device) const
 {

@@ -3,6 +3,8 @@
 
 #include "config.hpp"
 
+#include <span>
+
 #include "vulkan/vulkan.hpp"
 
 #include "enumerations.hpp"
@@ -62,14 +64,14 @@ public:
         return m_info;
     }
 
-    tph::texture& texture(std::size_t index) noexcept
+    std::span<tph::texture> textures() noexcept
     {
-        return m_textures[index];
+        return m_textures;
     }
 
-    const tph::texture& texture(std::size_t index) const noexcept
+    std::span<const tph::texture> textures() const noexcept
     {
-        return m_textures[index];
+        return m_textures;
     }
 
     std::uint32_t image_index() const noexcept

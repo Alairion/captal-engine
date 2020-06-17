@@ -25,7 +25,9 @@ memory_heap_chunk::~memory_heap_chunk()
     if(m_parent)
     {
         if(m_mapped)
+        {
             unmap();
+        }
 
         m_parent->unregister_chunk(*this);
     }
@@ -149,7 +151,7 @@ std::optional<memory_heap_chunk> memory_heap::try_allocate(memory_resource_type 
     //Push it at the begginning if the heap is empty
     if(std::empty(m_ranges) && size <= m_size)
     {
-        m_ranges.push_back(range{0, size, ressource_type});
+        m_ranges.emplace_back(range{0, size, ressource_type});
         m_free_space -= size;
         return std::make_optional(memory_heap_chunk{this, 0, size});
     }
@@ -165,7 +167,7 @@ std::optional<memory_heap_chunk> memory_heap::try_allocate(memory_resource_type 
 
             if(m_size - end >= size)
             {
-                m_ranges.push_back(range{end, size, ressource_type});
+                m_ranges.emplace_back(range{end, size, ressource_type});
                 return std::cend(m_ranges) - 1;
             }
         }
@@ -176,7 +178,7 @@ std::optional<memory_heap_chunk> memory_heap::try_allocate(memory_resource_type 
 
             if(m_size - end >= size)
             {
-                m_ranges.push_back(range{end, size, ressource_type});
+                m_ranges.emplace_back(range{end, size, ressource_type});
                 return std::cend(m_ranges) - 1;
             }
         }
@@ -202,24 +204,36 @@ std::optional<memory_heap_chunk> memory_heap::try_allocate(memory_resource_type 
                 const std::uint64_t end{align_up(it->offset + it->size, alignment)};
 
                 if(static_cast<std::int64_t>(next->offset) - static_cast<std::int64_t>(end) >= static_cast<std::int64_t>(size))
+                {
                     return m_ranges.insert(next, range{end, size, ressource_type});
+                }
             }
             else
             {
                 std::uint64_t begin{};
                 if(it->type != ressource_type)
+                {
                     begin = align_up(it->offset + it->size, std::max(alignment, m_granularity));
+                }
                 else
+                {
                     begin = align_up(it->offset + it->size, alignment);
+                }
 
                 std::uint64_t end{};
                 if(next->type != ressource_type)
+                {
                     end = align_down(next->offset, std::max(alignment, m_granularity));
+                }
                 else
+                {
                     end = align_down(next->offset, alignment);
+                }
 
                 if(static_cast<std::int64_t>(end) - static_cast<std::int64_t>(begin) >= static_cast<std::int64_t>(size))
+                {
                     return m_ranges.insert(next, range{begin, size, ressource_type});
+                }
             }
         }
 
@@ -240,8 +254,10 @@ void* memory_heap::map()
     std::lock_guard lock{m_mutex};
 
     if(!m_map)
+    {
         if(vkMapMemory(m_device, m_memory, 0, VK_WHOLE_SIZE, 0, &m_map) != VK_SUCCESS)
             throw std::runtime_error{"Can not map memory."};
+    }
 
     ++m_map_count;
 
@@ -326,7 +342,9 @@ memory_allocator::memory_allocator(VkPhysicalDevice physical_device, VkDevice de
 
     m_heaps_flags.resize(m_memory_properties.memoryHeapCount);
     for(std::uint32_t i{}; i < m_memory_properties.memoryTypeCount; ++i)
+    {
         m_heaps_flags[m_memory_properties.memoryTypes[i].heapIndex] |= m_memory_properties.memoryTypes[i].propertyFlags;
+    }
 
     VkPhysicalDeviceProperties properties{};
     vkGetPhysicalDeviceProperties(m_physical_device, &properties);
@@ -357,7 +375,7 @@ memory_heap_chunk memory_allocator::allocate(const VkMemoryRequirements& require
         {
             if(heap.type() == memory_type && heap.free_space() > align_up(requirements.size, m_granularity))
             {
-                candidates.push_back(std::ref(heap));
+                candidates.emplace_back(std::ref(heap));
             }
         }
 
@@ -538,13 +556,19 @@ std::uint64_t memory_allocator::default_heap_size(std::uint32_t type) const
     const auto flags{m_heaps_flags[m_memory_properties.memoryTypes[type].heapIndex]};
 
     if((flags & (VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)) == (VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
+    {
         return m_sizes.device_shared;
+    }
 
     if(flags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
+    {
         return m_sizes.device_local;
+    }
 
     if(flags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
+    {
         return m_sizes.host_shared;
+    }
 
     throw std::runtime_error{"Wrong memory type."};
 }

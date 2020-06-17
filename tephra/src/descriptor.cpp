@@ -2,6 +2,8 @@
 
 #include <cassert>
 
+#include <captal_foundation/stack_allocator.hpp>
+
 #include "vulkan/vulkan_functions.hpp"
 
 #include "renderer.hpp"
@@ -13,9 +15,11 @@ using namespace tph::vulkan::functions;
 namespace tph
 {
 
-descriptor_set_layout::descriptor_set_layout(renderer& renderer, const std::vector<descriptor_set_layout_binding>& bindings)
+descriptor_set_layout::descriptor_set_layout(renderer& renderer, std::span<const descriptor_set_layout_binding> bindings)
 {
-    std::vector<VkDescriptorSetLayoutBinding> native_bindings{};
+    stack_memory_pool<1024 * 2> pool{};
+
+    auto native_bindings{make_stack_vector<VkDescriptorSetLayoutBinding>(pool)};
     native_bindings.reserve(std::size(bindings));
 
     for(auto&& binding : bindings)
@@ -26,15 +30,17 @@ descriptor_set_layout::descriptor_set_layout(renderer& renderer, const std::vect
         native_binding.descriptorType = static_cast<VkDescriptorType>(binding.type);
         native_binding.descriptorCount = binding.count;
 
-        native_bindings.push_back(native_binding);
+        native_bindings.emplace_back(native_binding);
     }
 
     m_layout = vulkan::descriptor_set_layout{underlying_cast<VkDevice>(renderer), native_bindings};
 }
 
-descriptor_pool::descriptor_pool(renderer& renderer, const std::vector<descriptor_pool_size>& sizes, std::optional<std::uint32_t> max_sets)
+descriptor_pool::descriptor_pool(renderer& renderer, std::span<const descriptor_pool_size> sizes, std::optional<std::uint32_t> max_sets)
 {
-    std::vector<VkDescriptorPoolSize> native_sizes{};
+    stack_memory_pool<1024> pool{};
+
+    auto native_sizes{make_stack_vector<VkDescriptorPoolSize>(pool)};
     native_sizes.reserve(std::size(sizes));
 
     for(auto&& size : sizes)
@@ -48,7 +54,9 @@ descriptor_pool::descriptor_pool(renderer& renderer, const std::vector<descripto
     {
         std::uint32_t total_size{};
         for(auto&& size : sizes)
+        {
             total_size += size.count;
+        }
 
         max_sets = total_size;
     }
@@ -100,7 +108,7 @@ void write_descriptor(renderer& renderer, descriptor_set& descriptor_set, std::u
     vkUpdateDescriptorSets(underlying_cast<VkDevice>(renderer), 1, &write, 0, nullptr);
 }
 
-void write_descriptors(renderer& renderer, const std::vector<descriptor_write>& writes)
+void write_descriptors(renderer& renderer, std::span<const descriptor_write> writes)
 {
     std::size_t image_count{};
     std::size_t buffer_count{};
@@ -119,11 +127,14 @@ void write_descriptors(renderer& renderer, const std::vector<descriptor_write>& 
         }
     }
 
-    std::vector<VkDescriptorImageInfo> native_images{};
+    stack_memory_pool<1024 * 4> pool{};
+
+    auto native_images{make_stack_vector<VkDescriptorImageInfo>(pool)};
     native_images.reserve(image_count);
-    std::vector<VkDescriptorBufferInfo> buffers_image{};
+    auto buffers_image{make_stack_vector<VkDescriptorBufferInfo>(pool)};
     buffers_image.reserve(buffer_count);
-    std::vector<VkWriteDescriptorSet> native_writes{};
+
+    auto native_writes{make_stack_vector<VkWriteDescriptorSet>(pool)};
     native_writes.reserve(std::size(writes));
 
     for(auto&& write : writes)

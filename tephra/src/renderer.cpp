@@ -101,7 +101,7 @@ static std::vector<const char*> required_device_layers(VkPhysicalDevice physical
     std::vector<const char*> layers{};
 
     if(static_cast<bool>(options & application_options::enable_validation))
-        layers.push_back("VK_LAYER_LUNARG_standard_validation");
+        layers.emplace_back("VK_LAYER_LUNARG_standard_validation");
 
     return filter_device_layers(physical_device, std::move(layers));
 }
@@ -214,7 +214,9 @@ static std::uint32_t choose_transfer_family(const std::vector<VkQueueFamilyPrope
         const bool support_other{(queue_families[i].queueFlags & (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT)) != 0};
 
         if(support_transfer && !support_other)
+        {
             return static_cast<std::uint32_t>(i);
+        }
     }
 
     return choose_generic_family(queue_families);
@@ -228,7 +230,9 @@ static std::uint32_t choose_compute_family(const std::vector<VkQueueFamilyProper
         const bool support_other{(queue_families[i].queueFlags & (VK_QUEUE_GRAPHICS_BIT)) != 0};
 
         if(support_compute && !support_other)
+        {
             return static_cast<std::uint32_t>(i);
+        }
     }
 
     return choose_generic_family(queue_families);
@@ -276,17 +280,17 @@ static std::array<std::uint32_t, static_cast<std::size_t>(queue::count)> choose_
 static std::vector<VkDeviceQueueCreateInfo> make_queue_create_info(const std::array<std::uint32_t, static_cast<std::size_t>(queue::count)>& families, renderer_options options)
 {
     std::vector<std::uint32_t> unique_families{};
-    unique_families.push_back(families[static_cast<std::size_t>(queue::graphics)]);
-    unique_families.push_back(families[static_cast<std::size_t>(queue::present)]);
+    unique_families.emplace_back(families[static_cast<std::size_t>(queue::graphics)]);
+    unique_families.emplace_back(families[static_cast<std::size_t>(queue::present)]);
 
     if(static_cast<bool>(options & renderer_options::standalone_transfer_queue))
     {
-        unique_families.push_back(families[static_cast<std::size_t>(queue::transfer)]);
+        unique_families.emplace_back(families[static_cast<std::size_t>(queue::transfer)]);
     }
 
     if(static_cast<bool>(options & renderer_options::standalone_compute_queue))
     {
-        unique_families.push_back(families[static_cast<std::size_t>(queue::compute)]);
+        unique_families.emplace_back(families[static_cast<std::size_t>(queue::compute)]);
     }
 
     std::sort(std::begin(unique_families), std::end(unique_families));
@@ -302,7 +306,7 @@ static std::vector<VkDeviceQueueCreateInfo> make_queue_create_info(const std::ar
         create_info.queueFamilyIndex = family;
         create_info.queueCount = 1;
 
-        queues.push_back(create_info);
+        queues.emplace_back(create_info);
     }
 
     return queues;
@@ -336,13 +340,17 @@ renderer::renderer(application& app, const physical_device& physical_device, ren
     std::vector<VkDeviceQueueCreateInfo> queues{make_queue_create_info(m_queue_families, options)};
     const float priority{1.0f};
     for(auto& queue : queues)
+    {
         queue.pQueuePriorities = &priority;
+    }
 
     m_device = vulkan::device{m_physical_device, extensions, layers, queues, features};
     tph::vulkan::functions::load_device_level_functions(m_device);
 
     for(std::uint32_t i{}; i < std::size(m_queue_families); ++i)
+    {
         vkGetDeviceQueue(m_device, m_queue_families[i], 0, &m_queues[i]);
+    }
 
     vulkan::memory_allocator::heap_sizes sizes{};
 
@@ -367,22 +375,19 @@ renderer::renderer(application& app, const physical_device& physical_device, ren
         sizes.device_local /= 4;
         sizes.host_shared /= 4;
     }
-
-    if(static_cast<bool>(options & renderer_options::small_memory_heaps))
+    else if(static_cast<bool>(options & renderer_options::small_memory_heaps))
     {
         sizes.device_shared /= 2;
         sizes.device_local /= 2;
         sizes.host_shared /= 2;
     }
-
-    if(static_cast<bool>(options & renderer_options::large_memory_heaps))
+    else if(static_cast<bool>(options & renderer_options::large_memory_heaps))
     {
         sizes.device_shared *= 2;
         sizes.device_local *= 2;
         sizes.host_shared *= 2;
     }
-
-    if(static_cast<bool>(options & renderer_options::giant_memory_heaps))
+    else if(static_cast<bool>(options & renderer_options::giant_memory_heaps))
     {
         sizes.device_shared *= 4;
         sizes.device_local *= 4;

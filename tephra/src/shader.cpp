@@ -28,7 +28,7 @@ shader::shader(renderer& renderer, shader_stage stage, const std::filesystem::pa
     m_shader = vulkan::shader{underlying_cast<VkDevice>(renderer), std::size(code) * 4, std::data(code)};
 }
 
-shader::shader(renderer& renderer, shader_stage stage, const std::string_view& data)
+shader::shader(renderer& renderer, shader_stage stage, std::string_view data)
 :m_stage{stage}
 {
     std::vector<std::uint32_t> code{};

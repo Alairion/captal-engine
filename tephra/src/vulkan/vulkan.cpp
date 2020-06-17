@@ -113,7 +113,7 @@ const char* error::what() const noexcept
     return "VK_SUCCESS: No error";
 }
 
-instance::instance(const std::string& application_name, version version, const std::vector<const char*>& extensions, const std::vector<const char*>& layers)
+instance::instance(const std::string& application_name, version version, std::span<const char* const> extensions, std::span<const char* const> layers)
 {
     VkApplicationInfo application_info{};
     application_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -156,7 +156,7 @@ instance& instance::operator=(instance&& other) noexcept
 
 /////////////////////////////////////////////////////////////////////
 
-device::device(VkPhysicalDevice physical_device, const std::vector<const char*>& extensions, const std::vector<const char*>& layers, const std::vector<VkDeviceQueueCreateInfo>& queues, const VkPhysicalDeviceFeatures& features)
+device::device(VkPhysicalDevice physical_device, std::span<const char* const> extensions, std::span<const char* const> layers, std::span<const VkDeviceQueueCreateInfo> queues, const VkPhysicalDeviceFeatures& features)
 {
     VkDeviceCreateInfo create_info{};
     create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -460,7 +460,7 @@ sampler& sampler::operator=(sampler&& other) noexcept
 
 /////////////////////////////////////////////////////////////////////
 
-framebuffer::framebuffer(VkDevice device, VkRenderPass render_pass, const std::vector<VkImageView>& attachments, VkExtent2D size, std::uint32_t layers)
+framebuffer::framebuffer(VkDevice device, VkRenderPass render_pass, std::span<const VkImageView> attachments, VkExtent2D size, std::uint32_t layers)
 :m_device{device}
 {
     VkFramebufferCreateInfo create_info{};
@@ -708,7 +708,7 @@ command_buffer& command_buffer::operator=(command_buffer&& other) noexcept
 
 /////////////////////////////////////////////////////////////////////
 
-descriptor_set_layout::descriptor_set_layout(VkDevice device, const std::vector<VkDescriptorSetLayoutBinding>& bindings)
+descriptor_set_layout::descriptor_set_layout(VkDevice device, std::span<const VkDescriptorSetLayoutBinding> bindings)
 :m_device{device}
 {
     VkDescriptorSetLayoutCreateInfo create_info{};
@@ -744,7 +744,7 @@ descriptor_set_layout& descriptor_set_layout::operator=(descriptor_set_layout&& 
 
 /////////////////////////////////////////////////////////////////////
 
-descriptor_pool::descriptor_pool(VkDevice device, const std::vector<VkDescriptorPoolSize>& sizes, std::uint32_t max_sets)
+descriptor_pool::descriptor_pool(VkDevice device, std::span<const VkDescriptorPoolSize> sizes, std::uint32_t max_sets)
 :m_device{device}
 {
     VkDescriptorPoolCreateInfo create_info{};
@@ -810,7 +810,7 @@ descriptor_set& descriptor_set::operator=(descriptor_set&& other) noexcept
 
 /////////////////////////////////////////////////////////////////////
 
-pipeline_layout::pipeline_layout(VkDevice device, const std::vector<VkDescriptorSetLayout>& layouts, const std::vector<VkPushConstantRange>& ranges)
+pipeline_layout::pipeline_layout(VkDevice device, std::span<const VkDescriptorSetLayout> layouts, std::span<const VkPushConstantRange> ranges)
 :m_device{device}
 {
     VkPipelineLayoutCreateInfo create_info{};
@@ -847,7 +847,7 @@ pipeline_layout& pipeline_layout::operator=(pipeline_layout&& other) noexcept
 
 /////////////////////////////////////////////////////////////////////
 
-render_pass::render_pass(VkDevice device, const std::vector<VkAttachmentDescription>& attachments, const std::vector<VkSubpassDescription>& subpasses, const std::vector<VkSubpassDependency>& dependencies)
+render_pass::render_pass(VkDevice device, std::span<const VkAttachmentDescription> attachments, std::span<const VkSubpassDescription> subpasses, std::span<const VkSubpassDependency> dependencies)
 :m_device{device}
 {
     VkRenderPassCreateInfo create_info{};
@@ -1104,7 +1104,7 @@ surface& surface::operator=(surface&& other) noexcept
     return *this;
 }
 
-swapchain::swapchain(VkDevice device, VkSurfaceKHR surface, VkExtent2D size, std::uint32_t image_count, VkSurfaceFormatKHR format, VkImageUsageFlags usage, const std::vector<std::uint32_t>& families, VkSurfaceTransformFlagBitsKHR transform, VkCompositeAlphaFlagBitsKHR composite, VkPresentModeKHR present_mode, VkBool32 clipped, VkSwapchainKHR old)
+swapchain::swapchain(VkDevice device, VkSurfaceKHR surface, VkExtent2D size, std::uint32_t image_count, VkSurfaceFormatKHR format, VkImageUsageFlags usage, std::span<const std::uint32_t> families, VkSurfaceTransformFlagBitsKHR transform, VkCompositeAlphaFlagBitsKHR composite, VkPresentModeKHR present_mode, VkBool32 clipped, VkSwapchainKHR old)
 :m_device{device}
 {
     VkSwapchainCreateInfoKHR create_info{};
@@ -1134,8 +1134,8 @@ swapchain::swapchain(VkDevice device, VkSurfaceKHR surface, VkExtent2D size, std
     create_info.clipped = clipped;
     create_info.oldSwapchain = old;
 
-    if(vkCreateSwapchainKHR(m_device, &create_info, nullptr, &m_swapchain) != VK_SUCCESS)
-        throw std::runtime_error{"Failed to create swapchain."};
+    if(auto result{vkCreateSwapchainKHR(m_device, &create_info, nullptr, &m_swapchain)}; result != VK_SUCCESS)
+        throw vulkan::error{result};
 }
 
 swapchain::~swapchain()

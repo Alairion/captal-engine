@@ -9,6 +9,7 @@
 #include <cassert>
 #include <cstddef>
 #include <string>
+#include <cstring>
 #include <vector>
 
 namespace cpt
@@ -60,7 +61,11 @@ private:
     }
 
 public:
-    constexpr stack_memory_pool() noexcept = default;
+    constexpr stack_memory_pool() noexcept
+    {
+        as_header(m_memory[0]) = std::numeric_limits<std::size_t>::max(); //We do lazy initialization
+    }
+
      ~stack_memory_pool() = default;
     stack_memory_pool(const stack_memory_pool&) noexcept = delete;
     stack_memory_pool& operator=(const stack_memory_pool&) noexcept = delete;
@@ -75,6 +80,11 @@ public:
         if(size > stack_size - block_size)
         {
             return nullptr;
+        }
+
+        if(as_header(m_memory[0]) == std::numeric_limits<std::size_t>::max())
+        {
+            std::memset(std::data(m_memory), 0, std::size(m_memory) * block_size);
         }
 
         auto* const block{find_block(size)};
@@ -153,7 +163,7 @@ private:
     }
 
 private:
-    alignas(block_align) std::array<block_type, block_count> m_memory{};
+    alignas(block_align) std::array<block_type, block_count> m_memory;
 };
 
 template<typename T, std::size_t StackSize, bool NewFallback = true>

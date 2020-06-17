@@ -33,17 +33,16 @@ public:
 
 public:
     constexpr application() = default;
-    application(const std::string& application_name, version application_version, application_options options = application_options::none);
-    ~application() = default;
 
+    application(const std::string& application_name, version application_version, application_options options = application_options::none);
+
+    ~application() = default;
     application(const application&) = delete;
     application& operator=(const application&) = delete;
-
     application(application&& other) noexcept = default;
     application& operator=(application&& other) noexcept = default;
 
     const physical_device& select_physical_device(const filter_type& required, const comparator_type& comparator = comparator_type{}) const;
-
     const physical_device& default_physical_device() const;
 
     template<typename... Surfaces>

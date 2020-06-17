@@ -139,3 +139,35 @@ TEST_CASE("Stack allocator test", "[stack_alloc]")
         allocator.deallocate(memory, 1000);
     }
 }
+/*
+static constexpr std::size_t pool_size{1024};
+
+TEST_CASE("cpt::stack_allocator benchmark", "[stack_alloc_bench]")
+{
+    BENCHMARK("cpt::stack_vector fallbacks on new")
+    {
+        cpt::stack_memory_pool<pool_size> pool{};
+        auto vector{cpt::make_stack_vector<std::uint32_t>(pool)};
+        vector.resize(pool_size / 2);
+
+        return vector.capacity();
+    };
+
+    BENCHMARK("cpt::stack_vector NO fallbacks on new")
+    {
+        cpt::stack_memory_pool<pool_size> pool{};
+        auto vector{cpt::make_stack_vector<std::uint32_t>(pool)};
+        vector.resize(pool_size / 8);
+
+        return vector.capacity();
+    };
+
+    BENCHMARK("std::vector")
+    {
+        std::vector<std::uint32_t> vector{};
+        vector.resize(pool_size / 2);
+
+        return vector.capacity();
+    };
+}
+*/

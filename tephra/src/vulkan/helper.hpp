@@ -2,6 +2,7 @@
 #define TEPHRA_VULKAN_HELPER_HPP_INCLUDED
 
 #include <functional>
+#include <span>
 
 #include "vulkan.hpp"
 
@@ -11,7 +12,7 @@ namespace tph::vulkan
 std::uint32_t find_memory_type(VkPhysicalDevice physical_device, std::uint32_t type, VkMemoryPropertyFlags minimal, VkMemoryPropertyFlags optimal);
 std::uint32_t find_memory_type(const VkPhysicalDeviceMemoryProperties& memory_properties, std::uint32_t type, VkMemoryPropertyFlags minimal, VkMemoryPropertyFlags optimal);
 
-VkFormat find_format(VkPhysicalDevice physical_device, std::initializer_list<VkFormat> candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
+VkFormat find_format(VkPhysicalDevice physical_device, std::span<VkFormat> candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
 
 template<typename T>
 constexpr T align_down(T offset, T alignment) noexcept

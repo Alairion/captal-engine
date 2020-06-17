@@ -2,6 +2,8 @@
 
 #include <fstream>
 
+#include <captal_foundation/stack_allocator.hpp>
+
 #include "vulkan/vulkan_functions.hpp"
 
 #include "renderer.hpp"
@@ -14,16 +16,18 @@ using namespace tph::vulkan::functions;
 namespace tph
 {
 
-pipeline_layout::pipeline_layout(renderer& renderer, const std::vector<std::reference_wrapper<descriptor_set_layout>>& layouts, const std::vector<push_constant_range>& ranges)
+pipeline_layout::pipeline_layout(renderer& renderer, std::span<const std::reference_wrapper<descriptor_set_layout>> layouts, std::span<const push_constant_range> ranges)
 {
-    std::vector<VkDescriptorSetLayout> native_layouts{};
+    stack_memory_pool<1024> pool{};
+
+    auto native_layouts{make_stack_vector<VkDescriptorSetLayout>(pool)};
     native_layouts.reserve(std::size(layouts));
     for(const descriptor_set_layout& layout : layouts)
     {
-        native_layouts.push_back(underlying_cast<VkDescriptorSetLayout>(layout));
+        native_layouts.emplace_back(underlying_cast<VkDescriptorSetLayout>(layout));
     }
 
-    std::vector<VkPushConstantRange> native_ranges{};
+    auto native_ranges{make_stack_vector<VkPushConstantRange>(pool)};
     native_ranges.reserve(std::size(ranges));
     for(auto&& range : ranges)
     {
@@ -32,7 +36,7 @@ pipeline_layout::pipeline_layout(renderer& renderer, const std::vector<std::refe
         native_range.offset = range.offset;
         native_range.size = range.size;
 
-        native_ranges.push_back(native_range);
+        native_ranges.emplace_back(native_range);
     }
 
     m_pipeline_layout = vulkan::pipeline_layout{underlying_cast<VkDevice>(renderer), native_layouts, native_ranges};
@@ -45,7 +49,7 @@ pipeline_cache::pipeline_cache(renderer& renderer)
 
 }
 
-pipeline_cache::pipeline_cache(renderer& renderer, const std::string_view& data)
+pipeline_cache::pipeline_cache(renderer& renderer, std::string_view data)
 :m_device{underlying_cast<VkDevice>(renderer)}
 ,m_pipeline_cache{m_device, std::data(data), std::size(data)}
 {
@@ -88,7 +92,9 @@ pipeline_cache& pipeline_cache::merge_with(const std::vector<std::reference_wrap
     std::vector<VkPipelineCache> native_pipeline_caches{};
     native_pipeline_caches.reserve(std::size(others));
     for(const pipeline_cache& other : others)
-        native_pipeline_caches.push_back(other.m_pipeline_cache);
+    {
+        native_pipeline_caches.emplace_back(other.m_pipeline_cache);
+    }
 
     if(auto result{vkMergePipelineCaches(m_device, m_pipeline_cache, static_cast<std::uint32_t>(std::size(native_pipeline_caches)), std::data(native_pipeline_caches))}; result != VK_SUCCESS)
         throw vulkan::error{result};
@@ -124,9 +130,12 @@ pipeline::pipeline(renderer& renderer, render_pass& render_pass, std::uint32_t s
     create_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
     create_info.flags = static_cast<VkPipelineCreateFlags>(info.options);
 
-    std::vector<VkSpecializationInfo> stages_specialization{};
+    stack_memory_pool<1024 / 2> pool{};
+
+    auto stages_specialization{make_stack_vector<VkSpecializationInfo>(pool)};
     stages_specialization.reserve(std::size(info.stages));
-    std::vector<VkPipelineShaderStageCreateInfo> stages{};
+
+    auto stages{make_stack_vector<VkPipelineShaderStageCreateInfo>(pool)};
     stages.reserve(std::size(info.stages));
 
     for(auto&& stage : info.stages)

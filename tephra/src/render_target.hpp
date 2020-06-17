@@ -115,7 +115,7 @@ class framebuffer
 public:
     constexpr framebuffer() = default;
 
-    framebuffer(renderer& renderer, const render_pass& render_pass, const std::vector<std::reference_wrapper<texture>>& attachments, std::uint32_t width, std::uint32_t height, std::uint32_t layers);
+    framebuffer(renderer& renderer, const render_pass& render_pass, std::span<const std::reference_wrapper<texture>> attachments, std::uint32_t width, std::uint32_t height, std::uint32_t layers);
 
     ~framebuffer() = default;
     framebuffer(const framebuffer&) = delete;
@@ -127,7 +127,7 @@ public:
     void set_clear_value(std::uint32_t attachment_index, const clear_depth_stencil_value& value);
     void set_clear_values(std::vector<clear_value_t> clear_values);
 
-    const std::vector<clear_value_t>& clear_values() const noexcept
+    std::span<const clear_value_t> clear_values() const noexcept
     {
         return m_clear_values;
     }

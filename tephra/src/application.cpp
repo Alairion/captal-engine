@@ -50,9 +50,13 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debug_messenger_callback(VkDebugUtilsMessa
     message += format_message(*callback_data);
 
     if(severity == VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
+    {
         std::cerr << message << std::endl;
+    }
     else
+    {
         std::cout << message << std::endl;
+    }
 
     return VK_FALSE;
 }
@@ -106,28 +110,30 @@ static std::vector<const char*> required_instance_extensions(application_options
     std::vector<const char*> extensions{"VK_KHR_surface"};
 
     if(static_cast<bool>(options & application_options::enable_validation))
-        extensions.push_back("VK_EXT_debug_utils");
+    {
+        extensions.emplace_back("VK_EXT_debug_utils");
+    }
 
 #ifdef TPH_PLATFORM_ANDROID
-    extensions.push_back("VK_KHR_android_surface");
+    extensions.emplace_back("VK_KHR_android_surface");
 #endif
 #ifdef TPH_PLATFORM_IOS
-    extensions.push_back("VK_MVK_ios_surface");
+    extensions.emplace_back("VK_MVK_ios_surface");
 #endif
 #ifdef TPH_PLATFORM_WIN32
-    extensions.push_back("VK_KHR_win32_surface");
+    extensions.emplace_back("VK_KHR_win32_surface");
 #endif
 #ifdef TPH_PLATFORM_MACOS
-    extensions.push_back("VK_MVK_macos_surface");
+    extensions.emplace_back("VK_MVK_macos_surface");
 #endif
 #ifdef TPH_PLATFORM_XLIB
-    extensions.push_back("VK_KHR_xlib_surface");
+    extensions.emplace_back("VK_KHR_xlib_surface");
 #endif
 #ifdef TPH_PLATFORM_XCB
-    extensions.push_back("VK_KHR_xcb_surface");
+    extensions.emplace_back("VK_KHR_xcb_surface");
 #endif
 #ifdef TPH_PLATFORM_WAYLAND
-    extensions.push_back("VK_KHR_wayland_surface");
+    extensions.emplace_back("VK_KHR_wayland_surface");
 #endif
 
     return filter_instance_extensions(std::move(extensions), layers);
@@ -171,7 +177,9 @@ static std::vector<const char*> required_instance_layers(application_options opt
     std::vector<const char*> layers{};
 
     if(static_cast<bool>(options & application_options::enable_validation))
-       layers.push_back("VK_LAYER_LUNARG_standard_validation");
+    {
+       layers.emplace_back("VK_LAYER_LUNARG_standard_validation");
+    }
 
     return filter_instance_layers(std::move(layers));
 }
@@ -189,7 +197,9 @@ static std::vector<physical_device> make_physical_devices(VkInstance instance)
     devices.reserve(count);
 
     for(auto&& vulkan_device : vulkan_devices)
-        devices.push_back(vulkan::make_physical_device(vulkan_device));
+    {
+        devices.emplace_back(vulkan::make_physical_device(vulkan_device));
+    }
 
     return devices;
 }
@@ -215,9 +225,13 @@ application::application(const std::string& application_name, version applicatio
         constexpr auto verbose_types{VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT};
 
         if(static_cast<bool>(m_options & application_options::enable_verbose_validation))
+        {
             m_debug_messenger = vulkan::debug_messenger{m_instance, debug_messenger_callback, static_cast<VkDebugUtilsMessageSeverityFlagBitsEXT>(severities | verbose_severities), static_cast<VkDebugUtilsMessageTypeFlagBitsEXT>(types | verbose_types)};
+        }
         else
+        {
             m_debug_messenger = vulkan::debug_messenger{m_instance, debug_messenger_callback, static_cast<VkDebugUtilsMessageSeverityFlagBitsEXT>(severities), static_cast<VkDebugUtilsMessageTypeFlagBitsEXT>(types)};
+        }
     }
 
     m_physical_devices = make_physical_devices(m_instance);
@@ -228,14 +242,22 @@ const physical_device& application::select_physical_device(const filter_type& re
     std::vector<std::reference_wrapper<const physical_device>> suitable_devices{};
 
     for(const auto& device : m_physical_devices)
+    {
         if(required(device))
-            suitable_devices.push_back(device);
+        {
+            suitable_devices.emplace_back(device);
+        }
+    }
 
     if(std::empty(suitable_devices))
+    {
         throw std::runtime_error{"Can not find any suitable device."};
+    }
 
     if(comparator)
+    {
         std::sort(std::begin(suitable_devices), std::end(suitable_devices), comparator);
+    }
 
     return suitable_devices[0];
 }

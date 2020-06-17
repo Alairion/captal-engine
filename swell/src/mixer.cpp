@@ -34,6 +34,8 @@
     }
 #endif
 
+#include <captal_foundation/stack_allocator.hpp>
+
 #include <glm/geometric.hpp>
 
 namespace swl
@@ -466,6 +468,8 @@ float mixer::volume()
 void mixer::process() noexcept
 {
     increase_thread_priority();
+
+    //stack_memory_pool<1024 * 512> pool{}; //:)
 
     try
     {

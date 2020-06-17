@@ -96,7 +96,7 @@ swapchain_status swapchain::present(const std::vector<std::reference_wrapper<sem
 
     for(semaphore& semaphore : wait_semaphores)
     {
-        native_semaphores.push_back(underlying_cast<VkSemaphore>(semaphore));
+        native_semaphores.emplace_back(underlying_cast<VkSemaphore>(semaphore));
     }
 
     VkPresentInfoKHR present_info{};

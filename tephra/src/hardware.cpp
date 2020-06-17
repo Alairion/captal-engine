@@ -117,7 +117,9 @@ bool physical_device::support_presentation(const surface& surface) const
             throw vulkan::error{result};
 
         if(support)
+        {
             return true;
+        }
     }
 
     return false;
@@ -145,7 +147,9 @@ physical_device_surface_capabilities physical_device::surface_capabilities(const
 
     output.present_modes.reserve(std::size(present_modes));
     for(auto mode : present_modes)
-        output.present_modes.push_back(static_cast<present_mode>(mode));
+    {
+        output.present_modes.emplace_back(static_cast<present_mode>(mode));
+    }
 
     return output;
 }
@@ -182,7 +186,9 @@ bool default_physical_device_comparator(const physical_device& left, const physi
         score += device.memory_properties().host_shared / 1048576;
 
         if(device.properties().type == physical_device_type::discrete)
+        {
             score *= 2;
+        }
 
         return score;
     };

@@ -24,7 +24,7 @@ class shader
 public:
     constexpr shader() = default;
     shader(renderer& renderer, shader_stage stage, const std::filesystem::path& file);
-    shader(renderer& renderer, shader_stage stage, const std::string_view& data);
+    shader(renderer& renderer, shader_stage stage, std::string_view data);
     shader(renderer& renderer, shader_stage stage, std::size_t bytes_size, const std::uint32_t* spirv);
     shader(renderer& renderer, shader_stage stage, std::istream& stream);
 
