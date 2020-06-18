@@ -22,21 +22,37 @@ std::uint32_t find_memory_type(const VkPhysicalDeviceMemoryProperties& memory_pr
     if(optimal != 0)
     {
         for(std::uint32_t i{}; i < memory_properties.memoryTypeCount; ++i)
+        {
             if(type & (1 << i) && memory_properties.memoryTypes[i].propertyFlags == optimal)
+            {
                 return i;
+            }
+        }
 
         for(std::uint32_t i{}; i < memory_properties.memoryTypeCount; ++i)
+        {
             if(type & (1 << i) && (memory_properties.memoryTypes[i].propertyFlags & optimal) == optimal)
+            {
                 return i;
+            }
+        }
     }
 
     for(std::uint32_t i{}; i < memory_properties.memoryTypeCount; ++i)
+    {
         if(type & (1 << i) && memory_properties.memoryTypes[i].propertyFlags == minimal)
+        {
             return i;
+        }
+    }
 
     for(std::uint32_t i{}; i < memory_properties.memoryTypeCount; ++i)
+    {
         if(type & (1 << i) && (memory_properties.memoryTypes[i].propertyFlags & minimal) == minimal)
+        {
             return i;
+        }
+    }
 
     throw std::runtime_error{"Can not find a suitable memory type."};
 }

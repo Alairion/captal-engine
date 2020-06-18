@@ -3,7 +3,7 @@
 namespace cpt
 {
 
-static std::uint64_t compute_size(const std::vector<buffer_part>& parts)
+static std::uint64_t compute_size(const std::vector<buffer_part>& parts) noexcept
 {
     const auto align_up = [](std::uint64_t offset, std::uint64_t alignment) noexcept -> std::uint64_t
     {
@@ -28,7 +28,7 @@ static std::uint64_t compute_size(const std::vector<buffer_part>& parts)
     return align_up(total_size, uniform_alignment);
 }
 
-static tph::buffer_usage compute_usage(const std::vector<buffer_part>& parts)
+static tph::buffer_usage compute_usage(const std::vector<buffer_part>& parts) noexcept
 {
     tph::buffer_usage output{};
 

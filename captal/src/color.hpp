@@ -4,6 +4,7 @@
 #include "config.hpp"
 
 #include <cmath>
+#include <concepts>
 
 #include <tephra/image.hpp>
 
@@ -17,7 +18,7 @@ struct color
 {
     constexpr color() noexcept = default;
 
-    template<typename T, typename std::enable_if<std::is_floating_point<T>::value, int>::type = 0>
+    template<std::floating_point T>
     constexpr color(T r, T g, T b, T a = static_cast<T>(1)) noexcept
     :red{static_cast<float>(r)}
     ,green{static_cast<float>(g)}
@@ -27,9 +28,12 @@ struct color
 
     }
 
-    template<typename T, typename std::enable_if<std::is_integral<T>::value, int>::type = 0>
-    constexpr color(T r, T g, T b, T a = static_cast<T>(255)) noexcept
-    :color{static_cast<float>(r) / 255.0f, static_cast<float>(g) / 255.0f, static_cast<float>(b) / 255.0f, static_cast<float>(a) / 255.0f}
+    template<std::unsigned_integral T>
+    constexpr color(T r, T g, T b, T a = std::numeric_limits<T>::max()) noexcept
+    :red{static_cast<float>(r) / std::numeric_limits<T>::max()}
+    ,green{static_cast<float>(g) / std::numeric_limits<T>::max()}
+    ,blue{static_cast<float>(b) / std::numeric_limits<T>::max()}
+    ,alpha{static_cast<float>(a) / std::numeric_limits<T>::max()}
     {
 
     }
@@ -79,22 +83,16 @@ inline color hsv_to_rgb(float hue, float saturation, float value, float alpha = 
     const float discriminant{chroma * (1.0f - std::fabs(std::fmod(prime, 2.0f) - 1.0f))};
     const float remainder{value - chroma};
 
-    const auto convert = [prime, chroma, discriminant, remainder, alpha]
+    switch (static_cast<std::int32_t>(prime))
     {
-        switch (static_cast<std::int32_t>(prime))
-        {
-            case 0:  return color{chroma + remainder, discriminant + remainder, remainder, alpha};
-            case 1:  return color{discriminant + remainder, chroma + remainder, remainder, alpha};
-            case 2:  return color{remainder, chroma + remainder, discriminant + remainder, alpha};
-            case 3:  return color{remainder, discriminant + remainder, chroma + remainder, alpha};
-            case 4:  return color{discriminant + remainder, remainder, chroma + remainder, alpha};
-            case 5:  return color{chroma + remainder, remainder, discriminant + remainder, alpha};
-            default: return color{0.0f, 0.0f, 0.0f, alpha};
-        }
-
-    };
-
-    return convert();
+        case 0:  return color{chroma + remainder, discriminant + remainder, remainder, alpha};
+        case 1:  return color{discriminant + remainder, chroma + remainder, remainder, alpha};
+        case 2:  return color{remainder, chroma + remainder, discriminant + remainder, alpha};
+        case 3:  return color{remainder, discriminant + remainder, chroma + remainder, alpha};
+        case 4:  return color{discriminant + remainder, remainder, chroma + remainder, alpha};
+        case 5:  return color{chroma + remainder, remainder, discriminant + remainder, alpha};
+        default: return color{0.0f, 0.0f, 0.0f, alpha};
+    }
 }
 
 constexpr color gradient(const color& first, const color& second, float advance) noexcept
@@ -104,7 +102,9 @@ constexpr color gradient(const color& first, const color& second, float advance)
     const auto compute = [advance](float first, float second) -> float
     {
         if(first < second)
+        {
             return first + (second - first) * advance;
+        }
 
         return first - (first - second) * advance;
     };

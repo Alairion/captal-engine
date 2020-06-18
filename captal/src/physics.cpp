@@ -2,6 +2,8 @@
 
 #include <stdexcept>
 
+#include <captal_foundation/stack_allocator.hpp>
+
 //Chipmunk2D must have been compiled with the same definitions:
 #define CP_COLLISION_TYPE_TYPE uint64_t
 #define CP_GROUP_TYPE uint64_t
@@ -13,7 +15,7 @@
 namespace cpt
 {
 
-static inline cpVect tocp(const glm::vec2& vec) noexcept
+static inline cpVect tocp(glm::vec2 vec) noexcept
 {
     return cpVect{static_cast<cpFloat>(vec.x), static_cast<cpFloat>(vec.y)};
 }
@@ -43,7 +45,7 @@ void physical_collision_arbiter::set_friction(float friction) noexcept
     cpArbiterSetFriction(m_arbiter, tocp(friction));
 }
 
-void physical_collision_arbiter::set_surface_velocity(const glm::vec2& surface_velocity) noexcept
+void physical_collision_arbiter::set_surface_velocity(glm::vec2 surface_velocity) noexcept
 {
     cpArbiterSetSurfaceVelocity(m_arbiter, tocp(surface_velocity));
 }
@@ -125,7 +127,7 @@ void physical_world::add_wildcard(collision_type_t type, collision_handler handl
     add_callback(cpSpaceAddWildcardHandler(m_world, type), std::move(handler));
 }
 
-void physical_world::point_query(const glm::vec2& point, float max_distance, group_t group, collision_id_t id, collision_id_t mask, point_query_callback_type callback)
+void physical_world::point_query(glm::vec2 point, float max_distance, group_t group, collision_id_t id, collision_id_t mask, point_query_callback_type callback)
 {
     const cpShapeFilter filter{cpShapeFilterNew(group, id, mask)};
 
@@ -157,7 +159,7 @@ void physical_world::region_query(float x, float y, float width, float height, g
     cpSpaceBBQuery(m_world, cpBBNew(tocp(x), tocp(y), tocp(x + width), tocp(y + height)), filter, native_callback, &callback);
 }
 
-void physical_world::ray_query(const glm::vec2& from, const glm::vec2& to, float thickness, group_t group, collision_id_t id, collision_id_t mask, ray_callback_type callback)
+void physical_world::ray_query(glm::vec2 from, glm::vec2 to, float thickness, group_t group, collision_id_t id, collision_id_t mask, ray_callback_type callback)
 {
     const cpShapeFilter filter{cpShapeFilterNew(group, id, mask)};
 
@@ -174,7 +176,7 @@ void physical_world::ray_query(const glm::vec2& from, const glm::vec2& to, float
 }
 
 
-std::vector<physical_world::point_hit> physical_world::point_query(const glm::vec2& point, float max_distance, group_t group, collision_id_t id, collision_id_t mask)
+std::vector<physical_world::point_hit> physical_world::point_query(glm::vec2 point, float max_distance, group_t group, collision_id_t id, collision_id_t mask)
 {
     std::vector<point_hit> output{};
 
@@ -198,7 +200,7 @@ std::vector<physical_world::region_hit> physical_world::region_query(float x, fl
     return output;
 }
 
-std::vector<physical_world::ray_hit> physical_world::ray_query(const glm::vec2& from, const glm::vec2& to, float thickness, group_t group, collision_id_t id, collision_id_t mask)
+std::vector<physical_world::ray_hit> physical_world::ray_query(glm::vec2 from, glm::vec2 to, float thickness, group_t group, collision_id_t id, collision_id_t mask)
 {
     std::vector<ray_hit> output{};
 
@@ -210,7 +212,7 @@ std::vector<physical_world::ray_hit> physical_world::ray_query(const glm::vec2& 
     return output;
 }
 
-std::optional<physical_world::point_hit> physical_world::point_query_nearest(const glm::vec2& point, float max_distance, group_t group, collision_id_t id, collision_id_t mask)
+std::optional<physical_world::point_hit> physical_world::point_query_nearest(glm::vec2 point, float max_distance, group_t group, collision_id_t id, collision_id_t mask)
 {
     const cpShapeFilter filter{cpShapeFilterNew(group, id, mask)};
 
@@ -224,7 +226,7 @@ std::optional<physical_world::point_hit> physical_world::point_query_nearest(con
     return std::nullopt;
 }
 
-std::optional<physical_world::ray_hit> physical_world::ray_query_first(const glm::vec2& from, const glm::vec2& to, float thickness, group_t group, collision_id_t id, collision_id_t mask)
+std::optional<physical_world::ray_hit> physical_world::ray_query_first(glm::vec2 from, glm::vec2 to, float thickness, group_t group, collision_id_t id, collision_id_t mask)
 {
     const cpShapeFilter filter{cpShapeFilterNew(group, id, mask)};
 
@@ -250,7 +252,7 @@ void physical_world::update(float time)
     }
 }
 
-void physical_world::set_gravity(const glm::vec2& gravity) noexcept
+void physical_world::set_gravity(glm::vec2 gravity) noexcept
 {
     cpSpaceSetGravity(m_world, tocp(gravity));
 }
@@ -441,7 +443,7 @@ void physical_world::add_callback(cpCollisionHandler *cphandler, collision_handl
     }
 }
 
-physical_shape::physical_shape(physical_body_ptr body, float radius, const glm::vec2& offset)
+physical_shape::physical_shape(physical_body_ptr body, float radius, glm::vec2 offset)
 :m_body{std::move(body)}
 ,m_shape{cpCircleShapeNew(m_body->handle(), tocp(radius), tocp(offset))}
 {
@@ -453,7 +455,7 @@ physical_shape::physical_shape(physical_body_ptr body, float radius, const glm::
     m_body->register_shape(this);
 }
 
-physical_shape::physical_shape(physical_body_ptr body, const glm::vec2& first, const glm::vec2& second, float thickness)
+physical_shape::physical_shape(physical_body_ptr body, glm::vec2 first, glm::vec2 second, float thickness)
 :m_body{std::move(body)}
 ,m_shape{cpSegmentShapeNew(m_body->handle(), tocp(first), tocp(second), tocp(thickness))}
 {
@@ -465,10 +467,12 @@ physical_shape::physical_shape(physical_body_ptr body, const glm::vec2& first, c
     m_body->register_shape(this);
 }
 
-physical_shape::physical_shape(physical_body_ptr body, const std::vector<glm::vec2>& points, float radius)
+physical_shape::physical_shape(physical_body_ptr body, std::span<const glm::vec2> points, float radius)
 :m_body{std::move(body)}
 {
-    std::vector<cpVect> native_vertices{};
+    stack_memory_pool<1024> pool{};
+
+    auto native_vertices{cpt::make_stack_vector<cpVect>(pool)};
     native_vertices.reserve(std::size(points));
     for(auto&& vertex : points)
     {
@@ -519,7 +523,7 @@ void physical_shape::set_friction(float friction) noexcept
     cpShapeSetFriction(m_shape, tocp(friction));
 }
 
-void physical_shape::set_surface_velocity(const glm::vec2& surface_velocity) noexcept
+void physical_shape::set_surface_velocity(glm::vec2 surface_velocity) noexcept
 {
     cpShapeSetSurfaceVelocity(m_shape, tocp(surface_velocity));
 }
@@ -574,19 +578,21 @@ collision_id_t physical_shape::collision_mask() const noexcept
     return cpShapeGetFilter(m_shape).mask;
 }
 
-float circle_moment(float mass, float radius, const glm::vec2& origin, float inner_radius) noexcept
+float circle_moment(float mass, float radius, glm::vec2 origin, float inner_radius) noexcept
 {
     return fromcp(cpMomentForCircle(tocp(mass), tocp(radius), tocp(inner_radius), tocp(origin)));
 }
 
-float segment_moment(float mass, const glm::vec2& first, const glm::vec2& second, float thickness) noexcept
+float segment_moment(float mass, glm::vec2 first, glm::vec2 second, float thickness) noexcept
 {
     return fromcp(cpMomentForSegment(tocp(mass), tocp(first), tocp(second), tocp(thickness)));
 }
 
-float polygon_moment(float mass, const std::vector<glm::vec2>& points, const glm::vec2& offset, float radius) noexcept
+float polygon_moment(float mass, std::span<const glm::vec2> points, glm::vec2 offset, float radius) noexcept
 {
-    std::vector<cpVect> native_vertices{};
+    stack_memory_pool<1024> pool{};
+
+    auto native_vertices{cpt::make_stack_vector<cpVect>(pool)};
     native_vertices.reserve(std::size(points));
     for(auto&& vertex : points)
     {
@@ -630,22 +636,22 @@ physical_body::~physical_body()
     cpBodyFree(m_body);
 }
 
-void physical_body::apply_force(const glm::vec2& force, const glm::vec2& point) noexcept
+void physical_body::apply_force(glm::vec2 force, glm::vec2 point) noexcept
 {
     cpBodyApplyForceAtWorldPoint(m_body, tocp(force), tocp(point));
 }
 
-void physical_body::apply_local_force(const glm::vec2& force, const glm::vec2& point) noexcept
+void physical_body::apply_local_force(glm::vec2 force, glm::vec2 point) noexcept
 {
     cpBodyApplyForceAtLocalPoint(m_body, tocp(force), tocp(point));
 }
 
-void physical_body::apply_impulse(const glm::vec2& impulse, const glm::vec2& point) noexcept
+void physical_body::apply_impulse(glm::vec2 impulse, glm::vec2 point) noexcept
 {
     cpBodyApplyImpulseAtWorldPoint(m_body, tocp(impulse), tocp(point));
 }
 
-void physical_body::apply_local_impulse(const glm::vec2& impulse, const glm::vec2& point) noexcept
+void physical_body::apply_local_impulse(glm::vec2 impulse, glm::vec2 point) noexcept
 {
     cpBodyApplyImpulseAtLocalPoint(m_body, tocp(impulse), tocp(point));
 }
@@ -665,7 +671,7 @@ void physical_body::set_mass(float mass) noexcept
     cpBodySetMass(m_body, tocp(mass));
 }
 
-void physical_body::set_mass_center(const glm::vec2& center) noexcept
+void physical_body::set_mass_center(glm::vec2 center) noexcept
 {
     cpBodySetCenterOfGravity(m_body, tocp(center));
 }
@@ -675,7 +681,7 @@ void physical_body::set_moment_of_inertia(float moment) noexcept
     cpBodySetMoment(m_body, tocp(moment));
 }
 
-void physical_body::set_position(const glm::vec2& position) noexcept
+void physical_body::set_position(glm::vec2 position) noexcept
 {
     cpBodySetPosition(m_body, tocp(position));
     cpSpaceReindexShapesForBody(m_world->handle(), m_body);
@@ -686,7 +692,7 @@ void physical_body::set_rotation(float rotation) noexcept
     cpBodySetAngle(m_body, tocp(rotation));
 }
 
-void physical_body::set_velocity(const glm::vec2& velocity) noexcept
+void physical_body::set_velocity(glm::vec2 velocity) noexcept
 {
     cpBodySetVelocity(m_body, tocp(velocity));
 }
@@ -701,12 +707,12 @@ void physical_body::wake_up() noexcept
     cpBodyActivate(m_body);
 }
 
-glm::vec2 physical_body::world_to_local(const glm::vec2& vec) noexcept
+glm::vec2 physical_body::world_to_local(glm::vec2 vec) noexcept
 {
     return fromcp(cpBodyWorldToLocal(m_body, tocp(vec)));
 }
 
-glm::vec2 physical_body::local_to_world(const glm::vec2& vec) noexcept
+glm::vec2 physical_body::local_to_world(glm::vec2 vec) noexcept
 {
     return fromcp(cpBodyLocalToWorld(m_body, tocp(vec)));
 }
@@ -779,7 +785,7 @@ physical_body_type physical_body::type() const noexcept
     std::terminate();
 }
 
-physical_constraint::physical_constraint(pin_joint_t, physical_body_ptr first, physical_body_ptr second, const glm::vec2& first_anchor, const glm::vec2& second_anchor)
+physical_constraint::physical_constraint(pin_joint_t, physical_body_ptr first, physical_body_ptr second, glm::vec2 first_anchor, glm::vec2 second_anchor)
 :m_constaint{cpPinJointNew(first->handle(), second->handle(), tocp(first_anchor), tocp(second_anchor))}
 ,m_type{physical_constraint_type::pin_joint}
 ,m_first_body{std::move(first)}
@@ -792,7 +798,7 @@ physical_constraint::physical_constraint(pin_joint_t, physical_body_ptr first, p
     cpSpaceAddConstraint(m_first_body->world()->handle(), m_constaint);
 }
 
-physical_constraint::physical_constraint(slide_joint_t, physical_body_ptr first, physical_body_ptr second, const glm::vec2& first_anchor, const glm::vec2& second_anchor, float min, float max)
+physical_constraint::physical_constraint(slide_joint_t, physical_body_ptr first, physical_body_ptr second, glm::vec2 first_anchor, glm::vec2 second_anchor, float min, float max)
 :m_constaint{cpSlideJointNew(first->handle(), second->handle(), tocp(first_anchor), tocp(second_anchor), tocp(min), tocp(max))}
 ,m_type{physical_constraint_type::slide_joint}
 ,m_first_body{std::move(first)}
@@ -805,7 +811,7 @@ physical_constraint::physical_constraint(slide_joint_t, physical_body_ptr first,
     cpSpaceAddConstraint(m_first_body->world()->handle(), m_constaint);
 }
 
-physical_constraint::physical_constraint(pivot_joint_t, physical_body_ptr first, physical_body_ptr second, const glm::vec2& pivot)
+physical_constraint::physical_constraint(pivot_joint_t, physical_body_ptr first, physical_body_ptr second, glm::vec2 pivot)
 :m_constaint{cpPivotJointNew(first->handle(), second->handle(), tocp(pivot))}
 ,m_type{physical_constraint_type::pivot_joint}
 ,m_first_body{std::move(first)}
@@ -818,7 +824,7 @@ physical_constraint::physical_constraint(pivot_joint_t, physical_body_ptr first,
     cpSpaceAddConstraint(m_first_body->world()->handle(), m_constaint);
 }
 
-physical_constraint::physical_constraint(pivot_joint_t, physical_body_ptr first, physical_body_ptr second, const glm::vec2& first_anchor, const glm::vec2& second_anchor)
+physical_constraint::physical_constraint(pivot_joint_t, physical_body_ptr first, physical_body_ptr second, glm::vec2 first_anchor, glm::vec2 second_anchor)
 :m_constaint{cpPivotJointNew2(first->handle(), second->handle(), tocp(first_anchor), tocp(second_anchor))}
 ,m_type{physical_constraint_type::pivot_joint}
 ,m_first_body{std::move(first)}
@@ -831,7 +837,7 @@ physical_constraint::physical_constraint(pivot_joint_t, physical_body_ptr first,
     cpSpaceAddConstraint(m_first_body->world()->handle(), m_constaint);
 }
 
-physical_constraint::physical_constraint(groove_joint_t, physical_body_ptr first, physical_body_ptr second, const glm::vec2& first_groove, const glm::vec2& second_groove, const glm::vec2& anchor)
+physical_constraint::physical_constraint(groove_joint_t, physical_body_ptr first, physical_body_ptr second, glm::vec2 first_groove, glm::vec2 second_groove, glm::vec2 anchor)
 :m_constaint{cpGrooveJointNew(first->handle(), second->handle(), tocp(first_groove), tocp(second_groove), tocp(anchor))}
 ,m_type{physical_constraint_type::groove_joint}
 ,m_first_body{std::move(first)}
@@ -844,7 +850,7 @@ physical_constraint::physical_constraint(groove_joint_t, physical_body_ptr first
     cpSpaceAddConstraint(m_first_body->world()->handle(), m_constaint);
 }
 
-physical_constraint::physical_constraint(damped_spring_t, physical_body_ptr first, physical_body_ptr second, const glm::vec2& first_anchor, const glm::vec2& second_anchor, float rest_length, float stiffness, float damping)
+physical_constraint::physical_constraint(damped_spring_t, physical_body_ptr first, physical_body_ptr second, glm::vec2 first_anchor, glm::vec2 second_anchor, float rest_length, float stiffness, float damping)
 :m_constaint{cpDampedSpringNew(first->handle(), second->handle(), tocp(first_anchor), tocp(second_anchor), tocp(rest_length), tocp(stiffness), tocp(damping))}
 ,m_type{physical_constraint_type::damped_spring}
 ,m_first_body{std::move(first)}
@@ -968,12 +974,12 @@ bool physical_constraint::collide_bodies() const noexcept
     return static_cast<bool>(cpConstraintGetCollideBodies(m_constaint));
 }
 
-void physical_constraint::set_pin_joint_first_anchor(const glm::vec2& anchor) noexcept
+void physical_constraint::set_pin_joint_first_anchor(glm::vec2 anchor) noexcept
 {
     cpPinJointSetAnchorA(m_constaint, tocp(anchor));
 }
 
-void physical_constraint::set_pin_joint_second_anchor(const glm::vec2& anchor) noexcept
+void physical_constraint::set_pin_joint_second_anchor(glm::vec2 anchor) noexcept
 {
     cpPinJointSetAnchorB(m_constaint, tocp(anchor));
 }
@@ -999,12 +1005,12 @@ float physical_constraint::pin_joint_distance() const noexcept
 }
 
 
-void physical_constraint::set_slide_joint_first_anchor(const glm::vec2& anchor) noexcept
+void physical_constraint::set_slide_joint_first_anchor(glm::vec2 anchor) noexcept
 {
     cpSlideJointSetAnchorA(m_constaint, tocp(anchor));
 }
 
-void physical_constraint::set_slide_joint_second_anchor(const glm::vec2& anchor) noexcept
+void physical_constraint::set_slide_joint_second_anchor(glm::vec2 anchor) noexcept
 {
     cpSlideJointSetAnchorB(m_constaint, tocp(anchor));
 }
@@ -1040,12 +1046,12 @@ float physical_constraint::slide_joint_max() const noexcept
 }
 
 
-void physical_constraint::set_pivot_joint_first_anchor(const glm::vec2& anchor) noexcept
+void physical_constraint::set_pivot_joint_first_anchor(glm::vec2 anchor) noexcept
 {
     cpPivotJointSetAnchorA(m_constaint, tocp(anchor));
 }
 
-void physical_constraint::set_pivot_joint_second_anchor(const glm::vec2& anchor) noexcept
+void physical_constraint::set_pivot_joint_second_anchor(glm::vec2 anchor) noexcept
 {
     cpPivotJointSetAnchorB(m_constaint, tocp(anchor));
 }
@@ -1061,17 +1067,17 @@ glm::vec2 physical_constraint::pivot_joint_second_anchor() const noexcept
 }
 
 
-void physical_constraint::set_groove_joint_first_groove(const glm::vec2& groove) noexcept
+void physical_constraint::set_groove_joint_first_groove(glm::vec2 groove) noexcept
 {
     cpGrooveJointSetGrooveA(m_constaint, tocp(groove));
 }
 
-void physical_constraint::set_groove_joint_second_groove(const glm::vec2& groove) noexcept
+void physical_constraint::set_groove_joint_second_groove(glm::vec2 groove) noexcept
 {
     cpGrooveJointSetGrooveB(m_constaint, tocp(groove));
 }
 
-void physical_constraint::set_groove_joint_anchor(const glm::vec2& anchor) noexcept
+void physical_constraint::set_groove_joint_anchor(glm::vec2 anchor) noexcept
 {
     cpGrooveJointSetAnchorB(m_constaint, tocp(anchor));
 }
@@ -1092,12 +1098,12 @@ glm::vec2 physical_constraint::groove_joint_anchor() const noexcept
 }
 
 
-void physical_constraint::set_damped_spring_first_anchor(const glm::vec2& anchor) noexcept
+void physical_constraint::set_damped_spring_first_anchor(glm::vec2 anchor) noexcept
 {
     cpDampedSpringSetAnchorA(m_constaint, tocp(anchor));
 }
 
-void physical_constraint::set_damped_spring_second_anchor(const glm::vec2& anchor) noexcept
+void physical_constraint::set_damped_spring_second_anchor(glm::vec2 anchor) noexcept
 {
     cpDampedSpringSetAnchorB(m_constaint, tocp(anchor));
 }

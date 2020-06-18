@@ -55,6 +55,7 @@ public:
     engine(const std::string& application_name, cpt::version version);
     engine(const std::string& application_name, cpt::version version, const audio_parameters& audio, const graphics_parameters& graphics);
     engine(cpt::application application, const audio_parameters& audio, const graphics_parameters& graphics);
+
     ~engine();
     engine(const engine&) = delete;
     engine& operator=(const engine&) = delete;
@@ -174,6 +175,11 @@ public:
         return m_translator;
     }
 
+    std::span<const render_window_ptr> windows() const noexcept
+    {
+        return m_windows;
+    }
+
     float frame_time() const noexcept
     {
         return m_frame_time;
@@ -240,7 +246,7 @@ private:
 
     cpt::translator m_translator{};
 
-    std::vector<std::shared_ptr<render_window>> m_windows{};
+    std::vector<render_window_ptr> m_windows{};
 
     std::chrono::steady_clock::time_point m_last_update{std::chrono::steady_clock::now()};
     float m_frame_time{};

@@ -6,6 +6,8 @@
 #include <string>
 #include <array>
 #include <iterator>
+#include <concepts>
+#include <ranges>
 
 namespace cpt
 {
@@ -15,8 +17,8 @@ struct some_encoding
 {
     using char_type = xxx; //Replace "xxx" by the integer type used to represent the encoding.
 
-    template<typename InputIt, typename T>
-    static constexpr InputIt decode(InputIt begin, InputIt end, T& output) [noexcept]
+    template<std::input_iterator InputIt>
+    static constexpr InputIt decode(InputIt begin, InputIt end, codepoint_t& output) [noexcept]
     {
         //Convert the first character of the sequence [begin, end[ to the UTF-32 codepoint.
         //Write it in "output" then return the iterator pointing on the next character of the decoded sequence.
@@ -24,8 +26,8 @@ struct some_encoding
         return begin;
     }
 
-    template<typename OutputIt, typename T>
-    static constexpr OutputIt encode(T code, OutputIt output) [noexcept]
+    template<std::output_iterator<char_type> OutputIt>
+    static constexpr OutputIt encode(codepoint_t code, OutputIt output) [noexcept]
     {
         //Convert the UTF-32 codepoint to the sequence representing the character in the encoding.
         //Write the sequence in "output" then return the iterator pointing on the next character of the output sequence.
@@ -33,7 +35,7 @@ struct some_encoding
         return output;
     }
 
-    template<typename InputIt>
+    template<std::input_iterator InputIt>
     static constexpr InputIt next(InputIt begin, InputIt end) [noexcept]
     {
         //Advance "begin" to the next character in the sequence [begin, end[.
@@ -42,7 +44,7 @@ struct some_encoding
         return begin;
     }
 
-    template<typename InputIt>
+    template<std::input_iterator InputIt>
     static constexpr std::size_t count(InputIt begin, InputIt end) [noexcept]
     {
         //Return the count of "real" characters in the sequence [begin, end[. (For multi-bytes encoding)
@@ -223,18 +225,18 @@ inline constexpr std::array<char32_t, 666> uppers
 
 }
 
-template <typename T, typename = void>
-struct is_encoding : std::false_type {};
+using codepoint_t = char32_t;
+
 template<typename T>
-struct is_encoding<T, std::void_t<
-    typename T::char_type,
-    decltype(T::decode(std::declval<typename T::char_type*>(), std::declval<typename T::char_type*>(), std::declval<typename T::char_type&>())),
-    decltype(T::encode(std::declval<typename T::char_type>(), std::declval<typename T::char_type&>())),
-    decltype(T::next(std::declval<typename T::char_type*>(), std::declval<typename T::char_type*>())),
-    decltype(T::count(std::declval<typename T::char_type*>(), std::declval<typename T::char_type*>())),
-    decltype(T::max_char_length())
-    >
-> : std::true_type {};
+concept encoding = requires(typename T::char_type* it, char32_t code)
+{
+    typename T::char_type;
+    {T::decode(it, it, code)} -> std::convertible_to<typename T::char_type*>;
+    {T::encode(code, it)} -> std::convertible_to<typename T::char_type*>;
+    {T::next(it, it)} -> std::convertible_to<typename T::char_type*>;
+    {T::count(it, it)} -> std::convertible_to<std::size_t>;
+    {T::max_char_length()} noexcept -> std::convertible_to<std::size_t>;
+};
 
 struct utf8
 {
@@ -270,8 +272,8 @@ private:
 public:
     using char_type = char;
 
-    template<typename InputIt, typename T>
-    static constexpr InputIt decode(InputIt begin, InputIt end, T& output) noexcept
+    template<std::input_iterator InputIt>
+    static constexpr InputIt decode(InputIt begin, InputIt end, codepoint_t& output) noexcept
     {
         const std::size_t trailing_bytes{static_cast<std::size_t>(trailing[static_cast<std::uint8_t>(*begin)])};
 
@@ -298,8 +300,8 @@ public:
         return begin;
     }
 
-    template<typename OutputIt, typename T>
-    static constexpr OutputIt encode(T code, OutputIt output) noexcept
+    template<std::output_iterator<char_type> OutputIt>
+    static constexpr OutputIt encode(codepoint_t code, OutputIt output) noexcept
     {
         if((code > 0x0010FFFF) || ((code >= 0xD800) && (code <= 0xDBFF))) //Invalid value
         {
@@ -344,7 +346,7 @@ public:
         return output;
     }
 
-    template<typename InputIt>
+    template<std::input_iterator InputIt>
     static constexpr InputIt next(InputIt begin, InputIt end) noexcept
     {
         if(begin == end)
@@ -358,7 +360,7 @@ public:
         return begin;
     }
 
-    template<typename InputIt>
+    template<std::input_iterator InputIt>
     static constexpr std::size_t count(InputIt begin, InputIt end) noexcept
     {
         std::size_t count{};
@@ -384,8 +386,8 @@ struct utf16
 {
     using char_type = char16_t;
 
-    template<typename InputIt, typename T>
-    static constexpr InputIt decode(InputIt begin, InputIt end, T& output) noexcept
+    template<std::input_iterator InputIt>
+    static constexpr InputIt decode(InputIt begin, InputIt end, codepoint_t& output) noexcept
     {
         const std::uint16_t first{static_cast<std::uint16_t>(*begin++)};
 
@@ -397,7 +399,7 @@ struct utf16
 
                 if(second >= 0xDC00 && second <= 0xDFFF)
                 {
-                    output = static_cast<T>(((first - 0xD800) << 10) + (second - 0xDC00) + 0x10000);
+                    output = static_cast<codepoint_t>(((first - 0xD800) << 10) + (second - 0xDC00) + 0x10000);
                 }
                 else
                 {
@@ -418,8 +420,8 @@ struct utf16
         return begin;
     }
 
-    template<typename OutputIt, typename T>
-    static constexpr OutputIt encode(T code, OutputIt output) noexcept
+    template<std::output_iterator<char_type> OutputIt>
+    static constexpr OutputIt encode(codepoint_t code, OutputIt output) noexcept
     {
         if(code <= 0xFFFF)
         {
@@ -446,7 +448,7 @@ struct utf16
         return output;
     }
 
-    template<typename InputIt>
+    template<std::input_iterator InputIt>
     static constexpr InputIt next(InputIt begin, InputIt end) noexcept
     {
         if(begin == end)
@@ -464,7 +466,7 @@ struct utf16
         return begin;
     }
 
-    template<typename InputIt>
+    template<std::input_iterator InputIt>
     static constexpr std::size_t count(InputIt begin, InputIt end) noexcept
     {
         std::size_t count{};
@@ -496,27 +498,27 @@ struct utf32
 {
     using char_type = char32_t;
 
-    template<typename InputIt, typename T>
-    static constexpr InputIt decode(InputIt begin, InputIt, T& output) noexcept
+    template<std::input_iterator InputIt>
+    static constexpr InputIt decode(InputIt begin, InputIt, codepoint_t& output) noexcept
     {
         output = *begin++;
         return begin;
     }
 
-    template<typename OutputIt, typename T>
-    static constexpr OutputIt encode(T code, OutputIt output) noexcept
+    template<std::output_iterator<char_type> OutputIt>
+    static constexpr OutputIt encode(codepoint_t code, OutputIt output) noexcept
     {
         *output++ = code;
         return output;
     }
 
-    template<typename InputIt>
+    template<std::input_iterator InputIt>
     static constexpr InputIt next(InputIt begin, InputIt) noexcept
     {
         return ++begin;
     }
 
-    template<typename InputIt>
+    template<std::input_iterator InputIt>
     static constexpr std::size_t count(InputIt begin, InputIt end) noexcept
     {
         return static_cast<std::size_t>(std::distance(begin, end));
@@ -549,8 +551,8 @@ struct latin_1
 {
     using char_type = char;
 
-    template<typename InputIt, typename T>
-    static constexpr InputIt decode(InputIt begin, InputIt, T& output) noexcept
+    template<std::input_iterator InputIt>
+    static constexpr InputIt decode(InputIt begin, InputIt, codepoint_t& output) noexcept
     {
         const std::uint8_t value{static_cast<std::uint8_t>(*begin++)};
 
@@ -560,14 +562,14 @@ struct latin_1
         }
         else
         {
-            output = static_cast<T>(value);
+            output = static_cast<codepoint_t>(value);
         }
 
         return begin;
     }
 
-    template<typename OutputIt, typename T>
-    static constexpr OutputIt encode(T code, OutputIt output) noexcept
+    template<std::output_iterator<char_type> OutputIt>
+    static constexpr OutputIt encode(codepoint_t code, OutputIt output) noexcept
     {
         if(code > 0xFF)
         {
@@ -581,13 +583,13 @@ struct latin_1
         return output;
     }
 
-    template<typename InputIt>
+    template<std::input_iterator InputIt>
     static constexpr InputIt next(InputIt begin, InputIt) noexcept
     {
         return ++begin;
     }
 
-    template<typename InputIt>
+    template<std::input_iterator InputIt>
     static constexpr std::size_t count(InputIt begin, InputIt end) noexcept
     {
         return static_cast<std::size_t>(std::distance(begin, end));
@@ -600,7 +602,7 @@ struct latin_1
 };
 
 
-template<typename Input, typename Output, typename InputIt, typename OutputIt>
+template<encoding Input, encoding Output, std::input_iterator InputIt, std::output_iterator<typename Output::char_type> OutputIt>
 constexpr OutputIt convert(InputIt begin, InputIt end, OutputIt output)
 {
     if constexpr(std::is_same<Input, Output>::value)
@@ -611,7 +613,7 @@ constexpr OutputIt convert(InputIt begin, InputIt end, OutputIt output)
     {
         while(begin < end)
         {
-            std::uint32_t code{};
+            codepoint_t code{};
             begin  = Input::decode(begin, end, code);
             output = Output::encode(code, output);
         }
@@ -620,7 +622,7 @@ constexpr OutputIt convert(InputIt begin, InputIt end, OutputIt output)
     }
 }
 
-template<typename Input, typename Output, typename StringIn, typename StringOut = std::basic_string<typename Output::char_type>>
+template<encoding Input, encoding Output, typename StringIn, typename StringOut = std::basic_string<typename Output::char_type>>
 StringOut convert(const StringIn& str)
 {
     StringOut output{};
@@ -629,12 +631,12 @@ StringOut convert(const StringIn& str)
     return output;
 }
 
-template<typename Encoding, typename InputIt, typename OutputIt>
+template<encoding Encoding, std::input_iterator InputIt, std::output_iterator<typename Encoding::char_type> OutputIt>
 constexpr OutputIt to_lower(InputIt begin, InputIt end, OutputIt output)
 {
     while(begin < end)
     {
-        char32_t code{};
+        codepoint_t code{};
         begin = Encoding::decode(begin, end, code);
 
         const auto it{std::lower_bound(std::begin(impl::uppers), std::end(impl::uppers), code)};
@@ -649,7 +651,7 @@ constexpr OutputIt to_lower(InputIt begin, InputIt end, OutputIt output)
     return output;
 }
 
-template<typename Encoding, typename String = std::basic_string<typename Encoding::char_type>>
+template<encoding Encoding, typename String = std::basic_string<typename Encoding::char_type>>
 String to_lower(const String& str)
 {
     String output{};
@@ -660,12 +662,12 @@ String to_lower(const String& str)
     return output;
 }
 
-template<typename Encoding, typename InputIt, typename OutputIt>
+template<encoding Encoding, std::input_iterator InputIt, std::output_iterator<typename Encoding::char_type> OutputIt>
 constexpr OutputIt to_upper(InputIt begin, InputIt end, OutputIt output)
 {
     while(begin < end)
     {
-        char32_t code{};
+        codepoint_t code{};
         begin = Encoding::decode(begin, end, code);
 
         const auto it{std::lower_bound(std::begin(impl::lowers), std::end(impl::lowers), code)};
@@ -680,7 +682,7 @@ constexpr OutputIt to_upper(InputIt begin, InputIt end, OutputIt output)
     return output;
 }
 
-template<typename Encoding, typename String = std::basic_string<typename Encoding::char_type>>
+template<encoding Encoding, typename String = std::basic_string<typename Encoding::char_type>>
 String to_upper(const String& str)
 {
     String output{};
@@ -689,25 +691,25 @@ String to_upper(const String& str)
     return output;
 }
 
-template<typename Encoding, typename InputIt>
+template<encoding Encoding, std::input_iterator InputIt>
 class decoder_iterator
 {
-    static constexpr char32_t end_of_stream{std::numeric_limits<char32_t>::max()};
+    static constexpr codepoint_t end_of_stream{std::numeric_limits<codepoint_t>::max()};
 
 public:
     using encoding = Encoding;
     using iterator_type = InputIt;
     using iterator_category = std::input_iterator_tag;
-    using value_type = char32_t;
-    using char_type = char32_t;
+    using value_type = codepoint_t;
+    using char_type = codepoint_t;
     using difference_type = std::ptrdiff_t;
-    using pointer = const char32_t*;
-    using reference = char32_t;
+    using pointer = const codepoint_t*;
+    using reference = codepoint_t;
 
 public:
     constexpr decoder_iterator() = default;
 
-    constexpr decoder_iterator(InputIt begin, InputIt end)
+    constexpr decoder_iterator(iterator_type begin, iterator_type end)
     :m_begin{std::move(begin)}
     ,m_end{std::move(end)}
     {
@@ -768,24 +770,24 @@ public:
     }
 
 private:
-    InputIt m_begin{};
-    InputIt m_end{};
-    char32_t m_codepoint{end_of_stream};
+    iterator_type m_begin{};
+    iterator_type m_end{};
+    value_type m_codepoint{end_of_stream};
 };
 
-template<typename Encoding, typename InputIt>
+template<encoding Encoding, std::input_iterator InputIt>
 constexpr decoder_iterator<Encoding, InputIt> decode(InputIt&& begin, InputIt&& end)
 {
     return decoder_iterator<Encoding, InputIt>{std::forward(begin), std::forward(end)};
 }
 
-template<typename Encoding, typename Container>
-constexpr decoder_iterator<Encoding, typename Container::iterator> decode(const Container& container)
+template<encoding Encoding, std::ranges::range Range>
+constexpr decoder_iterator<Encoding, std::ranges::iterator_t<Range>> decode(const Range& container)
 {
-    return decoder_iterator<Encoding, typename Container::iterator>{std::begin(container), std::end(container)};
+    return decoder_iterator<Encoding, std::ranges::iterator_t<Range>>{std::begin(container), std::end(container)};
 }
 
-template<typename Encoding, typename T, std::size_t N>
+template<encoding Encoding, typename T, std::size_t N>
 constexpr decoder_iterator<Encoding, const T*> decode(const T (&array)[N])
 {
     return decoder_iterator<Encoding, const T*>{std::begin(array), std::end(array)};

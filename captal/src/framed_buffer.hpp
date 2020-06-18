@@ -13,7 +13,7 @@
 namespace cpt
 {
 
-enum class buffer_part_type
+enum class buffer_part_type : std::uint32_t
 {
     uniform = 0,
     index = 1,

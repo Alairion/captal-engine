@@ -5,6 +5,8 @@
 
 #include <SDL.h>
 
+#include <captal_foundation/stack_allocator.hpp>
+
 #include "window.hpp"
 
 namespace apr
@@ -12,17 +14,16 @@ namespace apr
 
 std::uint32_t message_box(message_box_type type, const std::string& title, const std::string& message, std::span<const message_box_button> buttons)
 {
-    std::vector<SDL_MessageBoxButtonData> native_buttons{};
-    native_buttons.reserve(std::size(buttons));
+    stack_memory_pool<256> pool{};
 
+    auto native_buttons{cpt::make_stack_vector<SDL_MessageBoxButtonData>(pool)};
+    native_buttons.reserve(std::size(buttons));
     for(auto&& button : buttons)
     {
-        SDL_MessageBoxButtonData native_button{};
+        SDL_MessageBoxButtonData& native_button{native_buttons.emplace_back()};
         native_button.flags = static_cast<SDL_MessageBoxButtonFlags>(button.bind);
         native_button.buttonid = static_cast<int>(button.id);
         native_button.text = std::data(button.text);
-
-        native_buttons.emplace_back(native_button);
     }
 
     SDL_MessageBoxData data{};
@@ -41,17 +42,16 @@ std::uint32_t message_box(message_box_type type, const std::string& title, const
 
 std::uint32_t message_box(window& window, message_box_type type, const std::string& title, const std::string& message, std::span<const message_box_button> buttons)
 {
-    std::vector<SDL_MessageBoxButtonData> native_buttons{};
-    native_buttons.reserve(std::size(buttons));
+    stack_memory_pool<256> pool{};
 
+    auto native_buttons{cpt::make_stack_vector<SDL_MessageBoxButtonData>(pool)};
+    native_buttons.reserve(std::size(buttons));
     for(auto&& button : buttons)
     {
-        SDL_MessageBoxButtonData native_button{};
+        SDL_MessageBoxButtonData& native_button{native_buttons.emplace_back()};
         native_button.flags = static_cast<SDL_MessageBoxButtonFlags>(button.bind);
         native_button.buttonid = static_cast<int>(button.id);
         native_button.text = std::data(button.text);
-
-        native_buttons.emplace_back(native_button);
     }
 
     SDL_MessageBoxData data{};

@@ -6,17 +6,21 @@
 #include <string_view>
 #include <vector>
 #include <algorithm>
+#include <iterator>
+#include <concepts>
 
 #include <glm/vec2.hpp>
 
 namespace cpt
 {
 
-template<typename InputIt>
+template<std::input_iterator InputIt>
 constexpr std::size_t unique_count(InputIt first, InputIt last)
 {
     if(first == last)
+    {
         return 0;
+    }
 
     std::size_t result{1};
     InputIt temp{first};
@@ -34,11 +38,13 @@ constexpr std::size_t unique_count(InputIt first, InputIt last)
 }
 
 
-template<typename InputIt, typename Predicate>
+template<std::input_iterator InputIt, std::predicate Predicate>
 constexpr std::size_t unique_count(InputIt first, InputIt last, Predicate pred)
 {
     if(first == last)
+    {
         return 0;
+    }
 
     std::size_t result{1};
     InputIt temp{first};
