@@ -4,6 +4,8 @@
 #include "config.hpp"
 
 #include <unordered_map>
+#include <span>
+#include <numbers>
 
 #include <glm/mat4x4.hpp>
 
@@ -30,14 +32,15 @@ public:
     renderable() = default;
     renderable(std::uint32_t vertex_count);
     renderable(std::uint32_t index_count, std::uint32_t vertex_count);
+
     virtual ~renderable() = default;
     renderable(const renderable&) = delete;
     renderable& operator=(const renderable&) = delete;
     renderable(renderable&&) noexcept = default;
     renderable& operator=(renderable&&) noexcept = default;
 
-    void set_indices(const std::vector<std::uint32_t>& indices) noexcept;
-    void set_vertices(const std::vector<vertex>& vertices) noexcept;
+    void set_indices(std::span<const std::uint32_t> indices) noexcept;
+    void set_vertices(std::span<const vertex> vertices) noexcept;
     void set_texture(texture_ptr texture) noexcept;
     void set_view(const view_ptr& view);
 
@@ -67,13 +70,13 @@ public:
 
     void rotate(float angle) noexcept
     {
-        m_rotation = std::fmod(m_rotation + angle, pi<float> * 2.0f);
+        m_rotation = std::fmod(m_rotation + angle, std::numbers::pi_v<float> * 2.0f);
         update();
     }
 
     void set_rotation(float angle) noexcept
     {
-        m_rotation = std::fmod(angle, pi<float> * 2.0f);
+        m_rotation = std::fmod(angle, std::numbers::pi_v<float> * 2.0f);
         update();
     }
 
@@ -132,38 +135,28 @@ public:
         return m_hidden;
     }
 
-    std::uint32_t index_count() const noexcept
-    {
-        return m_index_count;
-    }
-
-    std::uint32_t* get_indices() noexcept
+    std::span<std::uint32_t> get_indices() noexcept
     {
         assert(m_index_count > 0 && "cpt::renderable::get_indices called on renderable with no index buffer");
 
-        return &m_buffer.get<std::uint32_t>(1);
+        return std::span{&m_buffer.get<std::uint32_t>(1), static_cast<std::size_t>(m_index_count)};
     }
 
-    const std::uint32_t* get_indices() const noexcept
+    std::span<const std::uint32_t> get_indices() const noexcept
     {
         assert(m_index_count > 0 && "cpt::renderable::get_indices called on renderable with no index buffer");
 
-        return &m_buffer.get<const std::uint32_t>(1);
+        return std::span{&m_buffer.get<std::uint32_t>(1), static_cast<std::size_t>(m_index_count)};
     }
 
-    std::uint32_t vertex_count() const noexcept
+    std::span<vertex> get_vertices() noexcept
     {
-        return m_vertex_count;
+        return std::span{&m_buffer.get<vertex>(m_index_count > 0 ? 2 : 1), static_cast<std::size_t>(m_vertex_count)};
     }
 
-    vertex* get_vertices() noexcept
+    std::span<const vertex> get_vertices() const noexcept
     {
-        return &m_buffer.get<vertex>(m_index_count > 0 ? 2 : 1);
-    }
-
-    const vertex* get_vertices() const noexcept
-    {
-        return &m_buffer.get<const vertex>(m_index_count > 0 ? 2 : 1);
+        return std::span{&m_buffer.get<vertex>(m_index_count > 0 ? 2 : 1), static_cast<std::size_t>(m_vertex_count)};
     }
 
     const descriptor_set_ptr& set() const noexcept
@@ -257,7 +250,7 @@ public:
 
     void set_color(const color& color) noexcept;
 
-    void set_texture_coords(std::int32_t x1, std::int32_t y1, std::uint32_t x2, std::uint32_t y2) noexcept;
+    void set_texture_coords(std::int32_t x1, std::int32_t y1, std::int32_t x2, std::int32_t y2) noexcept;
     void set_texture_rect(std::int32_t x, std::int32_t y, std::uint32_t width, std::uint32_t height) noexcept;
 
     void set_relative_texture_coords(float x1, float y1, float x2, float y2) noexcept;
@@ -318,13 +311,13 @@ public:
     void set_outline_color(const color& color) noexcept;
     void set_point_color(std::uint32_t point, const color& color) noexcept;
 
-    void set_texture_coords(std::int32_t x1, std::int32_t y1, std::uint32_t x2, std::uint32_t y2) noexcept;
+    void set_texture_coords(std::int32_t x1, std::int32_t y1, std::int32_t x2, std::int32_t y2) noexcept;
     void set_texture_rect(std::int32_t x, std::int32_t y, std::uint32_t width, std::uint32_t height) noexcept;
 
     void set_relative_texture_coords(float x1, float y1, float x2, float y2) noexcept;
     void set_relative_texture_rect(float x, float y, float width, float height) noexcept;
 
-    const std::vector<glm::vec2>& points() const noexcept
+    std::span<const glm::vec2> points() const noexcept
     {
         return m_points;
     }
@@ -360,7 +353,7 @@ public:
 
     void set_color(std::uint32_t row, std::uint32_t col, const color& color) noexcept;
 
-    void set_texture_coords(std::uint32_t row, std::uint32_t col, std::int32_t x1, std::int32_t y1, std::uint32_t x2, std::uint32_t y2) noexcept;
+    void set_texture_coords(std::uint32_t row, std::uint32_t col, std::int32_t x1, std::int32_t y1, std::int32_t x2, std::int32_t y2) noexcept;
     void set_texture_rect(std::uint32_t row, std::uint32_t col, std::int32_t x, std::int32_t y, std::uint32_t width, std::uint32_t height) noexcept;
     void set_texture_rect(std::uint32_t row, std::uint32_t col, const tileset::texture_rect& rect) noexcept;
 

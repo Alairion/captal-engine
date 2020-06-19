@@ -43,7 +43,7 @@ renderable::renderable(std::uint32_t index_count, std::uint32_t vertex_count)
     update();
 }
 
-void renderable::set_indices(const std::vector<std::uint32_t>& indices) noexcept
+void renderable::set_indices(std::span<const std::uint32_t> indices) noexcept
 {
     assert(m_index_count > 0 && "cpt::renderable::set_indices called on a renderable without index buffer.");
     assert(std::size(indices) == m_index_count && "cpt::renderable::set_indices called with a wrong number of indices.");
@@ -53,7 +53,7 @@ void renderable::set_indices(const std::vector<std::uint32_t>& indices) noexcept
     update();
 }
 
-void renderable::set_vertices(const std::vector<vertex>& vertices) noexcept
+void renderable::set_vertices(std::span<const vertex> vertices) noexcept
 {
     assert(std::size(vertices) == m_vertex_count && "cpt::renderable::set_vertices called with a wrong number of vertices.");
 
@@ -202,7 +202,7 @@ sprite::sprite(texture_ptr texture)
 
 void sprite::set_color(const color& color) noexcept
 {
-    vertex* vertices{get_vertices()};
+    const auto vertices{get_vertices()};
 
     vertices[0].color = static_cast<glm::vec4>(color);
     vertices[1].color = static_cast<glm::vec4>(color);
@@ -212,12 +212,12 @@ void sprite::set_color(const color& color) noexcept
     update();
 }
 
-void sprite::set_texture_coords(std::int32_t x1, std::int32_t y1, std::uint32_t x2, std::uint32_t y2) noexcept
+void sprite::set_texture_coords(std::int32_t x1, std::int32_t y1, std::int32_t x2, std::int32_t y2) noexcept
 {
-    set_relative_texture_coords(static_cast<float>(x1) / static_cast<float>(texture()->width()),
-                                static_cast<float>(y1) / static_cast<float>(texture()->height()),
-                                static_cast<float>(x2) / static_cast<float>(texture()->width()),
-                                static_cast<float>(y2) / static_cast<float>(texture()->height()));
+    set_relative_texture_coords(static_cast<float>(x1) / texture()->width(),
+                                static_cast<float>(y1) / texture()->height(),
+                                static_cast<float>(x2) / texture()->width(),
+                                static_cast<float>(y2) / texture()->height());
 }
 
 void sprite::set_texture_rect(std::int32_t x, std::int32_t y, std::uint32_t width, std::uint32_t height) noexcept
@@ -227,7 +227,7 @@ void sprite::set_texture_rect(std::int32_t x, std::int32_t y, std::uint32_t widt
 
 void sprite::set_relative_texture_coords(float x1, float y1, float x2, float y2) noexcept
 {
-    vertex* vertices{get_vertices()};
+    const auto vertices{get_vertices()};
 
     vertices[0].texture_coord = glm::vec2{x1, y1};
     vertices[1].texture_coord = glm::vec2{x2, y1};
@@ -247,7 +247,7 @@ void sprite::resize(std::uint32_t width, std::uint32_t height) noexcept
     m_width = width;
     m_height = height;
 
-    vertex* vertices{get_vertices()};
+    const auto vertices{get_vertices()};
 
     vertices[0].position = glm::vec3{0.0f, 0.0f, 0.0f};
     vertices[1].position = glm::vec3{static_cast<float>(m_width), 0.0f, 0.0f};
@@ -259,7 +259,7 @@ void sprite::resize(std::uint32_t width, std::uint32_t height) noexcept
 
 void sprite::init(const color& color)
 {
-    set_indices({0, 1, 2, 2, 3, 0});
+    set_indices(std::array<std::uint32_t, 6>{0, 1, 2, 2, 3, 0});
     resize(m_width, m_height);
     set_color(color);
     set_relative_texture_coords(0.0f, 0.0f, 1.0f, 1.0f);
@@ -275,7 +275,7 @@ polygon::polygon(std::vector<glm::vec2> points, const color& color)
 
 static std::uint32_t compute_circle_point_count(float radius) noexcept
 {
-    const float circumference{2.0f * pi<float> * radius};
+    const float circumference{2.0f * std::numbers::pi_v<float> * radius};
 
     return static_cast<std::uint32_t>(std::ceil(circumference / 8.0f) * 8.0f);
 }
@@ -288,7 +288,7 @@ polygon::polygon(circle_t, float radius, std::uint32_t point_count, const color&
     std::vector<glm::vec2> points{};
     points.reserve(point_count);
 
-    const float step{(2.0f * pi<float>) / point_count};
+    const float step{(2.0f * std::numbers::pi_v<float>) / point_count};
     for(std::uint32_t i{}; i < point_count; ++i)
     {
         const float angle{step * i};
@@ -306,7 +306,7 @@ polygon::polygon(circle_t, float radius, const color& color)
 
 static std::uint32_t compute_ellipse_point_count(float width, float height) noexcept
 {
-    const float circumference{pi<float> * std::sqrt(2.0f * (width * width + height * height))};
+    const float circumference{std::numbers::pi_v<float> * std::sqrt(2.0f * (width * width + height * height))};
 
     return static_cast<std::uint32_t>(std::ceil(circumference / 8.0f) * 8.0f);
 }
@@ -319,7 +319,7 @@ polygon::polygon(ellipse_t, float width, float height, std::uint32_t point_count
     std::vector<glm::vec2> points{};
     points.reserve(point_count);
 
-    const float step{(2.0f * pi<float>) / point_count};
+    const float step{(2.0f * std::numbers::pi_v<float>) / point_count};
     for(std::uint32_t i{}; i < point_count; ++i)
     {
         const float angle{step * i};
@@ -343,10 +343,7 @@ void polygon::set_color(const color& color) noexcept
 
 void polygon::set_center_color(const color& color) noexcept
 {
-    vertex* const vertices{get_vertices()};
-
-    vertices[0].color = static_cast<glm::vec4>(color);
-
+    get_vertices()[0].color = static_cast<glm::vec4>(color);
     update();
 }
 
@@ -360,10 +357,7 @@ void polygon::set_outline_color(const color& color) noexcept
 
 void polygon::set_point_color(std::uint32_t point, const color& color) noexcept
 {
-    assert(point < std::size(m_points) && "cpt::polygon::set_point_color out of range.");
-
     get_vertices()[point + 1].color = static_cast<glm::vec4>(color);
-
     update();
 }
 
@@ -371,26 +365,25 @@ void polygon::init(std::vector<glm::vec2> points, const color& color)
 {
     m_points = std::move(points);
 
-    std::uint32_t* const indices{get_indices()};
+    const auto indices{get_indices()};
     for(std::uint32_t i{1}; i < std::size(m_points); ++i)
     {
-        std::uint32_t* const current{indices + (i - 1) * 3};
+        const auto current{indices.subspan((i - 1) * 3, 3)};
 
         current[0] = 0;
         current[1] = i;
         current[2] = i + 1;
     }
 
-    std::uint32_t* const last_triangle{indices + (std::size(m_points) - 1) * 3};
+    const auto last_triangle{indices.subspan((std::size(m_points) - 1) * 3, 3)};
     last_triangle[0] = 0;
     last_triangle[1] = 1; //Loop on the first point
     last_triangle[2] = static_cast<std::uint32_t>(std::size(m_points));
 
     const glm::vec4 native_color{color};
+    const auto vertices{get_vertices()};
 
-    vertex* const vertices{get_vertices()};
     vertices[0].color = native_color;
-
     for(std::uint32_t i{}; i < std::size(m_points); ++i)
     {
         vertices[i + 1].position = glm::vec3{m_points[i], 0.0f};
@@ -423,23 +416,24 @@ tilemap::tilemap(std::uint32_t width, std::uint32_t height, const tileset& tiles
 
 void tilemap::set_color(std::uint32_t row, std::uint32_t col, const color& color) noexcept
 {
-    vertex* const current{get_vertices() + (col * m_width) + row};
+    const auto vertices{get_vertices()};
+    const auto current{(col * m_width) + row};
 
-    current[0].color = static_cast<glm::vec4>(color);
-    current[1].color = static_cast<glm::vec4>(color);
-    current[2].color = static_cast<glm::vec4>(color);
-    current[3].color = static_cast<glm::vec4>(color);
+    vertices[current + 0].color = static_cast<glm::vec4>(color);
+    vertices[current + 1].color = static_cast<glm::vec4>(color);
+    vertices[current + 2].color = static_cast<glm::vec4>(color);
+    vertices[current + 3].color = static_cast<glm::vec4>(color);
 
     update();
 }
 
-void tilemap::set_texture_coords(std::uint32_t row, std::uint32_t col, std::int32_t x1, std::int32_t y1, std::uint32_t x2, std::uint32_t y2) noexcept
+void tilemap::set_texture_coords(std::uint32_t row, std::uint32_t col, std::int32_t x1, std::int32_t y1, std::int32_t x2, std::int32_t y2) noexcept
 {
     set_relative_texture_coords(row, col,
-                                static_cast<float>(x1) / static_cast<float>(texture()->width()),
-                                static_cast<float>(y1) / static_cast<float>(texture()->height()),
-                                static_cast<float>(x2) / static_cast<float>(texture()->width()),
-                                static_cast<float>(y2) / static_cast<float>(texture()->height()));
+                                static_cast<float>(x1) / texture()->width(),
+                                static_cast<float>(y1) / texture()->height(),
+                                static_cast<float>(x2) / texture()->width(),
+                                static_cast<float>(y2) / texture()->height());
 }
 
 void tilemap::set_texture_rect(std::uint32_t row, std::uint32_t col, std::int32_t x, std::int32_t y, std::uint32_t width, std::uint32_t height) noexcept
@@ -449,24 +443,24 @@ void tilemap::set_texture_rect(std::uint32_t row, std::uint32_t col, std::int32_
 
 void tilemap::set_texture_rect(std::uint32_t row, std::uint32_t col, const tileset::texture_rect& rect) noexcept
 {
-    vertex* const current{get_vertices() + (col * m_width) + row};
+    const auto vertices{get_vertices().subspan((col * m_width) + row, 4)};
 
-    current[0].texture_coord = rect.top_left;
-    current[1].texture_coord = rect.top_right;
-    current[2].texture_coord = rect.bottom_right;
-    current[3].texture_coord = rect.bottom_left;
+    vertices[0].texture_coord = rect.top_left;
+    vertices[1].texture_coord = rect.top_right;
+    vertices[2].texture_coord = rect.bottom_right;
+    vertices[3].texture_coord = rect.bottom_left;
 
     update();
 }
 
 void tilemap::set_relative_texture_coords(std::uint32_t row, std::uint32_t col, float x1, float y1, float x2, float y2) noexcept
 {
-    vertex* const current{get_vertices() + (col * m_width) + row};
+    const auto vertices{get_vertices().subspan((col * m_width) + row, 4)};
 
-    current[0].texture_coord = glm::vec2{x1, y1};
-    current[1].texture_coord = glm::vec2{x2, y1};
-    current[2].texture_coord = glm::vec2{x2, y2};
-    current[3].texture_coord = glm::vec2{x1, y2};
+    vertices[0].texture_coord = glm::vec2{x1, y1};
+    vertices[1].texture_coord = glm::vec2{x2, y1};
+    vertices[2].texture_coord = glm::vec2{x2, y2};
+    vertices[3].texture_coord = glm::vec2{x1, y2};
 
     update();
 }
@@ -478,39 +472,31 @@ void tilemap::set_relative_texture_rect(std::uint32_t row, std::uint32_t col, fl
 
 void tilemap::init()
 {
-    std::uint32_t* const indices{get_indices()};
+    const auto vertices{get_vertices()};
+    const auto indices{get_indices()};
+
     for(std::uint32_t j{}; j < m_height; ++j)
     {
         for(std::uint32_t i{}; i < m_width; ++i)
         {
-            const std::uint32_t shift{((j * m_width) + i) * 4};
-            std::uint32_t* const current{indices + ((j * m_width) + i) * 6};
+            const auto current_vertices{vertices.subspan((j * m_width + i) * 4, 4)};
+            current_vertices[0].position = glm::vec3{i * m_tile_width, j * m_tile_height, 0.0f};
+            current_vertices[1].position = glm::vec3{(i + 1) * m_tile_width, j * m_tile_height, 0.0f};
+            current_vertices[2].position = glm::vec3{(i + 1) * m_tile_width, (j + 1) * m_tile_height, 0.0f};
+            current_vertices[3].position = glm::vec3{i * m_tile_width, (j + 1) * m_tile_height, 0.0f};
+            current_vertices[0].color = glm::vec4{1.0f, 1.0f, 1.0f, 1.0f};
+            current_vertices[1].color = glm::vec4{1.0f, 1.0f, 1.0f, 1.0f};
+            current_vertices[2].color = glm::vec4{1.0f, 1.0f, 1.0f, 1.0f};
+            current_vertices[3].color = glm::vec4{1.0f, 1.0f, 1.0f, 1.0f};
 
-            current[0] = shift + 0;
-            current[1] = shift + 1;
-            current[2] = shift + 2;
-            current[3] = shift + 2;
-            current[4] = shift + 3;
-            current[5] = shift + 0;
-        }
-    }
-
-    vertex* const vertices{get_vertices()};
-    for(std::uint32_t j{}; j < m_height; ++j)
-    {
-        for(std::uint32_t i{}; i < m_width; ++i)
-        {
-            vertex* const current{vertices + ((j * m_width) + i) * 4};
-
-            current[0].position = glm::vec3{i * m_tile_width, j * m_tile_height, 0.0f};
-            current[1].position = glm::vec3{(i + 1) * m_tile_width, j * m_tile_height, 0.0f};
-            current[2].position = glm::vec3{(i + 1) * m_tile_width, (j + 1) * m_tile_height, 0.0f};
-            current[3].position = glm::vec3{i * m_tile_width, (j + 1) * m_tile_height, 0.0f};
-
-            current[0].color = glm::vec4{1.0f, 1.0f, 1.0f, 1.0f};
-            current[1].color = glm::vec4{1.0f, 1.0f, 1.0f, 1.0f};
-            current[2].color = glm::vec4{1.0f, 1.0f, 1.0f, 1.0f};
-            current[3].color = glm::vec4{1.0f, 1.0f, 1.0f, 1.0f};
+            const auto shift{(j * m_width + i) * 4};
+            const auto current_indices{indices.subspan((j * m_width + i) * 6, 6)};
+            current_indices[0] = shift + 0;
+            current_indices[1] = shift + 1;
+            current_indices[2] = shift + 2;
+            current_indices[3] = shift + 2;
+            current_indices[4] = shift + 3;
+            current_indices[5] = shift + 0;
         }
     }
 }

@@ -32,7 +32,7 @@ translation_parser::translation_parser(const std::filesystem::path& path)
 {
     std::ifstream ifs{path, std::ios_base::binary};
     if(!ifs)
-        throw std::runtime_error{"Can not open file \"" + path.u8string() + "\"."};
+        throw std::runtime_error{"Can not open file \"" + path.string() + "\"."};
 
     m_source = std::move(ifs);
 
@@ -183,12 +183,25 @@ void translation_parser::seek(std::size_t position, std::ios_base::seekdir dir)
     }
 }
 
+std::uint16_t translation_parser::read_uint16()
+{
+    std::uint16_t output{};
+    read(&output, sizeof(std::uint16_t));
+
+    if constexpr(std::endian::native == std::endian::big)
+    {
+        output = bswap(output);
+    }
+
+    return output;
+}
+
 std::uint32_t translation_parser::read_uint32()
 {
     std::uint32_t output{};
     read(&output, sizeof(std::uint32_t));
 
-    if constexpr(endian::native == endian::big)
+    if constexpr(std::endian::native == std::endian::big)
     {
         output = bswap(output);
     }
@@ -201,7 +214,7 @@ std::uint64_t translation_parser::read_uint64()
     std::uint64_t output{};
     read(&output, sizeof(std::uint64_t));
 
-    if constexpr(endian::native == endian::big)
+    if constexpr(std::endian::native == std::endian::big)
     {
         output = bswap(output);
     }
@@ -226,7 +239,9 @@ void translation_parser::read_header()
         throw std::runtime_error{"Bad file format."};
     }
 
-    m_info.version = tph::to_version(read_uint64());
+    m_info.version.major = read_uint16();
+    m_info.version.minor = read_uint16();
+    m_info.version.patch = read_uint32();
 
     if(m_info.version != cpt::version{0, 1, 0}) //Only version as of this file is written
     {
@@ -365,9 +380,22 @@ void translator::parse(translation_parser& parser)
     }
 }
 
+static char* write_uint16(char* output, std::uint16_t value)
+{
+    if constexpr(std::endian::native == std::endian::big)
+    {
+        value = bswap(value);
+    }
+
+    std::memcpy(output, &value, sizeof(std::uint16_t));
+
+    return output + sizeof(std::uint16_t);
+}
+
+
 static char* write_uint32(char* output, std::uint32_t value)
 {
-    if constexpr(endian::native == endian::big)
+    if constexpr(std::endian::native == std::endian::big)
     {
         value = bswap(value);
     }
@@ -379,7 +407,7 @@ static char* write_uint32(char* output, std::uint32_t value)
 
 static char* write_uint64(char* output, std::uint64_t value)
 {
-    if constexpr(endian::native == endian::big)
+    if constexpr(std::endian::native == std::endian::big)
     {
         value = bswap(value);
     }
@@ -387,6 +415,13 @@ static char* write_uint64(char* output, std::uint64_t value)
     std::memcpy(output, &value, sizeof(std::uint64_t));
 
     return output + sizeof(std::uint64_t);
+}
+
+static char* write_magic_word(char* output)
+{
+    std::memcpy(output, std::data(translation_magic_word), std::size(translation_magic_word));
+
+    return output + std::size(translation_magic_word);
 }
 
 static char* write_context(char* output, const translation_context_t& context)
@@ -604,8 +639,12 @@ std::string translation_editor::encode_file_information() const
     std::string output{};
     output.resize(translation_parser::file_information_size);
 
-    std::memcpy(std::data(output), std::data(translation_magic_word), sizeof(translation_magic_word_t));
-    write_uint64(std::data(output) + sizeof(translation_magic_word_t), from_version(m_version));
+    char* output_it{std::data(output)};
+
+    output_it = write_magic_word(output_it);
+    output_it = write_uint16(output_it, m_version.major);
+    output_it = write_uint16(output_it, m_version.minor);
+    output_it = write_uint32(output_it, m_version.patch);
 
     return output;
 }

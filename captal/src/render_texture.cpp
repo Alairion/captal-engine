@@ -161,7 +161,7 @@ render_texture::render_texture(const render_texture_info& info)
 ,m_depth_texture{make_depth_texture(info)}
 ,m_framebuffer{engine::instance().renderer(), get_render_pass(), make_attachments(info, get_texture(), m_multisampling_texture, m_depth_texture), info.width, info.height, 1}
 {
-
+    m_frames_data.reserve(8);
 }
 
 render_texture::render_texture(const render_texture_info& info, const tph::sampling_options& sampling)
@@ -172,7 +172,7 @@ render_texture::render_texture(const render_texture_info& info, const tph::sampl
 ,m_depth_texture{make_depth_texture(info)}
 ,m_framebuffer{engine::instance().renderer(), get_render_pass(), make_attachments(info, get_texture(), m_multisampling_texture, m_depth_texture), info.width, info.height, 1}
 {
-
+    m_frames_data.reserve(8);
 }
 
 render_texture::~render_texture()

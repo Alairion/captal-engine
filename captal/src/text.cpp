@@ -194,7 +194,7 @@ void font::init(std::uint32_t initial_size)
     resize(initial_size);
 }
 
-text::text(const std::vector<std::uint32_t>& indices, const std::vector<vertex>& vertices, texture_ptr texture, std::uint32_t width, std::uint32_t height, std::size_t count)
+text::text(std::span<const std::uint32_t> indices, std::span<const vertex> vertices, texture_ptr texture, std::uint32_t width, std::uint32_t height, std::size_t count)
 :renderable{static_cast<std::uint32_t>(std::size(indices)), static_cast<std::uint32_t>(std::size(vertices))}
 ,m_width{width}
 ,m_height{height}
@@ -207,12 +207,10 @@ text::text(const std::vector<std::uint32_t>& indices, const std::vector<vertex>&
 
 void text::set_color(const color& color)
 {
-    vertex* const vertices{get_vertices()};
     const glm::vec4 native_color{static_cast<glm::vec4>(color)};
-
-    for(std::uint32_t i{}; i < vertex_count(); ++i)
+    for(auto& vertex : get_vertices())
     {
-        vertices[i].color = native_color;
+        vertex.color = native_color;
     }
 
     update();
@@ -220,7 +218,7 @@ void text::set_color(const color& color)
 
 void text::set_color(std::uint32_t character_index, const color& color)
 {
-    vertex* const current{get_vertices() + character_index * 4};
+    const auto current{get_vertices().subspan(character_index * 4, 4)};
     const glm::vec4 native_color{static_cast<glm::vec4>(color)};
 
     current[0].color = native_color;
@@ -233,12 +231,12 @@ void text::set_color(std::uint32_t character_index, const color& color)
 
 void text::set_color(std::uint32_t first, std::uint32_t count, const color& color)
 {
-    vertex* const vertices{get_vertices() + first * 4};
+    const auto vertices{get_vertices().subspan(first * 4)};
     const glm::vec4 native_color{static_cast<glm::vec4>(color)};
 
     for(std::uint32_t i{}; i < count; ++i)
     {
-        vertex* const current{vertices + i * 4};
+        const auto current{vertices.subspan(i * 4, 4)};
 
         current[0].color = native_color;
         current[1].color = native_color;

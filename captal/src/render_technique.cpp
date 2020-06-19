@@ -105,7 +105,7 @@ render_technique::render_technique(const render_target_ptr& target, const render
 :m_bindings{make_bindings(info.stages_bindings)}
 ,m_ranges{info.push_constant_ranges}
 ,m_descriptor_set_layout{engine::instance().renderer(), m_bindings}
-,m_layout{engine::instance().renderer(), {m_descriptor_set_layout}, m_ranges}
+,m_layout{engine::instance().renderer(), std::array{std::ref(m_descriptor_set_layout)}, m_ranges}
 ,m_pipeline{engine::instance().renderer(), target->get_render_pass(), make_info(info), m_layout}
 {
     m_sizes.reserve(std::size(m_bindings));

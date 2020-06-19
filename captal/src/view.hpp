@@ -4,6 +4,7 @@
 #include "config.hpp"
 
 #include <vector>
+#include <numbers>
 
 #include <glm/vec4.hpp>
 #include <glm/mat4x4.hpp>
@@ -35,7 +36,6 @@ public:
 
 public:
     view();
-
     view(const render_target_ptr& target, const render_technique_info& info = render_technique_info{});
     view(const render_target_ptr& target, render_technique_ptr technique);
 
@@ -105,7 +105,7 @@ public:
 
     void rotate(float angle) noexcept
     {
-        m_rotation = std::fmod(m_rotation + angle, pi<float> * 2.0f);
+        m_rotation = std::fmod(m_rotation + angle, std::numbers::pi_v<float> * 2.0f);
         update();
     }
 

@@ -426,7 +426,7 @@ void render_window::setup_frame_data()
 {
     for(std::uint32_t i{}; i < m_swapchain.info().image_count; ++i)
     {
-        const auto attachments{make_attachments(m_video_mode, m_swapchain.texture(i), m_multisampling_texture, m_depth_texture)};
+        const auto attachments{make_attachments(m_video_mode, m_swapchain.textures()[i], m_multisampling_texture, m_depth_texture)};
 
         frame_data data{};
         data.framebuffer = tph::framebuffer{engine::instance().renderer(), get_render_pass(), attachments, m_swapchain.info().width, m_swapchain.info().height, 1};
@@ -496,7 +496,7 @@ void render_window::recreate(const tph::surface_capabilities& capabilities)
 
     for(std::uint32_t i{}; i < m_swapchain.info().image_count; ++i)
     {
-        const auto attachments{make_attachments(m_video_mode, m_swapchain.texture(i), m_multisampling_texture, m_depth_texture)};
+        const auto attachments{make_attachments(m_video_mode, m_swapchain.textures()[i], m_multisampling_texture, m_depth_texture)};
 
         frame_data& data{m_frames_data[i]};
         data.framebuffer = tph::framebuffer{engine::instance().renderer(), get_render_pass(), attachments, m_swapchain.info().width, m_swapchain.info().height, 1};

@@ -95,7 +95,7 @@ class CAPTAL_API text : public renderable
 {
 public:
     text() = default;
-    text(const std::vector<std::uint32_t>& indices, const std::vector<vertex>& vertices, texture_ptr texture, std::uint32_t width, std::uint32_t height, std::size_t count);
+    text(std::span<const std::uint32_t> indices, std::span<const vertex> vertices, texture_ptr texture, std::uint32_t width, std::uint32_t height, std::size_t count);
 
     ~text() = default;
     text(const text&) = delete;
@@ -203,7 +203,7 @@ private:
 
 text_ptr CAPTAL_API draw_text(cpt::font& font, const std::string_view& string,  const color& color = colors::white, text_drawer_options options = text_drawer_options::kerning);
 text_ptr CAPTAL_API draw_text(cpt::font&& font, const std::string_view& string, const color& color = colors::white, text_drawer_options options = text_drawer_options::kerning);
-text_ptr CAPTAL_API draw_text(cpt::font& font, const std::string_view& tring,  std::uint32_t line_width, text_align align = text_align::left, const color& color = colors::white, text_drawer_options options = text_drawer_options::kerning);
+text_ptr CAPTAL_API draw_text(cpt::font& font, const std::string_view& string,  std::uint32_t line_width, text_align align = text_align::left, const color& color = colors::white, text_drawer_options options = text_drawer_options::kerning);
 text_ptr CAPTAL_API draw_text(cpt::font&& font, const std::string_view& string, std::uint32_t line_width, text_align align = text_align::left, const color& color = colors::white, text_drawer_options options = text_drawer_options::kerning);
 
 }

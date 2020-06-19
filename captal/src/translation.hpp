@@ -59,7 +59,9 @@ Each translations are preceded by the hash value of the source FNV-1a hash algor
 Header:
     File format detection:
         [8 bytes: "CPTTRANS"] magic word to detect file format
-        [cpt::version: file_version] the file version (cpt::version is an uint64 composed of 3 fields: [uint16: major][uint16: minor][uint32: patch])
+        [std::uint16_t file_version_major]
+        [std::uint16_t file_version_minor]
+        [std::uint32_t file_version_patch]
     General informations:
         [cpt::language: source_language]the source language
         [cpt::country: source_country] the source language country
@@ -661,6 +663,7 @@ public:
 private:
     void read(void* output, std::size_t size);
     void seek(std::size_t position, std::ios_base::seekdir dir = std::ios_base::beg);
+    std::uint16_t read_uint16();
     std::uint32_t read_uint32();
     std::uint64_t read_uint64();
     translation_context_t read_context();
