@@ -1,7 +1,5 @@
-#ifndef CAPTAL_ENCODING_HPP_INCLUDED
-#define CAPTAL_ENCODING_HPP_INCLUDED
-
-#include "config.hpp"
+#ifndef CAPTAL_FOUNDATION_ENCODING_HPP_INCLUDED
+#define CAPTAL_FOUNDATION_ENCODING_HPP_INCLUDED
 
 #include <string>
 #include <array>
@@ -10,6 +8,9 @@
 #include <ranges>
 
 namespace cpt
+{
+
+inline namespace foundation
 {
 
 /*
@@ -270,7 +271,7 @@ private:
 */
 
 public:
-    using char_type = char;
+    using char_type = char8_t;
 
     template<std::input_iterator InputIt>
     static constexpr InputIt decode(InputIt begin, InputIt end, codepoint_t& output) noexcept
@@ -337,7 +338,7 @@ public:
                 case 0: bytes[0] = static_cast<std::uint8_t> (code | first_bytes[count]);
             }
 
-            for(std::size_t i{}; i < count; ++i)
+            for(std::size_t i{}; i < count + 1; ++i)
             {
                 *output++ = bytes[i];
             }
@@ -350,7 +351,9 @@ public:
     static constexpr InputIt next(InputIt begin, InputIt end) noexcept
     {
         if(begin == end)
+        {
             return end;
+        }
 
         while((*++begin & 0xc0) != 0x80 && begin != end) //Advance as long as it is not the begin of a character code.
         {
@@ -368,7 +371,9 @@ public:
         while(begin != end)
         {
             if((*begin & 0xc0) != 0x80) //Check if it is the begin
+            {
                 ++count;
+            }
 
             ++begin;
         }
@@ -452,7 +457,9 @@ struct utf16
     static constexpr InputIt next(InputIt begin, InputIt end) noexcept
     {
         if(begin == end)
+        {
             return end;
+        }
 
         if((*begin <= 0xD7FF) || (*begin >= 0xE000 && *begin <= 0xFFFD))
         {
@@ -530,7 +537,6 @@ struct utf32
     }
 };
 
-
 #ifdef _WIN32
 
 struct wide : public utf16
@@ -546,6 +552,11 @@ struct wide : public utf32
 };
 
 #endif
+
+struct narrow : public utf8
+{
+    using char_type = char;
+};
 
 struct latin_1
 {
@@ -605,7 +616,10 @@ struct latin_1
 template<encoding Input, encoding Output, std::input_iterator InputIt, std::output_iterator<typename Output::char_type> OutputIt>
 constexpr OutputIt convert(InputIt begin, InputIt end, OutputIt output)
 {
-    if constexpr(std::is_same<Input, Output>::value)
+    //A -> A is a no-op
+    //A -> B and B -> A is also a no-op if their are based on the same type (I do this to prevent from code duplication)
+    //Ex: on Windows cpt::wide and cpt::utf16 would be the same (because wide is just a public inheritance of utf16)
+    if constexpr(std::is_same_v<Input, Output> || std::is_base_of_v<Input, Output> || std::is_base_of_v<Output, Input>)
     {
         return std::copy(begin, end, output);
     }
@@ -791,6 +805,8 @@ template<encoding Encoding, typename T, std::size_t N>
 constexpr decoder_iterator<Encoding, const T*> decode(const T (&array)[N])
 {
     return decoder_iterator<Encoding, const T*>{std::begin(array), std::end(array)};
+}
+
 }
 
 }

@@ -22,7 +22,8 @@ application::application()
         SDL_Rect rect{};
         SDL_GetDisplayBounds(i, &rect);
 
-        m_monitors.emplace_back(i, rect.x, rect.y, rect.w, rect.h, SDL_GetDisplayName(i));
+        const std::string_view native_name{SDL_GetDisplayName(i)};
+        m_monitors.emplace_back(i, rect.x, rect.y, rect.w, rect.h, std::u8string{std::begin(native_name), std::end(native_name)});
     }
 }
 

@@ -6,6 +6,7 @@
 #include <memory>
 #include <array>
 #include <iterator>
+#include <concepts>
 #include <ctime>
 #include <algorithm>
 
@@ -32,7 +33,7 @@ public:
     deflate(deflate&&) noexcept = default;
     deflate& operator=(deflate&&) noexcept = default;
 
-    template<typename InContiguousIt, typename OutContiguousIt>
+    template<std::contiguous_iterator InContiguousIt, std::contiguous_iterator OutContiguousIt>
     bool compress(InContiguousIt& input_begin, InContiguousIt input_end, OutContiguousIt& output_begin, OutContiguousIt output_end, bool flush = false)
     {
         static_assert(sizeof(typename std::iterator_traits<InContiguousIt>::value_type) == 1, "cpt::deflate::compress only works on bytes.");
@@ -54,8 +55,8 @@ public:
         return m_valid;
     }
 
-    template<std::size_t BufferSize = 2048, typename InputIt, typename OutputIt>
-    bool compress_buffered(InputIt& begin, InputIt end, OutputIt output, bool flush = false)
+    template<std::size_t BufferSize = 2048, std::input_iterator InputIt, std::output_iterator<std::uint8_t> OutputIt>
+    bool compress_buffered(InputIt begin, InputIt end, OutputIt& output, bool flush = false)
     {
         std::array<std::uint8_t, BufferSize> input_buffer{};
         std::array<std::uint8_t, BufferSize> output_buffer{};
@@ -79,7 +80,7 @@ public:
                 output_buffer_begin = std::begin(output_buffer);
 
                 compress(input_buffer_begin, input_buffer_end, output_buffer_begin, output_buffer_end, flush && !(begin != end));
-                std::copy(std::begin(output_buffer), output_buffer_begin, output);
+                output = std::copy(std::begin(output_buffer), output_buffer_begin, output);
 
                 if(!m_valid)
                 {
@@ -93,7 +94,7 @@ public:
 
     std::size_t compress_bound(std::size_t input_size) const noexcept;
 
-    template<typename InputIt>
+    template<std::input_iterator InputIt>
     std::size_t compress_bound(InputIt begin, InputIt end) const
     {
         static_assert(sizeof(typename std::iterator_traits<InputIt>::value_type) == 1, "cpt::deflate::compress_bound only works on bytes.");
@@ -135,7 +136,7 @@ public:
     inflate(inflate&&) noexcept = default;
     inflate& operator=(inflate&&) noexcept = default;
 
-    template<typename InContiguousIt, typename OutContiguousIt>
+    template<std::contiguous_iterator InContiguousIt, std::contiguous_iterator OutContiguousIt>
     bool decompress(InContiguousIt& input_begin, InContiguousIt input_end, OutContiguousIt& output_begin, OutContiguousIt output_end, bool flush)
     {
         static_assert(sizeof(typename std::iterator_traits<InContiguousIt>::value_type) == 1, "cpt::inflate::decompress only works on bytes.");
@@ -157,8 +158,8 @@ public:
         return m_valid;
     }
 
-    template<std::size_t BufferSize = 2048, typename InputIt, typename OutputIt>
-    bool decompress_buffered(InputIt& begin, InputIt end, OutputIt output, bool flush = false)
+    template<std::size_t BufferSize = 2048, std::input_iterator InputIt, std::output_iterator<std::uint8_t> OutputIt>
+    bool decompress_buffered(InputIt begin, InputIt end, OutputIt& output, bool flush = false)
     {
         std::array<std::uint8_t, BufferSize> input_buffer{};
         std::array<std::uint8_t, BufferSize> output_buffer{};
@@ -182,7 +183,7 @@ public:
                 output_buffer_begin = std::begin(output_buffer);
 
                 decompress(input_buffer_begin, input_buffer_end, output_buffer_begin, output_buffer_end, flush && !(begin != end));
-                std::copy(std::begin(output_buffer), output_buffer_begin, output);
+                output = std::copy(std::begin(output_buffer), output_buffer_begin, output);
 
                 if(!m_valid)
                 {
@@ -305,7 +306,7 @@ private:
     std::unique_ptr<gzip_info> m_header{};
 };
 
-template<typename Compressor, typename InContiguousIt, typename OutContiguousIt, typename... Args>
+template<typename Compressor, std::contiguous_iterator InContiguousIt, std::contiguous_iterator OutContiguousIt, typename... Args>
 std::pair<OutContiguousIt, bool> compress(InContiguousIt input_begin, InContiguousIt input_end, OutContiguousIt output_begin, OutContiguousIt output_end, Args&&... args)
 {
     Compressor compressor{std::forward<Args>(args)...};
@@ -314,7 +315,7 @@ std::pair<OutContiguousIt, bool> compress(InContiguousIt input_begin, InContiguo
     return std::make_pair(output_begin, !compressor.valid());
 }
 
-template<typename Decompressor, typename InContiguousIt, typename OutContiguousIt, typename... Args>
+template<typename Decompressor, std::contiguous_iterator InContiguousIt, std::contiguous_iterator OutContiguousIt, typename... Args>
 std::pair<OutContiguousIt, bool> decompress(InContiguousIt input_begin, InContiguousIt input_end, OutContiguousIt output_begin, OutContiguousIt output_end, Args&&... args)
 {
     Decompressor decompressor{std::forward<Args>(args)...};
@@ -323,7 +324,7 @@ std::pair<OutContiguousIt, bool> decompress(InContiguousIt input_begin, InContig
     return std::make_pair(output_begin, !decompressor.valid());
 }
 
-template<typename Compressor, std::size_t BufferSize = 2048, typename InputIt, typename OutputIt, typename... Args>
+template<typename Compressor, std::size_t BufferSize = 2048, std::input_iterator InputIt, std::output_iterator<std::uint8_t> OutputIt, typename... Args>
 std::pair<OutputIt, bool> compress_buffered(InputIt begin, InputIt end, OutputIt output, Args&&... args)
 {
     Compressor compressor{std::forward<Args>(args)...};
@@ -332,7 +333,7 @@ std::pair<OutputIt, bool> compress_buffered(InputIt begin, InputIt end, OutputIt
     return std::make_pair(output, !compressor.valid());
 }
 
-template<typename Decompressor, std::size_t BufferSize = 2048, typename InputIt, typename OutputIt, typename... Args>
+template<typename Decompressor, std::size_t BufferSize = 2048, std::input_iterator InputIt, std::output_iterator<std::uint8_t> OutputIt, typename... Args>
 std::pair<OutputIt, bool> decompress_buffered(InputIt begin, InputIt end, OutputIt output, Args&&... args)
 {
     Decompressor decompressor{std::forward<Args>(args)...};

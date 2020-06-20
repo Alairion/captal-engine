@@ -103,7 +103,7 @@ struct specialisation_info
 struct pipeline_shader_stage
 {
     shader& shader;
-    std::string name{"main"};
+    std::u8string name{u8"main"};
     specialisation_info specialisation_info{};
 };
 

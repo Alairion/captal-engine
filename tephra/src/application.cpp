@@ -204,7 +204,7 @@ static std::vector<physical_device> make_physical_devices(VkInstance instance)
     return devices;
 }
 
-application::application(const std::string& application_name, version application_version, application_options options)
+application::application(const std::u8string& application_name, version application_version, application_options options)
 :m_options{options}
 {
     tph::vulkan::functions::load_external_level_functions();

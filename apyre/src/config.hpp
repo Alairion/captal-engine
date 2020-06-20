@@ -1,7 +1,7 @@
 #ifndef APYRE_CONFIG_HPP_INCLUDED
 #define APYRE_CONFIG_HPP_INCLUDED
 
-#include <captal_foundation/config.hpp>
+#include <captal_foundation/enum_operations.hpp>
 
 #ifdef _WIN32
     #ifdef APYRE_SHARED_BUILD

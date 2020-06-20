@@ -6,6 +6,8 @@
 
 #include <SDL.h>
 
+#include <captal_foundation/encoding.hpp>
+
 #include "application.hpp"
 #include "window.hpp"
 
@@ -220,7 +222,7 @@ static std::optional<event> translate(const SDL_Event& sdl_event)
         text_event output{};
         output.type = text_event::text_entered;
         output.window = sdl_event.text.windowID;
-        std::copy(std::cbegin(sdl_event.text.text), std::cend(sdl_event.text.text), std::begin(output.text));
+        output.text = cpt::convert<cpt::narrow, cpt::utf8>(std::string_view{sdl_event.text.text});
 
         return std::make_optional(event{output});
     }

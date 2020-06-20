@@ -34,7 +34,7 @@ public:
 public:
     constexpr application() = default;
 
-    application(const std::string& application_name, version application_version, application_options options = application_options::none);
+    application(const std::u8string& application_name, version application_version, application_options options = application_options::none);
 
     ~application() = default;
     application(const application&) = delete;

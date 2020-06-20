@@ -13,7 +13,7 @@ class APYRE_API monitor
 public:
     constexpr monitor() = default;
 
-    monitor(std::int32_t id, std::int32_t x, std::int32_t y, std::uint32_t width, std::uint32_t height, std::string name) noexcept
+    monitor(std::int32_t id, std::int32_t x, std::int32_t y, std::uint32_t width, std::uint32_t height, std::u8string name) noexcept
     :m_id{id}
     ,m_x{x}
     ,m_y{y}
@@ -60,7 +60,7 @@ public:
         return m_height;
     }
 
-    const std::string& name() const noexcept
+    std::u8string_view name() const noexcept
     {
         return m_name;
     }
@@ -71,7 +71,7 @@ private:
     std::int32_t m_y{};
     std::uint32_t m_width{};
     std::uint32_t m_height{};
-    std::string m_name{};
+    std::u8string m_name{};
 };
 
 }

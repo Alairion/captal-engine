@@ -1,4 +1,7 @@
-#include "src/config.hpp"
+#include "src/version.hpp"
+#include "src/encoding.hpp"
+#include "src/optional_ref.hpp"
+#include "src/enum_operations.hpp"
 #include "src/stack_allocator.hpp"
 
 #include <vector>
@@ -139,6 +142,31 @@ TEST_CASE("Stack allocator test", "[stack_alloc]")
         allocator.deallocate(memory, 1000);
     }
 }
+
+TEST_CASE("Encoding test", "[encoding]")
+{
+    const std::u8string_view string{u8"abcÀçè中国日本国кир👦"}; //A string with a lot of special chars with different sizes (in UTF-8)
+    const std::size_t codepoint_count{15};
+
+    REQUIRE(cpt::convert<cpt::wide, cpt::utf8>(
+            cpt::convert<cpt::narrow, cpt::wide>(
+            cpt::convert<cpt::utf32, cpt::narrow>(
+            cpt::convert<cpt::utf16, cpt::utf32>(
+            cpt::convert<cpt::utf8, cpt::utf16>(string))))) == string);
+
+    const auto count = [string] <cpt::encoding Encoding> ()
+    {
+        const auto output{cpt::convert<cpt::utf8, Encoding>(string)};
+        return Encoding::count(std::begin(output), std::end(output));
+    };
+
+    REQUIRE(count.operator()<cpt::utf8>() == codepoint_count);
+    REQUIRE(count.operator()<cpt::utf16>() == codepoint_count);
+    REQUIRE(count.operator()<cpt::utf32>() == codepoint_count);
+    REQUIRE(count.operator()<cpt::narrow>() == codepoint_count);
+    REQUIRE(count.operator()<cpt::wide>() == codepoint_count);
+}
+
 /*
 static constexpr std::size_t pool_size{1024};
 

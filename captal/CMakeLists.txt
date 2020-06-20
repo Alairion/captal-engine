@@ -16,7 +16,6 @@ set(ZLIB_LIBRARIES "${GLOBAL_LIBRARIES}/libzlibstatic.a")
 set(HEADERS
     "src/config.hpp"
     "src/algorithm.hpp"
-    "src/encoding.hpp"
     "src/application.hpp"
     "src/engine.hpp"
     "src/zlib.hpp"
