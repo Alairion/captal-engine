@@ -10,7 +10,7 @@
 namespace swl
 {
 
-std::mutex stream::mutex{};
+static std::mutex mutex{};
 
 static int callback(const void*, void* output, unsigned long frame_count, const PaStreamCallbackTimeInfo*, unsigned long, void* user_data)
 {

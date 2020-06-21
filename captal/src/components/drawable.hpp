@@ -11,7 +11,7 @@ namespace cpt
 namespace components
 {
 
-class drawable
+class CAPTAL_API drawable
 {
 public:
     using value_type = renderable;

@@ -12,7 +12,6 @@
 #include <future>
 #include <chrono>
 
-#define GLM_FORCE_RADIANS
 #include <glm/vec3.hpp>
 
 namespace swl
@@ -27,7 +26,7 @@ enum class sound_reader_options : std::uint32_t
     buffered = 0x01
 };
 
-class sound_reader
+class SWELL_API sound_reader
 {
 public:
     virtual ~sound_reader()
@@ -119,7 +118,11 @@ struct sound_data
 class audio_queue
 {
 public:
-    audio_queue() = default;
+    audio_queue(std::size_t reserved = 0)
+    {
+        m_data.reserve(reserved);
+    }
+
     ~audio_queue() = default;
     audio_queue(const audio_queue&) = delete;
     audio_queue& operator=(const audio_queue&) = delete;
@@ -177,7 +180,7 @@ private:
 
 class mixer;
 
-class sound
+class SWELL_API sound
 {
 public:
     sound() = default;
@@ -269,7 +272,7 @@ enum class mixer_status : std::uint32_t
     aborted = 3
 };
 
-class mixer
+class SWELL_API mixer
 {
 public:
     mixer(std::uint32_t sample_rate, std::uint32_t channel_count, time_type minimum_latency = time_type{0.002});
@@ -294,10 +297,10 @@ public:
     void set_volume(float volume);
     impl::sound_data* make_sound();
 
-    glm::vec3 listener_position();
-    glm::vec3 listener_direction();
-    glm::vec3 up();
-    float volume();
+    glm::vec3 listener_position() const;
+    glm::vec3 listener_direction() const;
+    glm::vec3 up() const;
+    float volume() const;
 
     std::uint32_t sample_rate() const noexcept
     {
@@ -341,7 +344,7 @@ private:
     clock::time_point m_last{};
     std::atomic<mixer_status> m_status{};
     std::condition_variable m_start_condition{};
-    std::mutex m_mutex{};
+    mutable std::mutex m_mutex{};
     std::thread m_process_thread{};
 };
 

@@ -130,17 +130,18 @@ void renderable::set_view(const view_ptr& view)
         tph::write_descriptors(engine::instance().renderer(), writes);
     };
 
-    const auto it{m_descriptor_sets.find(view.get())};
-    if(it == std::end(m_descriptor_sets))
+    auto it{m_descriptor_sets.find(view.get())};
+
+    if(it == std::end(m_descriptor_sets)) //New view
     {
         const auto [new_item, success] = m_descriptor_sets.emplace(std::make_pair(view.get(), view->render_technique()->make_set()));
         assert(success);
 
-        write_set(view, new_item->second);
-        m_current_set = new_item->second;
+        it = new_item;
+        write_set(view, it->second);
     }
 
-    if(m_need_descriptor_update || view->need_descriptor_update())
+    if(m_need_descriptor_update || view->need_descriptor_update()) //Already known view
     {
         it->second = view->render_technique()->make_set();
         write_set(view, it->second);

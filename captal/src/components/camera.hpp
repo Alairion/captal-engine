@@ -11,7 +11,7 @@ namespace cpt
 namespace components
 {
 
-class camera
+class CAPTAL_API camera
 {
 public:
     using value_type = view;

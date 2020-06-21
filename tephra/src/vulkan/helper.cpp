@@ -57,7 +57,7 @@ std::uint32_t find_memory_type(const VkPhysicalDeviceMemoryProperties& memory_pr
     throw std::runtime_error{"Can not find a suitable memory type."};
 }
 
-VkFormat find_format(VkPhysicalDevice physical_device, std::span<VkFormat> candidates, VkImageTiling tiling, VkFormatFeatureFlags features)
+VkFormat find_format(VkPhysicalDevice physical_device, std::span<const VkFormat> candidates, VkImageTiling tiling, VkFormatFeatureFlags features)
 {
     for(VkFormat format : candidates)
     {

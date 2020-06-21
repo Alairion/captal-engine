@@ -4,7 +4,7 @@
 
 #include <zlib/zlib.h>
 
-#include "encoding.hpp"
+#include <captal_foundation/encoding.hpp>
 
 namespace cpt
 {
@@ -114,13 +114,13 @@ void inflate::reset()
 }
 
 deflate::deflate(std::uint32_t compression_level)
-:impl::deflate{compression_level, -15}
+:cpt::impl::deflate{compression_level, -15}
 {
 
 }
 
 zlib_deflate::zlib_deflate(std::uint32_t compression_level)
-:impl::deflate{compression_level, 15}
+:cpt::impl::deflate{compression_level, 15}
 {
 
 }
@@ -131,7 +131,7 @@ gzip_deflate::gzip_deflate(std::uint32_t compression_level)
 
 }
 
-void gzip_deflate::set_header(const std::string& name, const std::string& comment, std::string extra, std::time_t time)
+void gzip_deflate::set_header(std::u8string_view name, std::u8string_view comment, std::string extra, std::time_t time)
 {
     assert(valid() && "cpt::gzip_deflate::set_header called on an invalid stream.");
 
@@ -222,14 +222,14 @@ bool gzip_inflate::is_header_ready() const noexcept
     return false;
 }
 
-std::string gzip_inflate::name() const
+std::u8string gzip_inflate::name() const
 {
     assert(is_header_ready() && "cpt::gzip_inflate::is_header_ready returned false in cpt::gzip_inflate::original_name");
 
     return convert<latin_1, utf8>(std::string_view{std::data(m_header->name)});
 }
 
-std::string gzip_inflate::comment() const
+std::u8string gzip_inflate::comment() const
 {
     assert(is_header_ready() && "cpt::gzip_inflate::is_header_ready returned false in cpt::gzip_inflate::comment");
 
@@ -243,11 +243,11 @@ std::string_view gzip_inflate::extra() const noexcept
     return std::string_view{reinterpret_cast<const char*>(std::data(m_header->extra)), static_cast<std::size_t>(m_header->header.extra_len)};
 }
 
-std::time_t gzip_inflate::time() const noexcept
+std::chrono::system_clock::time_point gzip_inflate::time() const noexcept
 {
     assert(is_header_ready() && "cpt::gzip_inflate::is_header_ready returned false in cpt::gzip_inflate::time");
 
-    return static_cast<std::time_t>(m_header->header.time);
+    return std::chrono::system_clock::from_time_t(static_cast<std::time_t>(m_header->header.time));
 }
 
 }

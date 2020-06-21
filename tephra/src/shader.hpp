@@ -16,7 +16,7 @@ namespace tph
 
 class renderer;
 
-class shader
+class TEPHRA_API shader
 {
     template<typename VulkanObject, typename... Args>
     friend VulkanObject underlying_cast(const Args&...) noexcept;
@@ -25,7 +25,7 @@ public:
     constexpr shader() = default;
     shader(renderer& renderer, shader_stage stage, const std::filesystem::path& file);
     shader(renderer& renderer, shader_stage stage, std::string_view data);
-    shader(renderer& renderer, shader_stage stage, std::size_t bytes_size, const std::uint32_t* spirv);
+    shader(renderer& renderer, shader_stage stage, std::span<const std::uint32_t> spirv);
     shader(renderer& renderer, shader_stage stage, std::istream& stream);
 
     ~shader() = default;

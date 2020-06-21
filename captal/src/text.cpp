@@ -13,7 +13,6 @@
 #include <glm/vec2.hpp>
 
 #include "engine.hpp"
-#include "encoding.hpp"
 #include "texture.hpp"
 #include "algorithm.hpp"
 
@@ -34,7 +33,7 @@ void font::freetype_deleter::operator()(freetype_info* ptr) noexcept
         FT_Done_FreeType(ptr->library);
 }
 
-font::font(const std::string_view& data, std::uint32_t initial_size)
+font::font(std::string_view data, std::uint32_t initial_size)
 :m_data{std::begin(data), std::end(data)}
 ,m_loader{new freetype_info{}, freetype_deleter{}}
 {
@@ -85,7 +84,7 @@ void font::resize(std::uint32_t pixels_size)
     }
 }
 
-std::optional<glyph> font::load(char32_t codepoint)
+std::optional<glyph> font::load(codepoint_t codepoint)
 {
     if(FT_Load_Char(m_loader->face, codepoint, FT_HAS_COLOR(m_loader->face) ? FT_LOAD_COLOR : FT_LOAD_DEFAULT))
        return std::nullopt;
@@ -168,7 +167,7 @@ std::optional<glyph> font::load(char32_t codepoint)
     return std::make_optional(std::move(output));
 }
 
-float font::kerning(char32_t left, char32_t right)
+float font::kerning(codepoint_t left, codepoint_t right)
 {
     FT_Vector output{};
 
@@ -272,7 +271,7 @@ void text_drawer::resize(std::uint32_t pixels_size)
     m_cache.clear();
 }
 
-std::pair<std::uint32_t, std::uint32_t> text_drawer::bounds(const std::string_view& string)
+std::pair<std::uint32_t, std::uint32_t> text_drawer::bounds(std::u8string_view string)
 {
     float current_x{};
     float current_y{static_cast<float>(m_font.info().max_ascent)};
@@ -280,7 +279,7 @@ std::pair<std::uint32_t, std::uint32_t> text_drawer::bounds(const std::string_vi
     float lowest_y{static_cast<float>(m_font.info().max_glyph_height)};
     float greatest_x{};
     float greatest_y{};
-    char32_t last{};
+    codepoint_t last{};
 
     for(auto codepoint : decode<utf8>(string))
     {
@@ -314,11 +313,11 @@ std::pair<std::uint32_t, std::uint32_t> text_drawer::bounds(const std::string_vi
     return std::make_pair(static_cast<std::uint32_t>(greatest_x - lowest_x), static_cast<std::uint32_t>(greatest_y - lowest_y));
 }
 
-text_ptr text_drawer::draw(const std::string_view& string, const color& color)
+text_ptr text_drawer::draw(std::u8string_view string, const color& color)
 {
     auto&& [command_buffer, signal] = cpt::engine::instance().begin_transfer();
 
-    std::unordered_map<char32_t, std::pair<std::shared_ptr<glyph>, glm::vec2>> cache{};
+    std::unordered_map<codepoint_t, std::pair<std::shared_ptr<glyph>, glm::vec2>> cache{};
     texture_ptr texture{make_texture(string, cache, command_buffer)};
 
     const float texture_width{static_cast<float>(texture->width())};
@@ -334,7 +333,7 @@ text_ptr text_drawer::draw(const std::string_view& string, const color& color)
     float lowest_y{static_cast<float>(m_font.info().max_glyph_height)};
     float greatest_x{};
     float greatest_y{};
-    char32_t last{};
+    codepoint_t last{};
 
     for(auto codepoint : decode<utf8>(string))
     {
@@ -414,11 +413,11 @@ text_ptr text_drawer::draw(const std::string_view& string, const color& color)
     return std::make_shared<text>(indices, vertices, std::move(texture), static_cast<std::uint32_t>(greatest_x - lowest_x), static_cast<std::uint32_t>(greatest_y - lowest_y), std::size(string));
 }
 
-text_ptr text_drawer::draw(const std::string_view& string, std::uint32_t line_width, text_align align, const color& color)
+text_ptr text_drawer::draw(std::u8string_view string, std::uint32_t line_width, text_align align, const color& color)
 {
     auto&& [command_buffer, signal] = cpt::engine::instance().begin_transfer();
 
-    std::unordered_map<char32_t, std::pair<std::shared_ptr<glyph>, glm::vec2>> cache{};
+    std::unordered_map<codepoint_t, std::pair<std::shared_ptr<glyph>, glm::vec2>> cache{};
     texture_ptr texture{make_texture(string, cache, command_buffer)};
 
     const std::size_t codepoint_count{utf8::count(std::begin(string), std::end(string))};
@@ -432,7 +431,7 @@ text_ptr text_drawer::draw(const std::string_view& string, std::uint32_t line_wi
     state.texture_width = static_cast<float>(texture->width());
     state.texture_height = static_cast<float>(texture->height());
 
-    for(auto&& line : split(string, '\n'))
+    for(auto&& line : split(string, u8'\n'))
     {
         draw_line(line, line_width, align, state, vertices, cache, color);
 
@@ -473,15 +472,15 @@ text_ptr text_drawer::draw(const std::string_view& string, std::uint32_t line_wi
     return std::make_shared<text>(indices, vertices, std::move(texture), text_width, text_height, std::size(string));
 }
 
-void text_drawer::draw_line(const std::string_view& line, std::uint32_t line_width, text_align align, draw_line_state& state, std::vector<vertex>& vertices, const std::unordered_map<char32_t, std::pair<std::shared_ptr<glyph>, glm::vec2>>& cache, const color& color)
+void text_drawer::draw_line(std::u8string_view line, std::uint32_t line_width, text_align align, draw_line_state& state, std::vector<vertex>& vertices, const std::unordered_map<codepoint_t, std::pair<std::shared_ptr<glyph>, glm::vec2>>& cache, const color& color)
 {
     if(align == text_align::left)
     {
         const auto& space_glyph{*load_glyph(U' ')};
 
-        for(auto word : split(line, ' '))
+        for(auto word : split(line, u8' '))
         {
-            char32_t last{};
+            codepoint_t last{};
 
             float word_advance{};
             for(auto codepoint : word)
@@ -551,7 +550,7 @@ void text_drawer::draw_line(const std::string_view& line, std::uint32_t line_wid
     }
 }
 
-texture_ptr text_drawer::make_texture(const std::string_view& string, std::unordered_map<char32_t, std::pair<std::shared_ptr<glyph>, glm::vec2>>& cache, tph::command_buffer& command_buffer)
+texture_ptr text_drawer::make_texture(std::u8string_view string, std::unordered_map<codepoint_t, std::pair<std::shared_ptr<glyph>, glm::vec2>>& cache, tph::command_buffer& command_buffer)
 {
     constexpr std::uint32_t max_texture_width{4096};
 
@@ -607,7 +606,7 @@ texture_ptr text_drawer::make_texture(const std::string_view& string, std::unord
     return texture;
 }
 
-const std::shared_ptr<glyph>& text_drawer::load_glyph(char32_t codepoint)
+const std::shared_ptr<glyph>& text_drawer::load_glyph(codepoint_t codepoint)
 {
     auto it{m_cache.find(codepoint)};
     if(it == std::end(m_cache))
@@ -618,7 +617,7 @@ const std::shared_ptr<glyph>& text_drawer::load_glyph(char32_t codepoint)
     return it->second;
 }
 
-text_ptr draw_text(cpt::font& font, const std::string_view& string, const color& color, text_drawer_options options)
+text_ptr draw_text(cpt::font& font, std::u8string_view string, const color& color, text_drawer_options options)
 {
     text_drawer drawer{std::move(font), options};
     text_ptr text{drawer.draw(string, color)};
@@ -628,7 +627,7 @@ text_ptr draw_text(cpt::font& font, const std::string_view& string, const color&
     return text;
 }
 
-text_ptr draw_text(cpt::font&& font, const std::string_view& string, const color& color, text_drawer_options options)
+text_ptr draw_text(cpt::font&& font, std::u8string_view string, const color& color, text_drawer_options options)
 {
     text_drawer drawer{std::move(font), options};
     text_ptr text{drawer.draw(string, color)};
@@ -638,7 +637,7 @@ text_ptr draw_text(cpt::font&& font, const std::string_view& string, const color
     return text;
 }
 
-text_ptr draw_text(cpt::font& font, const std::string_view& string, std::uint32_t line_width, text_align align, const color& color, text_drawer_options options)
+text_ptr draw_text(cpt::font& font, std::u8string_view string, std::uint32_t line_width, text_align align, const color& color, text_drawer_options options)
 {
     text_drawer drawer{std::move(font), options};
     text_ptr text{drawer.draw(string, line_width, align, color)};
@@ -648,7 +647,7 @@ text_ptr draw_text(cpt::font& font, const std::string_view& string, std::uint32_
     return text;
 }
 
-text_ptr draw_text(cpt::font&& font, const std::string_view& string, std::uint32_t line_width, text_align align, const color& color, text_drawer_options options)
+text_ptr draw_text(cpt::font&& font, std::u8string_view string, std::uint32_t line_width, text_align align, const color& color, text_drawer_options options)
 {
     text_drawer drawer{std::move(font), options};
     text_ptr text{drawer.draw(string, line_width, align, color)};

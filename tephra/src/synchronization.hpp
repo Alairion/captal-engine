@@ -12,14 +12,13 @@ namespace tph
 
 class renderer;
 
-class semaphore
+class TEPHRA_API semaphore
 {
     template<typename VulkanObject, typename... Args>
     friend VulkanObject underlying_cast(const Args&...) noexcept;
 
 public:
     constexpr semaphore() = default;
-
     semaphore(renderer& renderer);
 
     ~semaphore() = default;
@@ -38,14 +37,13 @@ inline VkSemaphore underlying_cast(const semaphore& semaphore) noexcept
     return semaphore.m_semaphore;
 }
 
-class fence
+class TEPHRA_API fence
 {
     template<typename VulkanObject, typename... Args>
     friend VulkanObject underlying_cast(const Args&...) noexcept;
 
 public:
     constexpr fence() = default;
-
     fence(renderer& renderer, bool signaled = false);
 
     ~fence() = default;
@@ -98,14 +96,13 @@ inline VkFence underlying_cast(const fence& fence) noexcept
     return fence.m_fence;
 }
 
-class event
+class TEPHRA_API event
 {
     template<typename VulkanObject, typename... Args>
     friend VulkanObject underlying_cast(const Args&...) noexcept;
 
 public:
     constexpr event() = default;
-
     event(renderer& renderer);
 
     ~event() = default;

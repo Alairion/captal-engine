@@ -52,8 +52,8 @@ public:
     static constexpr std::uint32_t no_frame_rate_limit{std::numeric_limits<std::uint32_t>::max()};
 
 public:
-    engine(const std::string& application_name, cpt::version version);
-    engine(const std::string& application_name, cpt::version version, const audio_parameters& audio, const graphics_parameters& graphics);
+    engine(const std::u8string& application_name, cpt::version version);
+    engine(const std::u8string& application_name, cpt::version version, const audio_parameters& audio, const graphics_parameters& graphics);
     engine(cpt::application application, const audio_parameters& audio, const graphics_parameters& graphics);
 
     ~engine();

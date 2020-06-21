@@ -13,7 +13,7 @@ namespace cpt
 namespace components
 {
 
-class physical_body
+class CAPTAL_API physical_body
 {
 public:
     using value_type = cpt::physical_body;

@@ -25,7 +25,7 @@ struct descriptor_set_layout_binding
     std::uint32_t count{1};
 };
 
-class descriptor_set_layout
+class TEPHRA_API descriptor_set_layout
 {
     template<typename VulkanObject, typename... Args>
     friend VulkanObject underlying_cast(const Args&...) noexcept;
@@ -56,7 +56,7 @@ struct descriptor_pool_size
     std::uint32_t count{1};
 };
 
-class descriptor_pool
+class TEPHRA_API descriptor_pool
 {
     template<typename VulkanObject, typename... Args>
     friend VulkanObject underlying_cast(const Args&...) noexcept;
@@ -81,7 +81,7 @@ inline VkDescriptorPool underlying_cast(const descriptor_pool& descriptor_pool) 
    return descriptor_pool.m_descriptor_pool;
 }
 
-class descriptor_set
+class TEPHRA_API descriptor_set
 {
     template<typename VulkanObject, typename... Args>
     friend VulkanObject underlying_cast(const Args&...) noexcept;
@@ -128,9 +128,9 @@ struct descriptor_write
     std::variant<std::monostate, descriptor_texture_info, descriptor_buffer_info> info{};
 };
 
-void write_descriptor(renderer& renderer, descriptor_set& descriptor_set, std::uint32_t binding, std::uint32_t array_index, descriptor_type type, buffer& buffer, std::uint64_t offset, std::uint64_t size);
-void write_descriptor(renderer& renderer, descriptor_set& descriptor_set, std::uint32_t binding, std::uint32_t array_index, descriptor_type type, texture& texture, tph::texture_layout layout);
-void write_descriptors(renderer& renderer, std::span<const descriptor_write> writes);
+TEPHRA_API void write_descriptor(renderer& renderer, descriptor_set& descriptor_set, std::uint32_t binding, std::uint32_t array_index, descriptor_type type, buffer& buffer, std::uint64_t offset, std::uint64_t size);
+TEPHRA_API void write_descriptor(renderer& renderer, descriptor_set& descriptor_set, std::uint32_t binding, std::uint32_t array_index, descriptor_type type, texture& texture, tph::texture_layout layout);
+TEPHRA_API void write_descriptors(renderer& renderer, std::span<const descriptor_write> writes);
 
 }
 

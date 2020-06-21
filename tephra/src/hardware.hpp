@@ -78,7 +78,7 @@ physical_device make_physical_device(VkPhysicalDevice device) noexcept;
 
 }
 
-class physical_device
+class TEPHRA_API physical_device
 {
     template<typename VulkanObject, typename... Args>
     friend VulkanObject underlying_cast(const Args&...) noexcept;
@@ -129,7 +129,7 @@ private:
 
 template<> inline VkPhysicalDevice underlying_cast(const physical_device& physical_device) noexcept {return physical_device.m_physical_device;}
 
-bool default_physical_device_comparator(const physical_device& left, const physical_device& right) noexcept;
+TEPHRA_API bool default_physical_device_comparator(const physical_device& left, const physical_device& right) noexcept;
 
 }
 

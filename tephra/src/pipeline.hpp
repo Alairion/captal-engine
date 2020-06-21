@@ -27,7 +27,7 @@ struct push_constant_range
     std::uint32_t size{};
 };
 
-class pipeline_layout
+class TEPHRA_API pipeline_layout
 {
     template<typename VulkanObject, typename... Args>
     friend VulkanObject underlying_cast(const Args&...) noexcept;
@@ -52,7 +52,7 @@ inline VkPipelineLayout underlying_cast(const pipeline_layout& pipeline_layout) 
    return pipeline_layout.m_pipeline_layout;
 }
 
-class pipeline_cache
+class TEPHRA_API pipeline_cache
 {
     template<typename VulkanObject, typename... Args>
     friend VulkanObject underlying_cast(const Args&...) noexcept;
@@ -246,7 +246,7 @@ enum class pipeline_type : std::uint32_t
     compute = VK_PIPELINE_BIND_POINT_COMPUTE,
 };
 
-class pipeline
+class TEPHRA_API pipeline
 {
     template<typename VulkanObject, typename... Args>
     friend VulkanObject underlying_cast(const Args&...) noexcept;

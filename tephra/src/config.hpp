@@ -1,7 +1,12 @@
 #ifndef TEPHRA_CONFIG_HPP_INCLUDED
 #define TEPHRA_CONFIG_HPP_INCLUDED
 
-#include <captal_foundation/config.hpp>
+#include <captal_foundation/base.hpp>
+#include <captal_foundation/version.hpp>
+#include <captal_foundation/enum_operations.hpp>
+#include <captal_foundation/optional_ref.hpp>
+
+#define TEPHRA_API CAPTAL_FOUNDATION_API
 
 namespace tph
 {

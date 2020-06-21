@@ -50,35 +50,37 @@ static std::array<char, 4> read_bits32(const char* data) noexcept
     return {data[0], data[1], data[2], data[3]};
 }
 
-static float read_sample(const char* data, std::uint32_t bits_per_sample) noexcept
-{
-    if(bits_per_sample == 8)
-    {
-        return static_cast<float>(read_int8(data)) / static_cast<float>(0x80);
-    }
-    else if(bits_per_sample == 16)
-    {
-        return static_cast<float>(read_int16(data)) / static_cast<float>(0x8000);
-    }
-    else if(bits_per_sample == 24)
-    {
-        return static_cast<float>(read_int24(data)) / static_cast<float>(0x800000);
-    }
-    else if(bits_per_sample == 32)
-    {
-        return static_cast<float>(read_int32(data)) / static_cast<float>(0x80000000);
-    }
-
-    return 0.0f;
-}
-
-static void read_samples_impl(const char* data, std::uint32_t bits_per_sample, float* output, std::size_t sample_count) noexcept
+static void read_samples(const char* data, std::uint32_t bits_per_sample, float* output, std::size_t sample_count) noexcept
 {
     const std::size_t byte_per_sample{bits_per_sample / 8u};
 
-    for(std::size_t i{}; i < sample_count; ++i)
+    if(bits_per_sample == 8)
     {
-        output[i] = read_sample(data + (i * byte_per_sample), bits_per_sample);
+        for(std::size_t i{}; i < sample_count; ++i)
+        {
+            output[i] = static_cast<float>(read_int8(data + (i * byte_per_sample))) / static_cast<float>(0x80);
+        }
+    }
+    else if(bits_per_sample == 16)
+    {
+        for(std::size_t i{}; i < sample_count; ++i)
+        {
+            output[i] = static_cast<float>(read_int16(data + (i * byte_per_sample))) / static_cast<float>(0x8000);
+        }
+    }
+    else if(bits_per_sample == 24)
+    {
+        for(std::size_t i{}; i < sample_count; ++i)
+        {
+            output[i] = static_cast<float>(read_int24(data + (i * byte_per_sample))) / static_cast<float>(0x800000);
+        }
+    }
+    else if(bits_per_sample == 32)
+    {
+        for(std::size_t i{}; i < sample_count; ++i)
+        {
+            output[i] = static_cast<float>(read_int32(data + (i * byte_per_sample))) / static_cast<float>(0x80000000);
+        }
     }
 }
 
@@ -105,7 +107,7 @@ wave_reader::wave_reader(const std::filesystem::path& file, sound_reader_options
         const std::string data{std::istreambuf_iterator<char>{ifs}, std::istreambuf_iterator<char>{}};
 
         m_buffer.resize(m_header.data_size / (m_header.bits_per_sample / 8u));
-        read_samples_impl(std::data(data), m_header.bits_per_sample, std::data(m_buffer), std::size(m_buffer));
+        read_samples(std::data(data), m_header.bits_per_sample, std::data(m_buffer), std::size(m_buffer));
     }
     else
     {
@@ -114,11 +116,13 @@ wave_reader::wave_reader(const std::filesystem::path& file, sound_reader_options
     }
 }
 
-wave_reader::wave_reader(const std::string_view& data, sound_reader_options options)
+wave_reader::wave_reader(std::string_view data, sound_reader_options options)
 :m_options{options}
 {
     if(std::size(data) < 44)
+    {
         throw std::runtime_error{"Too short wave data."};
+    }
 
     std::array<char, 44> header_data{};
     std::copy(std::begin(data), std::begin(data) + 44, std::begin(header_data));
@@ -128,7 +132,7 @@ wave_reader::wave_reader(const std::string_view& data, sound_reader_options opti
     if(static_cast<bool>(m_options & sound_reader_options::buffered))
     {
         m_buffer.resize(m_header.data_size / (m_header.bits_per_sample / 8u));
-        read_samples_impl(std::data(data), m_header.bits_per_sample, std::data(m_buffer), std::size(m_buffer));
+        read_samples(std::data(data), m_header.bits_per_sample, std::data(m_buffer), std::size(m_buffer));
     }
     else
     {
@@ -152,7 +156,7 @@ wave_reader::wave_reader(std::istream& stream, sound_reader_options options)
         const std::string data{std::istreambuf_iterator<char>{stream}, std::istreambuf_iterator<char>{}};
 
         m_buffer.resize(m_header.data_size / (m_header.bits_per_sample / 8u));
-        read_samples_impl(std::data(data), m_header.bits_per_sample, std::data(m_buffer), std::size(m_buffer));
+        read_samples(std::data(data), m_header.bits_per_sample, std::data(m_buffer), std::size(m_buffer));
     }
 
     m_stream = &stream;
@@ -295,12 +299,12 @@ bool wave_reader::read_samples_from_memory(float* output, std::size_t frame_coun
     {
         const std::size_t max_samples{(std::size(m_source) - byte_size(m_current_frame)) / (m_header.bits_per_sample / 8)};
 
-        read_samples_impl(std::data(m_source) + sample_size(m_current_frame), m_header.bits_per_sample, output, max_samples);
+        read_samples(std::data(m_source) + sample_size(m_current_frame), m_header.bits_per_sample, output, max_samples);
         return false;
     }
     else
     {
-        read_samples_impl(std::data(m_source) + sample_size(m_current_frame), m_header.bits_per_sample, output, sample_size(frame_count));
+        read_samples(std::data(m_source) + sample_size(m_current_frame), m_header.bits_per_sample, output, sample_size(frame_count));
         return true;
     }
 }
@@ -313,7 +317,7 @@ bool wave_reader::read_samples_from_stream(float* output, std::size_t frame_coun
     m_stream->read(std::data(data), std::size(data));
     m_current_frame += frame_count;
 
-    read_samples_impl(std::data(data), m_header.bits_per_sample, output, sample_size(frame_count));
+    read_samples(std::data(data), m_header.bits_per_sample, output, sample_size(frame_count));
 
     return static_cast<std::size_t>(m_stream->gcount()) == std::size(data);
 }

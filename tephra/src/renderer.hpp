@@ -36,7 +36,7 @@ enum class queue : std::size_t
     count = 4
 };
 
-class renderer
+class TEPHRA_API renderer
 {
     template<typename VulkanObject, typename... Args>
     friend VulkanObject underlying_cast(const Args&...) noexcept;

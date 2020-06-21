@@ -2,8 +2,6 @@
 
 #include <tephra/commands.hpp>
 
-#include <entt/entity/observer.hpp>
-
 #include "../components/node.hpp"
 #include "../components/drawable.hpp"
 #include "../components/camera.hpp"
@@ -20,40 +18,40 @@ namespace systems
 
 static void update_nodes(entt::registry& world)
 {
-    world.view<components::node, components::drawable>().each([](entt::entity entity [[maybe_unused]], components::node& node, components::drawable& drawable)
+    world.view<components::node, components::drawable>().each([](components::node& node, components::drawable& drawable)
     {
         if(node.is_updated())
         {
-            if(drawable.attachment())
-            {
-                drawable.attachment()->move_to(node.position());
-                drawable.attachment()->set_origin(node.origin());
-                drawable.attachment()->set_rotation(node.rotation());
-                drawable.attachment()->set_scale(node.scale());
-            }
+            assert(drawable.attachment() && "Invalid attachment");
+
+            drawable.attachment()->move_to(node.position());
+            drawable.attachment()->set_origin(node.origin());
+            drawable.attachment()->set_rotation(node.rotation());
+            drawable.attachment()->set_scale(node.scale());
         }
     });
 
-    world.view<components::node, components::camera>().each([](entt::entity entity [[maybe_unused]], components::node& node, components::camera& camera)
+    world.view<components::node, components::camera>().each([](components::node& node, components::camera& camera)
     {
         if(node.is_updated())
         {
-            if(camera.attachment())
-            {
-                camera.attachment()->move_to(node.position());
-                camera.attachment()->set_origin(node.origin());
-                camera.attachment()->set_rotation(node.rotation());
-                camera.attachment()->set_scale(node.scale());
-            }
+            assert(camera.attachment() && "Invalid attachment");
+
+            camera.attachment()->move_to(node.position());
+            camera.attachment()->set_origin(node.origin());
+            camera.attachment()->set_rotation(node.rotation());
+            camera.attachment()->set_scale(node.scale());
         }
     });
 }
 
 static void draw(entt::registry& world)
 {
-    world.view<components::camera>().each([&](entt::entity entity [[maybe_unused]], components::camera& camera)
+    world.view<components::camera>().each([&](components::camera& camera)
     {
-        if(camera.attachment() && camera.attachment()->target().is_rendering_enable())
+        assert(camera.attachment() && "Invalid attachment");
+
+        if(camera.attachment()->target().is_rendering_enable())
         {
             const view_ptr& view{camera.attachment()};
             const render_technique_ptr& technique{view->render_technique()};
@@ -79,19 +77,18 @@ static void draw(entt::registry& world)
 
             world.view<components::drawable>().each([&, &buffer = buffer](entt::entity entity [[maybe_unused]], const components::drawable& drawable)
             {
-                if(drawable.attachment())
+                assert(drawable.attachment() && "Invalid attachment");
+
+                renderable& renderable{*drawable.attachment()};
+
+                if(!renderable.hidden())
                 {
-                    const renderable_ptr& renderable{drawable.attachment()};
+                    renderable.set_view(view);
+                    renderable.upload();
+                    renderable.draw(buffer);
 
-                    if(!renderable->hidden())
-                    {
-                        renderable->set_view(view);
-                        renderable->upload();
-                        renderable->draw(buffer);
-
-                        to_keep_alive.emplace_back(renderable);
-                        to_keep_alive.emplace_back(renderable->set());
-                    }
+                    to_keep_alive.emplace_back(drawable.attachment());
+                    to_keep_alive.emplace_back(renderable.set());
                 }
             });
 

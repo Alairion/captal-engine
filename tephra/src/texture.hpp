@@ -60,7 +60,7 @@ struct sampling_options
 
 texture_aspect aspect_from_format(texture_format format) noexcept;
 
-class texture
+class TEPHRA_API texture
 {
     template<typename VulkanObject, typename... Args>
     friend VulkanObject underlying_cast(const Args&...) noexcept;

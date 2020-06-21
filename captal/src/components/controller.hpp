@@ -13,7 +13,7 @@ namespace cpt
 namespace components
 {
 
-struct controller
+struct CAPTAL_API controller
 {
 public:
     using value_type = cpt::physical_body;

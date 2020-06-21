@@ -3,9 +3,12 @@
 #include <iostream>
 #include <fstream>
 #include <charconv>
+#include <numbers>
 #include <cassert>
 
 #include "external/pugixml.hpp"
+
+#include <captal_foundation/encoding.hpp>
 
 #include "zlib.hpp"
 
@@ -44,7 +47,7 @@ static constexpr std::uint32_t from_base64(char value) noexcept
     return base64_table[static_cast<std::uint8_t>(value)];
 }
 
-static std::vector<std::uint8_t> parse_base64(const std::string_view& data)
+static std::vector<std::uint8_t> parse_base64(std::string_view data)
 {
     assert(std::size(data) % 4 == 0 && "Bad base64 string");
 
@@ -183,20 +186,23 @@ static properties_set parse_properties(const pugi::xml_node& node, const std::fi
 
     for(auto&& child : node)
     {
-        property& property{output[child.attribute("name").as_string()]};
-        const std::string_view type{child.attribute("type").as_string("string")};
+        property& property{output[convert<narrow, utf8>(std::string_view{child.attribute("name").as_string()})]};
 
+        const std::string_view type{child.attribute("type").as_string("string")};
         std::string_view value{child.attribute("value").as_string()};
+
         if(std::empty(value)) //future-proof
+        {
             value = child.child_value();
+        }
 
         if(type == "string")
         {
-            property = std::string{value};
+            property = convert<narrow, utf8>(value);
         }
         else if(type == "file")
         {
-            property = std::filesystem::u8path(load_callback(root / value, external_resource_type::file));
+            property = std::filesystem::path(convert<narrow, utf8>(load_callback(root / convert<narrow, utf8>(value), external_resource_type::file)));
         }
         else if(type == "int")
         {
@@ -246,8 +252,8 @@ static object parse_object(const pugi::xml_node& node, const std::filesystem::pa
 {
     object output{};
     output.id = node.attribute("id").as_uint();
-    output.name = node.attribute("name").as_string();
-    output.type = node.attribute("type").as_string();
+    output.name = convert<narrow, utf8>(std::string_view{node.attribute("name").as_string()});
+    output.type = convert<narrow, utf8>(std::string_view{node.attribute("type").as_string()});
     output.visible = node.attribute("visible").as_uint(1) == 1;
 
     for(auto&& child : node)
@@ -263,14 +269,14 @@ static object parse_object(const pugi::xml_node& node, const std::filesystem::pa
         else if(child.name() == "text"sv)
         {
             object::text text{};
-            text.text = child.child_value();
-            text.font_family = child.attribute("fontfamily").as_string();
+            text.text = convert<narrow, utf8>(std::string_view{child.child_value()});
+            text.font_family = convert<narrow, utf8>(std::string_view{child.attribute("fontfamily").as_string()});
             text.pixel_size = child.attribute("pixelsize").as_uint();
             text.position.x = node.attribute("x").as_float();
             text.position.y = node.attribute("y").as_float();
             text.width = node.attribute("width").as_float();
             text.height = node.attribute("height").as_float();
-            text.angle = node.attribute("rotation").as_float() * (pi<float> * 180.0f);
+            text.angle = node.attribute("rotation").as_float() * (std::numbers::pi_v<float> * 180.0f);
             text.color = parse_color(child.attribute("color").as_string("#000000"));
 
             if(child.attribute("bold").as_uint() != 0)
@@ -311,7 +317,7 @@ static object parse_object(const pugi::xml_node& node, const std::filesystem::pa
         tile.position.y = node.attribute("y").as_float();
         tile.width = node.attribute("width").as_float();
         tile.height = node.attribute("height").as_float();
-        tile.angle = node.attribute("rotation").as_float() * (pi<float> * 180.0f);
+        tile.angle = node.attribute("rotation").as_float() * (std::numbers::pi_v<float> * 180.0f);
 
         output.content = tile;
     }
@@ -323,7 +329,7 @@ static object parse_object(const pugi::xml_node& node, const std::filesystem::pa
         square.position.y = node.attribute("y").as_float();
         square.width = node.attribute("width").as_float();
         square.height = node.attribute("height").as_float();
-        square.angle = node.attribute("rotation").as_float() * (pi<float> * 180.0f);
+        square.angle = node.attribute("rotation").as_float() * (std::numbers::pi_v<float> * 180.0f);
 
         output.content = square;
     }
@@ -349,7 +355,7 @@ static std::vector<object> parse_hitboxes(const pugi::xml_node& node, const std:
 static tile parse_tile(const pugi::xml_node& node, const std::filesystem::path& root, const external_load_callback_type& load_callback)
 {
     tile output{};
-    output.type = node.attribute("type").as_string();
+    output.type = convert<narrow, utf8>(std::string_view{node.attribute("type").as_string()});
 
     for(auto&& child : node)
     {
@@ -433,7 +439,7 @@ static tileset parse_map_tileset(const pugi::xml_node& node, const external_load
 static layer parse_layer(const pugi::xml_node& node, const std::filesystem::path& root, const external_load_callback_type& load_callback)
 {
     layer output{};
-    output.name = node.attribute("name").as_string();
+    output.name = convert<narrow, utf8>(std::string_view{node.attribute("name").as_string()});
     output.opacity = node.attribute("opacity").as_float(1.0f);
     output.visible = node.attribute("visible").as_uint(1) == 1;
     output.position.x = node.attribute("offsetx").as_float();
@@ -463,7 +469,7 @@ static layer parse_layer(const pugi::xml_node& node, const std::filesystem::path
 static layer parse_object_group(const pugi::xml_node& node, const std::filesystem::path& root, const external_load_callback_type& load_callback)
 {
     layer output{};
-    output.name = node.attribute("name").as_string();
+    output.name = convert<narrow, utf8>(std::string_view{node.attribute("name").as_string()});
     output.opacity = node.attribute("opacity").as_float(1.0f);
     output.visible = node.attribute("visible").as_uint(1) == 1;
     output.position.x = node.attribute("offsetx").as_float();
@@ -492,7 +498,7 @@ static layer parse_object_group(const pugi::xml_node& node, const std::filesyste
 static layer parse_image_layer(const pugi::xml_node& node, const std::filesystem::path& root, const external_load_callback_type& load_callback)
 {
     layer output{};
-    output.name = node.attribute("name").as_string();
+    output.name = convert<narrow, utf8>(std::string_view{node.attribute("name").as_string()});
     output.opacity = node.attribute("opacity").as_float(1.0f);
     output.visible = node.attribute("visible").as_uint(1) == 1;
     output.position.x = node.attribute("offsetx").as_float();
@@ -516,7 +522,7 @@ static layer parse_image_layer(const pugi::xml_node& node, const std::filesystem
 static layer parse_group_layer(const pugi::xml_node& node, const std::filesystem::path& root, const external_load_callback_type& load_callback)
 {
     layer output{};
-    output.name = node.attribute("name").as_string();
+    output.name = convert<narrow, utf8>(std::string_view{node.attribute("name").as_string()});
     output.opacity = node.attribute("opacity").as_float(1.0f);
     output.visible = node.attribute("visible").as_uint(1) == 1;
     output.position.x = node.attribute("offsetx").as_float();
@@ -606,13 +612,13 @@ map load_map(const std::filesystem::path& path)
         if(resource_type == external_resource_type::image || resource_type == external_resource_type::file)
         {
             const std::filesystem::path output{path.parent_path() / other_path};
-            return output.u8string();
+            return convert<utf8, narrow>(output.u8string());
         }
         else
         {
             std::ifstream ifs{path.parent_path() / other_path, std::ios_base::binary};
             if(!ifs)
-                throw std::runtime_error{"Can not open file \"" + path.u8string() + "\"."};
+                throw std::runtime_error{"Can not open file \"" + path.string() + "\"."};
 
             return std::string{std::istreambuf_iterator<char>{ifs}, std::istreambuf_iterator<char>{}};
         }
@@ -627,7 +633,7 @@ map load_map(const std::filesystem::path& path, const external_load_callback_typ
 
     std::ifstream ifs{path, std::ios_base::binary};
     if(!ifs)
-        throw std::runtime_error{"Can not open file \"" + path.u8string() + "\"."};
+        throw std::runtime_error{"Can not open file \"" + path.string() + "\"."};
 
     return load_map(ifs, load_callback);
 }

@@ -5,14 +5,41 @@
 
 #include <entt/entity/registry.hpp>
 
-namespace cpt
+#include "../sound.hpp"
+
+#include "../components/node.hpp"
+#include "../components/listener.hpp"
+#include "../components/audio_emiter.hpp"
+
+namespace cpt::systems
 {
 
-namespace systems
+namespace impl
 {
 
-void CAPTAL_API audio(entt::registry& world);
+CAPTAL_API void move_listener(components::node& node);
 
+}
+
+inline void audio(entt::registry& world)
+{
+    world.view<components::listener, components::node>().each([](components::node& node)
+    {
+        if(node.is_updated())
+        {
+            impl::move_listener(node);
+        }
+    });
+
+    world.view<components::audio_emiter, components::node>().each([](const components::audio_emiter& emiter, components::node& node)
+    {
+        if(node.is_updated())
+        {
+            assert(emiter.attachment() && "Invalid attachment");
+
+            emiter.attachment()->move_to(node.position());
+        }
+    });
 }
 
 }

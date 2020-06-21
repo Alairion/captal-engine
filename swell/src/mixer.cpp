@@ -344,20 +344,58 @@ sound_reader& sound::reader() const
 }
 
 template<typename T>
-static float sgn(T value)
+static constexpr float sgn(T value) noexcept
 {
     return value >= T{} ? 1.0f : -1.0f;
 }
 
+static constexpr float fast_pow(float value, std::size_t count) noexcept
+{
+    if(value == 0.0f)
+    {
+        return 0.0f;
+    }
+
+    if(value == 1.0f)
+    {
+        return 1.0f;
+    }
+
+    if(count == 0)
+    {
+        return 1.0f;
+    }
+
+    float output{1.0f};
+
+    if(count % 2 == 1)
+    {
+        output *= value;
+    }
+
+    for(std::size_t i{count / 2}; i != 0; i /= 2)
+    {
+        value *= value;
+
+        if(i % 2 == 1)
+        {
+            output *= value;
+        }
+    }
+
+    return output;
+}
+
 static float mix_amplitude(float value, std::size_t count) noexcept
 {
-    return sgn(value) * (1.0f - std::pow(1.0f - std::abs(value), static_cast<float>(count)));
+    return sgn(value) * (1.0f - fast_pow(1.0f - std::abs(value), count));
 }
 
 mixer::mixer(std::uint32_t sample_rate, std::uint32_t channel_count, time_type minimum_latency)
 :m_sample_rate{sample_rate}
 ,m_channel_count{channel_count}
 ,m_minimum_latency{minimum_latency}
+,m_queue{(sample_rate * channel_count) / 10u}
 ,m_process_thread{&mixer::process, this}
 {
 
@@ -437,28 +475,28 @@ impl::sound_data* mixer::make_sound()
     return m_sounds.back().get();
 }
 
-glm::vec3 mixer::listener_position()
+glm::vec3 mixer::listener_position() const
 {
     std::lock_guard lock{m_mutex};
 
     return m_position;
 }
 
-glm::vec3 mixer::listener_direction()
+glm::vec3 mixer::listener_direction() const
 {
     std::lock_guard lock{m_mutex};
 
     return m_direction;
 }
 
-glm::vec3 mixer::up()
+glm::vec3 mixer::up() const
 {
     std::lock_guard lock{m_mutex};
 
     return m_up;
 }
 
-float mixer::volume()
+float mixer::volume() const
 {
     std::lock_guard lock{m_mutex};
 

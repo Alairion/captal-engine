@@ -94,7 +94,7 @@ sound_file_reader::sound_file_reader(const std::filesystem::path& file, sound_re
     }
 }
 
-sound_file_reader::sound_file_reader(const std::string_view& data, sound_reader_options options)
+sound_file_reader::sound_file_reader(std::string_view data, sound_reader_options options)
 {
     if(wave::is_valid(data))
     {

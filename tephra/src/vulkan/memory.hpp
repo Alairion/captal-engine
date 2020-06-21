@@ -21,7 +21,7 @@ enum class memory_resource_type : std::uint32_t
     non_linear = 1,
 };
 
-class memory_heap_chunk
+class TEPHRA_API memory_heap_chunk
 {
     friend class memory_heap;
 
@@ -80,7 +80,7 @@ private:
     mutable bool m_mapped{};
 };
 
-class memory_heap
+class TEPHRA_API memory_heap
 {
     friend class memory_heap_chunk;
 
@@ -163,7 +163,7 @@ private:
     std::mutex m_mutex{};
 };
 
-class memory_allocator
+class TEPHRA_API memory_allocator
 {
 public:
     struct heap_sizes

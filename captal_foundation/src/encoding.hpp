@@ -10,61 +10,6 @@
 namespace cpt
 {
 
-inline namespace foundation
-{
-
-/*
-struct some_encoding
-{
-    using char_type = xxx; //Replace "xxx" by the integer type used to represent the encoding.
-
-    template<std::input_iterator InputIt>
-    static constexpr InputIt decode(InputIt begin, InputIt end, codepoint_t& output) [noexcept]
-    {
-        //Convert the first character of the sequence [begin, end[ to the UTF-32 codepoint.
-        //Write it in "output" then return the iterator pointing on the next character of the decoded sequence.
-
-        return begin;
-    }
-
-    template<std::output_iterator<char_type> OutputIt>
-    static constexpr OutputIt encode(codepoint_t code, OutputIt output) [noexcept]
-    {
-        //Convert the UTF-32 codepoint to the sequence representing the character in the encoding.
-        //Write the sequence in "output" then return the iterator pointing on the next character of the output sequence.
-
-        return output;
-    }
-
-    template<std::input_iterator InputIt>
-    static constexpr InputIt next(InputIt begin, InputIt end) [noexcept]
-    {
-        //Advance "begin" to the next character in the sequence [begin, end[.
-        //Return the iterator pointing on the next character of the sequence.
-
-        return begin;
-    }
-
-    template<std::input_iterator InputIt>
-    static constexpr std::size_t count(InputIt begin, InputIt end) [noexcept]
-    {
-        //Return the count of "real" characters in the sequence [begin, end[. (For multi-bytes encoding)
-
-        std::size_t count{};
-        //...
-        return count;
-    }
-
-    static constexpr std::size_t max_char_length() noexcept
-    {
-        //Return the highest count of values to represent a single character.
-        //e.g. UTF-8 encoding can use 6 values to represent one character.
-
-        return x;
-    }
-};
-*/
-
 namespace impl
 {
 
@@ -225,6 +170,61 @@ inline constexpr std::array<char32_t, 666> uppers
 };
 
 }
+
+inline namespace foundation
+{
+
+/*
+struct some_encoding
+{
+    using char_type = xxx; //Replace "xxx" by the integer type used to represent the encoding.
+
+    template<std::input_iterator InputIt>
+    static constexpr InputIt decode(InputIt begin, InputIt end, codepoint_t& output) [noexcept]
+    {
+        //Convert the first character of the sequence [begin, end[ to the UTF-32 codepoint.
+        //Write it in "output" then return the iterator pointing on the next character of the decoded sequence.
+
+        return begin;
+    }
+
+    template<std::output_iterator<char_type> OutputIt>
+    static constexpr OutputIt encode(codepoint_t code, OutputIt output) [noexcept]
+    {
+        //Convert the UTF-32 codepoint to the sequence representing the character in the encoding.
+        //Write the sequence in "output" then return the iterator pointing on the next character of the output sequence.
+
+        return output;
+    }
+
+    template<std::input_iterator InputIt>
+    static constexpr InputIt next(InputIt begin, InputIt end) [noexcept]
+    {
+        //Advance "begin" to the next character in the sequence [begin, end[.
+        //Return the iterator pointing on the next character of the sequence.
+
+        return begin;
+    }
+
+    template<std::input_iterator InputIt>
+    static constexpr std::size_t count(InputIt begin, InputIt end) [noexcept]
+    {
+        //Return the count of "real" characters in the sequence [begin, end[. (For multi-bytes encoding)
+
+        std::size_t count{};
+        //...
+        return count;
+    }
+
+    static constexpr std::size_t max_char_length() noexcept
+    {
+        //Return the highest count of values to represent a single character.
+        //e.g. UTF-8 encoding can use 6 values to represent one character.
+
+        return x;
+    }
+};
+*/
 
 using codepoint_t = char32_t;
 
@@ -637,7 +637,7 @@ constexpr OutputIt convert(InputIt begin, InputIt end, OutputIt output)
 }
 
 template<encoding Input, encoding Output, typename StringIn, typename StringOut = std::basic_string<typename Output::char_type>>
-StringOut convert(const StringIn& str)
+constexpr StringOut convert(const StringIn& str)
 {
     StringOut output{};
     convert<Input, Output>(std::begin(str), std::end(str), std::back_inserter(output));
@@ -666,7 +666,7 @@ constexpr OutputIt to_lower(InputIt begin, InputIt end, OutputIt output)
 }
 
 template<encoding Encoding, typename String = std::basic_string<typename Encoding::char_type>>
-String to_lower(const String& str)
+constexpr String to_lower(const String& str)
 {
     String output{};
     output.resize(std::size(str));
@@ -697,7 +697,7 @@ constexpr OutputIt to_upper(InputIt begin, InputIt end, OutputIt output)
 }
 
 template<encoding Encoding, typename String = std::basic_string<typename Encoding::char_type>>
-String to_upper(const String& str)
+constexpr String to_upper(const String& str)
 {
     String output{};
     to_upper<Encoding>(std::begin(str), std::end(str), std::back_inserter(output));
@@ -805,6 +805,11 @@ template<encoding Encoding, typename T, std::size_t N>
 constexpr decoder_iterator<Encoding, const T*> decode(const T (&array)[N])
 {
     return decoder_iterator<Encoding, const T*>{std::begin(array), std::end(array)};
+}
+
+inline std::string_view to_narrow(const std::u8string_view& str) noexcept
+{
+    return std::string_view{reinterpret_cast<const char*>(std::data(str)), std::size(str)};
 }
 
 }

@@ -96,7 +96,7 @@
 namespace tph::vulkan
 {
 
-class error : public std::exception
+class TEPHRA_API error : public std::exception
 {
 public:
     error() noexcept = default;
@@ -125,7 +125,7 @@ private:
     VkResult m_result{};
 };
 
-class instance
+class TEPHRA_API instance
 {
 public:
     constexpr instance() = default;
@@ -153,7 +153,7 @@ private:
     VkInstance m_instance{};
 };
 
-class device
+class TEPHRA_API device
 {
 public:
     constexpr device() = default;
@@ -181,7 +181,7 @@ private:
     VkDevice m_device{};
 };
 
-class device_memory
+class TEPHRA_API device_memory
 {
 public:
     constexpr device_memory() = default;
@@ -211,7 +211,7 @@ private:
     VkDeviceMemory m_device_memory{};
 };
 
-class buffer
+class TEPHRA_API buffer
 {
 public:
     constexpr buffer() = default;
@@ -241,7 +241,7 @@ private:
     VkBuffer m_buffer{};
 };
 
-class buffer_view
+class TEPHRA_API buffer_view
 {
 public:
     constexpr buffer_view() = default;
@@ -271,7 +271,7 @@ private:
     VkBufferView m_buffer_view{};
 };
 
-class image
+class TEPHRA_API image
 {
 public:
     constexpr image() = default;
@@ -308,7 +308,7 @@ private:
     VkImage m_image{};
 };
 
-class image_view
+class TEPHRA_API image_view
 {
 public:
     constexpr image_view() = default;
@@ -338,7 +338,7 @@ private:
     VkImageView m_image_view{};
 };
 
-class sampler
+class TEPHRA_API sampler
 {
 public:
     constexpr sampler() = default;
@@ -368,7 +368,7 @@ private:
     VkSampler m_sampler{};
 };
 
-class framebuffer
+class TEPHRA_API framebuffer
 {
 public:
     constexpr framebuffer() = default;
@@ -398,7 +398,7 @@ private:
     VkFramebuffer m_framebuffer{};
 };
 
-class shader
+class TEPHRA_API shader
 {
 public:
     constexpr shader() = default;
@@ -428,7 +428,7 @@ private:
     VkShaderModule m_shader{};
 };
 
-class semaphore
+class TEPHRA_API semaphore
 {
 public:
     constexpr semaphore() = default;
@@ -458,7 +458,7 @@ private:
     VkSemaphore m_semaphore{};
 };
 
-class fence
+class TEPHRA_API fence
 {
 public:
     constexpr fence() = default;
@@ -488,7 +488,7 @@ private:
     VkFence m_fence{};
 };
 
-class event
+class TEPHRA_API event
 {
 public:
     constexpr event() = default;
@@ -518,7 +518,7 @@ private:
     VkEvent m_event{};
 };
 
-class command_pool
+class TEPHRA_API command_pool
 {
 public:
     constexpr command_pool() = default;
@@ -548,7 +548,7 @@ private:
     VkCommandPool m_command_pool{};
 };
 
-class command_buffer
+class TEPHRA_API command_buffer
 {
 public:
     constexpr command_buffer() = default;
@@ -580,7 +580,7 @@ private:
     VkCommandBuffer m_command_buffer{};
 };
 
-class descriptor_set_layout
+class TEPHRA_API descriptor_set_layout
 {
 public:
     constexpr descriptor_set_layout() = default;
@@ -610,7 +610,7 @@ private:
     VkDescriptorSetLayout m_descriptor_set_layout{};
 };
 
-class descriptor_pool
+class TEPHRA_API descriptor_pool
 {
 public:
     constexpr descriptor_pool() = default;
@@ -640,7 +640,7 @@ private:
     VkDescriptorPool m_descriptor_pool{};
 };
 
-class descriptor_set
+class TEPHRA_API descriptor_set
 {
 public:
     constexpr descriptor_set() = default;
@@ -670,7 +670,7 @@ private:
     VkDescriptorSet m_descriptor_set{};
 };
 
-class render_pass
+class TEPHRA_API render_pass
 {
 public:
     constexpr render_pass() = default;
@@ -700,7 +700,7 @@ private:
     VkRenderPass m_render_pass{};
 };
 
-class pipeline_layout
+class TEPHRA_API pipeline_layout
 {
 public:
     constexpr pipeline_layout() = default;
@@ -730,7 +730,7 @@ private:
     VkPipelineLayout m_pipeline_layout{};
 };
 
-class pipeline
+class TEPHRA_API pipeline
 {
 public:
     constexpr pipeline() = default;
@@ -761,7 +761,7 @@ private:
     VkPipeline m_pipeline{};
 };
 
-class pipeline_cache
+class TEPHRA_API pipeline_cache
 {
 public:
     constexpr pipeline_cache() = default;
@@ -791,7 +791,7 @@ private:
     VkPipelineCache m_pipeline_cache{};
 };
 
-class debug_messenger
+class TEPHRA_API debug_messenger
 {
 public:
     constexpr debug_messenger() = default;
@@ -821,7 +821,7 @@ private:
     VkDebugUtilsMessengerEXT m_debug_messenger{};
 };
 
-class surface
+class TEPHRA_API surface
 {
 public:
     constexpr surface() = default;
@@ -879,7 +879,7 @@ private:
     VkSurfaceKHR m_surface{};
 };
 
-class swapchain
+class TEPHRA_API swapchain
 {
 public:
     constexpr swapchain() = default;

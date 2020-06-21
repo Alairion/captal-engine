@@ -45,7 +45,7 @@ static std::vector<texture_format> convert_formats(VkPhysicalDevice physical_dev
 
     stack_memory_pool<512> pool{};
     auto formats{make_stack_vector<VkSurfaceFormatKHR>(pool)};
-    formats.reserve(count);
+    formats.resize(count);
     if(auto result{vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device, surface, &count, std::data(formats))}; result != VK_SUCCESS)
         throw vulkan::error{result};
 

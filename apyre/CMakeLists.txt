@@ -29,9 +29,8 @@ set(SOURCES
     "src/event.cpp"
     "src/messagebox.cpp")
 
-add_definitions(-DSDL_MAIN_HANDLED -DAPYRE_SHARED_BUILD)
-
 add_library(${PROJECT_NAME} SHARED ${HEADERS} ${SOURCES})
+target_compile_definitions(${PROJECT_NAME} PRIVATE CAPTAL_FOUNDATION_SHARED_BUILD)
 set_target_properties(${PROJECT_NAME} PROPERTIES PREFIX "")
 
 target_include_directories(${PROJECT_NAME} PRIVATE ${SDL_INCLUDES} ${GLOBAL_INCLUDES})

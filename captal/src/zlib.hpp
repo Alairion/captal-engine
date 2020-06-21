@@ -7,7 +7,7 @@
 #include <array>
 #include <iterator>
 #include <concepts>
-#include <ctime>
+#include <chrono>
 #include <algorithm>
 
 struct z_stream_s;
@@ -250,7 +250,7 @@ public:
     gzip_deflate(gzip_deflate&&) noexcept = default;
     gzip_deflate& operator=(gzip_deflate&&) noexcept = default;
 
-    void set_header(const std::string& name, const std::string& comment, std::string extra = std::string{}, std::time_t time = std::time(nullptr));
+    void set_header(std::u8string_view name, std::u8string_view comment, std::string extra = std::string{}, std::time_t time = std::time(nullptr));
 
 private:
     std::string m_name{};
@@ -297,10 +297,10 @@ public:
     void grab_header();
     bool is_header_ready() const noexcept;
 
-    std::string name() const;
-    std::string comment() const;
+    std::u8string name() const;
+    std::u8string comment() const;
     std::string_view extra() const noexcept;
-    std::time_t time() const noexcept;
+    std::chrono::system_clock::time_point time() const noexcept;
 
 private:
     std::unique_ptr<gzip_info> m_header{};

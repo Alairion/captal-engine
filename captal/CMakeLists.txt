@@ -74,20 +74,16 @@ set(SOURCES
     "src/tiled_map.cpp"
     "src/physics.cpp"
 
-    "src/systems/frame.cpp"
-    "src/systems/sorting.cpp"
     "src/systems/audio.cpp"
-    "src/systems/render.cpp"
-    "src/systems/physics.cpp"
     )
 
 add_library(${PROJECT_NAME} SHARED ${HEADERS} ${SOURCES})
-set_target_properties(${PROJECT_NAME} PROPERTIES PREFIX "")
-
-target_compile_definitions(${PROJECT_NAME} PRIVATE GLM_FORCE_RADIANS
-                                                   GLM_FORCE_DEPTH_ZERO_TO_ONE
+target_compile_definitions(${PROJECT_NAME} PRIVATE CAPTAL_FOUNDATION_SHARED_BUILD
                                                    ZLIB_CONST
-                                                   CAPTAL_SHARED_BUILD)
+                                                   GLM_FORCE_DEPTH_ZERO_TO_ONE
+                                                   #ENTT_API_EXPORT
+                                                   )
+set_target_properties(${PROJECT_NAME} PROPERTIES PREFIX "")
 
 if(CMAKE_BUILD_TYPE STREQUAL Debug)
     add_definitions(-DCAPTAL_DEBUG)
@@ -129,6 +125,7 @@ if(CAPTAL_BUILD_EXAMPLE)
     add_executable(${PROJECT_NAME}_test "main.cpp")
     target_link_libraries(${PROJECT_NAME}_test ${PROJECT_NAME})
     target_include_directories(${PROJECT_NAME}_test PRIVATE "${PROJECT_SOURCE_DIR}/include/${PROJECT_NAME}")
+    #target_compile_definitions(${PROJECT_NAME}_test PRIVATE ENTT_API_IMPORT)
 
     if(CMAKE_BUILD_TYPE STREQUAL Debug)
         target_link_libraries(${PROJECT_NAME}_test "${PROJECT_SOURCE_DIR}/../libs/debug/libapyre.dll.a")

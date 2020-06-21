@@ -13,10 +13,8 @@ namespace swl
 class application;
 class mixer;
 
-class stream
+class SWELL_API stream
 {
-    static std::mutex mutex;
-
 public:
     stream() = default;
     stream(application& application, const physical_device& physical_device, mixer& mixer);

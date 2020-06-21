@@ -14,7 +14,7 @@ class physical_device
 public:
     physical_device() = default;
 
-    physical_device(std::int32_t id, std::uint32_t output_channel, time_type default_low_output_latency, time_type default_high_output_latency, std::uint32_t default_sample_rate, std::string name)
+    physical_device(std::int32_t id, std::uint32_t output_channel, time_type default_low_output_latency, time_type default_high_output_latency, std::uint32_t default_sample_rate, std::u8string name)
     :m_id{id}
     ,m_max_output_channel{output_channel}
     ,m_default_low_output_latency{default_low_output_latency}
@@ -56,7 +56,7 @@ public:
         return m_default_sample_rate;
     }
 
-    const std::string& name() const noexcept
+    std::u8string_view name() const noexcept
     {
         return m_name;
     }
@@ -87,7 +87,7 @@ private:
     time_type m_default_low_output_latency{};
     time_type m_default_high_output_latency{};
     std::uint32_t m_default_sample_rate{};
-    std::string m_name{};
+    std::u8string m_name{};
 };
 
 }

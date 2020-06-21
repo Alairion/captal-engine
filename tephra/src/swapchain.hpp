@@ -39,7 +39,7 @@ enum class swapchain_status : std::uint32_t
     surface_lost = 3,
 };
 
-class swapchain
+class TEPHRA_API swapchain
 {
     template<typename VulkanObject, typename... Args>
     friend VulkanObject underlying_cast(const Args&...) noexcept;

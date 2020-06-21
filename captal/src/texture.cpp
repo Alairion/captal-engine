@@ -45,7 +45,7 @@ texture::texture(const std::filesystem::path& file, const tph::sampling_options&
 
 }
 
-texture::texture(const std::string_view& data, const tph::sampling_options& sampling, color_space space)
+texture::texture(std::string_view data, const tph::sampling_options& sampling, color_space space)
 :m_texture{make_texture(sampling, format_from_color_space(space), data)}
 {
 

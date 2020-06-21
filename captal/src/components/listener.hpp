@@ -9,7 +9,7 @@ namespace cpt
 namespace components
 {
 
-struct listener
+struct CAPTAL_API listener
 {
 
 };

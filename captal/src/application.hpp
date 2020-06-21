@@ -13,7 +13,7 @@ namespace cpt
 class CAPTAL_API application
 {
 public:
-    application(const std::string& application_name, cpt::version version);
+    application(const std::u8string& application_name, cpt::version version);
     ~application() = default;
     application(const application&) = delete;
     application& operator=(const application&) = delete;

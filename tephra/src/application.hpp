@@ -22,7 +22,7 @@ enum class application_options : std::uint32_t
     enable_verbose_validation = 0x02,
 };
 
-class application
+class TEPHRA_API application
 {
     template<typename VulkanObject, typename... Args>
     friend VulkanObject underlying_cast(const Args&...) noexcept;

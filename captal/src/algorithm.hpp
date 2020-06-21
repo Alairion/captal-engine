@@ -107,38 +107,6 @@ std::vector<std::basic_string_view<CharT, Traits>> split(std::basic_string_view<
     return substrings;
 }
 
-constexpr std::uint8_t bswap(std::uint8_t value) noexcept
-{
-    return value;
-}
-
-constexpr std::uint16_t bswap(std::uint16_t value) noexcept
-{
-    return static_cast<std::uint16_t>((value << 8) | (value >> 8));
-}
-
-constexpr std::uint32_t bswap(std::uint32_t value) noexcept
-{
-    value = ((value << 8) & 0xFF00FF00) | ((value >> 8) & 0x00FF00FF);
-
-    return (value << 16) | (value >> 16);
-}
-
-constexpr std::uint64_t bswap(std::uint64_t value) noexcept
-{
-    value = ((value & 0x00000000FFFFFFFFull) << 32) | ((value & 0xFFFFFFFF00000000ull) >> 32);
-    value = ((value & 0x0000FFFF0000FFFFull) << 16) | ((value & 0xFFFF0000FFFF0000ull) >> 16);
-    value = ((value & 0x00FF00FF00FF00FFull) << 8)  | ((value & 0xFF00FF00FF00FF00ull) >> 8);
-
-    return value;
-}
-
-template<typename Enum, typename = std::enable_if_t<std::is_enum_v<Enum> && std::is_unsigned_v<std::underlying_type_t<Enum>>>>
-constexpr Enum bswap(Enum value) noexcept
-{
-    return static_cast<Enum>(bswap(static_cast<std::underlying_type_t<Enum>>(value)));
-}
-
 }
 
 #endif

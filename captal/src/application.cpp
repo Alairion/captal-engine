@@ -9,7 +9,7 @@ static constexpr tph::application_options graphics_options{tph::application_opti
 static constexpr tph::application_options graphics_options{};
 #endif
 
-application::application(const std::string& application_name, cpt::version version)
+application::application(const std::u8string& application_name, cpt::version version)
 :m_graphics_application{application_name, version, graphics_options}
 {
 

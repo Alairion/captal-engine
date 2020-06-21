@@ -25,9 +25,9 @@ using clock = std::chrono::steady_clock;
 
 engine* engine::m_instance{nullptr};
 
-engine::engine(const std::string& application_name, cpt::version version)
+engine::engine(const std::u8string& application_name, cpt::version version)
 :m_application{application_name, version}
-,m_audio_device{m_application.audio_application().default_device()}
+,m_audio_device{m_application.audio_application().default_physical_device()}
 ,m_audio_mixer{m_audio_device.default_sample_rate(), std::min(m_audio_device.max_output_channel(), 2u)}
 ,m_audio_stream{m_application.audio_application(), m_audio_device, m_audio_mixer}
 ,m_graphics_device{m_application.graphics_application().default_physical_device()}
@@ -43,7 +43,7 @@ static const swl::physical_device& default_audio_device(const swl::application& 
         return parameters.physical_device.value();
     }
 
-    const swl::physical_device& default_device{application.default_device()};
+    const swl::physical_device& default_device{application.default_physical_device()};
 
     if(default_device.max_output_channel() >= parameters.channel_count && default_device.default_sample_rate() == parameters.frequency)
     {
@@ -99,7 +99,7 @@ static const tph::physical_device& default_graphics_device(const tph::applicatio
     return application.select_physical_device(requirements);
 }
 
-engine::engine(const std::string& application_name, cpt::version version, const audio_parameters& audio, const graphics_parameters& graphics)
+engine::engine(const std::u8string& application_name, cpt::version version, const audio_parameters& audio, const graphics_parameters& graphics)
 :engine{cpt::application{application_name, version}, audio, graphics}
 {
 
@@ -275,7 +275,7 @@ void engine::init()
 
     std::cout << "Captal engine initialized.\n";
 
-    std::cout << "  Audio device: " << m_audio_device.name() << "\n";
+    std::cout << "  Audio device: " << to_narrow(m_audio_device.name()) << "\n";
     std::cout << "  | Channels: " << m_audio_mixer.channel_count() << "\n";
     std::cout << "  | Sample rate: " << m_audio_mixer.sample_rate() << "Hz\n";
     std::cout << "  | Output latency: " << m_audio_device.default_low_output_latency().count() << "s\n";

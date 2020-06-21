@@ -50,7 +50,7 @@ enum class image_format
     jpg = 3,
 };
 
-class image
+class TEPHRA_API image
 {
     template<typename VulkanObject, typename... Args>
     friend VulkanObject underlying_cast(const Args&...) noexcept;

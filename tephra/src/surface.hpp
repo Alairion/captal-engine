@@ -52,7 +52,7 @@ struct surface_capabilities
     texture_usage supported_usages{};
 };
 
-class surface
+class TEPHRA_API surface
 {
     template<typename VulkanObject, typename... Args>
     friend VulkanObject underlying_cast(const Args&...) noexcept;

@@ -207,13 +207,13 @@ static std::vector<std::reference_wrapper<tph::texture>> make_attachments(const 
     return output;
 }
 
-render_window::render_window(const std::string& title, const cpt::video_mode& mode, apr::window_options options)
+render_window::render_window(const std::u8string& title, const cpt::video_mode& mode, apr::window_options options)
 :render_window{engine::instance().application().system_application().main_monitor(), title, mode, options}
 {
 
 }
 
-render_window::render_window(const apr::monitor& monitor, const std::string& title, const cpt::video_mode& mode, apr::window_options options)
+render_window::render_window(const apr::monitor& monitor, const std::u8string& title, const cpt::video_mode& mode, apr::window_options options)
 :apr::window{engine::instance().application().system_application(), monitor, title, mode.width, mode.height, options}
 ,tph::surface{make_window_surface(get_window())}
 ,render_target{make_render_pass_info(mode, choose_surface_format(get_surface()))}

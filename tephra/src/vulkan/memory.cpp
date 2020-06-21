@@ -409,6 +409,7 @@ memory_heap_chunk memory_allocator::allocate(VkBuffer buffer, memory_resource_ty
 {
     VkMemoryRequirements requirements{};
     vkGetBufferMemoryRequirements(m_device, buffer, &requirements);
+
     return allocate(requirements, ressource_type, minimal, optimal);
 }
 
@@ -416,6 +417,7 @@ memory_heap_chunk memory_allocator::allocate(VkImage image, memory_resource_type
 {
     VkMemoryRequirements requirements{};
     vkGetImageMemoryRequirements(m_device, image, &requirements);
+
     return allocate(requirements, ressource_type, minimal, optimal);
 }
 
@@ -423,6 +425,7 @@ memory_heap_chunk memory_allocator::allocate_bound(VkBuffer buffer, memory_resou
 {
     memory_heap_chunk chunk{allocate(buffer, ressource_type, minimal, optimal)};
     chunk.bind(buffer);
+
     return chunk;
 }
 
@@ -430,6 +433,7 @@ memory_heap_chunk memory_allocator::allocate_bound(VkImage image, memory_resourc
 {
     memory_heap_chunk chunk{allocate(image, ressource_type, minimal, optimal)};
     chunk.bind(image);
+
     return chunk;
 }
 
@@ -559,13 +563,11 @@ std::uint64_t memory_allocator::default_heap_size(std::uint32_t type) const
     {
         return m_sizes.device_shared;
     }
-
-    if(flags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
+    else if(flags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
     {
         return m_sizes.device_local;
     }
-
-    if(flags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
+    else if(flags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
     {
         return m_sizes.host_shared;
     }

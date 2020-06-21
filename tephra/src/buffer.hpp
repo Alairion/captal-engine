@@ -28,7 +28,7 @@ enum class buffer_usage : std::uint32_t
     staging = 0x20000000,
 };
 
-class buffer
+class TEPHRA_API buffer
 {
     template<typename VulkanObject, typename... Args>
     friend VulkanObject underlying_cast(const Args&...) noexcept;

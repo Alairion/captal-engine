@@ -16,7 +16,6 @@ class CAPTAL_API render_target
 {
 public:
     render_target() = default;
-
     render_target(const tph::render_pass_info& info);
 
     virtual ~render_target() = default;

@@ -24,7 +24,6 @@ class CAPTAL_API render_texture : public texture, public render_target
 {
 public:
     render_texture() = default;
-
     render_texture(const render_texture_info& info);
     render_texture(const render_texture_info& info, const tph::sampling_options& sampling);
 

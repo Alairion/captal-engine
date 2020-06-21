@@ -11,6 +11,8 @@
 
 #include <glm/vec2.hpp>
 
+#include <captal_foundation/encoding.hpp>
+
 #include <tephra/texture.hpp>
 #include <tephra/image.hpp>
 
@@ -63,8 +65,9 @@ class CAPTAL_API font
 public:
     font() = default;
     font(const std::filesystem::path& file, std::uint32_t initial_size = 16);
-    font(const std::string_view& data, std::uint32_t initial_size = 16);
+    font(std::string_view data, std::uint32_t initial_size = 16);
     font(std::istream& stream, std::uint32_t initial_size = 16);
+
     ~font() = default;
     font(const font&) = delete;
     font& operator=(const font&) = delete;
@@ -74,8 +77,8 @@ public:
     void resize(std::uint32_t pixels_size);
     void set_style(font_style style) noexcept;
 
-    std::optional<glyph> load(char32_t codepoint);
-    float kerning(char32_t left, char32_t right);
+    std::optional<glyph> load(codepoint_t codepoint);
+    float kerning(codepoint_t left, codepoint_t right);
 
     const font_info& info() const noexcept
     {
@@ -157,9 +160,9 @@ public:
     void set_style(font_style style) noexcept;
     void resize(std::uint32_t pixels_size);
 
-    std::pair<std::uint32_t, std::uint32_t> bounds(const std::string_view& u8string);
-    text_ptr draw(const std::string_view& u8string, const color& color = colors::white);
-    text_ptr draw(const std::string_view& u8string, std::uint32_t line_width, text_align align = text_align::left, const color& color = colors::white);
+    std::pair<std::uint32_t, std::uint32_t> bounds(std::u8string_view u8string);
+    text_ptr draw(std::u8string_view u8string, const color& color = colors::white);
+    text_ptr draw(std::u8string_view u8string, std::uint32_t line_width, text_align align = text_align::left, const color& color = colors::white);
 
     cpt::font& font() noexcept
     {
@@ -189,22 +192,22 @@ private:
         float texture_height{};
     };
 
-    void draw_line(const std::string_view& line, std::uint32_t line_width, text_align align, draw_line_state& state, std::vector<vertex>& vertices, const std::unordered_map<char32_t, std::pair<std::shared_ptr<glyph>, glm::vec2>>& cache, const color& color);
+    void draw_line(std::u8string_view line, std::uint32_t line_width, text_align align, draw_line_state& state, std::vector<vertex>& vertices, const std::unordered_map<codepoint_t, std::pair<std::shared_ptr<glyph>, glm::vec2>>& cache, const color& color);
 
 private:
-    texture_ptr make_texture(const std::string_view& string, std::unordered_map<char32_t, std::pair<std::shared_ptr<glyph>, glm::vec2>>& cache, tph::command_buffer& command_buffer);
-    const std::shared_ptr<glyph>& load_glyph(char32_t codepoint);
+    texture_ptr make_texture(std::u8string_view string, std::unordered_map<codepoint_t, std::pair<std::shared_ptr<glyph>, glm::vec2>>& cache, tph::command_buffer& command_buffer);
+    const std::shared_ptr<glyph>& load_glyph(codepoint_t codepoint);
 
 private:
     cpt::font m_font{};
     text_drawer_options m_options{};
-    std::unordered_map<char32_t, std::shared_ptr<glyph>> m_cache{};
+    std::unordered_map<codepoint_t, std::shared_ptr<glyph>> m_cache{};
 };
 
-text_ptr CAPTAL_API draw_text(cpt::font& font, const std::string_view& string,  const color& color = colors::white, text_drawer_options options = text_drawer_options::kerning);
-text_ptr CAPTAL_API draw_text(cpt::font&& font, const std::string_view& string, const color& color = colors::white, text_drawer_options options = text_drawer_options::kerning);
-text_ptr CAPTAL_API draw_text(cpt::font& font, const std::string_view& string,  std::uint32_t line_width, text_align align = text_align::left, const color& color = colors::white, text_drawer_options options = text_drawer_options::kerning);
-text_ptr CAPTAL_API draw_text(cpt::font&& font, const std::string_view& string, std::uint32_t line_width, text_align align = text_align::left, const color& color = colors::white, text_drawer_options options = text_drawer_options::kerning);
+text_ptr CAPTAL_API draw_text(cpt::font& font, std::u8string_view string,  const color& color = colors::white, text_drawer_options options = text_drawer_options::kerning);
+text_ptr CAPTAL_API draw_text(cpt::font&& font, std::u8string_view string, const color& color = colors::white, text_drawer_options options = text_drawer_options::kerning);
+text_ptr CAPTAL_API draw_text(cpt::font& font, std::u8string_view string,  std::uint32_t line_width, text_align align = text_align::left, const color& color = colors::white, text_drawer_options options = text_drawer_options::kerning);
+text_ptr CAPTAL_API draw_text(cpt::font&& font, std::u8string_view string, std::uint32_t line_width, text_align align = text_align::left, const color& color = colors::white, text_drawer_options options = text_drawer_options::kerning);
 
 }
 

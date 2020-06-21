@@ -5,14 +5,17 @@
 
 #include <entt/entity/registry.hpp>
 
-namespace cpt
+#include "../components/node.hpp"
+
+namespace cpt::systems
 {
 
-namespace systems
+inline void end_frame(entt::registry& world)
 {
-
-void CAPTAL_API end_frame(entt::registry& world);
-
+    world.view<components::node>().each([](components::node& node)
+    {
+        node.clear();
+    });
 }
 
 }

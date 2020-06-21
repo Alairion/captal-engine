@@ -4,6 +4,7 @@
 #include "../config.hpp"
 
 #include <cmath>
+#include <numbers>
 
 #include <glm/vec3.hpp>
 
@@ -13,7 +14,7 @@ namespace cpt
 namespace components
 {
 
-class node
+class CAPTAL_API node
 {
 public:
     node() = default;
@@ -21,7 +22,7 @@ public:
     explicit node(const glm::vec3& position, const glm::vec3& origin = glm::vec3{0.0f, 0.0f, 0.0f}, float scale = 1.0f, float angle = 0.0f)
     :m_position{position}
     ,m_origin{origin}
-    ,m_rotation{std::fmod(angle, pi<float> * 2.0f)}
+    ,m_rotation{std::fmod(angle, std::numbers::pi_v<float> * 2.0f)}
     ,m_scale{scale}
     ,m_updated{true}
     {
@@ -84,13 +85,13 @@ public:
 
     void set_rotation(float angle) noexcept
     {
-        m_rotation = std::fmod(angle, pi<float> * 2.0f);
+        m_rotation = std::fmod(angle, std::numbers::pi_v<float> * 2.0f);
         m_updated = true;
     }
 
     void rotate(float angle) noexcept
     {
-        m_rotation = std::fmod(m_rotation + angle, pi<float> * 2.0f);
+        m_rotation = std::fmod(m_rotation + angle, std::numbers::pi_v<float> * 2.0f);
         m_updated = true;
     }
 

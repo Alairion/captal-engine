@@ -5,14 +5,24 @@
 
 #include <entt/entity/registry.hpp>
 
-namespace cpt
+#include "../components/node.hpp"
+#include "../components/physical_body.hpp"
+
+namespace cpt::systems
 {
 
-namespace systems
+inline void physics(entt::registry& world)
 {
+    world.view<components::node, const components::physical_body>().each([](components::node& node, const components::physical_body& body)
+    {
+        assert(body.attachment() && "Invalid attachment");
 
-void CAPTAL_API physics(entt::registry& world);
-
+        if(!body.attachment()->sleeping())
+        {
+            node.move_to(glm::vec3{body.attachment()->position(), node.position().z});
+            node.set_rotation(body.attachment()->rotation());
+        }
+    });
 }
 
 }

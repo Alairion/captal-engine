@@ -107,7 +107,7 @@ struct clear_depth_stencil_value
 
 using clear_value_t = std::variant<clear_color_value, clear_depth_stencil_value>;
 
-class framebuffer
+class TEPHRA_API framebuffer
 {
     template<typename VulkanObject, typename... Args>
     friend VulkanObject underlying_cast(const Args&...) noexcept;
@@ -161,7 +161,7 @@ inline VkFramebuffer underlying_cast(const framebuffer& framebuffer) noexcept
     return framebuffer.m_framebuffer;
 }
 
-class render_pass
+class TEPHRA_API render_pass
 {
     template<typename VulkanObject, typename... Args>
     friend VulkanObject underlying_cast(const Args&...) noexcept;

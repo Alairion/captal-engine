@@ -30,6 +30,7 @@ class CAPTAL_API descriptor_set : public asynchronous_resource
 public:
     descriptor_set() = default;
     descriptor_set(descriptor_pool& parent, tph::descriptor_set set) noexcept;
+
     ~descriptor_set() = default;
     descriptor_set(const descriptor_set&) = delete;
     descriptor_set& operator=(const descriptor_set&) = delete;
@@ -67,6 +68,7 @@ public:
 public:
     descriptor_pool() = default;
     descriptor_pool(render_technique& parent, tph::descriptor_pool pool);
+
     ~descriptor_pool() = default;
     descriptor_pool(const descriptor_pool&) = delete;
     descriptor_pool& operator=(const descriptor_pool&) = delete;
@@ -118,7 +120,6 @@ class CAPTAL_API render_technique : public asynchronous_resource
 {
 public:
     render_technique() = default;
-
     render_technique(const render_target_ptr& target, const render_technique_info& info);
 
     ~render_technique() = default;

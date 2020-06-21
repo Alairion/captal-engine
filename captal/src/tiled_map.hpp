@@ -23,8 +23,8 @@ namespace cpt
 namespace tiled
 {
 
-using property = std::variant<std::string, std::filesystem::path, std::int32_t, float, color, bool>;
-using properties_set = std::unordered_map<std::string, property>;
+using property = std::variant<std::u8string, std::filesystem::path, std::int32_t, float, color, bool>;
+using properties_set = std::unordered_map<std::u8string, property>;
 
 struct object
 {
@@ -52,8 +52,8 @@ struct object
 
     struct text
     {
-        std::string text{};
-        std::string font_family{};
+        std::u8string text{};
+        std::u8string font_family{};
         std::uint32_t pixel_size{};
         glm::vec2 position{};
         float width{};
@@ -68,8 +68,8 @@ struct object
     using content_type = std::variant<std::monostate, point, square, tile, text>;
 
     std::uint32_t id{};
-    std::string name{};
-    std::string type{};
+    std::u8string name{};
+    std::u8string type{};
     bool visible{};
     content_type content{};
     properties_set properties{};
@@ -109,7 +109,7 @@ struct layer
 
     using content_type = std::variant<std::monostate, tiles, objects, image, group>;
 
-    std::string name{};
+    std::u8string name{};
     glm::vec2 position{};
     float opacity{};
     bool visible{};
@@ -125,7 +125,7 @@ struct tile
         float duration{};
     };
 
-    std::string type{};
+    std::u8string type{};
     image image{};
     std::vector<object> hitboxes{};
     std::vector<animation> animations{};
@@ -134,7 +134,7 @@ struct tile
 
 struct tileset
 {
-    std::string name{};
+    std::u8string name{};
     std::uint32_t first_gid{};
     std::uint32_t tile_width{};
     std::uint32_t tile_height{};

@@ -11,7 +11,7 @@ sound::sound(const std::filesystem::path& file, swl::sound_reader_options option
 
 }
 
-sound::sound(const std::string_view& data, swl::sound_reader_options options)
+sound::sound(std::string_view data, swl::sound_reader_options options)
 :swl::sound{engine::instance().audio_mixer(), std::make_unique<swl::sound_file_reader>(data, options)}
 {
 

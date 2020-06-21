@@ -11,7 +11,7 @@
 namespace swl
 {
 
-class application
+class SWELL_API application
 {
 public:
     application();

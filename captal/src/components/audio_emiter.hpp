@@ -11,7 +11,7 @@ namespace cpt
 namespace components
 {
 
-class audio_emiter
+class CAPTAL_API audio_emiter
 {
 public:
     using value_type = sound;

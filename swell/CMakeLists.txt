@@ -49,6 +49,7 @@ set(SOURCES
     "src/sound_file.cpp")
 
 add_library(${PROJECT_NAME} SHARED ${HEADERS} ${SOURCES})
+target_compile_definitions(${PROJECT_NAME} PRIVATE CAPTAL_FOUNDATION_SHARED_BUILD)
 set_target_properties(${PROJECT_NAME} PROPERTIES PREFIX "")
 
 target_include_directories(${PROJECT_NAME} PRIVATE ${PORTAUDIO_INCLUDES} ${GLOBAL_INCLUDES})
