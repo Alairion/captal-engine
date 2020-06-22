@@ -28,16 +28,16 @@ enum class message_box_button_bind : std::uint32_t
 struct message_box_button
 {
     std::uint32_t id{};
-    std::u8string text{};
+    std::string text{};
     message_box_button_bind bind{message_box_button_bind::no_key};
 };
 
 inline constexpr std::uint32_t no_selection{static_cast<std::uint32_t>(-1)};
 
-APYRE_API std::uint32_t message_box(message_box_type type, const std::u8string& title, const std::u8string& message, std::span<const message_box_button> buttons);
-APYRE_API std::uint32_t message_box(window& window, message_box_type type, const std::u8string& title, const std::u8string& message, std::span<const message_box_button> buttons);
-APYRE_API void message_box(message_box_type type, const std::u8string& title, const std::u8string& message);
-APYRE_API void message_box(window& window, message_box_type type, const std::u8string& title, const std::u8string& message);
+APYRE_API std::uint32_t message_box(message_box_type type, const std::string& title, const std::string& message, std::span<const message_box_button> buttons);
+APYRE_API std::uint32_t message_box(window& window, message_box_type type, const std::string& title, const std::string& message, std::span<const message_box_button> buttons);
+APYRE_API void message_box(message_box_type type, const std::string& title, const std::string& message);
+APYRE_API void message_box(window& window, message_box_type type, const std::string& title, const std::string& message);
 
 }
 

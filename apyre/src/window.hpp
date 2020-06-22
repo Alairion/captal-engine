@@ -45,8 +45,8 @@ public:
 
 public:
     constexpr window() = default;
-    window(application& application, const std::u8string& title, std::uint32_t width, std::uint32_t height, window_options options = window_options::none);
-    window(application& application, const monitor& monitor, const std::u8string& title, std::uint32_t width, std::uint32_t height, window_options options = window_options::none);
+    window(application& application, const std::string& title, std::uint32_t width, std::uint32_t height, window_options options = window_options::none);
+    window(application& application, const monitor& monitor, const std::string& title, std::uint32_t width, std::uint32_t height, window_options options = window_options::none);
 
     ~window();
     window(const window&) = delete;
@@ -71,7 +71,7 @@ public:
     void disable_resizing();
     void restore();
     void raise();
-    void change_title(const std::u8string& title);
+    void change_title(const std::string& title);
     void change_icon(const std::uint8_t* rgba, std::uint32_t width, std::uint32_t height);
     void change_opacity(float opacity);
     void switch_to_fullscreen();

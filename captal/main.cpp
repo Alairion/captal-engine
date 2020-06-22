@@ -92,10 +92,10 @@ private:
     std::uint32_t m_wave_lenght{};
 };
 
-static constexpr const char sansation_regular_font_data[]
+static constexpr auto sansation_regular_font_data = std::to_array<std::uint8_t>(
 {
     #include "Sansation_Regular.ttf.txt"
-};
+});
 
 static constexpr cpt::collision_type_t player_type{1};
 static constexpr cpt::collision_type_t wall_type{2};
@@ -176,11 +176,11 @@ static entt::entity fill_world(entt::registry& world, const cpt::physical_world_
 
 static void add_logic(const cpt::render_window_ptr& window, entt::registry& world, const cpt::physical_world_ptr& physical_world, entt::entity camera)
 {
-    cpt::text_drawer drawer{cpt::font{std::string_view{std::data(sansation_regular_font_data), std::size(sansation_regular_font_data)}, 24}};
+    cpt::text_drawer drawer{cpt::font{sansation_regular_font_data, 24}};
 
     const auto text{world.create()};
     world.emplace<cpt::components::node>(text, glm::vec3{4.0f, 4.0f, 1.0f});
-    world.emplace<cpt::components::drawable>(text, drawer.draw(u8"Text", cpt::colors::black));
+    world.emplace<cpt::components::drawable>(text, drawer.draw("Text", cpt::colors::black));
 
     //Display current FPS in window title, and GPU memory usage (only memory allocated using Tephra's renderer's allocator)
     cpt::engine::instance().frame_per_second_update_signal().connect([&world, text, drawer = std::move(drawer)](std::uint32_t frame_per_second) mutable
@@ -203,7 +203,7 @@ static void add_logic(const cpt::render_window_ptr& window, entt::registry& worl
                 ss << std::fixed << static_cast<double>(amount) / (1024.0 * 1024.0) << " Mio";
             }
 
-            return cpt::convert<cpt::narrow, cpt::utf8>(ss.str());
+            return ss.str();
         };
 
         cpt::engine::instance().renderer().free_memory();
@@ -212,10 +212,10 @@ static void add_logic(const cpt::render_window_ptr& window, entt::registry& worl
         const auto memory_used{cpt::engine::instance().renderer().allocator().used_memory()};
         const auto memory_alloc{cpt::engine::instance().renderer().allocator().allocated_memory()};
 
-        std::u8string info{};
-        info += u8"Device local : " + format_data(memory_used.device_local) + u8" / " + format_data(memory_alloc.device_local) + u8"\n";
-        info += u8"Host shared : " + format_data(memory_used.host_shared) + u8" / " + format_data(memory_alloc.host_shared) + u8"\n";
-        info += cpt::convert<cpt::narrow, cpt::utf8>(std::to_string(frame_per_second)) + u8" FPS";
+        std::string info{};
+        info += "Device local : " + format_data(memory_used.device_local) + " / " + format_data(memory_alloc.device_local) + "\n";
+        info += "Host shared : " + format_data(memory_used.host_shared) + " / " + format_data(memory_alloc.host_shared) + "\n";
+        info += std::to_string(frame_per_second) + " FPS";
 
         world.get<cpt::components::drawable>(text).attach(drawer.draw(info, cpt::colors::black));
         world.get<cpt::components::node>(text).update();
@@ -331,7 +331,7 @@ static void run()
     constexpr cpt::video_mode video_mode{640, 480, 2, tph::present_mode::fifo, tph::sample_count::msaa_x4, tph::texture_format::d32_sfloat};
 
     //Create the window
-    cpt::render_window_ptr window{cpt::engine::instance().make_window(u8"Captal test", video_mode, apr::window_options::resizable)};
+    cpt::render_window_ptr window{cpt::engine::instance().make_window("Captal test", video_mode, apr::window_options::resizable)};
     //Clear color is a part of tph::render_target, returned by cpt::render_target::get_target()
     window->set_clear_color(cpt::colors::white);
 
@@ -423,17 +423,17 @@ int main()
         //The engine instance. It must be created before most call to captal functions.
         //The first value is your application name. It will be passed to Tephra's instance then to Vulkan's instance.
         //The second value is your application version. It will be passed to Tephra's instance then to Vulkan's instance.
-        cpt::engine engine{u8"captal_test", cpt::version{0, 1, 0}, audio, graphics};
+        cpt::engine engine{"captal_test", cpt::version{0, 1, 0}, audio, graphics};
 
         //The engine is reachable by its static address. We don't need to keep a reference on it.
         run();
     }
     catch(const std::exception& e)
     {
-        apr::message_box(apr::message_box_type::error, u8"Error", u8"An exception as been throw:\n" + cpt::convert<cpt::narrow, cpt::utf8>(std::string_view{e.what()}));
+        apr::message_box(apr::message_box_type::error, "Error", "An exception as been throw:\n" + std::string{e.what()});
     }
     catch(...)
     {
-        apr::message_box(apr::message_box_type::error, u8"Unknown error", u8"Exception's type does not inherit from std::exception");
+        apr::message_box(apr::message_box_type::error, "Unknown error", "Exception's type does not inherit from std::exception");
     }
 }

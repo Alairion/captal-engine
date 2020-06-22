@@ -371,7 +371,7 @@ struct text_event
 
     std::uint32_t type{};
     std::uint32_t window{};
-    std::u8string text{};
+    std::string text{};
 };
 
 using event = std::variant<window_event, mouse_event, keyboard_event, text_event>;

@@ -9,6 +9,7 @@
 #include <concepts>
 #include <chrono>
 #include <algorithm>
+#include <span>
 
 struct z_stream_s;
 struct gz_header_s;
@@ -250,7 +251,7 @@ public:
     gzip_deflate(gzip_deflate&&) noexcept = default;
     gzip_deflate& operator=(gzip_deflate&&) noexcept = default;
 
-    void set_header(std::u8string_view name, std::u8string_view comment, std::string extra = std::string{}, std::time_t time = std::time(nullptr));
+    void set_header(std::string_view name, std::string_view comment, std::string extra = std::string{}, std::time_t time = std::time(nullptr));
 
 private:
     std::string m_name{};
@@ -297,9 +298,9 @@ public:
     void grab_header();
     bool is_header_ready() const noexcept;
 
-    std::u8string name() const;
-    std::u8string comment() const;
-    std::string_view extra() const noexcept;
+    std::string name() const;
+    std::string comment() const;
+    std::span<const std::uint8_t> extra() const noexcept;
     std::chrono::system_clock::time_point time() const noexcept;
 
 private:

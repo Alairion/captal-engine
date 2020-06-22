@@ -82,7 +82,7 @@ public:
     image(image&& other) noexcept = default;
     image& operator=(image&& other) noexcept = default;
 
-    std::string write(image_format format, std::int32_t quality = 85) const;
+    std::vector<std::uint8_t> write(image_format format, std::int32_t quality = 85) const;
     void write(const std::filesystem::path& file, image_format format, std::int32_t quality = 85) const;
 
     void map();

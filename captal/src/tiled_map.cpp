@@ -186,7 +186,7 @@ static properties_set parse_properties(const pugi::xml_node& node, const std::fi
 
     for(auto&& child : node)
     {
-        property& property{output[convert<narrow, utf8>(std::string_view{child.attribute("name").as_string()})]};
+        property& property{output[child.attribute("name").as_string()]};
 
         const std::string_view type{child.attribute("type").as_string("string")};
         std::string_view value{child.attribute("value").as_string()};
@@ -252,8 +252,8 @@ static object parse_object(const pugi::xml_node& node, const std::filesystem::pa
 {
     object output{};
     output.id = node.attribute("id").as_uint();
-    output.name = convert<narrow, utf8>(std::string_view{node.attribute("name").as_string()});
-    output.type = convert<narrow, utf8>(std::string_view{node.attribute("type").as_string()});
+    output.name = node.attribute("name").as_string();
+    output.type = node.attribute("type").as_string();
     output.visible = node.attribute("visible").as_uint(1) == 1;
 
     for(auto&& child : node)
@@ -269,8 +269,8 @@ static object parse_object(const pugi::xml_node& node, const std::filesystem::pa
         else if(child.name() == "text"sv)
         {
             object::text text{};
-            text.text = convert<narrow, utf8>(std::string_view{child.child_value()});
-            text.font_family = convert<narrow, utf8>(std::string_view{child.attribute("fontfamily").as_string()});
+            text.text = child.child_value();
+            text.font_family = child.attribute("fontfamily").as_string();
             text.pixel_size = child.attribute("pixelsize").as_uint();
             text.position.x = node.attribute("x").as_float();
             text.position.y = node.attribute("y").as_float();
@@ -355,7 +355,7 @@ static std::vector<object> parse_hitboxes(const pugi::xml_node& node, const std:
 static tile parse_tile(const pugi::xml_node& node, const std::filesystem::path& root, const external_load_callback_type& load_callback)
 {
     tile output{};
-    output.type = convert<narrow, utf8>(std::string_view{node.attribute("type").as_string()});
+    output.type = node.attribute("type").as_string();
 
     for(auto&& child : node)
     {
@@ -439,7 +439,7 @@ static tileset parse_map_tileset(const pugi::xml_node& node, const external_load
 static layer parse_layer(const pugi::xml_node& node, const std::filesystem::path& root, const external_load_callback_type& load_callback)
 {
     layer output{};
-    output.name = convert<narrow, utf8>(std::string_view{node.attribute("name").as_string()});
+    output.name = node.attribute("name").as_string();
     output.opacity = node.attribute("opacity").as_float(1.0f);
     output.visible = node.attribute("visible").as_uint(1) == 1;
     output.position.x = node.attribute("offsetx").as_float();
@@ -469,7 +469,7 @@ static layer parse_layer(const pugi::xml_node& node, const std::filesystem::path
 static layer parse_object_group(const pugi::xml_node& node, const std::filesystem::path& root, const external_load_callback_type& load_callback)
 {
     layer output{};
-    output.name = convert<narrow, utf8>(std::string_view{node.attribute("name").as_string()});
+    output.name = node.attribute("name").as_string();
     output.opacity = node.attribute("opacity").as_float(1.0f);
     output.visible = node.attribute("visible").as_uint(1) == 1;
     output.position.x = node.attribute("offsetx").as_float();
@@ -498,7 +498,7 @@ static layer parse_object_group(const pugi::xml_node& node, const std::filesyste
 static layer parse_image_layer(const pugi::xml_node& node, const std::filesystem::path& root, const external_load_callback_type& load_callback)
 {
     layer output{};
-    output.name = convert<narrow, utf8>(std::string_view{node.attribute("name").as_string()});
+    output.name = node.attribute("name").as_string();
     output.opacity = node.attribute("opacity").as_float(1.0f);
     output.visible = node.attribute("visible").as_uint(1) == 1;
     output.position.x = node.attribute("offsetx").as_float();
@@ -522,7 +522,7 @@ static layer parse_image_layer(const pugi::xml_node& node, const std::filesystem
 static layer parse_group_layer(const pugi::xml_node& node, const std::filesystem::path& root, const external_load_callback_type& load_callback)
 {
     layer output{};
-    output.name = convert<narrow, utf8>(std::string_view{node.attribute("name").as_string()});
+    output.name = node.attribute("name").as_string();
     output.opacity = node.attribute("opacity").as_float(1.0f);
     output.visible = node.attribute("visible").as_uint(1) == 1;
     output.position.x = node.attribute("offsetx").as_float();
@@ -612,7 +612,7 @@ map load_map(const std::filesystem::path& path)
         if(resource_type == external_resource_type::image || resource_type == external_resource_type::file)
         {
             const std::filesystem::path output{path.parent_path() / other_path};
-            return convert<utf8, narrow>(output.u8string());
+            return convert<utf8, narrow>(output.string());
         }
         else
         {
@@ -638,7 +638,7 @@ map load_map(const std::filesystem::path& path, const external_load_callback_typ
     return load_map(ifs, load_callback);
 }
 
-map load_map(std::string_view tmx_file, const external_load_callback_type& load_callback)
+map load_map(std::span<const std::uint8_t> tmx_file, const external_load_callback_type& load_callback)
 {
     assert(!std::empty(tmx_file) && "Invalid tmx file.");
 
@@ -653,10 +653,10 @@ map load_map(std::istream& tmx_file, const external_load_callback_type& load_cal
 {
     assert(tmx_file && "Invalid stream");
 
-    const std::string data{std::istreambuf_iterator<char>{tmx_file}, std::istreambuf_iterator<char>{}};
+    const std::vector<std::uint8_t> data{std::istreambuf_iterator<char>{tmx_file}, std::istreambuf_iterator<char>{}};
     assert(!std::empty(data) && "Invalid tmx file.");
 
-    return load_map(std::string_view{data}, load_callback);
+    return load_map(data, load_callback);
 }
 
 }

@@ -12,6 +12,8 @@
 
 #include <glm/vec2.hpp>
 
+#include <captal_foundation/utility.hpp>
+
 #include "engine.hpp"
 #include "texture.hpp"
 #include "algorithm.hpp"
@@ -28,36 +30,38 @@ struct font::freetype_info
 void font::freetype_deleter::operator()(freetype_info* ptr) noexcept
 {
     if(ptr->face)
+    {
         FT_Done_Face(ptr->face);
+    }
+
     if(ptr->library)
+    {
         FT_Done_FreeType(ptr->library);
+    }
+
+    delete ptr;
 }
 
-font::font(std::string_view data, std::uint32_t initial_size)
+font::font(std::span<const std::uint8_t> data, std::uint32_t initial_size)
 :m_data{std::begin(data), std::end(data)}
-,m_loader{new freetype_info{}, freetype_deleter{}}
+,m_loader{new freetype_info{}}
 {
     init(initial_size);
 }
 
 font::font(const std::filesystem::path& file, std::uint32_t initial_size)
-:m_loader{new freetype_info{}, freetype_deleter{}}
+:m_data{read_file<std::vector<std::uint8_t>>(file)}
+,m_loader{new freetype_info{}}
 {
-    std::ifstream ifs{file, std::ios_base::binary};
-    if(!ifs)
-        throw std::runtime_error{"Can not read file \"" + file.string() + "\"."};
-
-    m_data = std::string{std::istreambuf_iterator<char>{ifs}, std::istreambuf_iterator<char>{}};
-
     init(initial_size);
 }
 
 font::font(std::istream& stream, std::uint32_t initial_size)
-:m_loader{new freetype_info{}, freetype_deleter{}}
+:m_loader{new freetype_info{}}
 {
     assert(stream && "Invalid stream.");
 
-    m_data = std::string{std::istreambuf_iterator<char>{stream}, std::istreambuf_iterator<char>{}};
+    m_data = std::vector<std::uint8_t>{std::istreambuf_iterator<char>{stream}, std::istreambuf_iterator<char>{}};
 
     init(initial_size);
 }
@@ -123,10 +127,14 @@ std::optional<glyph> font::load(codepoint_t codepoint)
             {
                 for(std::size_t x{}; x <  output.image.width(); ++x)
                 {
-                    if(data[x / 8] & (1 << (7 - (x % 8))))
+                    if(data[x / 8] & (1 << (7 - x % 8))) //test one bit at once
+                    {
                         output.image(x, y) = tph::pixel{255, 255, 255, 255};
+                    }
                     else
+                    {
                         output.image(x, y) = tph::pixel{255, 255, 255, 0};
+                    }
                 }
 
                 data += bitmap.pitch;
@@ -271,7 +279,7 @@ void text_drawer::resize(std::uint32_t pixels_size)
     m_cache.clear();
 }
 
-std::pair<std::uint32_t, std::uint32_t> text_drawer::bounds(std::u8string_view string)
+std::pair<std::uint32_t, std::uint32_t> text_drawer::bounds(std::string_view string)
 {
     float current_x{};
     float current_y{static_cast<float>(m_font.info().max_ascent)};
@@ -313,7 +321,7 @@ std::pair<std::uint32_t, std::uint32_t> text_drawer::bounds(std::u8string_view s
     return std::make_pair(static_cast<std::uint32_t>(greatest_x - lowest_x), static_cast<std::uint32_t>(greatest_y - lowest_y));
 }
 
-text_ptr text_drawer::draw(std::u8string_view string, const color& color)
+text_ptr text_drawer::draw(std::string_view string, const color& color)
 {
     auto&& [command_buffer, signal] = cpt::engine::instance().begin_transfer();
 
@@ -413,7 +421,7 @@ text_ptr text_drawer::draw(std::u8string_view string, const color& color)
     return std::make_shared<text>(indices, vertices, std::move(texture), static_cast<std::uint32_t>(greatest_x - lowest_x), static_cast<std::uint32_t>(greatest_y - lowest_y), std::size(string));
 }
 
-text_ptr text_drawer::draw(std::u8string_view string, std::uint32_t line_width, text_align align, const color& color)
+text_ptr text_drawer::draw(std::string_view string, std::uint32_t line_width, text_align align, const color& color)
 {
     auto&& [command_buffer, signal] = cpt::engine::instance().begin_transfer();
 
@@ -431,7 +439,7 @@ text_ptr text_drawer::draw(std::u8string_view string, std::uint32_t line_width, 
     state.texture_width = static_cast<float>(texture->width());
     state.texture_height = static_cast<float>(texture->height());
 
-    for(auto&& line : split(string, u8'\n'))
+    for(auto&& line : split(string, '\n'))
     {
         draw_line(line, line_width, align, state, vertices, cache, color);
 
@@ -472,13 +480,13 @@ text_ptr text_drawer::draw(std::u8string_view string, std::uint32_t line_width, 
     return std::make_shared<text>(indices, vertices, std::move(texture), text_width, text_height, std::size(string));
 }
 
-void text_drawer::draw_line(std::u8string_view line, std::uint32_t line_width, text_align align, draw_line_state& state, std::vector<vertex>& vertices, const std::unordered_map<codepoint_t, std::pair<std::shared_ptr<glyph>, glm::vec2>>& cache, const color& color)
+void text_drawer::draw_line(std::string_view line, std::uint32_t line_width, text_align align, draw_line_state& state, std::vector<vertex>& vertices, const std::unordered_map<codepoint_t, std::pair<std::shared_ptr<glyph>, glm::vec2>>& cache, const color& color)
 {
     if(align == text_align::left)
     {
         const auto& space_glyph{*load_glyph(U' ')};
 
-        for(auto word : split(line, u8' '))
+        for(auto word : split(line, ' '))
         {
             codepoint_t last{};
 
@@ -550,7 +558,7 @@ void text_drawer::draw_line(std::u8string_view line, std::uint32_t line_width, t
     }
 }
 
-texture_ptr text_drawer::make_texture(std::u8string_view string, std::unordered_map<codepoint_t, std::pair<std::shared_ptr<glyph>, glm::vec2>>& cache, tph::command_buffer& command_buffer)
+texture_ptr text_drawer::make_texture(std::string_view string, std::unordered_map<codepoint_t, std::pair<std::shared_ptr<glyph>, glm::vec2>>& cache, tph::command_buffer& command_buffer)
 {
     constexpr std::uint32_t max_texture_width{4096};
 
@@ -617,7 +625,7 @@ const std::shared_ptr<glyph>& text_drawer::load_glyph(codepoint_t codepoint)
     return it->second;
 }
 
-text_ptr draw_text(cpt::font& font, std::u8string_view string, const color& color, text_drawer_options options)
+text_ptr draw_text(cpt::font& font, std::string_view string, const color& color, text_drawer_options options)
 {
     text_drawer drawer{std::move(font), options};
     text_ptr text{drawer.draw(string, color)};
@@ -627,7 +635,7 @@ text_ptr draw_text(cpt::font& font, std::u8string_view string, const color& colo
     return text;
 }
 
-text_ptr draw_text(cpt::font&& font, std::u8string_view string, const color& color, text_drawer_options options)
+text_ptr draw_text(cpt::font&& font, std::string_view string, const color& color, text_drawer_options options)
 {
     text_drawer drawer{std::move(font), options};
     text_ptr text{drawer.draw(string, color)};
@@ -637,7 +645,7 @@ text_ptr draw_text(cpt::font&& font, std::u8string_view string, const color& col
     return text;
 }
 
-text_ptr draw_text(cpt::font& font, std::u8string_view string, std::uint32_t line_width, text_align align, const color& color, text_drawer_options options)
+text_ptr draw_text(cpt::font& font, std::string_view string, std::uint32_t line_width, text_align align, const color& color, text_drawer_options options)
 {
     text_drawer drawer{std::move(font), options};
     text_ptr text{drawer.draw(string, line_width, align, color)};
@@ -647,7 +655,7 @@ text_ptr draw_text(cpt::font& font, std::u8string_view string, std::uint32_t lin
     return text;
 }
 
-text_ptr draw_text(cpt::font&& font, std::u8string_view string, std::uint32_t line_width, text_align align, const color& color, text_drawer_options options)
+text_ptr draw_text(cpt::font&& font, std::string_view string, std::uint32_t line_width, text_align align, const color& color, text_drawer_options options)
 {
     text_drawer drawer{std::move(font), options};
     text_ptr text{drawer.draw(string, line_width, align, color)};

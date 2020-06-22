@@ -113,11 +113,11 @@ const char* error::what() const noexcept
     return "VK_SUCCESS: No error";
 }
 
-instance::instance(const std::u8string& application_name, version version, std::span<const char* const> extensions, std::span<const char* const> layers)
+instance::instance(const std::string& application_name, version version, std::span<const char* const> extensions, std::span<const char* const> layers)
 {
     VkApplicationInfo application_info{};
     application_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-    application_info.pApplicationName = reinterpret_cast<const char*>(std::data(application_name));
+    application_info.pApplicationName = std::data(application_name);
     application_info.applicationVersion = VK_MAKE_VERSION(version.major, version.minor, version.patch);
     application_info.pEngineName = "Tephra";
     application_info.engineVersion = VK_MAKE_VERSION(1, 0, 0);

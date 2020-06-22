@@ -22,7 +22,7 @@ public:
         if(SDL_Init(SDL_INIT_VIDEO) != 0)
             throw std::runtime_error{"Can not initialize SDL2: " + std::string{SDL_GetError()}};
 
-        if(m_window = SDL_CreateWindow(u8"Tephra", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 640, 480, SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE); !m_window)
+        if(m_window = SDL_CreateWindow("Tephra", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 640, 480, SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE); !m_window)
         {
             SDL_Quit();
             throw std::runtime_error{"Can not create window: " + std::string{SDL_GetError()}};

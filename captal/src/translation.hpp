@@ -10,6 +10,7 @@
 #include <filesystem>
 #include <numeric>
 #include <variant>
+#include <span>
 
 #include <captal_foundation/encoding.hpp>
 
@@ -558,7 +559,7 @@ class CAPTAL_API translation_parser
 {
     struct memory_stream
     {
-        std::string_view data{};
+        std::span<const std::uint8_t> data{};
         std::size_t position{};
     };
 
@@ -600,8 +601,8 @@ public:
         std::uint64_t source_hash{};
         std::uint64_t source_size{};
         std::uint64_t target_size{};
-        std::u8string source{};
-        std::u8string target{};
+        std::string source{};
+        std::string target{};
     };
 
 public:
@@ -610,7 +611,7 @@ public:
 public:
     constexpr translation_parser() = default;
     translation_parser(const std::filesystem::path& path);
-    translation_parser(std::string_view data);
+    translation_parser(std::span<const std::uint8_t> data);
     translation_parser(std::istream& stream);
 
     ~translation_parser() = default;
@@ -695,13 +696,13 @@ enum class translate_options : std::uint32_t
 
 class CAPTAL_API translator
 {
-    using translation_set_type = std::unordered_map<std::uint64_t, std::u8string>;
+    using translation_set_type = std::unordered_map<std::uint64_t, std::string>;
     using section_type = std::unordered_map<std::uint64_t, translation_set_type>;
 
 public:
     translator() = default;
     translator(const std::filesystem::path& path, translator_options options = translator_options::none);
-    translator(std::string_view data, translator_options options = translator_options::none);
+    translator(std::span<const std::uint8_t> data, translator_options options = translator_options::none);
     translator(std::istream& stream, translator_options options = translator_options::none);
 
     ~translator() = default;
@@ -710,9 +711,9 @@ public:
     translator(translator&&) = default;
     translator& operator=(translator&&) = default;
 
-    std::u8string_view translate(std::u8string_view text, const translation_context_t& context = no_translation_context, translate_options options = translate_options::none) const;
+    std::string_view translate(std::string_view text, const translation_context_t& context = no_translation_context, translate_options options = translate_options::none) const;
     bool exists(const translation_context_t& context) const noexcept;
-    bool exists(std::u8string_view text, const translation_context_t& context = no_translation_context) const noexcept;
+    bool exists(std::string_view text, const translation_context_t& context = no_translation_context) const noexcept;
 
     cpt::version version() const noexcept
     {
@@ -775,13 +776,13 @@ class CAPTAL_API translation_editor
     };
 
 public:
-    using translation_set_type = std::unordered_map<std::u8string, std::u8string>;
+    using translation_set_type = std::unordered_map<std::string, std::string>;
     using section_type = std::unordered_map<translation_context_t, translation_set_type, context_hash>;
 
 public:
     translation_editor(cpt::language source_language, cpt::country source_country, cpt::language target_language, cpt::country target_country);
     translation_editor(const std::filesystem::path& path);
-    translation_editor(std::string_view data);
+    translation_editor(std::span<const std::uint8_t> data);
     translation_editor(std::istream& stream);
 
     ~translation_editor() = default;
@@ -791,15 +792,15 @@ public:
     translation_editor& operator=(translation_editor&&) = default;
 
     bool add(const translation_context_t& context);
-    bool add(std::u8string source_text, std::u8string target_text, const translation_context_t& context);
+    bool add(std::string source_text, std::string target_text, const translation_context_t& context);
     bool replace(const translation_context_t& context);
-    bool replace(const std::u8string& source_text, std::u8string target_text, const translation_context_t& context);
+    bool replace(const std::string& source_text, std::string target_text, const translation_context_t& context);
     void add_or_replace(const translation_context_t& context);
-    void add_or_replace(std::u8string source_text, std::u8string target_text, const translation_context_t& context);
+    void add_or_replace(std::string source_text, std::string target_text, const translation_context_t& context);
     bool remove(const translation_context_t& context);
-    bool remove(const std::u8string& source_text, const translation_context_t& context);
+    bool remove(const std::string& source_text, const translation_context_t& context);
     bool exists(const translation_context_t& context) const;
-    bool exists(const std::u8string& source_text, const translation_context_t& context) const;
+    bool exists(const std::string& source_text, const translation_context_t& context) const;
 
     std::string encode() const;
 
@@ -874,7 +875,7 @@ private:
     std::string encode_header_information() const;
     std::string encode_section_informations(std::size_t begin, std::size_t bound) const;
     std::string encode_section(const translation_set_type& translations) const;
-    std::string encode_translation(const std::u8string& source, const std::u8string& target) const;
+    std::string encode_translation(const std::string& source, const std::string& target) const;
 
 private:
     translator_options m_options{};
@@ -886,7 +887,7 @@ private:
     section_type m_sections{};
 };
 
-CAPTAL_API std::u8string_view translate(std::u8string_view string, const translation_context_t& context = no_translation_context, translate_options options = translate_options::none);
+CAPTAL_API std::string_view translate(std::string_view string, const translation_context_t& context = no_translation_context, translate_options options = translate_options::none);
 
 }
 

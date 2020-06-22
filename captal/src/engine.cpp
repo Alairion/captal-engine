@@ -1,7 +1,5 @@
 #include "engine.hpp"
 
-#include "texture.hpp"
-
 #ifdef CAPTAL_DEBUG
     #include <iostream>
 #endif
@@ -9,15 +7,15 @@
 namespace cpt
 {
 
-static constexpr const char default_vertex_shader_spv[]
+static constexpr auto default_vertex_shader_spv = std::to_array<std::uint32_t>(
 {
     #include "data/default.vert.spv.str"
-};
+});
 
-static constexpr const char default_fragment_shader_spv[]
+static constexpr auto default_fragment_shader_spv = std::to_array<std::uint32_t>(
 {
     #include "data/default.frag.spv.str"
-};
+});
 
 static constexpr std::array<std::uint8_t, 4> default_texture_data{255, 255, 255, 255};
 
@@ -25,7 +23,7 @@ using clock = std::chrono::steady_clock;
 
 engine* engine::m_instance{nullptr};
 
-engine::engine(const std::u8string& application_name, cpt::version version)
+engine::engine(const std::string& application_name, cpt::version version)
 :m_application{application_name, version}
 ,m_audio_device{m_application.audio_application().default_physical_device()}
 ,m_audio_mixer{m_audio_device.default_sample_rate(), std::min(m_audio_device.max_output_channel(), 2u)}
@@ -99,7 +97,7 @@ static const tph::physical_device& default_graphics_device(const tph::applicatio
     return application.select_physical_device(requirements);
 }
 
-engine::engine(const std::u8string& application_name, cpt::version version, const audio_parameters& audio, const graphics_parameters& graphics)
+engine::engine(const std::string& application_name, cpt::version version, const audio_parameters& audio, const graphics_parameters& graphics)
 :engine{cpt::application{application_name, version}, audio, graphics}
 {
 
@@ -229,8 +227,8 @@ void engine::init()
     m_audio_stream.start();
 
     m_transfer_pool = tph::command_pool{m_renderer};
-    m_default_vertex_shader = tph::shader{m_renderer, tph::shader_stage::vertex, std::string_view{default_vertex_shader_spv, std::size(default_vertex_shader_spv) - 1}};
-    m_default_fragment_shader = tph::shader{m_renderer, tph::shader_stage::fragment, std::string_view{default_fragment_shader_spv, std::size(default_fragment_shader_spv) - 1}};
+    m_default_vertex_shader = tph::shader{m_renderer, tph::shader_stage::vertex, default_vertex_shader_spv};
+    m_default_fragment_shader = tph::shader{m_renderer, tph::shader_stage::fragment, default_fragment_shader_spv};
     m_default_texture = texture{1, 1, std::data(default_texture_data), tph::sampling_options{tph::filter::nearest, tph::filter::nearest, tph::address_mode::repeat}};
 
 #ifdef CAPTAL_DEBUG
@@ -275,7 +273,7 @@ void engine::init()
 
     std::cout << "Captal engine initialized.\n";
 
-    std::cout << "  Audio device: " << to_narrow(m_audio_device.name()) << "\n";
+    std::cout << "  Audio device: " << m_audio_device.name() << "\n";
     std::cout << "  | Channels: " << m_audio_mixer.channel_count() << "\n";
     std::cout << "  | Sample rate: " << m_audio_mixer.sample_rate() << "Hz\n";
     std::cout << "  | Output latency: " << m_audio_device.default_low_output_latency().count() << "s\n";

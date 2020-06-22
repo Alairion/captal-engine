@@ -30,7 +30,7 @@ public:
     texture() = default;
 
     texture(const std::filesystem::path& file, const tph::sampling_options& sampling = tph::sampling_options{}, color_space space = color_space::srgb);
-    texture(std::string_view data, const tph::sampling_options& sampling = tph::sampling_options{}, color_space space = color_space::srgb);
+    texture(std::span<const std::uint8_t> data, const tph::sampling_options& sampling = tph::sampling_options{}, color_space space = color_space::srgb);
     texture(std::istream& stream, const tph::sampling_options& sampling = tph::sampling_options{}, color_space space = color_space::srgb);
     texture(std::uint32_t width, std::uint32_t height, const std::uint8_t* rgba, const tph::sampling_options& sampling = tph::sampling_options{}, color_space space = color_space::srgb);
     texture(tph::image image, const tph::sampling_options& sampling = tph::sampling_options{}, color_space space = color_space::srgb);

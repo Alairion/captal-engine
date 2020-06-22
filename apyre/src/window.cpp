@@ -53,17 +53,16 @@ static std::uint32_t to_sdl_options(window_options options) noexcept
     return output;
 }
 
-window::window(application& application, const std::u8string& title, std::uint32_t width, std::uint32_t height, window_options options)
+window::window(application& application, const std::string& title, std::uint32_t width, std::uint32_t height, window_options options)
 :m_monitors{application.enumerate_monitors()}
 {
-    m_window = SDL_CreateWindow(reinterpret_cast<const char*>(std::data(title)), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-                                static_cast<int>(width), static_cast<int>(height), to_sdl_options(options));
+    m_window = SDL_CreateWindow(std::data(title), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, static_cast<int>(width), static_cast<int>(height), to_sdl_options(options));
 
     if(!m_window)
         throw std::runtime_error{"Can not create window. " + std::string{SDL_GetError()}};
 }
 
-window::window(application& application, const monitor& monitor, const std::u8string& title, std::uint32_t width, std::uint32_t height, window_options options)
+window::window(application& application, const monitor& monitor, const std::string& title, std::uint32_t width, std::uint32_t height, window_options options)
 :window{application, title, width, height, options}
 {
     const std::int32_t x{monitor.x() + ((static_cast<std::int32_t>(monitor.width()) - static_cast<std::int32_t>(width)) / 2)};
@@ -177,7 +176,7 @@ void window::raise()
     SDL_RaiseWindow(m_window);
 }
 
-void window::change_title(const std::u8string& title)
+void window::change_title(const std::string& title)
 {
     SDL_SetWindowTitle(m_window, reinterpret_cast<const char*>(std::data(title)));
 }

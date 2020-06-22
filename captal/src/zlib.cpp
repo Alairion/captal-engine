@@ -131,7 +131,7 @@ gzip_deflate::gzip_deflate(std::uint32_t compression_level)
 
 }
 
-void gzip_deflate::set_header(std::u8string_view name, std::u8string_view comment, std::string extra, std::time_t time)
+void gzip_deflate::set_header(std::string_view name, std::string_view comment, std::string extra, std::time_t time)
 {
     assert(valid() && "cpt::gzip_deflate::set_header called on an invalid stream.");
 
@@ -222,25 +222,25 @@ bool gzip_inflate::is_header_ready() const noexcept
     return false;
 }
 
-std::u8string gzip_inflate::name() const
+std::string gzip_inflate::name() const
 {
     assert(is_header_ready() && "cpt::gzip_inflate::is_header_ready returned false in cpt::gzip_inflate::original_name");
 
-    return convert<latin_1, utf8>(std::string_view{std::data(m_header->name)});
+    return convert<latin_1, narrow>(std::string_view{std::data(m_header->name)});
 }
 
-std::u8string gzip_inflate::comment() const
+std::string gzip_inflate::comment() const
 {
     assert(is_header_ready() && "cpt::gzip_inflate::is_header_ready returned false in cpt::gzip_inflate::comment");
 
-    return convert<latin_1, utf8>(std::string_view{std::data(m_header->comment)});
+    return convert<latin_1, narrow>(std::string_view{std::data(m_header->comment)});
 }
 
-std::string_view gzip_inflate::extra() const noexcept
+std::span<const std::uint8_t> gzip_inflate::extra() const noexcept
 {
     assert(is_header_ready() && "cpt::gzip_inflate::is_header_ready returned false in cpt::gzip_inflate::extra");
 
-    return std::string_view{reinterpret_cast<const char*>(std::data(m_header->extra)), static_cast<std::size_t>(m_header->header.extra_len)};
+    return std::span<const std::uint8_t>{std::data(m_header->extra), static_cast<std::size_t>(m_header->header.extra_len)};
 }
 
 std::chrono::system_clock::time_point gzip_inflate::time() const noexcept

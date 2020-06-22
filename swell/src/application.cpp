@@ -17,7 +17,6 @@ application::application()
     for(std::int32_t i{}; i < Pa_GetDeviceCount(); ++i)
     {
         const PaDeviceInfo* device{Pa_GetDeviceInfo(i)};
-        const std::string_view native_name{device->name};
 
         physical_device physical_device
         {
@@ -26,7 +25,7 @@ application::application()
             seconds{device->defaultLowOutputLatency},
             seconds{device->defaultHighOutputLatency},
             static_cast<std::uint32_t>(device->defaultSampleRate),
-            std::u8string{std::begin(native_name), std::end(native_name)}
+            device->name
         };
 
         m_physical_devices.push_back(std::move(physical_device));

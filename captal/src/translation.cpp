@@ -39,7 +39,7 @@ translation_parser::translation_parser(const std::filesystem::path& path)
     init();
 }
 
-translation_parser::translation_parser(std::string_view data)
+translation_parser::translation_parser(std::span<const std::uint8_t> data)
 :m_source{memory_stream{data, 0}}
 {
     init();
@@ -84,7 +84,9 @@ translation_parser::section_ptr translation_parser::jump_to_section(std::size_t 
 std::optional<translation_parser::translation> translation_parser::next_translation(translation_parser_load loads)
 {
     if(m_current_translation == m_sections[m_current_section].translation_count)
+    {
         return std::nullopt;
+    }
 
     ++m_current_translation;
 
@@ -281,7 +283,7 @@ translator::translator(const std::filesystem::path& path, translator_options opt
     parse(parser);
 }
 
-translator::translator(std::string_view data, translator_options options)
+translator::translator(std::span<const std::uint8_t> data, translator_options options)
 :m_options{options}
 {
     translation_parser parser{data};
@@ -295,7 +297,7 @@ translator::translator(std::istream& stream, translator_options options)
     parse(parser);
 }
 
-std::u8string_view translator::translate(std::u8string_view text, const translation_context_t& context, translate_options options) const
+std::string_view translator::translate(std::string_view text, const translation_context_t& context, translate_options options) const
 {
     if(static_cast<bool>(m_options & translator_options::identity_translator))
     {
@@ -327,7 +329,7 @@ std::u8string_view translator::translate(std::u8string_view text, const translat
 
         if(!static_cast<bool>(options & translate_options::input_fallback))
         {
-            throw std::runtime_error{"No translation available for \"" + std::string{to_narrow(text)} + "\"."};
+            throw std::runtime_error{"No translation available for \"" + std::string{text} + "\"."};
         }
 
         return text;
@@ -341,7 +343,7 @@ bool translator::exists(const translation_context_t& context) const noexcept
     return m_sections.find(context_hash) != std::end(m_sections);
 }
 
-bool translator::exists(std::u8string_view text, const translation_context_t& context) const noexcept
+bool translator::exists(std::string_view text, const translation_context_t& context) const noexcept
 {
     const std::uint64_t text_hash{hash_value(text)};
     const std::uint64_t context_hash{hash_value(context)};
@@ -447,7 +449,7 @@ translation_editor::translation_editor(const std::filesystem::path& path)
     parse(parser);
 }
 
-translation_editor::translation_editor(std::string_view data)
+translation_editor::translation_editor(std::span<const std::uint8_t> data)
 {
     translation_parser parser{data};
     parse(parser);
@@ -464,7 +466,7 @@ bool translation_editor::add(const translation_context_t& context)
     return m_sections.emplace(context, translation_set_type{}).second;
 }
 
-bool translation_editor::add(std::u8string source_text, std::u8string target_text, const translation_context_t& context)
+bool translation_editor::add(std::string source_text, std::string target_text, const translation_context_t& context)
 {
     return m_sections[context].emplace(std::move(source_text), std::move(target_text)).second;
 }
@@ -482,7 +484,7 @@ bool translation_editor::replace(const translation_context_t& context)
     return false;
 }
 
-bool translation_editor::replace(const std::u8string& source_text, std::u8string target_text, const translation_context_t& context)
+bool translation_editor::replace(const std::string& source_text, std::string target_text, const translation_context_t& context)
 {
     const auto section{m_sections.find(context)};
     if(section != std::end(m_sections))
@@ -513,7 +515,7 @@ void translation_editor::add_or_replace(const translation_context_t& context)
     }
 }
 
-void translation_editor::add_or_replace(std::u8string source_text, std::u8string target_text, const translation_context_t& context)
+void translation_editor::add_or_replace(std::string source_text, std::string target_text, const translation_context_t& context)
 {
     auto& section{m_sections[context]};
 
@@ -533,7 +535,7 @@ bool translation_editor::remove(const translation_context_t& context)
     return m_sections.erase(context) > 0;
 }
 
-bool translation_editor::remove(const std::u8string& source_text, const translation_context_t& context)
+bool translation_editor::remove(const std::string& source_text, const translation_context_t& context)
 {
     const auto it{m_sections.find(context)};
     if(it != std::end(m_sections))
@@ -549,7 +551,7 @@ bool translation_editor::exists(const translation_context_t& context) const
     return m_sections.find(context) != std::end(m_sections);
 }
 
-bool translation_editor::exists(const std::u8string& source_text, const translation_context_t& context) const
+bool translation_editor::exists(const std::string& source_text, const translation_context_t& context) const
 {
     const auto it{m_sections.find(context)};
     if(it != std::end(m_sections))
@@ -717,7 +719,7 @@ std::string translation_editor::encode_section(const translation_set_type& trans
     return output;
 }
 
-std::string translation_editor::encode_translation(const std::u8string& source, const std::u8string& target) const
+std::string translation_editor::encode_translation(const std::string& source, const std::string& target) const
 {
     std::string output{};
     output.reserve(sizeof(std::uint64_t) * 3 + std::size(source) + std::size(target));
@@ -728,13 +730,13 @@ std::string translation_editor::encode_translation(const std::u8string& source, 
     output_it = write_uint64(output_it, static_cast<std::uint64_t>(std::size(source)));
     output_it = write_uint64(output_it, static_cast<std::uint64_t>(std::size(target)));
 
-    output += to_narrow(std::u8string_view{source});
-    output += to_narrow(std::u8string_view{target});
+    output += source;
+    output += target;
 
     return output;
 }
 
-std::u8string_view translate(std::u8string_view string, const translation_context_t& context, translate_options options)
+std::string_view translate(std::string_view string, const translation_context_t& context, translate_options options)
 {
     return engine::cinstance().translator().translate(string, context, options);
 }

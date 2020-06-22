@@ -129,7 +129,7 @@ class TEPHRA_API instance
 {
 public:
     constexpr instance() = default;
-    explicit instance(const std::u8string& application_name, tph::version version, std::span<const char* const> extensions, std::span<const char* const> layers);
+    explicit instance(const std::string& application_name, tph::version version, std::span<const char* const> extensions, std::span<const char* const> layers);
     ~instance();
 
     instance(const instance&) = delete;

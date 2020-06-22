@@ -139,8 +139,9 @@ image::image(renderer& renderer, size_type width, size_type height, image_usage 
 
 static void write_func(void* context, void* data, int size)
 {
-    std::string& string{*reinterpret_cast<std::string*>(context)};
-    string.append(reinterpret_cast<const char*>(data), static_cast<std::size_t>(size));
+    auto& buffer{*reinterpret_cast<std::vector<std::uint8_t>*>(context)};
+
+    buffer.insert(std::end(buffer), reinterpret_cast<const std::uint8_t*>(data), reinterpret_cast<const std::uint8_t*>(data) + size);
 }
 
 struct unmapper
@@ -155,7 +156,7 @@ struct unmapper
     bool unmap;
 };
 
-std::string image::write(image_format format, std::int32_t quality) const
+std::vector<std::uint8_t> image::write(image_format format, std::int32_t quality) const
 {
     const bool was_mapped{static_cast<bool>(m_map)};
     const unmapper unmapper{m_memory, !was_mapped};
@@ -190,7 +191,7 @@ std::string image::write(image_format format, std::int32_t quality) const
         input = std::data(local_buffer);
     }
 
-    std::string output{};
+    std::vector<std::uint8_t> output{};
 
     if(format == image_format::png)
     {
@@ -218,13 +219,13 @@ std::string image::write(image_format format, std::int32_t quality) const
 
 void image::write(const std::filesystem::path& file, image_format format, std::int32_t quality) const
 {
-    const std::string data{write(format, quality)};
+    const std::vector<std::uint8_t> data{write(format, quality)};
 
     std::ofstream ofs{file, std::ios_base::binary};
     if(!ofs)
-        throw std::runtime_error{"Can not open file \"" + convert_to<narrow>(file.u8string()) + "\"."};
+        throw std::runtime_error{"Can not open file \"" + convert_to<narrow>(file.string()) + "\"."};
 
-    ofs.write(std::data(data), std::size(data));
+    ofs.write(reinterpret_cast<const char*>(std::data(data)), std::size(data));
 }
 
 void image::map()
