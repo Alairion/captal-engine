@@ -23,8 +23,8 @@ application::application()
         {
             i,
             static_cast<std::uint32_t>(device->maxOutputChannels),
-            time_type{device->defaultLowOutputLatency},
-            time_type{device->defaultHighOutputLatency},
+            seconds{device->defaultLowOutputLatency},
+            seconds{device->defaultHighOutputLatency},
             static_cast<std::uint32_t>(device->defaultSampleRate),
             std::u8string{std::begin(native_name), std::end(native_name)}
         };

@@ -5,7 +5,7 @@
 
 #include <fstream>
 #include <filesystem>
-#include <string_view>
+#include <span>
 
 #include "mixer.hpp"
 
@@ -16,8 +16,8 @@ namespace swl
 
 struct memory_stream
 {
-    std::string_view data{};
-    std::uint64_t pos{};
+    std::span<const std::uint8_t> data{};
+    std::size_t position{};
 };
 
 class SWELL_API ogg_reader : public sound_reader
@@ -30,10 +30,10 @@ class SWELL_API ogg_reader : public sound_reader
 public:
     ogg_reader() = default;
     ogg_reader(const std::filesystem::path& file, sound_reader_options options = sound_reader_options::none);
-    ogg_reader(std::string_view data, sound_reader_options options = sound_reader_options::none);
+    ogg_reader(std::span<const std::uint8_t> data, sound_reader_options options = sound_reader_options::none);
     ogg_reader(std::istream& stream, sound_reader_options options = sound_reader_options::none);
 
-    ~ogg_reader();
+    ~ogg_reader() = default;
     ogg_reader(const ogg_reader&) = delete;
     ogg_reader& operator=(const ogg_reader&) = delete;
     ogg_reader(ogg_reader&& other) noexcept = default;

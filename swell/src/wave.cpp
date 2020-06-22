@@ -5,52 +5,42 @@
 namespace swl
 {
 
-static std::int8_t read_int8(const char* data) noexcept
+static std::int8_t read_int8(const std::uint8_t* data) noexcept
 {
-    return static_cast<std::int8_t>(data[0]);
+    return data[0];
 }
 
-static std::int16_t read_int16(const char* data) noexcept
+static std::int16_t read_int16(const std::uint8_t* data) noexcept
 {
-    return static_cast<std::int16_t>(static_cast<std::uint8_t>(data[0]) |
-                                    (static_cast<std::uint8_t>(data[1]) << 8));
+    return static_cast<std::int16_t>(data[0] | (data[1] << 8));
 }
 
-static std::int16_t read_uint16(const char* data) noexcept
+static std::int16_t read_uint16(const std::uint8_t* data) noexcept
 {
-    return static_cast<std::uint16_t>(static_cast<std::uint8_t>(data[0]) |
-                                     (static_cast<std::uint8_t>(data[1]) << 8));
+    return static_cast<std::uint16_t>(data[0] | (data[1] << 8));
 }
 
-static std::int32_t read_int24(const char* data) noexcept
+static std::int32_t read_int24(const std::uint8_t* data) noexcept
 {
-    return static_cast<std::int32_t>(static_cast<std::uint8_t>(data[0]) |
-                                    (static_cast<std::uint8_t>(data[1]) << 8) |
-                                    (static_cast<std::uint8_t>(data[2]) << 16));
+    return static_cast<std::int32_t>(data[0] | (data[1] << 8) | (data[2] << 16));
 }
 
-static std::int32_t read_int32(const char* data) noexcept
+static std::int32_t read_int32(const std::uint8_t* data) noexcept
 {
-    return static_cast<std::int32_t>(static_cast<std::uint8_t>(data[0]) |
-                                    (static_cast<std::uint8_t>(data[1]) << 8) |
-                                    (static_cast<std::uint8_t>(data[2]) << 16) |
-                                    (static_cast<std::uint8_t>(data[3]) << 24));
+    return static_cast<std::int32_t>(data[0] | (data[1] << 8) | (data[2] << 16) | (data[3] << 24));
 }
 
-static std::int32_t read_uint32(const char* data) noexcept
+static std::int32_t read_uint32(const std::uint8_t* data) noexcept
 {
-    return static_cast<std::uint32_t>(static_cast<std::uint8_t>(data[0]) |
-                                     (static_cast<std::uint8_t>(data[1]) << 8) |
-                                     (static_cast<std::uint8_t>(data[2]) << 16) |
-                                     (static_cast<std::uint8_t>(data[3]) << 24));
+    return static_cast<std::uint32_t>(data[0] | (data[1] << 8) | (data[2] << 16) | (data[3] << 24));
 }
 
-static std::array<char, 4> read_bits32(const char* data) noexcept
+static std::array<std::uint8_t, 4> read_bits32(const std::uint8_t* data) noexcept
 {
     return {data[0], data[1], data[2], data[3]};
 }
 
-static void read_samples(const char* data, std::uint32_t bits_per_sample, float* output, std::size_t sample_count) noexcept
+static void read_samples(const std::uint8_t* data, std::uint32_t bits_per_sample, float* output, std::size_t sample_count) noexcept
 {
     const std::size_t byte_per_sample{bits_per_sample / 8u};
 
@@ -84,9 +74,9 @@ static void read_samples(const char* data, std::uint32_t bits_per_sample, float*
     }
 }
 
-static constexpr std::array<char, 4> file_type_block_id{0x52, 0x49, 0x46, 0x46};
-static constexpr std::array<char, 4> file_format_id{0x57, 0x41, 0x56, 0x45};
-static constexpr std::array<char, 4> format_block_id{0x66,0x6D, 0x74,0x20};
+static constexpr std::array<std::uint8_t, 4> file_type_block_id{0x52, 0x49, 0x46, 0x46};
+static constexpr std::array<std::uint8_t, 4> file_format_id{0x57, 0x41, 0x56, 0x45};
+static constexpr std::array<std::uint8_t, 4> format_block_id{0x66,0x6D, 0x74,0x20};
 
 wave_reader::wave_reader(const std::filesystem::path& file, sound_reader_options options)
 :m_options{options}
@@ -95,8 +85,8 @@ wave_reader::wave_reader(const std::filesystem::path& file, sound_reader_options
     if(!ifs)
         throw std::runtime_error{"Can not read file \"" + file.string() + "\"."};
 
-    std::array<char, 44> header_data{};
-    if(!ifs.read(std::data(header_data), std::size(header_data)))
+    std::array<std::uint8_t, 44> header_data{};
+    if(!ifs.read(reinterpret_cast<char*>(std::data(header_data)), std::size(header_data)))
         throw std::runtime_error{"Too short wave data."};
 
     read_header(header_data);
@@ -104,7 +94,11 @@ wave_reader::wave_reader(const std::filesystem::path& file, sound_reader_options
 
     if(static_cast<bool>(m_options & sound_reader_options::buffered))
     {
-        const std::string data{std::istreambuf_iterator<char>{ifs}, std::istreambuf_iterator<char>{}};
+        std::vector<std::uint8_t> data{};
+        data.resize(std::filesystem::file_size(file));
+
+        if(!ifs.read(reinterpret_cast<char*>(std::data(data)), std::size(data)))
+            throw std::runtime_error{"Too short wave data."};
 
         m_buffer.resize(m_header.data_size / (m_header.bits_per_sample / 8u));
         read_samples(std::data(data), m_header.bits_per_sample, std::data(m_buffer), std::size(m_buffer));
@@ -116,7 +110,7 @@ wave_reader::wave_reader(const std::filesystem::path& file, sound_reader_options
     }
 }
 
-wave_reader::wave_reader(std::string_view data, sound_reader_options options)
+wave_reader::wave_reader(std::span<const std::uint8_t> data, sound_reader_options options)
 :m_options{options}
 {
     if(std::size(data) < 44)
@@ -124,7 +118,7 @@ wave_reader::wave_reader(std::string_view data, sound_reader_options options)
         throw std::runtime_error{"Too short wave data."};
     }
 
-    std::array<char, 44> header_data{};
+    std::array<std::uint8_t, 44> header_data{};
     std::copy(std::begin(data), std::begin(data) + 44, std::begin(header_data));
 
     read_header(header_data);
@@ -136,7 +130,7 @@ wave_reader::wave_reader(std::string_view data, sound_reader_options options)
     }
     else
     {
-        m_source = data.substr(44); //don't keep header
+        m_source = data.subspan(44); //don't keep header
     }
 }
 
@@ -145,15 +139,15 @@ wave_reader::wave_reader(std::istream& stream, sound_reader_options options)
 {
     assert(stream && "Invalid stream.");
 
-    std::array<char, 44> header_data{};
-    if(!stream.read(std::data(header_data), std::size(header_data)))
+    std::array<std::uint8_t, 44> header_data{};
+    if(!stream.read(reinterpret_cast<char*>(std::data(header_data)), std::size(header_data)))
         throw std::runtime_error{"Too short wave data."};
 
     read_header(header_data);
 
     if(static_cast<bool>(m_options & sound_reader_options::buffered))
     {
-        const std::string data{std::istreambuf_iterator<char>{stream}, std::istreambuf_iterator<char>{}};
+        const std::vector<std::uint8_t> data{std::istreambuf_iterator<char>{stream}, std::istreambuf_iterator<char>{}};
 
         m_buffer.resize(m_header.data_size / (m_header.bits_per_sample / 8u));
         read_samples(std::data(data), m_header.bits_per_sample, std::data(m_buffer), std::size(m_buffer));
@@ -216,9 +210,9 @@ std::uint32_t wave_reader::channel_count()
     return static_cast<std::uint32_t>(m_header.channel_count);
 }
 
-void wave_reader::read_header(const std::array<char, 44>& header_data)
+void wave_reader::read_header(const std::array<std::uint8_t, 44>& header_data)
 {
-    const char* const data{std::data(header_data)};
+    const auto* const data{std::data(header_data)};
 
     m_header.file_type_block_id = read_bits32(data + 0);
     m_header.file_size          = read_uint32(data + 4);
@@ -311,10 +305,10 @@ bool wave_reader::read_samples_from_memory(float* output, std::size_t frame_coun
 
 bool wave_reader::read_samples_from_stream(float* output, std::size_t frame_count)
 {
-    std::string data{};
+    std::vector<std::uint8_t> data{};
     data.resize(byte_size(frame_count));
 
-    m_stream->read(std::data(data), std::size(data));
+    m_stream->read(reinterpret_cast<char*>(std::data(data)), std::size(data));
     m_current_frame += frame_count;
 
     read_samples(std::data(data), m_header.bits_per_sample, output, sample_size(frame_count));

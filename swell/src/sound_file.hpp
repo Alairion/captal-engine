@@ -5,7 +5,7 @@
 
 #include <memory>
 #include <filesystem>
-#include <string_view>
+#include <span>
 #include <istream>
 
 #include "mixer.hpp"
@@ -13,13 +13,20 @@
 namespace swl
 {
 
+enum class audio_file_format : std::uint32_t
+{
+    unknown = 0,
+    wave = 1,
+    ogg = 2
+};
+
 class SWELL_API sound_file_reader : public sound_reader
 {
 public:
     constexpr sound_file_reader() = default;
 
     sound_file_reader(const std::filesystem::path& file, sound_reader_options options = sound_reader_options::none);
-    sound_file_reader(std::string_view data, sound_reader_options options = sound_reader_options::none);
+    sound_file_reader(std::span<const std::uint8_t> data, sound_reader_options options = sound_reader_options::none);
     sound_file_reader(std::istream& stream, sound_reader_options options = sound_reader_options::none);
     sound_file_reader(std::unique_ptr<sound_reader> m_reader) noexcept;
 

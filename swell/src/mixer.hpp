@@ -18,7 +18,7 @@ namespace swl
 {
 
 using clock = std::chrono::steady_clock;
-using sample_buffer_type = std::vector<float>;
+using sample_buffer_t = std::vector<float>;
 
 enum class sound_reader_options : std::uint32_t
 {
@@ -251,13 +251,13 @@ public:
     template<typename DurationT>
     DurationT frames_to_time(std::uint64_t frames) const
     {
-        return std::chrono::duration_cast<DurationT>(time_type{static_cast<double>(frames) / m_data->reader->frequency()});
+        return std::chrono::duration_cast<DurationT>(seconds{static_cast<double>(frames) / m_data->reader->frequency()});
     }
 
     template<typename Rep, typename Period>
     std::uint64_t time_to_frame(std::chrono::duration<Rep, Period> time) const
     {
-        return static_cast<std::uint64_t>(std::chrono::duration_cast<time_type>(time).count() * m_data->reader->frequency());
+        return static_cast<std::uint64_t>(std::chrono::duration_cast<seconds>(time).count() * m_data->reader->frequency());
     }
 
 private:
@@ -275,7 +275,7 @@ enum class mixer_status : std::uint32_t
 class SWELL_API mixer
 {
 public:
-    mixer(std::uint32_t sample_rate, std::uint32_t channel_count, time_type minimum_latency = time_type{0.002});
+    mixer(std::uint32_t sample_rate, std::uint32_t channel_count, seconds minimum_latency = seconds{0.002});
     ~mixer();
     mixer(const mixer&) = delete;
     mixer& operator=(const mixer&) = delete;
@@ -320,18 +320,18 @@ public:
 private:
     void process() noexcept;
 
-    std::vector<sample_buffer_type> get_sounds_data(std::size_t frame_count);
-    sample_buffer_type get_sound_data(impl::sound_data& sound, std::size_t frame_count, std::uint32_t channels);
-    sample_buffer_type apply_volume(impl::sound_data& sound, sample_buffer_type data, std::size_t frame_count, std::uint32_t channels);
-    sample_buffer_type spatialize(impl::sound_data& sound, sample_buffer_type data, std::size_t frame_count, std::uint32_t channels);
-    sample_buffer_type mix_sounds(const std::vector<sample_buffer_type>& sounds_data, std::size_t frame_count);
+    std::vector<sample_buffer_t> get_sounds_data(std::size_t frame_count);
+    sample_buffer_t get_sound_data(impl::sound_data& sound, std::size_t frame_count, std::uint32_t channels);
+    sample_buffer_t apply_volume(impl::sound_data& sound, sample_buffer_t data, std::size_t frame_count, std::uint32_t channels);
+    sample_buffer_t spatialize(impl::sound_data& sound, sample_buffer_t data, std::size_t frame_count, std::uint32_t channels);
+    sample_buffer_t mix_sounds(const std::vector<sample_buffer_t>& sounds_data, std::size_t frame_count);
 
     void free_sounds();
 
 private:
     std::uint32_t m_sample_rate{};
     std::uint32_t m_channel_count{};
-    time_type m_minimum_latency{};
+    seconds m_minimum_latency{};
 
     glm::vec3 m_position{0.0f, 0.0f, 0.0f};
     glm::vec3 m_up{0.0f, 1.0f, 0.0f};

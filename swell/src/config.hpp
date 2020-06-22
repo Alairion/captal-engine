@@ -13,7 +13,7 @@ namespace swl
 
 using namespace cpt::foundation;
 
-using time_type = std::chrono::duration<double>;
+using seconds = std::chrono::duration<double>;
 
 }
 

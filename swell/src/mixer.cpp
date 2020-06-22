@@ -391,7 +391,7 @@ static float mix_amplitude(float value, std::size_t count) noexcept
     return sgn(value) * (1.0f - fast_pow(1.0f - std::abs(value), count));
 }
 
-mixer::mixer(std::uint32_t sample_rate, std::uint32_t channel_count, time_type minimum_latency)
+mixer::mixer(std::uint32_t sample_rate, std::uint32_t channel_count, seconds minimum_latency)
 :m_sample_rate{sample_rate}
 ,m_channel_count{channel_count}
 ,m_minimum_latency{minimum_latency}
@@ -523,14 +523,14 @@ void mixer::process() noexcept
             }
 
             const clock::time_point now{clock::now()};
-            const time_type elapsed{std::chrono::duration_cast<time_type>(now - m_last)};
+            const seconds elapsed{std::chrono::duration_cast<seconds>(now - m_last)};
 
             if(elapsed >= m_minimum_latency)
             {
                 m_last = now;
 
                 const auto frame_count{static_cast<std::size_t>(elapsed.count() * m_sample_rate)};
-                const sample_buffer_type data{mix_sounds(get_sounds_data(frame_count), frame_count)};
+                const sample_buffer_t data{mix_sounds(get_sounds_data(frame_count), frame_count)};
 
                 m_queue.push(std::begin(data), std::end(data));
             }
@@ -547,9 +547,9 @@ void mixer::process() noexcept
 }
 
 
-std::vector<sample_buffer_type> mixer::get_sounds_data(std::size_t frame_count)
+std::vector<sample_buffer_t> mixer::get_sounds_data(std::size_t frame_count)
 {
-    std::vector<sample_buffer_type> sounds_data{};
+    std::vector<sample_buffer_t> sounds_data{};
 
     for(auto& sound_ptr : m_sounds)
     {
@@ -563,7 +563,7 @@ std::vector<sample_buffer_type> mixer::get_sounds_data(std::size_t frame_count)
             {
                 const std::uint32_t sound_channels{sound.reader->channel_count()};
 
-                sample_buffer_type sound_data{};
+                sample_buffer_t sound_data{};
                 sound_data = get_sound_data(sound, frame_count, sound_channels);
 
                 std::lock_guard mixer_lock{m_mutex};
@@ -585,9 +585,9 @@ std::vector<sample_buffer_type> mixer::get_sounds_data(std::size_t frame_count)
     return sounds_data;
 }
 
-sample_buffer_type mixer::get_sound_data(impl::sound_data& sound, std::size_t frame_count, std::uint32_t channels)
+sample_buffer_t mixer::get_sound_data(impl::sound_data& sound, std::size_t frame_count, std::uint32_t channels)
 {
-    sample_buffer_type output{};
+    sample_buffer_t output{};
     output.resize(frame_count * channels);
 
     if((sound.state.current_frame + frame_count) > sound.state.loop_end) //Loop
@@ -613,7 +613,7 @@ sample_buffer_type mixer::get_sound_data(impl::sound_data& sound, std::size_t fr
     return output;
 }
 
-sample_buffer_type mixer::apply_volume(impl::sound_data& sound, sample_buffer_type data, std::size_t frame_count, std::uint32_t channels)
+sample_buffer_t mixer::apply_volume(impl::sound_data& sound, sample_buffer_t data, std::size_t frame_count, std::uint32_t channels)
 {
     if(sound.state.fading != std::numeric_limits<std::uint64_t>::max())
     {
@@ -651,7 +651,7 @@ sample_buffer_type mixer::apply_volume(impl::sound_data& sound, sample_buffer_ty
     return data;
 }
 
-sample_buffer_type mixer::spatialize(impl::sound_data& sound, sample_buffer_type data, std::size_t frame_count, std::uint32_t channels)
+sample_buffer_t mixer::spatialize(impl::sound_data& sound, sample_buffer_t data, std::size_t frame_count, std::uint32_t channels)
 {
     if(channels != m_channel_count)
     {
@@ -688,7 +688,7 @@ sample_buffer_type mixer::spatialize(impl::sound_data& sound, sample_buffer_type
 
             if(m_channel_count == 2)
             {
-                sample_buffer_type output{};
+                sample_buffer_t output{};
                 output.resize(std::size(data) * 2);
 
                 for(std::size_t i{}; i < frame_count; ++i)
@@ -703,7 +703,7 @@ sample_buffer_type mixer::spatialize(impl::sound_data& sound, sample_buffer_type
 
         const std::uint32_t maximum_channel{std::min(m_channel_count, channels)};
 
-        sample_buffer_type output{};
+        sample_buffer_t output{};
         output.resize(frame_count * m_channel_count);
 
         for(std::size_t i{}; i < frame_count; ++i)
@@ -720,11 +720,11 @@ sample_buffer_type mixer::spatialize(impl::sound_data& sound, sample_buffer_type
     return data;
 }
 
-sample_buffer_type mixer::mix_sounds(const std::vector<sample_buffer_type>& sounds_data, std::size_t frame_count)
+sample_buffer_t mixer::mix_sounds(const std::vector<sample_buffer_t>& sounds_data, std::size_t frame_count)
 {
     if(std::empty(sounds_data))
     {
-        sample_buffer_type output{};
+        sample_buffer_t output{};
         output.resize(frame_count * m_channel_count);
 
         return output;
@@ -735,7 +735,7 @@ sample_buffer_type mixer::mix_sounds(const std::vector<sample_buffer_type>& soun
         return sounds_data[0];
     }
 
-    sample_buffer_type out_data{};
+    sample_buffer_t out_data{};
     out_data.resize(frame_count * m_channel_count);
 
     for(std::size_t i{}; i < std::size(out_data); ++i)

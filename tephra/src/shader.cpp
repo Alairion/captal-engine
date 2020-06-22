@@ -23,7 +23,7 @@ shader::shader(renderer& renderer, shader_stage stage, std::span<const std::uint
     std::vector<std::uint32_t> code{};
     code.resize(std::size(data) / 4);
 
-    std::copy(std::begin(data), std::end(data), std::begin(code));
+    std::memcpy(std::data(code), std::data(data), std::size(data));
 
     m_shader = vulkan::shader{underlying_cast<VkDevice>(renderer), std::size(code) * 4, std::data(code)};
 }
