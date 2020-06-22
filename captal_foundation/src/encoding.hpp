@@ -229,7 +229,7 @@ struct some_encoding
 using codepoint_t = char32_t;
 
 template<typename T>
-concept encoding = requires(typename T::char_type* it, char32_t code)
+concept encoding = requires(typename T::char_type* it, codepoint_t code)
 {
     typename T::char_type;
     {T::decode(it, it, code)} -> std::convertible_to<typename T::char_type*>;
@@ -537,6 +537,11 @@ struct utf32
     }
 };
 
+struct narrow : public utf8 //assume UTF-8 everywhere
+{
+    using char_type = char;
+};
+
 #ifdef _WIN32
 
 struct wide : public utf16
@@ -552,11 +557,6 @@ struct wide : public utf32
 };
 
 #endif
-
-struct narrow : public utf8
-{
-    using char_type = char;
-};
 
 struct latin_1
 {
@@ -612,6 +612,17 @@ struct latin_1
     }
 };
 
+template<typename CharT>
+struct char_encoding;
+
+template<> struct char_encoding<char>     {using type = narrow;};
+template<> struct char_encoding<wchar_t>  {using type = wide;};
+template<> struct char_encoding<char8_t>  {using type = utf8;};
+template<> struct char_encoding<char16_t> {using type = utf16;};
+template<> struct char_encoding<char32_t> {using type = utf32;};
+
+template<typename CharT>
+using char_encoding_t = typename char_encoding<CharT>::type;
 
 template<encoding Input, encoding Output, std::input_iterator InputIt, std::output_iterator<typename Output::char_type> OutputIt>
 constexpr OutputIt convert(InputIt begin, InputIt end, OutputIt output)
@@ -636,13 +647,37 @@ constexpr OutputIt convert(InputIt begin, InputIt end, OutputIt output)
     }
 }
 
+template<typename T>
+concept reservable = requires(T str, std::size_t count)
+{
+    str.reserve(count);
+};
+
 template<encoding Input, encoding Output, typename StringIn, typename StringOut = std::basic_string<typename Output::char_type>>
 constexpr StringOut convert(const StringIn& str)
 {
     StringOut output{};
+
+    if constexpr(reservable<StringOut>)
+    {
+        output.reserve(Input::count(std::begin(str), std::end(str)) * Output::max_char_length());
+    }
+
     convert<Input, Output>(std::begin(str), std::end(str), std::back_inserter(output));
 
     return output;
+}
+
+template<encoding Output, std::input_iterator InputIt, std::output_iterator<typename Output::char_type> OutputIt>
+constexpr OutputIt convert_to(InputIt begin, InputIt end, OutputIt output)
+{
+    return convert<char_encoding_t<std::iter_value_t<InputIt>>, Output>(begin, end, output);
+}
+
+template<encoding Output, typename StringIn, typename StringOut = std::basic_string<typename Output::char_type>>
+constexpr StringOut convert_to(const StringIn& str)
+{
+    return convert<char_encoding_t<std::ranges::range_value_t<StringIn>>, Output, StringIn, StringOut>(str);
 }
 
 template<encoding Encoding, std::input_iterator InputIt, std::output_iterator<typename Encoding::char_type> OutputIt>
@@ -700,6 +735,8 @@ template<encoding Encoding, typename String = std::basic_string<typename Encodin
 constexpr String to_upper(const String& str)
 {
     String output{};
+    output.resize(std::size(str));
+
     to_upper<Encoding>(std::begin(str), std::end(str), std::back_inserter(output));
 
     return output;

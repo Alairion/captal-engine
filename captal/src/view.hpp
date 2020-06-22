@@ -291,7 +291,7 @@ private:
     glm::vec3 m_origin{};
     glm::vec2 m_size{};
     float m_z_near{1.0f};
-    float m_z_far{};
+    float m_z_far{0.0f};
     float m_scale{1.0f};
     float m_rotation{};
     view_type m_type{};

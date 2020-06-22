@@ -3,6 +3,7 @@
 #include <fstream>
 
 #include <captal_foundation/stack_allocator.hpp>
+#include <captal_foundation/utility.hpp>
 
 #include "vulkan/vulkan_functions.hpp"
 
@@ -49,7 +50,7 @@ pipeline_cache::pipeline_cache(renderer& renderer)
 
 }
 
-pipeline_cache::pipeline_cache(renderer& renderer, std::string_view data)
+pipeline_cache::pipeline_cache(renderer& renderer, std::span<const uint8_t> data)
 :m_device{underlying_cast<VkDevice>(renderer)}
 ,m_pipeline_cache{m_device, std::data(data), std::size(data)}
 {
@@ -57,15 +58,9 @@ pipeline_cache::pipeline_cache(renderer& renderer, std::string_view data)
 }
 
 pipeline_cache::pipeline_cache(renderer& renderer, const std::filesystem::path& file)
-:m_device{underlying_cast<VkDevice>(renderer)}
+:pipeline_cache{renderer, read_file<std::vector<std::uint8_t>>(file)}
 {
-    std::ifstream ifs{file, std::ios_base::binary};
-    if(!ifs)
-        throw std::runtime_error{"Can not open file \"" + file.string() + "\"."};
 
-    const std::string initial_data{std::istreambuf_iterator<char>{ifs}, std::istreambuf_iterator<char>{}};
-
-    m_pipeline_cache = vulkan::pipeline_cache{m_device, std::data(initial_data), std::size(initial_data)};
 }
 
 pipeline_cache::pipeline_cache(renderer& renderer, std::istream& stream)

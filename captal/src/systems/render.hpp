@@ -78,16 +78,16 @@ inline void render(entt::registry& world)
             {
                 assert(drawable.attachment() && "Invalid attachment");
 
-                renderable& renderable{*drawable.attachment()};
+                const renderable_ptr& renderable{drawable.attachment()};
 
-                if(!renderable.hidden())
+                if(!renderable->hidden())
                 {
-                    renderable.set_view(view);
-                    renderable.upload();
-                    renderable.draw(buffer);
+                    renderable->set_view(view);
+                    renderable->upload();
+                    renderable->draw(buffer);
 
-                    to_keep_alive.emplace_back(drawable.attachment());
-                    to_keep_alive.emplace_back(renderable.set());
+                    to_keep_alive.emplace_back(renderable->set());
+                    to_keep_alive.emplace_back(renderable);
                 }
             });
 

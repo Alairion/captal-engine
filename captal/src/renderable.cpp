@@ -140,8 +140,7 @@ void renderable::set_view(const view_ptr& view)
         it = new_item;
         write_set(view, it->second);
     }
-
-    if(m_need_descriptor_update || view->need_descriptor_update()) //Already known view
+    else if(m_need_descriptor_update || view->need_descriptor_update()) //Already known view check
     {
         it->second = view->render_technique()->make_set();
         write_set(view, it->second);

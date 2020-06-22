@@ -80,6 +80,7 @@ set(SOURCES
 add_library(${PROJECT_NAME} SHARED ${HEADERS} ${SOURCES})
 target_compile_definitions(${PROJECT_NAME} PRIVATE CAPTAL_FOUNDATION_SHARED_BUILD
                                                    ZLIB_CONST
+                                                   GLM_FORCE_RADIANS
                                                    GLM_FORCE_DEPTH_ZERO_TO_ONE
                                                    #ENTT_API_EXPORT
                                                    )

@@ -71,7 +71,7 @@ public:
 public:
     constexpr image() = default;
     image(renderer& renderer, const std::filesystem::path& file, image_usage usage);
-    image(renderer& renderer, std::string_view data, image_usage usage);
+    image(renderer& renderer, std::span<const std::uint8_t> data, image_usage usage);
     image(renderer& renderer, std::istream& stream, image_usage usage);
     image(renderer& renderer, size_type width, size_type height, const std::uint8_t* data, image_usage usage);
     image(renderer& renderer, size_type width, size_type height, image_usage usage);
@@ -83,7 +83,7 @@ public:
     image& operator=(image&& other) noexcept = default;
 
     std::string write(image_format format, std::int32_t quality = 85) const;
-    void write(std::string_view file, image_format format, std::int32_t quality = 85) const;
+    void write(const std::filesystem::path& file, image_format format, std::int32_t quality = 85) const;
 
     void map();
     void unmap() noexcept;

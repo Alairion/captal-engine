@@ -8,7 +8,8 @@ set(HEADERS "${CAPTAL_FOUNDATION_INCLUDE_DIR}/base.hpp"
             "${CAPTAL_FOUNDATION_INCLUDE_DIR}/enum_operations.hpp"
             "${CAPTAL_FOUNDATION_INCLUDE_DIR}/version.hpp"
             "${CAPTAL_FOUNDATION_INCLUDE_DIR}/stack_allocator.hpp"
-            "${CAPTAL_FOUNDATION_INCLUDE_DIR}/encoding.hpp")
+            "${CAPTAL_FOUNDATION_INCLUDE_DIR}/encoding.hpp"
+            "${CAPTAL_FOUNDATION_INCLUDE_DIR}/utility.hpp")
 
 add_library(${PROJECT_NAME} INTERFACE)
 target_sources(${PROJECT_NAME} INTERFACE ${HEADERS})

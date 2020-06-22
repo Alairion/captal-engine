@@ -10,10 +10,15 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb/stb_image_write.h>
 
+#include <captal_foundation/encoding.hpp>
+#include <captal_foundation/utility.hpp>
+
 #include "renderer.hpp"
 
 namespace tph
 {
+
+using stbi_ptr = std::unique_ptr<stbi_uc, void(*)(void*)>;
 
 static constexpr image_usage not_extension{~(image_usage::host_access | image_usage::persistant_mapping)};
 
@@ -35,44 +40,19 @@ static VkMemoryPropertyFlags optimal_memory_types(image_usage usage)
 }
 
 image::image(renderer& renderer, const std::filesystem::path& file, image_usage usage)
-:m_usage{usage}
+:image{renderer, read_file<std::vector<std::uint8_t>>(file), usage}
 {
-    std::ifstream ifs{file, std::ios_base::binary};
-    if(!ifs)
-        throw std::runtime_error{"Can not open file \"" + file.string() + "\"."};
 
-    const std::string data{std::istreambuf_iterator<char>{ifs}, std::istreambuf_iterator<char>{}};
-
-    int width{};
-    int height{};
-    int channels{};
-    std::unique_ptr<stbi_uc, void(*)(void*)> pixels{stbi_load_from_memory(reinterpret_cast<const stbi_uc*>(std::data(data)), static_cast<int>(std::size(data)), &width, &height, &channels, STBI_rgb_alpha), &stbi_image_free};
-    if(!pixels)
-        throw std::runtime_error{"Can not load image. " + std::string{stbi_failure_reason()}};
-
-    m_buffer = vulkan::buffer{underlying_cast<VkDevice>(renderer), static_cast<std::uint64_t>(width * height * 4), static_cast<VkBufferUsageFlags>(usage & not_extension)};
-    m_memory = renderer.allocator().allocate_bound(m_buffer, vulkan::memory_resource_type::linear, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, optimal_memory_types(usage));
-
-    m_map = m_memory.map();
-    std::memcpy(m_map, pixels.get(), static_cast<std::size_t>(width * height * 4));
-
-    if(!static_cast<bool>(usage & image_usage::persistant_mapping))
-    {
-        m_memory.unmap();
-    }
-
-    m_width = static_cast<size_type>(width);
-    m_height = static_cast<size_type>(height);
 }
 
-image::image(renderer& renderer, std::string_view data, image_usage usage)
+image::image(renderer& renderer, std::span<const std::uint8_t> data, image_usage usage)
 :m_usage{usage}
 {
     int width{};
     int height{};
     int channels{};
 
-    std::unique_ptr<stbi_uc, void(*)(void*)> pixels{stbi_load_from_memory(reinterpret_cast<const stbi_uc*>(std::data(data)), static_cast<int>(std::size(data)), &width, &height, &channels, STBI_rgb_alpha), &stbi_image_free};
+    stbi_ptr pixels{stbi_load_from_memory(std::data(data), static_cast<int>(std::size(data)), &width, &height, &channels, STBI_rgb_alpha), &stbi_image_free};
     if(!pixels)
         throw std::runtime_error{"Can not load image. " + std::string{stbi_failure_reason()}};
 
@@ -236,13 +216,13 @@ std::string image::write(image_format format, std::int32_t quality) const
     return output;
 }
 
-void image::write(std::string_view file, image_format format, std::int32_t quality) const
+void image::write(const std::filesystem::path& file, image_format format, std::int32_t quality) const
 {
     const std::string data{write(format, quality)};
 
-    std::ofstream ofs{std::string{file}, std::ios_base::binary};
+    std::ofstream ofs{file, std::ios_base::binary};
     if(!ofs)
-        throw std::runtime_error{"Can not open file \"" + std::string{file} + "\"."};
+        throw std::runtime_error{"Can not open file \"" + convert_to<narrow>(file.u8string()) + "\"."};
 
     ofs.write(std::data(data), std::size(data));
 }
