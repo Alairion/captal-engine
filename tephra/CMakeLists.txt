@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.0.0)
 
-project(tephra)
+project(tephra VERSION 0.1.0)
 
 option(TEPHRA_BUILD_EXAMPLE OFF)
 option(TEPHRA_USE_PLATFORM_ANDROID "If on, enable the Android surface extension" OFF)
@@ -21,11 +21,6 @@ endif()
 
 add_library(tephra SHARED
     #Headers:
-    src/tephra/vulkan/vulkan.hpp
-    src/tephra/vulkan/vulkan_functions.hpp
-    src/tephra/vulkan/memory.hpp
-    src/tephra/vulkan/helper.hpp
-
     src/tephra/config.hpp
     src/tephra/enumerations.hpp
     src/tephra/hardware.hpp
@@ -43,12 +38,12 @@ add_library(tephra SHARED
     src/tephra/texture.hpp
     src/tephra/commands.hpp
 
-    #Sources:
-    src/tephra/vulkan/vulkan.cpp
-    src/tephra/vulkan/vulkan_functions.cpp
-    src/tephra/vulkan/memory.cpp
-    src/tephra/vulkan/helper.cpp
+    src/tephra/vulkan/vulkan.hpp
+    src/tephra/vulkan/vulkan_functions.hpp
+    src/tephra/vulkan/memory.hpp
+    src/tephra/vulkan/helper.hpp
 
+    #Sources:
     src/tephra/hardware.cpp
     src/tephra/surface.cpp
     src/tephra/swapchain.cpp
@@ -63,14 +58,23 @@ add_library(tephra SHARED
     src/tephra/image.cpp
     src/tephra/texture.cpp
     src/tephra/commands.cpp
+
+    src/tephra/vulkan/vulkan.cpp
+    src/tephra/vulkan/vulkan_functions.cpp
+    src/tephra/vulkan/memory.cpp
+    src/tephra/vulkan/helper.cpp
 )
 
 set_target_properties(tephra PROPERTIES PREFIX "")
+
 target_compile_definitions(tephra
     PRIVATE
         CAPTAL_FOUNDATION_SHARED_BUILD
     PUBLIC
         VK_NO_PROTOTYPES
+        TEPHRA_MAJOR_VERSION=${PROJECT_VERSION_MAJOR}
+        TEPHRA_MINOR_VERSION=${PROJECT_VERSION_MINOR}
+        TEPHRA_PATCH_VERSION=${PROJECT_VERSION_PATCH}
 )
 
 target_link_libraries(tephra PUBLIC captal_foundation)
@@ -145,13 +149,16 @@ target_include_directories(tephra
         ${PROJECT_SOURCE_DIR}/src
 )
 
+if(WIN32)
+    target_sources(tephra PRIVATE src/tephra/resources.rc)
+endif()
+
 if(TEPHRA_BUILD_EXAMPLE)
     add_executable(tephra_test "main.cpp" "window.hpp" "vertex.hpp")
     target_compile_definitions(tephra_test PRIVATE SDL_MAIN_HANDLED)
     target_include_directories(tephra_test PRIVATE ${SDL_INCLUDES} ${GLOBAL_INCLUDES})
     target_link_libraries(tephra_test tephra PRIVATE ${SDL_LIBRARIES})
 endif()
-
 
 install(TARGETS tephra
         CONFIGURATIONS Debug

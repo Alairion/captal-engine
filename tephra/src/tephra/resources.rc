@@ -1,0 +1,28 @@
+#include <Windows.h>
+
+#define MAKE_VERSION(major, minor, patch) "##major.##minor.##patch.0"
+
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION TEPHRA_MAJOR_VERSION, TEPHRA_MINOR_VERSION, TEPHRA_PATCH_VERSION, 0
+PRODUCTVERSION TEPHRA_MAJOR_VERSION, TEPHRA_MINOR_VERSION, TEPHRA_PATCH_VERSION, 0
+FILETYPE VFT_DLL
+{
+    BLOCK "StringFileInfo"
+    {
+        BLOCK "040904E4"
+        {
+            VALUE "CompanyName", "Alexy Pellegrini"
+            VALUE "LegalCopyright", ""
+            VALUE "FileVersion", MAKE_VERSION(TEPHRA_MAJOR_VERSION, TEPHRA_MINOR_VERSION, TEPHRA_PATCH_VERSION)
+            VALUE "ProductVersion", MAKE_VERSION(TEPHRA_MAJOR_VERSION, TEPHRA_MINOR_VERSION, TEPHRA_PATCH_VERSION)
+            VALUE "OriginalFilename", "tephra.dll"
+            VALUE "ProductName", "Tephra"
+            VALUE "FileDescription", "It comes out of Vulkan"
+            VALUE "InternalName", "tephra"
+        }
+    }
+    BLOCK "VarFileInfo"
+    {
+        VALUE "Translation", 0x0409, 1252
+    }
+}

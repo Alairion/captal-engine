@@ -1,0 +1,28 @@
+#include <Windows.h>
+
+#define MAKE_VERSION(major, minor, patch) "##major.##minor.##patch.0"
+
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION SWELL_MAJOR_VERSION, SWELL_MINOR_VERSION, SWELL_PATCH_VERSION, 0
+PRODUCTVERSION SWELL_MAJOR_VERSION, SWELL_MINOR_VERSION, SWELL_PATCH_VERSION, 0
+FILETYPE VFT_DLL
+{
+    BLOCK "StringFileInfo"
+    {
+        BLOCK "040904E4"
+        {
+            VALUE "CompanyName", "Alexy Pellegrini"
+            VALUE "LegalCopyright", ""
+            VALUE "FileVersion", MAKE_VERSION(SWELL_MAJOR_VERSION, SWELL_MINOR_VERSION, SWELL_PATCH_VERSION)
+            VALUE "ProductVersion", MAKE_VERSION(SWELL_MAJOR_VERSION, SWELL_MINOR_VERSION, SWELL_PATCH_VERSION)
+            VALUE "OriginalFilename", "swell.dll"
+            VALUE "ProductName", "Swell"
+            VALUE "FileDescription", "Dun dun dun dun dun dun dun dun dun dun dun dundun dun dundundun dun dun dun dun dun dun dundun dundun"
+            VALUE "InternalName", "swell"
+        }
+    }
+    BLOCK "VarFileInfo"
+    {
+        VALUE "Translation", 0x0409, 1252
+    }
+}

@@ -1,0 +1,28 @@
+#include <Windows.h>
+
+#define MAKE_VERSION(major, minor, patch) "##major.##minor.##patch.0"
+
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION CAPTAL_MAJOR_VERSION, CAPTAL_MINOR_VERSION, CAPTAL_PATCH_VERSION, 0
+PRODUCTVERSION CAPTAL_MAJOR_VERSION, CAPTAL_MINOR_VERSION, CAPTAL_PATCH_VERSION, 0
+FILETYPE VFT_DLL
+{
+    BLOCK "StringFileInfo"
+    {
+        BLOCK "040904E4"
+        {
+            VALUE "CompanyName", "Alexy Pellegrini"
+            VALUE "LegalCopyright", ""
+            VALUE "FileVersion", MAKE_VERSION(CAPTAL_MAJOR_VERSION, CAPTAL_MINOR_VERSION, CAPTAL_PATCH_VERSION)
+            VALUE "ProductVersion", MAKE_VERSION(CAPTAL_MAJOR_VERSION, CAPTAL_MINOR_VERSION, CAPTAL_PATCH_VERSION)
+            VALUE "OriginalFilename", "captal.dll"
+            VALUE "ProductName", "Captal"
+            VALUE "FileDescription", "Once again another game engine"
+            VALUE "InternalName", "captal"
+        }
+    }
+    BLOCK "VarFileInfo"
+    {
+        VALUE "Translation", 0x0409, 1252
+    }
+}

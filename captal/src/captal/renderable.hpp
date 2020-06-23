@@ -285,20 +285,11 @@ sprite_ptr make_sprite(Args&&... args)
     return std::make_shared<sprite>(std::forward<Args>(args)...);
 }
 
-struct circle_t{};
-inline constexpr circle_t circle{};
-struct ellipse_t{};
-inline constexpr ellipse_t ellipse{};
-
 class CAPTAL_API polygon : public renderable
 {
 public:
     polygon() = default;
     polygon(std::vector<glm::vec2> points, const color& color = colors::white);
-    polygon(circle_t, float radius, std::uint32_t point_count, const color& color = colors::white);
-    polygon(circle_t, float radius, const color& color = colors::white);
-    polygon(ellipse_t, float width, float height, std::uint32_t point_count, const color& color = colors::white);
-    polygon(ellipse_t, float width, float height, const color& color = colors::white);
 
     ~polygon() = default;
     polygon(const polygon&) = delete;

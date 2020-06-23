@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.0.0)
 
-project(apyre)
+project(apyre VERSION 0.1.0)
 
 option(APYRE_BUILD_EXAMPLE ON)
 
@@ -23,7 +23,15 @@ add_library(apyre SHARED
 )
 
 set_target_properties(apyre PROPERTIES PREFIX "")
-target_compile_definitions(apyre PRIVATE CAPTAL_FOUNDATION_SHARED_BUILD)
+
+target_compile_definitions(apyre
+    PRIVATE
+        CAPTAL_FOUNDATION_SHARED_BUILD
+    PUBLIC
+        APYRE_MAJOR_VERSION=${PROJECT_VERSION_MAJOR}
+        APYRE_MINOR_VERSION=${PROJECT_VERSION_MINOR}
+        APYRE_PATCH_VERSION=${PROJECT_VERSION_PATCH}
+)
 
 target_include_directories(apyre
     SYSTEM PRIVATE
@@ -39,6 +47,10 @@ target_link_libraries(apyre
     PUBLIC
         captal_foundation
 )
+
+if(WIN32)
+    target_sources(apyre PRIVATE src/apyre/resources.rc)
+endif()
 
 if(MINGW)
     target_link_libraries(apyre

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.14)
 
-project(swell)
+project(swell VERSION 0.1.0)
 
 set(GLOBAL_INCLUDES "${PROJECT_SOURCE_DIR}/../libs/include")
 set(GLOBAL_LIBRARIES "${PROJECT_SOURCE_DIR}/../libs/external")
@@ -55,7 +55,15 @@ add_library(swell SHARED
 )
 
 set_target_properties(swell PROPERTIES PREFIX "")
-target_compile_definitions(swell PRIVATE CAPTAL_FOUNDATION_SHARED_BUILD)
+
+target_compile_definitions(swell
+    PRIVATE
+        CAPTAL_FOUNDATION_SHARED_BUILD
+    PUBLIC
+        SWELL_MAJOR_VERSION=${PROJECT_VERSION_MAJOR}
+        SWELL_MINOR_VERSION=${PROJECT_VERSION_MINOR}
+        SWELL_PATCH_VERSION=${PROJECT_VERSION_PATCH}
+)
 
 target_include_directories(swell
     SYSTEM PRIVATE
@@ -71,6 +79,10 @@ target_link_libraries(swell
     PUBLIC
         captal_foundation
 )
+
+if(WIN32)
+    target_sources(swell PRIVATE src/swell/resources.rc)
+endif()
 
 if(SWELL_BUILD_EXAMPLE)
     add_executable(swell_test "main.cpp")

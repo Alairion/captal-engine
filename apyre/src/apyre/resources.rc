@@ -1,0 +1,28 @@
+#include <Windows.h>
+
+#define MAKE_VERSION(major, minor, patch) "##major.##minor.##patch.0"
+
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION APYRE_MAJOR_VERSION, APYRE_MINOR_VERSION, APYRE_PATCH_VERSION, 0
+PRODUCTVERSION APYRE_MAJOR_VERSION, APYRE_MINOR_VERSION, APYRE_PATCH_VERSION, 0
+FILETYPE VFT_DLL
+{
+    BLOCK "StringFileInfo"
+    {
+        BLOCK "040904E4"
+        {
+            VALUE "CompanyName", "Alexy Pellegrini"
+            VALUE "LegalCopyright", ""
+            VALUE "FileVersion", MAKE_VERSION(APYRE_MAJOR_VERSION, APYRE_MINOR_VERSION, APYRE_PATCH_VERSION)
+            VALUE "ProductVersion", MAKE_VERSION(APYRE_MAJOR_VERSION, APYRE_MINOR_VERSION, APYRE_PATCH_VERSION)
+            VALUE "OriginalFilename", "apyre.dll"
+            VALUE "ProductName", "Apyre"
+            VALUE "FileDescription", "Creates wonderful things, such as windows"
+            VALUE "InternalName", "apyre"
+        }
+    }
+    BLOCK "VarFileInfo"
+    {
+        VALUE "Translation", 0x0409, 1252
+    }
+}

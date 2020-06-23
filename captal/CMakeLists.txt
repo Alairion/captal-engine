@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.0.0)
 
-project(captal)
+project(captal VERSION 0.1.0)
 
 option(CAPTAL_BUILD_EXAMPLE OFF)
 
@@ -32,7 +32,7 @@ add_library(captal SHARED
     src/captal/texture.hpp
     src/captal/framed_buffer.hpp
     src/captal/uniform_buffer.hpp
-    src/captal/shape.hpp
+    src/captal/shapes.hpp
     src/captal/renderable.hpp
     src/captal/view.hpp
     src/captal/text.hpp
@@ -67,6 +67,7 @@ add_library(captal SHARED
     src/captal/state.cpp
     src/captal/texture.cpp
     src/captal/framed_buffer.cpp
+    src/captal/shapes.cpp
     src/captal/renderable.cpp
     src/captal/view.cpp
     src/captal/text.cpp
@@ -77,12 +78,21 @@ add_library(captal SHARED
     src/captal/systems/audio.cpp
 )
 
-target_compile_definitions(captal PRIVATE
-    CAPTAL_FOUNDATION_SHARED_BUILD
-    ZLIB_CONST
-    GLM_FORCE_RADIANS
-    GLM_FORCE_DEPTH_ZERO_TO_ONE
-    #ENTT_API_EXPORT
+if(WIN32)
+    target_sources(captal PRIVATE src/captal/resources.rc)
+endif()
+
+target_compile_definitions(captal
+    PRIVATE
+        CAPTAL_FOUNDATION_SHARED_BUILD
+        ZLIB_CONST
+        GLM_FORCE_RADIANS
+        GLM_FORCE_DEPTH_ZERO_TO_ONE
+        #ENTT_API_EXPORT
+    PUBLIC
+        CAPTAL_MAJOR_VERSION=${PROJECT_VERSION_MAJOR}
+        CAPTAL_MINOR_VERSION=${PROJECT_VERSION_MINOR}
+        CAPTAL_PATCH_VERSION=${PROJECT_VERSION_PATCH}
 )
 
 set_target_properties(captal PROPERTIES PREFIX "")

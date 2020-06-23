@@ -273,68 +273,6 @@ polygon::polygon(std::vector<glm::vec2> points, const color& color)
     init(std::move(points), color);
 }
 
-static std::uint32_t compute_circle_point_count(float radius) noexcept
-{
-    const float circumference{2.0f * std::numbers::pi_v<float> * radius};
-
-    return static_cast<std::uint32_t>(std::ceil(circumference / 8.0f) * 8.0f);
-}
-
-polygon::polygon(circle_t, float radius, std::uint32_t point_count, const color& color)
-:renderable{point_count * 3, point_count + 1}
-{
-    assert(point_count > 2 && "cpt::polygon created with less than 3 points.");
-
-    std::vector<glm::vec2> points{};
-    points.reserve(point_count);
-
-    const float step{(2.0f * std::numbers::pi_v<float>) / point_count};
-    for(std::uint32_t i{}; i < point_count; ++i)
-    {
-        const float angle{step * i};
-        points.emplace_back(glm::vec3{std::cos(angle) * radius, std::sin(angle) * radius, 0.0f});
-    }
-
-    init(std::move(points), color);
-}
-
-polygon::polygon(circle_t, float radius, const color& color)
-:polygon{circle, radius, compute_circle_point_count(radius), color}
-{
-
-}
-
-static std::uint32_t compute_ellipse_point_count(float width, float height) noexcept
-{
-    const float circumference{std::numbers::pi_v<float> * std::sqrt(2.0f * (width * width + height * height))};
-
-    return static_cast<std::uint32_t>(std::ceil(circumference / 8.0f) * 8.0f);
-}
-
-polygon::polygon(ellipse_t, float width, float height, std::uint32_t point_count, const color& color)
-:renderable{point_count * 3, point_count + 1}
-{
-    assert(point_count > 2 && "cpt::polygon created with less than 3 points.");
-
-    std::vector<glm::vec2> points{};
-    points.reserve(point_count);
-
-    const float step{(2.0f * std::numbers::pi_v<float>) / point_count};
-    for(std::uint32_t i{}; i < point_count; ++i)
-    {
-        const float angle{step * i};
-        points.emplace_back(glm::vec3{std::cos(angle) * width, std::sin(angle) * height, 0.0f});
-    }
-
-    init(std::move(points), color);
-}
-
-polygon::polygon(ellipse_t, float width, float height, const color& color)
-:polygon{ellipse, width, height, compute_ellipse_point_count(width, height), color}
-{
-
-}
-
 void polygon::set_color(const color& color) noexcept
 {
     set_center_color(color);
