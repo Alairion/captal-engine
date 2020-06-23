@@ -1,8 +1,8 @@
-#include "src/version.hpp"
-#include "src/encoding.hpp"
-#include "src/optional_ref.hpp"
-#include "src/enum_operations.hpp"
-#include "src/stack_allocator.hpp"
+#include <captal_foundation/version.hpp>
+#include <captal_foundation/encoding.hpp>
+#include <captal_foundation/optional_ref.hpp>
+#include <captal_foundation/enum_operations.hpp>
+#include <captal_foundation/stack_allocator.hpp>
 
 #include <vector>
 

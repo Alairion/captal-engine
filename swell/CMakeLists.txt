@@ -28,53 +28,69 @@ add_subdirectory("${PROJECT_SOURCE_DIR}/dependencies/flac" EXCLUDE_FROM_ALL)
 
 option(SWELL_BUILD_EXAMPLE OFF)
 
-set(HEADERS
-    "src/config.hpp"
-    "src/application.hpp"
-    "src/physical_device.hpp"
-    "src/mixer.hpp"
-    #"src/audio_world.hpp"
-    "src/stream.hpp"
-    "src/wave.hpp"
-    "src/ogg.hpp"
-    "src/sound_file.hpp")
+set(HEADERS)
 
-set(SOURCES
-    "src/application.cpp"
-    "src/mixer.cpp"
-    #"src/audio_world.cpp"
-    "src/stream.cpp"
-    "src/wave.cpp"
-    "src/ogg.cpp"
-    "src/sound_file.cpp")
+set(SOURCES)
 
-add_library(${PROJECT_NAME} SHARED ${HEADERS} ${SOURCES})
-target_compile_definitions(${PROJECT_NAME} PRIVATE CAPTAL_FOUNDATION_SHARED_BUILD)
-set_target_properties(${PROJECT_NAME} PROPERTIES PREFIX "")
+add_library(swell SHARED
+    #Headers
+    src/swell/config.hpp
+    src/swell/application.hpp
+    src/swell/physical_device.hpp
+    src/swell/mixer.hpp
+    #src/swell/audio_world.hpp
+    src/swell/stream.hpp
+    src/swell/wave.hpp
+    src/swell/ogg.hpp
+    src/swell/sound_file.hpp
 
-target_include_directories(${PROJECT_NAME} PRIVATE ${PORTAUDIO_INCLUDES} ${GLOBAL_INCLUDES})
+    #Sources:
+    src/swell/application.cpp
+    src/swell/mixer.cpp
+    #src/swell/audio_world.cpp
+    src/swell/stream.cpp
+    src/swell/wave.cpp
+    src/swell/ogg.cpp
+    src/swell/sound_file.cpp
+)
 
-target_link_libraries(${PROJECT_NAME} ${PORTAUDIO_LIBRARIES} ${VORBISENC_LIBRARIES} ${VORBISFILE_LIBRARIES} ${VORBIS_LIBRARIES} ${OGG_LIBRARIES})
+set_target_properties(swell PROPERTIES PREFIX "")
+target_compile_definitions(swell PRIVATE CAPTAL_FOUNDATION_SHARED_BUILD)
+
+target_include_directories(swell
+    SYSTEM PRIVATE
+        ${PORTAUDIO_INCLUDES}
+        ${GLOBAL_INCLUDES}
+    INTERFACE
+        ${PROJECT_SOURCE_DIR}/src
+)
+
+target_link_libraries(swell
+    PRIVATE
+        ${PORTAUDIO_LIBRARIES} ${VORBISENC_LIBRARIES} ${VORBISFILE_LIBRARIES} ${VORBIS_LIBRARIES} ${OGG_LIBRARIES}
+    PUBLIC
+        captal_foundation
+)
 
 if(SWELL_BUILD_EXAMPLE)
-    add_executable(${PROJECT_NAME}_test "main.cpp")
-    target_link_libraries(${PROJECT_NAME}_test ${PROJECT_NAME})
+    add_executable(swell_test "main.cpp")
+    target_link_libraries(swell_test swell)
 endif()
 
-install(TARGETS ${PROJECT_NAME}
+install(TARGETS swell
         CONFIGURATIONS Debug
         RUNTIME DESTINATION "${PROJECT_SOURCE_DIR}/../test/debug"
         ARCHIVE DESTINATION "${PROJECT_SOURCE_DIR}/../libs/debug"
         COMPONENT library)
 
-install(TARGETS ${PROJECT_NAME}
+install(TARGETS swell
         CONFIGURATIONS Release
         RUNTIME DESTINATION "${PROJECT_SOURCE_DIR}/../test/release"
         ARCHIVE DESTINATION "${PROJECT_SOURCE_DIR}/../libs/release"
         COMPONENT library)
 
-install(DIRECTORY "${PROJECT_SOURCE_DIR}/src/" DESTINATION "${PROJECT_SOURCE_DIR}/include/${PROJECT_NAME}"
+install(DIRECTORY "${PROJECT_SOURCE_DIR}/src/" DESTINATION "${PROJECT_SOURCE_DIR}/include/swell"
         FILES_MATCHING PATTERN "*.hpp")
 
-install(DIRECTORY "${PROJECT_SOURCE_DIR}/src/" DESTINATION "${PROJECT_SOURCE_DIR}/../libs/include/${PROJECT_NAME}"
+install(DIRECTORY "${PROJECT_SOURCE_DIR}/src/" DESTINATION "${PROJECT_SOURCE_DIR}/../libs/include/swell"
         FILES_MATCHING PATTERN "*.hpp")

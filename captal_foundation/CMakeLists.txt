@@ -2,23 +2,33 @@ cmake_minimum_required(VERSION 3.0.0)
 
 project(captal_foundation)
 
-set(CAPTAL_FOUNDATION_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/src")
-set(HEADERS "${CAPTAL_FOUNDATION_INCLUDE_DIR}/base.hpp"
-            "${CAPTAL_FOUNDATION_INCLUDE_DIR}/optional_ref.hpp"
-            "${CAPTAL_FOUNDATION_INCLUDE_DIR}/enum_operations.hpp"
-            "${CAPTAL_FOUNDATION_INCLUDE_DIR}/version.hpp"
-            "${CAPTAL_FOUNDATION_INCLUDE_DIR}/stack_allocator.hpp"
-            "${CAPTAL_FOUNDATION_INCLUDE_DIR}/encoding.hpp"
-            "${CAPTAL_FOUNDATION_INCLUDE_DIR}/utility.hpp")
+option(CAPTAL_FOUNDATION_BUILD_TESTS ON)
 
-add_library(${PROJECT_NAME} INTERFACE)
-target_sources(${PROJECT_NAME} INTERFACE ${HEADERS})
+add_library(captal_foundation INTERFACE)
 
-add_executable(${PROJECT_NAME}_test "test.cpp")
-target_link_libraries(${PROJECT_NAME}_test ${PROJECT_NAME})
+target_include_directories(captal_foundation INTERFACE
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src>
+    $<INSTALL_INTERFACE:include>
+)
 
-install(DIRECTORY "${PROJECT_SOURCE_DIR}/src/" DESTINATION "${PROJECT_SOURCE_DIR}/include/${PROJECT_NAME}"
+target_sources(captal_foundation INTERFACE
+    ${PROJECT_SOURCE_DIR}/src/captal_foundation/base.hpp
+    ${PROJECT_SOURCE_DIR}/src/captal_foundation/encoding.hpp
+    ${PROJECT_SOURCE_DIR}/src/captal_foundation/enum_operations.hpp
+    ${PROJECT_SOURCE_DIR}/src/captal_foundation/optional_ref.hpp
+    ${PROJECT_SOURCE_DIR}/src/captal_foundation/stack_allocator.hpp
+    ${PROJECT_SOURCE_DIR}/src/captal_foundation/utility.hpp
+    ${PROJECT_SOURCE_DIR}/src/captal_foundation/version.hpp
+)
+
+if(CAPTAL_FOUNDATION_BUILD_TESTS)
+    add_executable(captal_foundation_test ${PROJECT_SOURCE_DIR}/test.cpp)
+    target_link_libraries(captal_foundation_test captal_foundation)
+endif()
+
+install(DIRECTORY "${PROJECT_SOURCE_DIR}/src/" DESTINATION "${PROJECT_SOURCE_DIR}/include/captal_foundation"
         FILES_MATCHING PATTERN "*.hpp")
 
-install(DIRECTORY "${PROJECT_SOURCE_DIR}/src/" DESTINATION "${PROJECT_SOURCE_DIR}/../libs/include/${PROJECT_NAME}"
+install(DIRECTORY "${PROJECT_SOURCE_DIR}/src/" DESTINATION "${PROJECT_SOURCE_DIR}/../libs/include/captal_foundation"
         FILES_MATCHING PATTERN "*.hpp")
+

@@ -13,128 +13,125 @@ set(FREETYPE_LIBRARIES "${GLOBAL_LIBRARIES}/libfreetype.a")
 set(CHIPMUNK_LIBRARIES "${GLOBAL_LIBRARIES}/libchipmunk.a")
 set(ZLIB_LIBRARIES "${GLOBAL_LIBRARIES}/libzlibstatic.a")
 
-set(HEADERS
-    "src/config.hpp"
-    "src/algorithm.hpp"
-    "src/application.hpp"
-    "src/engine.hpp"
-    "src/zlib.hpp"
-    "src/translation.hpp"
-    "src/asynchronous_resource.hpp"
-    "src/render_technique.hpp"
-    "src/render_target.hpp"
-    "src/render_window.hpp"
-    "src/render_texture.hpp"
-    "src/state.hpp"
-    "src/color.hpp"
-    "src/vertex.hpp"
-    "src/texture.hpp"
-    "src/framed_buffer.hpp"
-    "src/uniform_buffer.hpp"
-    "src/shape.hpp"
-    "src/renderable.hpp"
-    "src/view.hpp"
-    "src/text.hpp"
-    "src/sound.hpp"
-    "src/tiled_map.hpp"
-    "src/physics.hpp"
+add_library(captal SHARED
+    #Headers:
+    src/captal/config.hpp
+    src/captal/algorithm.hpp
+    src/captal/application.hpp
+    src/captal/engine.hpp
+    src/captal/zlib.hpp
+    src/captal/translation.hpp
+    src/captal/asynchronous_resource.hpp
+    src/captal/render_technique.hpp
+    src/captal/render_target.hpp
+    src/captal/render_window.hpp
+    src/captal/render_texture.hpp
+    src/captal/state.hpp
+    src/captal/color.hpp
+    src/captal/vertex.hpp
+    src/captal/texture.hpp
+    src/captal/framed_buffer.hpp
+    src/captal/uniform_buffer.hpp
+    src/captal/shape.hpp
+    src/captal/renderable.hpp
+    src/captal/view.hpp
+    src/captal/text.hpp
+    src/captal/sound.hpp
+    src/captal/tiled_map.hpp
+    src/captal/physics.hpp
 
-    "src/components/node.hpp"
-    "src/components/drawable.hpp"
-    "src/components/draw_index.hpp"
-    "src/components/camera.hpp"
-    "src/components/listener.hpp"
-    "src/components/audio_emiter.hpp"
-    "src/components/physical_body.hpp"
-    "src/components/controller.hpp"
+    src/captal/components/node.hpp
+    src/captal/components/drawable.hpp
+    src/captal/components/draw_index.hpp
+    src/captal/components/camera.hpp
+    src/captal/components/listener.hpp
+    src/captal/components/audio_emiter.hpp
+    src/captal/components/physical_body.hpp
+    src/captal/components/controller.hpp
 
-    "src/systems/frame.hpp"
-    "src/systems/sorting.hpp"
-    "src/systems/audio.hpp"
-    "src/systems/render.hpp"
-    "src/systems/physics.hpp"
-    )
+    src/captal/systems/frame.hpp
+    src/captal/systems/sorting.hpp
+    src/captal/systems/audio.hpp
+    src/captal/systems/render.hpp
+    src/captal/systems/physics.hpp
 
-set(SOURCES
-    "src/application.cpp"
-    "src/engine.cpp"
-    "src/zlib.cpp"
-    "src/translation.cpp"
-    "src/render_technique.cpp"
-    "src/render_target.cpp"
-    "src/render_window.cpp"
-    "src/render_texture.cpp"
-    "src/state.cpp"
-    "src/texture.cpp"
-    "src/framed_buffer.cpp"
-    "src/renderable.cpp"
-    "src/view.cpp"
-    "src/text.cpp"
-    "src/sound.cpp"
-    "src/tiled_map.cpp"
-    "src/physics.cpp"
+    #Sources:
+    src/captal/application.cpp
+    src/captal/engine.cpp
+    src/captal/zlib.cpp
+    src/captal/translation.cpp
+    src/captal/render_technique.cpp
+    src/captal/render_target.cpp
+    src/captal/render_window.cpp
+    src/captal/render_texture.cpp
+    src/captal/state.cpp
+    src/captal/texture.cpp
+    src/captal/framed_buffer.cpp
+    src/captal/renderable.cpp
+    src/captal/view.cpp
+    src/captal/text.cpp
+    src/captal/sound.cpp
+    src/captal/tiled_map.cpp
+    src/captal/physics.cpp
 
-    "src/systems/audio.cpp"
-    )
+    src/captal/systems/audio.cpp
+)
 
-add_library(${PROJECT_NAME} SHARED ${HEADERS} ${SOURCES})
-target_compile_definitions(${PROJECT_NAME} PRIVATE CAPTAL_FOUNDATION_SHARED_BUILD
-                                                   ZLIB_CONST
-                                                   GLM_FORCE_RADIANS
-                                                   GLM_FORCE_DEPTH_ZERO_TO_ONE
-                                                   #ENTT_API_EXPORT
-                                                   )
-set_target_properties(${PROJECT_NAME} PROPERTIES PREFIX "")
+target_compile_definitions(captal PRIVATE
+    CAPTAL_FOUNDATION_SHARED_BUILD
+    ZLIB_CONST
+    GLM_FORCE_RADIANS
+    GLM_FORCE_DEPTH_ZERO_TO_ONE
+    #ENTT_API_EXPORT
+)
 
-if(CMAKE_BUILD_TYPE STREQUAL Debug)
-    add_definitions(-DCAPTAL_DEBUG)
-endif()
-
-target_include_directories(${PROJECT_NAME} PUBLIC ${GLOBAL_INCLUDES} ${FREETYPE_INCLUDES})
+set_target_properties(captal PROPERTIES PREFIX "")
 
 if(CMAKE_BUILD_TYPE STREQUAL Debug)
-    target_link_libraries(${PROJECT_NAME} "${PROJECT_SOURCE_DIR}/../libs/debug/libapyre.dll.a")
-    target_link_libraries(${PROJECT_NAME} "${PROJECT_SOURCE_DIR}/../libs/debug/libswell.dll.a")
-    target_link_libraries(${PROJECT_NAME} "${PROJECT_SOURCE_DIR}/../libs/debug/libtephra.dll.a")
-else()
-    target_link_libraries(${PROJECT_NAME} "${PROJECT_SOURCE_DIR}/../libs/release/libapyre.dll.a")
-    target_link_libraries(${PROJECT_NAME} "${PROJECT_SOURCE_DIR}/../libs/release/libswell.dll.a")
-    target_link_libraries(${PROJECT_NAME} "${PROJECT_SOURCE_DIR}/../libs/release/libtephra.dll.a")
+    target_compile_definitions(captal PRIVATE CAPTAL_DEBUG)
 endif()
 
-target_link_libraries(${PROJECT_NAME} ${FREETYPE_LIBRARIES} ${CHIPMUNK_LIBRARIES} ${ZLIB_LIBRARIES})
+target_include_directories(captal
+    SYSTEM PRIVATE
+        ${GLOBAL_INCLUDES} ${FREETYPE_INCLUDES}
+    INTERFACE
+        ${PROJECT_SOURCE_DIR}/src
+)
+
+target_link_libraries(captal
+    PUBLIC
+        captal_foundation
+        tephra
+        swell
+        apyre
+    PRIVATE
+        ${FREETYPE_LIBRARIES}
+        ${CHIPMUNK_LIBRARIES}
+        ${ZLIB_LIBRARIES}
+)
 
 install(TARGETS ${PROJECT_NAME}
         CONFIGURATIONS Debug
-        RUNTIME DESTINATION "${PROJECT_SOURCE_DIR}/../test/debug"
-        ARCHIVE DESTINATION "${PROJECT_SOURCE_DIR}/../libs/debug"
+        RUNTIME DESTINATION ${PROJECT_SOURCE_DIR}/../test/debug
+        ARCHIVE DESTINATION ${PROJECT_SOURCE_DIR}/../libs/debug
         COMPONENT library)
 
 install(TARGETS ${PROJECT_NAME}
         CONFIGURATIONS Release
-        RUNTIME DESTINATION "${PROJECT_SOURCE_DIR}/../test/release"
-        ARCHIVE DESTINATION "${PROJECT_SOURCE_DIR}/../libs/release"
+        RUNTIME DESTINATION ${PROJECT_SOURCE_DIR}/../test/release
+        ARCHIVE DESTINATION ${PROJECT_SOURCE_DIR}/../libs/release
         COMPONENT library)
 
-install(DIRECTORY "${PROJECT_SOURCE_DIR}/src/" DESTINATION "${PROJECT_SOURCE_DIR}/include/${PROJECT_NAME}"
-        FILES_MATCHING PATTERN "*.hpp")
+install(DIRECTORY ${PROJECT_SOURCE_DIR}/src/captal
+        DESTINATION ${PROJECT_SOURCE_DIR}/include/captal
+        FILES_MATCHING PATTERN *.hpp)
 
-install(DIRECTORY "${PROJECT_SOURCE_DIR}/src/" DESTINATION "${PROJECT_SOURCE_DIR}/../libs/include/${PROJECT_NAME}"
-        FILES_MATCHING PATTERN "*.hpp")
+install(DIRECTORY ${PROJECT_SOURCE_DIR}/src/captal
+        DESTINATION ${PROJECT_SOURCE_DIR}/../libs/include/captal
+        FILES_MATCHING PATTERN *.hpp)
 
 if(CAPTAL_BUILD_EXAMPLE)
-    add_executable(${PROJECT_NAME}_test "main.cpp")
-    target_link_libraries(${PROJECT_NAME}_test ${PROJECT_NAME})
-    target_include_directories(${PROJECT_NAME}_test PRIVATE "${PROJECT_SOURCE_DIR}/include/${PROJECT_NAME}")
-    #target_compile_definitions(${PROJECT_NAME}_test PRIVATE ENTT_API_IMPORT)
-
-    if(CMAKE_BUILD_TYPE STREQUAL Debug)
-        target_link_libraries(${PROJECT_NAME}_test "${PROJECT_SOURCE_DIR}/../libs/debug/libapyre.dll.a")
-        target_link_libraries(${PROJECT_NAME}_test "${PROJECT_SOURCE_DIR}/../libs/debug/libswell.dll.a")
-        target_link_libraries(${PROJECT_NAME}_test "${PROJECT_SOURCE_DIR}/../libs/debug/libtephra.dll.a")
-    else()
-        target_link_libraries(${PROJECT_NAME}_test "${PROJECT_SOURCE_DIR}/../libs/release/libapyre.dll.a")
-        target_link_libraries(${PROJECT_NAME}_test "${PROJECT_SOURCE_DIR}/../libs/release/libswell.dll.a")
-        target_link_libraries(${PROJECT_NAME}_test "${PROJECT_SOURCE_DIR}/../libs/release/libtephra.dll.a")
-    endif()
+    add_executable(captal_test "main.cpp")
+    target_link_libraries(captal_test PRIVATE captal)
+    #target_compile_definitions(captal_test PRIVATE ENTT_API_IMPORT)
 endif()

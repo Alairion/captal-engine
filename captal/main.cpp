@@ -1,24 +1,24 @@
 #include <iostream>
 
-#include "src/engine.hpp"
-#include "src/texture.hpp"
-#include "src/sound.hpp"
-#include "src/view.hpp"
-#include "src/physics.hpp"
-#include "src/text.hpp"
+#include <captal/engine.hpp>
+#include <captal/texture.hpp>
+#include <captal/sound.hpp>
+#include <captal/view.hpp>
+#include <captal/physics.hpp>
+#include <captal/text.hpp>
 
-#include "src/components/node.hpp"
-#include "src/components/camera.hpp"
-#include "src/components/drawable.hpp"
-#include "src/components/audio_emiter.hpp"
-#include "src/components/listener.hpp"
-#include "src/components/physical_body.hpp"
-#include "src/components/controller.hpp"
+#include <captal/components/node.hpp>
+#include <captal/components/camera.hpp>
+#include <captal/components/drawable.hpp>
+#include <captal/components/audio_emiter.hpp>
+#include <captal/components/listener.hpp>
+#include <captal/components/physical_body.hpp>
+#include <captal/components/controller.hpp>
 
-#include "src/systems/frame.hpp"
-#include "src/systems/audio.hpp"
-#include "src/systems/render.hpp"
-#include "src/systems/physics.hpp"
+#include <captal/systems/frame.hpp>
+#include <captal/systems/audio.hpp>
+#include <captal/systems/render.hpp>
+#include <captal/systems/physics.hpp>
 
 #include <apyre/messagebox.hpp>
 

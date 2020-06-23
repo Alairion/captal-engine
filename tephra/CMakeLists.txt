@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.0.0)
 
 project(tephra)
-add_definitions(-DVK_NO_PROTOTYPES)
 
 option(TEPHRA_BUILD_EXAMPLE OFF)
 option(TEPHRA_USE_PLATFORM_ANDROID "If on, enable the Android surface extension" OFF)
@@ -15,126 +14,159 @@ option(TEPHRA_USE_PLATFORM_WAYLAND "If on, enable the Linux Wayland surface exte
 set(GLOBAL_INCLUDES "${PROJECT_SOURCE_DIR}/../libs/include")
 set(GLOBAL_LIBRARIES "${PROJECT_SOURCE_DIR}/../libs/external")
 
-set(SDL_INCLUDES "${GLOBAL_INCLUDES}/sdl")
-set(SDL_LIBRARIES "${GLOBAL_LIBRARIES}/libSDL2main.a"
-                  "${GLOBAL_LIBRARIES}/libSDL2.a"
-                  "${GLOBAL_LIBRARIES}/libSDL2-static.a")
-
-if(MINGW)
-     set(SDL_LIBRARIES ${SDL_LIBRARIES} imagehlp dinput8 dxguid dxerr8 user32 gdi32 winmm imm32 ole32 oleaut32 shell32 version uuid)
+if(TEPHRA_BUILD_EXAMPLE)
+    set(SDL_INCLUDES "${GLOBAL_INCLUDES}/sdl")
+    set(SDL_LIBRARIES "${GLOBAL_LIBRARIES}/libSDL2main.a" "${GLOBAL_LIBRARIES}/libSDL2.a" "${GLOBAL_LIBRARIES}/libSDL2-static.a")
 endif()
 
-set(HEADERS
-    "src/vulkan/vulkan.hpp"
-    "src/vulkan/vulkan_functions.hpp"
-    "src/vulkan/memory.hpp"
-    "src/vulkan/helper.hpp"
+add_library(tephra SHARED
+    #Headers:
+    src/tephra/vulkan/vulkan.hpp
+    src/tephra/vulkan/vulkan_functions.hpp
+    src/tephra/vulkan/memory.hpp
+    src/tephra/vulkan/helper.hpp
 
-    "src/config.hpp"
-    "src/enumerations.hpp"
-    "src/hardware.hpp"
-    "src/surface.hpp"
-    "src/swapchain.hpp"
-    "src/application.hpp"
-    "src/renderer.hpp"
-    "src/shader.hpp"
-    "src/render_target.hpp"
-    "src/synchronization.hpp"
-    "src/descriptor.hpp"
-    "src/pipeline.hpp"
-    "src/buffer.hpp"
-    "src/image.hpp"
-    "src/texture.hpp"
-    "src/commands.hpp"
-    )
+    src/tephra/config.hpp
+    src/tephra/enumerations.hpp
+    src/tephra/hardware.hpp
+    src/tephra/surface.hpp
+    src/tephra/swapchain.hpp
+    src/tephra/application.hpp
+    src/tephra/renderer.hpp
+    src/tephra/shader.hpp
+    src/tephra/render_target.hpp
+    src/tephra/synchronization.hpp
+    src/tephra/descriptor.hpp
+    src/tephra/pipeline.hpp
+    src/tephra/buffer.hpp
+    src/tephra/image.hpp
+    src/tephra/texture.hpp
+    src/tephra/commands.hpp
 
-set(SOURCES
-    "src/vulkan/vulkan.cpp"
-    "src/vulkan/vulkan_functions.cpp"
-    "src/vulkan/memory.cpp"
-    "src/vulkan/helper.cpp"
+    #Sources:
+    src/tephra/vulkan/vulkan.cpp
+    src/tephra/vulkan/vulkan_functions.cpp
+    src/tephra/vulkan/memory.cpp
+    src/tephra/vulkan/helper.cpp
 
-    "src/hardware.cpp"
-    "src/surface.cpp"
-    "src/swapchain.cpp"
-    "src/application.cpp"
-    "src/renderer.cpp"
-    "src/shader.cpp"
-    "src/render_target.cpp"
-    "src/synchronization.cpp"
-    "src/descriptor.cpp"
-    "src/pipeline.cpp"
-    "src/buffer.cpp"
-    "src/image.cpp"
-    "src/texture.cpp"
-    "src/commands.cpp"
-    )
+    src/tephra/hardware.cpp
+    src/tephra/surface.cpp
+    src/tephra/swapchain.cpp
+    src/tephra/application.cpp
+    src/tephra/renderer.cpp
+    src/tephra/shader.cpp
+    src/tephra/render_target.cpp
+    src/tephra/synchronization.cpp
+    src/tephra/descriptor.cpp
+    src/tephra/pipeline.cpp
+    src/tephra/buffer.cpp
+    src/tephra/image.cpp
+    src/tephra/texture.cpp
+    src/tephra/commands.cpp
+)
 
-add_library(${PROJECT_NAME} SHARED ${HEADERS} ${SOURCES})
-target_compile_definitions(${PROJECT_NAME} PRIVATE CAPTAL_FOUNDATION_SHARED_BUILD)
-set_target_properties(${PROJECT_NAME} PROPERTIES PREFIX "")
+set_target_properties(tephra PROPERTIES PREFIX "")
+target_compile_definitions(tephra
+    PRIVATE
+        CAPTAL_FOUNDATION_SHARED_BUILD
+    PUBLIC
+        VK_NO_PROTOTYPES
+)
+
+target_link_libraries(tephra PUBLIC captal_foundation)
 
 if(TEPHRA_USE_PLATFORM_ANDROID)
-    target_compile_definitions(${PROJECT_NAME} PRIVATE TPH_PLATFORM_ANDROID)
-    target_compile_definitions(${PROJECT_NAME} PRIVATE VK_USE_PLATFORM_ANDROID_KHR)
+    target_compile_definitions(tephra
+        PUBLIC
+            TPH_PLATFORM_ANDROID
+        PRIVATE
+            VK_USE_PLATFORM_ANDROID_KHR
+    )
 endif()
 
 if(TEPHRA_USE_PLATFORM_IOS)
-    target_compile_definitions(${PROJECT_NAME} PRIVATE TPH_PLATFORM_IOS)
-    target_compile_definitions(${PROJECT_NAME} PRIVATE VK_USE_PLATFORM_IOS_MVK)
+    target_compile_definitions(tephra
+        PUBLIC
+            TPH_PLATFORM_IOS
+        PRIVATE
+            VK_USE_PLATFORM_IOS_MVK
+    )
 endif()
 
 if(TEPHRA_USE_PLATFORM_WIN32)
-    target_compile_definitions(${PROJECT_NAME} PRIVATE TPH_PLATFORM_WIN32)
-    target_compile_definitions(${PROJECT_NAME} PRIVATE VK_USE_PLATFORM_WIN32_KHR)
+    target_compile_definitions(tephra
+        PUBLIC
+            TPH_PLATFORM_WIN32
+        PRIVATE
+            VK_USE_PLATFORM_WIN32_KHR
+    )
 endif()
 
 if(TEPHRA_USE_PLATFORM_MACOS)
-    target_compile_definitions(${PROJECT_NAME} PRIVATE TPH_PLATFORM_MACOS)
-    target_compile_definitions(${PROJECT_NAME} PRIVATE VK_USE_PLATFORM_MACOS_MVK)
+    target_compile_definitions(tephra
+        PUBLIC
+            TPH_PLATFORM_MACOS
+        PRIVATE
+            VK_USE_PLATFORM_MACOS_MVK
+    )
 endif()
 
 if(TEPHRA_USE_PLATFORM_XLIB)
-    target_compile_definitions(${PROJECT_NAME} PRIVATE TPH_PLATFORM_XLIB)
-    target_compile_definitions(${PROJECT_NAME} PRIVATE VK_USE_PLATFORM_XLIB_KHR)
+    target_compile_definitions(tephra
+        PUBLIC
+            TPH_PLATFORM_XLIB
+        PRIVATE
+            VK_USE_PLATFORM_XLIB_KHR
+    )
 endif()
 
 if(TEPHRA_USE_PLATFORM_XCB)
-    target_compile_definitions(${PROJECT_NAME} PRIVATE TPH_PLATFORM_XCB)
-    target_compile_definitions(${PROJECT_NAME} PRIVATE VK_USE_PLATFORM_XCB_KHR)
+    target_compile_definitions(tephra
+        PUBLIC
+            TPH_PLATFORM_XCB
+        PRIVATE
+            VK_USE_PLATFORM_XCB_KHR
+    )
 endif()
 
 if(TEPHRA_USE_PLATFORM_WAYLAND)
-    target_compile_definitions(${PROJECT_NAME} PRIVATE TPH_PLATFORM_WAYLAND)
-    target_compile_definitions(${PROJECT_NAME} PRIVATE VK_USE_PLATFORM_WAYLAND_KHR)
+    target_compile_definitions(tephra
+        PUBLIC
+            TPH_PLATFORM_WAYLAND
+        PRIVATE
+            VK_USE_PLATFORM_WAYLAND_KHR
+    )
 endif()
 
-target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ${GLOBAL_INCLUDES})
+target_include_directories(tephra
+    SYSTEM PUBLIC
+        ${GLOBAL_INCLUDES}
+    INTERFACE
+        ${PROJECT_SOURCE_DIR}/src
+)
 
 if(TEPHRA_BUILD_EXAMPLE)
-    add_executable(${PROJECT_NAME}_test "main.cpp" "window.hpp" "vertex.hpp")
-    add_definitions(-DSDL_MAIN_HANDLED)
-    target_include_directories(${PROJECT_NAME}_test PRIVATE ${SDL_INCLUDES} ${GLOBAL_INCLUDES})
-    target_link_libraries(${PROJECT_NAME}_test ${PROJECT_NAME}
-        "${PROJECT_SOURCE_DIR}/dependencies/sdl/lib/libSDL2main.a"
-        "${PROJECT_SOURCE_DIR}/dependencies/sdl/lib/libSDL2.dll.a")
+    add_executable(tephra_test "main.cpp" "window.hpp" "vertex.hpp")
+    target_compile_definitions(tephra_test PRIVATE SDL_MAIN_HANDLED)
+    target_include_directories(tephra_test PRIVATE ${SDL_INCLUDES} ${GLOBAL_INCLUDES})
+    target_link_libraries(tephra_test tephra PRIVATE ${SDL_LIBRARIES})
 endif()
 
 
-install(TARGETS ${PROJECT_NAME}
+install(TARGETS tephra
         CONFIGURATIONS Debug
         RUNTIME DESTINATION "${PROJECT_SOURCE_DIR}/../test/debug"
         ARCHIVE DESTINATION "${PROJECT_SOURCE_DIR}/../libs/debug"
         COMPONENT library)
 
-install(TARGETS ${PROJECT_NAME}
+install(TARGETS tephra
         CONFIGURATIONS Release
         RUNTIME DESTINATION "${PROJECT_SOURCE_DIR}/../test/release"
         ARCHIVE DESTINATION "${PROJECT_SOURCE_DIR}/../libs/release"
         COMPONENT library)
 
-install(DIRECTORY "${PROJECT_SOURCE_DIR}/src/" DESTINATION "${PROJECT_SOURCE_DIR}/include/${PROJECT_NAME}"
+install(DIRECTORY "${PROJECT_SOURCE_DIR}/src/" DESTINATION "${PROJECT_SOURCE_DIR}/include/tephra"
         FILES_MATCHING PATTERN "*.hpp")
 
-install(DIRECTORY "${PROJECT_SOURCE_DIR}/src/" DESTINATION "${PROJECT_SOURCE_DIR}/../libs/include/${PROJECT_NAME}"
+install(DIRECTORY "${PROJECT_SOURCE_DIR}/src/" DESTINATION "${PROJECT_SOURCE_DIR}/../libs/include/tephra"
         FILES_MATCHING PATTERN "*.hpp")

@@ -38,7 +38,7 @@ Container read_file(const std::filesystem::path& path)
     output.resize(static_cast<std::size_t>(std::filesystem::file_size(path) / sizeof(value_type)));
 
     const auto total_size{static_cast<std::streamsize>(std::size(output) * sizeof(value_type))};
-    if(ifs.read(reinterpret_cast<value_type*>(std::data(output)), total_size).gcount() != total_size)
+    if(ifs.read(reinterpret_cast<char*>(std::data(output)), total_size).gcount() != total_size)
     {
         throw std::runtime_error{"Can not read entire file \"" + convert_to<narrow>(path.u8string()) + "\"."};
     }
