@@ -5,7 +5,7 @@
 
 #include <entt/entity/registry.hpp>
 
-#include "../sound.hpp"
+#include "../engine.hpp"
 
 #include "../components/node.hpp"
 #include "../components/listener.hpp"
@@ -14,24 +14,17 @@
 namespace cpt::systems
 {
 
-namespace impl
-{
-
-CAPTAL_API void move_listener(components::node& node);
-
-}
-
 inline void audio(entt::registry& world)
 {
-    world.view<components::listener, components::node>().each([](components::node& node)
+    const auto update_listener = [](components::node& node)
     {
         if(node.is_updated())
         {
-            impl::move_listener(node);
+            engine::instance().audio_mixer().move_listener_to(node.position());
         }
-    });
+    };
 
-    world.view<components::audio_emiter, components::node>().each([](const components::audio_emiter& emiter, components::node& node)
+    const auto update_emiters = [](const components::audio_emiter& emiter, components::node& node)
     {
         if(node.is_updated())
         {
@@ -39,7 +32,10 @@ inline void audio(entt::registry& world)
 
             emiter.attachment()->move_to(node.position());
         }
-    });
+    };
+
+    world.view<components::listener, components::node>().each(update_listener);
+    world.view<components::audio_emiter, components::node>().each(update_emiters);
 }
 
 }

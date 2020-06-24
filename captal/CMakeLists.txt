@@ -74,8 +74,6 @@ add_library(captal SHARED
     src/captal/sound.cpp
     src/captal/tiled_map.cpp
     src/captal/physics.cpp
-
-    src/captal/systems/audio.cpp
 )
 
 if(WIN32)
@@ -88,7 +86,6 @@ target_compile_definitions(captal
         ZLIB_CONST
         GLM_FORCE_RADIANS
         GLM_FORCE_DEPTH_ZERO_TO_ONE
-        #ENTT_API_EXPORT
     PUBLIC
         CAPTAL_MAJOR_VERSION=${PROJECT_VERSION_MAJOR}
         CAPTAL_MINOR_VERSION=${PROJECT_VERSION_MINOR}
@@ -143,5 +140,4 @@ install(DIRECTORY ${PROJECT_SOURCE_DIR}/src/captal
 if(CAPTAL_BUILD_EXAMPLE)
     add_executable(captal_test "main.cpp")
     target_link_libraries(captal_test PRIVATE captal)
-    #target_compile_definitions(captal_test PRIVATE ENTT_API_IMPORT)
 endif()

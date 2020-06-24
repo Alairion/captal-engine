@@ -54,6 +54,7 @@ inline void index_z_sorting(entt::registry& world)
     world.sort<components::drawable, components::node>();
 }
 
+
 }
 
 #endif
