@@ -117,15 +117,15 @@ target_link_libraries(captal
         ${ZLIB_LIBRARIES}
 )
 
-install(TARGETS ${PROJECT_NAME}
+install(TARGETS captal
         CONFIGURATIONS Debug
-        RUNTIME DESTINATION ${PROJECT_SOURCE_DIR}/../test/debug
+        RUNTIME DESTINATION ${PROJECT_SOURCE_DIR}/../libs/debug
         ARCHIVE DESTINATION ${PROJECT_SOURCE_DIR}/../libs/debug
         COMPONENT library)
 
-install(TARGETS ${PROJECT_NAME}
+install(TARGETS captal
         CONFIGURATIONS Release
-        RUNTIME DESTINATION ${PROJECT_SOURCE_DIR}/../test/release
+        RUNTIME DESTINATION ${PROJECT_SOURCE_DIR}/../libs/release
         ARCHIVE DESTINATION ${PROJECT_SOURCE_DIR}/../libs/release
         COMPONENT library)
 
@@ -140,4 +140,14 @@ install(DIRECTORY ${PROJECT_SOURCE_DIR}/src/captal
 if(CAPTAL_BUILD_EXAMPLE)
     add_executable(captal_test "main.cpp")
     target_link_libraries(captal_test PRIVATE captal)
+
+    install(TARGETS captal_test
+            CONFIGURATIONS Debug
+            RUNTIME DESTINATION ${PROJECT_SOURCE_DIR}/../test/debug
+            COMPONENT library)
+
+    install(TARGETS captal_test
+            CONFIGURATIONS Release
+            RUNTIME DESTINATION ${PROJECT_SOURCE_DIR}/../test/release
+            COMPONENT library)
 endif()

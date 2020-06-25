@@ -24,6 +24,7 @@ class CAPTAL_API render_texture : public texture, public render_target
 {
 public:
     render_texture() = default;
+    render_texture(const render_texture_info& info, const tph::render_pass_info& render_pass, std::span<const render_target_attachment> attachments);
     render_texture(const render_texture_info& info);
     render_texture(const render_texture_info& info, const tph::sampling_options& sampling);
 
@@ -35,21 +36,6 @@ public:
 
     std::pair<tph::command_buffer&, frame_presented_signal&> begin_render();
     void present();
-
-    const render_texture_info& info() const noexcept
-    {
-        return m_info;
-    }
-
-    tph::sample_count sample_count() const noexcept
-    {
-        return m_info.sample_count;
-    }
-
-    tph::texture_format depth_format() const noexcept
-    {
-        return m_info.depth_format;
-    }
 
 private:
     struct frame_data

@@ -162,13 +162,13 @@ endif()
 
 install(TARGETS tephra
         CONFIGURATIONS Debug
-        RUNTIME DESTINATION "${PROJECT_SOURCE_DIR}/../test/debug"
+        RUNTIME DESTINATION "${PROJECT_SOURCE_DIR}/../libs/debug"
         ARCHIVE DESTINATION "${PROJECT_SOURCE_DIR}/../libs/debug"
         COMPONENT library)
 
 install(TARGETS tephra
         CONFIGURATIONS Release
-        RUNTIME DESTINATION "${PROJECT_SOURCE_DIR}/../test/release"
+        RUNTIME DESTINATION "${PROJECT_SOURCE_DIR}/../libs/release"
         ARCHIVE DESTINATION "${PROJECT_SOURCE_DIR}/../libs/release"
         COMPONENT library)
 

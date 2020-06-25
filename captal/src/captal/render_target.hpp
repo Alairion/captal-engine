@@ -7,10 +7,17 @@
 
 #include <sigslots/signal.hpp>
 
+#include "texture.hpp"
+
 namespace cpt
 {
 
 using frame_presented_signal = sigslot::signal<>;
+
+struct current_target_t{};
+inline constexpr current_target_t current_target{};
+
+using render_target_attachment = std::variant<texture_ptr, current_target_t>;
 
 class CAPTAL_API render_target
 {

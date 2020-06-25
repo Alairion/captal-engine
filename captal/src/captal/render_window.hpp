@@ -25,9 +25,9 @@ struct video_mode
     std::uint32_t height{};
     std::uint32_t image_count{2};
     tph::present_mode present_mode{tph::present_mode::fifo};
+    bool clipping{true};
     tph::sample_count sample_count{tph::sample_count::msaa_x1};
     tph::texture_format depth_format{tph::texture_format::undefined};
-    bool clipping{true};
 };
 
 using window_event_signal = sigslot::signal<const apr::window_event&>;
