@@ -173,7 +173,7 @@ static cpt::color parse_color(std::string_view attribute)
 static image parse_image(const pugi::xml_node& node, const std::filesystem::path& root, const external_load_callback_type& load_callback)
 {
     image output{};
-    output.source = std::filesystem::u8path(load_callback(root / node.attribute("source").as_string(), external_resource_type::image));
+    output.source = convert_to<utf8>(load_callback(root / node.attribute("source").as_string(), external_resource_type::image));
     output.width = node.attribute("width").as_uint();
     output.width = node.attribute("height").as_uint();
 
@@ -419,7 +419,7 @@ static tileset parse_map_tileset(const pugi::xml_node& node, const external_load
 
     if(const auto attribute{node.attribute("source")}; !std::empty(attribute))
     {
-        const auto path{std::filesystem::u8path(attribute.as_string())};
+        const std::filesystem::path path{convert_to<utf8>(std::string_view{attribute.as_string()})};
         const std::string data{load_callback(path, external_resource_type::tileset)};
 
         pugi::xml_document document{};

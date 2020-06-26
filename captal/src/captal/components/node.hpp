@@ -24,7 +24,6 @@ public:
     ,m_origin{origin}
     ,m_rotation{std::fmod(angle, std::numbers::pi_v<float> * 2.0f)}
     ,m_scale{scale}
-    ,m_updated{true}
     {
 
     }
@@ -41,21 +40,9 @@ public:
         m_updated = true;
     }
 
-    void move_to(float x, float y, float z = 0.0f) noexcept
-    {
-        m_position = glm::vec3{x, y, z};
-        m_updated = true;
-    }
-
     void move(const glm::vec3& relative) noexcept
     {
         m_position += relative;
-        m_updated = true;
-    }
-
-    void move(float x, float y, float z = 0.0f) noexcept
-    {
-        m_position += glm::vec3{x, y, z};
         m_updated = true;
     }
 
@@ -65,21 +52,9 @@ public:
         m_updated = true;
     }
 
-    void set_origin(float x, float y, float z = 0.0f) noexcept
-    {
-        m_origin = glm::vec3{x, y, z};
-        m_updated = true;
-    }
-
     void move_origin(const glm::vec3& relative) noexcept
     {
         m_origin += relative;
-        m_updated = true;
-    }
-
-    void move_origin(float x, float y, float z = 0.0f) noexcept
-    {
-        m_origin += glm::vec3{x, y, z};
         m_updated = true;
     }
 
@@ -152,7 +127,7 @@ private:
     glm::vec3 m_origin{};
     float m_rotation{};
     float m_scale{1.0f};
-    bool m_updated{};
+    bool m_updated{true};
 };
 
 }
