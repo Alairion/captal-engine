@@ -16,17 +16,21 @@ struct render_texture_info
     std::uint32_t width{};
     std::uint32_t height{};
     tph::texture_format format{tph::texture_format::r8g8b8a8_srgb};
-    tph::sample_count sample_count{tph::sample_count::msaa_x1}; //if not msaa_x1 uses multisampling with specified depth
-    tph::texture_format depth_format{tph::texture_format::undefined}; //ifdef uses depth buffering with specified format
 };
+
+struct current_target_t{};
+inline constexpr current_target_t current_target{};
+
+using render_texture_attachment = std::variant<texture_ptr, current_target_t>;
 
 class CAPTAL_API render_texture : public texture, public render_target
 {
 public:
     render_texture() = default;
-    render_texture(const render_texture_info& info, const tph::render_pass_info& render_pass, std::span<const render_target_attachment> attachments);
-    render_texture(const render_texture_info& info);
-    render_texture(const render_texture_info& info, const tph::sampling_options& sampling);
+    render_texture(const render_texture_info& info, const tph::render_pass_info& render_pass, std::vector<render_texture_attachment> attachments);
+    render_texture(const render_texture_info& info, const tph::sampling_options& sampling, const tph::render_pass_info& render_pass, std::vector<render_texture_attachment> attachments);
+    render_texture(const render_texture_info& info, tph::sample_count sample_count = tph::sample_count::msaa_x1, tph::texture_format depth_format = tph::texture_format::undefined);
+    render_texture(const render_texture_info& info, const tph::sampling_options& sampling, tph::sample_count sample_count = tph::sample_count::msaa_x1, tph::texture_format depth_format = tph::texture_format::undefined);
 
     ~render_texture();
     render_texture(const render_texture&) = delete;
@@ -36,6 +40,21 @@ public:
 
     std::pair<tph::command_buffer&, frame_presented_signal&> begin_render();
     void present();
+
+    tph::framebuffer& framebuffer() noexcept
+    {
+        return m_framebuffer;
+    }
+
+    const tph::framebuffer& framebuffer() const noexcept
+    {
+        return m_framebuffer;
+    }
+
+    std::span<const render_texture_attachment> attachements() const noexcept
+    {
+        return m_attachments;
+    }
 
 private:
     struct frame_data
@@ -52,9 +71,7 @@ private:
     void wait_all();
 
 private:
-    render_texture_info m_info{};
-    tph::texture m_multisampling_texture{};
-    tph::texture m_depth_texture{};
+    std::vector<render_texture_attachment> m_attachments{};
     tph::framebuffer m_framebuffer{};
     std::vector<frame_data> m_frames_data{};
 };

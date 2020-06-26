@@ -345,7 +345,6 @@ static void run()
     //A render technique describes how a view will render the scene it seens.
     //Here we need to turn on multisampling within the technique's pipeline...
     cpt::render_technique_info technique_info{};
-    technique_info.rasterization.cull_mode = tph::cull_mode::none;
     technique_info.multisample.sample_count = tph::sample_count::msaa_x4;
     technique_info.multisample.sample_shading = 1.0f;
     //And also depth buffering.

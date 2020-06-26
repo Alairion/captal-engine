@@ -26,9 +26,11 @@ if(CAPTAL_FOUNDATION_BUILD_TESTS)
     target_link_libraries(captal_foundation_test captal_foundation)
 endif()
 
-install(DIRECTORY "${PROJECT_SOURCE_DIR}/src/" DESTINATION "${PROJECT_SOURCE_DIR}/include/captal_foundation"
+install(DIRECTORY ${PROJECT_SOURCE_DIR}/src
+        DESTINATION ${PROJECT_SOURCE_DIR}/include
         FILES_MATCHING PATTERN "*.hpp")
 
-install(DIRECTORY "${PROJECT_SOURCE_DIR}/src/" DESTINATION "${PROJECT_SOURCE_DIR}/../libs/include/captal_foundation"
+install(DIRECTORY ${PROJECT_SOURCE_DIR}/src
+        DESTINATION ${PROJECT_SOURCE_DIR}/../libs/include
         FILES_MATCHING PATTERN "*.hpp")
 

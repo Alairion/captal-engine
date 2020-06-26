@@ -89,8 +89,10 @@ install(TARGETS apyre
         ARCHIVE DESTINATION "${PROJECT_SOURCE_DIR}/../libs/release"
         COMPONENT library)
 
-install(DIRECTORY "${PROJECT_SOURCE_DIR}/src/" DESTINATION "${PROJECT_SOURCE_DIR}/include/apyre"
+install(DIRECTORY ${PROJECT_SOURCE_DIR}/src
+        DESTINATION ${PROJECT_SOURCE_DIR}/include
         FILES_MATCHING PATTERN "*.hpp")
 
-install(DIRECTORY "${PROJECT_SOURCE_DIR}/src/" DESTINATION "${PROJECT_SOURCE_DIR}/../libs/include/apyre"
+install(DIRECTORY ${PROJECT_SOURCE_DIR}/src
+        DESTINATION ${PROJECT_SOURCE_DIR}/../libs/include
         FILES_MATCHING PATTERN "*.hpp")

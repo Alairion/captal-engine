@@ -130,11 +130,11 @@ install(TARGETS captal
         COMPONENT library)
 
 install(DIRECTORY ${PROJECT_SOURCE_DIR}/src/captal
-        DESTINATION ${PROJECT_SOURCE_DIR}/include/captal
+        DESTINATION ${PROJECT_SOURCE_DIR}/include
         FILES_MATCHING PATTERN *.hpp)
 
 install(DIRECTORY ${PROJECT_SOURCE_DIR}/src/captal
-        DESTINATION ${PROJECT_SOURCE_DIR}/../libs/include/captal
+        DESTINATION ${PROJECT_SOURCE_DIR}/../libs/include
         FILES_MATCHING PATTERN *.hpp)
 
 if(CAPTAL_BUILD_EXAMPLE)

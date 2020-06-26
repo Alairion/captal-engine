@@ -162,18 +162,18 @@ endif()
 
 install(TARGETS tephra
         CONFIGURATIONS Debug
-        RUNTIME DESTINATION "${PROJECT_SOURCE_DIR}/../libs/debug"
-        ARCHIVE DESTINATION "${PROJECT_SOURCE_DIR}/../libs/debug"
+        RUNTIME DESTINATION ${PROJECT_SOURCE_DIR}/../libs/debug
+        ARCHIVE DESTINATION ${PROJECT_SOURCE_DIR}/../libs/debug
         COMPONENT library)
 
 install(TARGETS tephra
         CONFIGURATIONS Release
-        RUNTIME DESTINATION "${PROJECT_SOURCE_DIR}/../libs/release"
-        ARCHIVE DESTINATION "${PROJECT_SOURCE_DIR}/../libs/release"
+        RUNTIME DESTINATION ${PROJECT_SOURCE_DIR}/../libs/release
+        ARCHIVE DESTINATION ${PROJECT_SOURCE_DIR}/../libs/release
         COMPONENT library)
 
-install(DIRECTORY "${PROJECT_SOURCE_DIR}/src/" DESTINATION "${PROJECT_SOURCE_DIR}/include/tephra"
+install(DIRECTORY ${PROJECT_SOURCE_DIR}/src DESTINATION ${PROJECT_SOURCE_DIR}/include
         FILES_MATCHING PATTERN "*.hpp")
 
-install(DIRECTORY "${PROJECT_SOURCE_DIR}/src/" DESTINATION "${PROJECT_SOURCE_DIR}/../libs/include/tephra"
+install(DIRECTORY ${PROJECT_SOURCE_DIR}/src DESTINATION ${PROJECT_SOURCE_DIR}/../libs/include
         FILES_MATCHING PATTERN "*.hpp")

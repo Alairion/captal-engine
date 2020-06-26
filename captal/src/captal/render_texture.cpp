@@ -5,17 +5,17 @@
 namespace cpt
 {
 
-static tph::render_pass_info make_render_pass_info(const render_texture_info& info, bool has_sampling)
+static tph::render_pass_info make_render_pass_info(tph::texture_format color_format, bool has_sampling, tph::sample_count sample_count, tph::texture_format depth_format)
 {
-    const bool has_multisampling{info.sample_count != tph::sample_count::msaa_x1};
-    const bool has_depth_stencil{info.depth_format != tph::texture_format::undefined};
+    const bool has_multisampling{sample_count != tph::sample_count::msaa_x1};
+    const bool has_depth_stencil{depth_format != tph::texture_format::undefined};
 
     tph::render_pass_info output{};
     auto& subpass{output.subpasses.emplace_back()};
 
     auto& color_attachement{output.attachments.emplace_back()};
-    color_attachement.format = info.format;
-    color_attachement.sample_count = info.sample_count;
+    color_attachement.format = color_format;
+    color_attachement.sample_count = sample_count;
     color_attachement.load_op = tph::attachment_load_op::clear;
 
     if(has_multisampling)
@@ -49,8 +49,8 @@ static tph::render_pass_info make_render_pass_info(const render_texture_info& in
     if(has_depth_stencil)
     {
         auto& depth_attachement{output.attachments.emplace_back()};
-        depth_attachement.format = info.depth_format;
-        depth_attachement.sample_count = info.sample_count;
+        depth_attachement.format = depth_format;
+        depth_attachement.sample_count = sample_count;
         depth_attachement.load_op = tph::attachment_load_op::clear;
         depth_attachement.store_op = tph::attachment_store_op::dont_care;
         depth_attachement.stencil_load_op = tph::attachment_load_op::clear;
@@ -64,7 +64,7 @@ static tph::render_pass_info make_render_pass_info(const render_texture_info& in
     if(has_multisampling)
     {
         auto& resolve_attachement{output.attachments.emplace_back()};
-        resolve_attachement.format = info.format;
+        resolve_attachement.format = color_format;
         resolve_attachement.sample_count = tph::sample_count::msaa_x1;
         resolve_attachement.load_op = tph::attachment_load_op::clear;
         resolve_attachement.store_op = tph::attachment_store_op::store;
@@ -102,82 +102,91 @@ static tph::render_pass_info make_render_pass_info(const render_texture_info& in
     return output;
 }
 
-static tph::texture make_multisampling_texture(const render_texture_info& info)
+static std::vector<render_texture_attachment> make_attachments(const render_texture_info& info, tph::sample_count sample_count, tph::texture_format depth_format)
 {
-    if(info.sample_count == tph::sample_count::msaa_x1)
-    {
-        return tph::texture{};
-    }
+    const bool has_multisampling{sample_count != tph::sample_count::msaa_x1};
+    const bool has_depth_stencil{depth_format != tph::texture_format::undefined};
 
-    return tph::texture{engine::instance().renderer(), info.width, info.height, info.format, tph::texture_usage::color_attachment, info.sample_count};
-}
-
-static tph::texture make_depth_texture(const render_texture_info& info)
-{
-    if(info.depth_format == tph::texture_format::undefined)
-    {
-        return tph::texture{};
-    }
-
-    return tph::texture{engine::instance().renderer(), info.width, info.height, info.depth_format, tph::texture_usage::depth_stencil_attachment, info.sample_count};
-}
-
-static std::vector<std::reference_wrapper<tph::texture>> make_attachments(const render_texture_info& info, tph::texture& color, tph::texture& multisampling, tph::texture& depth)
-{
-    const bool has_multisampling{info.sample_count != tph::sample_count::msaa_x1};
-    const bool has_depth_stencil{info.depth_format != tph::texture_format::undefined};
-
-    std::vector<std::reference_wrapper<tph::texture>> output{};
+    std::vector<render_texture_attachment> output{};
 
     if(has_multisampling)
     {
-        output.emplace_back(multisampling);
+        output.emplace_back(make_texture(info.width, info.height, info.format, tph::texture_usage::color_attachment, sample_count));
 
         if(has_depth_stencil)
         {
-            output.emplace_back(depth);
+            output.emplace_back(make_texture(info.width, info.height, depth_format, tph::texture_usage::depth_stencil_attachment, sample_count));
         }
 
-        output.emplace_back(color);
+        output.emplace_back(current_target);
     }
     else
     {
-        output.emplace_back(color);
+        output.emplace_back(current_target);
 
         if(has_depth_stencil)
         {
-            output.emplace_back(depth);
+            output.emplace_back(make_texture(info.width, info.height, depth_format, tph::texture_usage::depth_stencil_attachment, sample_count));
         }
     }
 
     return output;
 }
 
-render_texture::render_texture(const tph::render_pass_info& info, std::span<const render_target_attachment> attachments)
+static std::vector<std::reference_wrapper<tph::texture>> convert_framebuffer_attachments(std::span<const render_texture_attachment> attachments, tph::texture& current)
 {
+    std::vector<std::reference_wrapper<tph::texture>> output{};
+    output.reserve(std::size(attachments));
 
+    for(auto&& attachment : attachments)
+    {
+        if(std::holds_alternative<current_target_t>(attachment))
+        {
+            output.emplace_back(current);
+        }
+        else
+        {
+            output.emplace_back(std::get<texture_ptr>(attachment)->get_texture());
+        }
+    }
+
+    return output;
 }
 
-render_texture::render_texture(const render_texture_info& info)
+render_texture::render_texture(const render_texture_info& info, const tph::render_pass_info& render_pass, std::vector<render_texture_attachment> attachments)
 :texture{info.width, info.height, info.format, tph::texture_usage::color_attachment | tph::texture_usage::sampled}
-,render_target{make_render_pass_info(info, false)}
-,m_info{info}
-,m_multisampling_texture{make_multisampling_texture(info)}
-,m_depth_texture{make_depth_texture(info)}
-,m_framebuffer{engine::instance().renderer(), get_render_pass(), make_attachments(info, get_texture(), m_multisampling_texture, m_depth_texture), info.width, info.height, 1}
+,render_target{render_pass}
+,m_attachments{std::move(attachments)}
+,m_framebuffer{engine::instance().renderer(), get_render_pass(), convert_framebuffer_attachments(m_attachments, get_texture()), info.width, info.height, 1}
 {
     m_frames_data.reserve(4);
 }
 
-render_texture::render_texture(const render_texture_info& info, const tph::sampling_options& sampling)
+render_texture::render_texture(const render_texture_info& info, const tph::sampling_options& sampling, const tph::render_pass_info& render_pass, std::vector<render_texture_attachment> attachments)
 :texture{info.width, info.height, sampling, info.format, tph::texture_usage::color_attachment | tph::texture_usage::sampled}
-,render_target{make_render_pass_info(info, true)}
-,m_info{info}
-,m_multisampling_texture{make_multisampling_texture(info)}
-,m_depth_texture{make_depth_texture(info)}
-,m_framebuffer{engine::instance().renderer(), get_render_pass(), make_attachments(info, get_texture(), m_multisampling_texture, m_depth_texture), info.width, info.height, 1}
+,render_target{render_pass}
+,m_attachments{std::move(attachments)}
+,m_framebuffer{engine::instance().renderer(), get_render_pass(), convert_framebuffer_attachments(m_attachments, get_texture()), info.width, info.height, 1}
 {
     m_frames_data.reserve(4);
+}
+
+render_texture::render_texture(const render_texture_info& info, tph::sample_count sample_count, tph::texture_format depth_format)
+:texture{info.width, info.height, info.format, tph::texture_usage::color_attachment | tph::texture_usage::sampled}
+,render_target{make_render_pass_info(info.format, false, sample_count, depth_format)}
+,m_attachments{make_attachments(info, sample_count, depth_format)}
+,m_framebuffer{engine::instance().renderer(), get_render_pass(), convert_framebuffer_attachments(m_attachments, get_texture()), info.width, info.height, 1}
+{
+
+}
+
+render_texture::render_texture(const render_texture_info& info, const tph::sampling_options& sampling, tph::sample_count sample_count, tph::texture_format depth_format)
+:texture{info.width, info.height, sampling, info.format, tph::texture_usage::color_attachment | tph::texture_usage::sampled}
+,render_target{make_render_pass_info(info.format, true, sample_count, depth_format)}
+,m_attachments{make_attachments(info, sample_count, depth_format)}
+,m_framebuffer{engine::instance().renderer(), get_render_pass(), convert_framebuffer_attachments(m_attachments, get_texture()), info.width, info.height, 1}
+{
+
 }
 
 render_texture::~render_texture()
