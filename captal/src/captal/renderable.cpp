@@ -107,8 +107,8 @@ void renderable::set_view(const view_ptr& view)
         auto& texture{m_texture ? m_texture->get_texture() : engine::instance().default_texture().get_texture()};
 
         std::vector<tph::descriptor_write> writes{};
-        writes.emplace_back(tph::descriptor_write{set->set(), 0, 0, tph::descriptor_type::uniform_buffer, tph::descriptor_buffer_info{view->buffer(), 0, view->buffer().size()}});
-        writes.emplace_back(tph::descriptor_write{set->set(), 1, 0, tph::descriptor_type::uniform_buffer, tph::descriptor_buffer_info{m_buffer.buffer(), 0, m_buffer.size()}});
+        writes.emplace_back(tph::descriptor_write{set->set(), 0, 0, tph::descriptor_type::uniform_buffer, tph::descriptor_buffer_info{view->buffer(), 0, sizeof(view::uniform_data)}});
+        writes.emplace_back(tph::descriptor_write{set->set(), 1, 0, tph::descriptor_type::uniform_buffer, tph::descriptor_buffer_info{m_buffer.buffer(), 0, sizeof(renderable::uniform_data)}});
         writes.emplace_back(tph::descriptor_write{set->set(), 2, 0, tph::descriptor_type::image_sampler, tph::descriptor_texture_info{texture, tph::texture_layout::shader_read_only_optimal}});
 
         for(auto&& [binding, data] : m_uniform_bindings)

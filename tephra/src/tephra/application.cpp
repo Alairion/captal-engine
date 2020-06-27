@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <iostream>
+#include <cassert>
 
 #include "vulkan/vulkan_functions.hpp"
 
@@ -52,6 +53,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debug_messenger_callback(VkDebugUtilsMessa
     if(severity == VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
     {
         std::cerr << message << std::endl;
+        assert(false && "Validation error.");
     }
     else
     {

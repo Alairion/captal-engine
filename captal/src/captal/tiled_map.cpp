@@ -426,7 +426,7 @@ static tileset parse_map_tileset(const pugi::xml_node& node, const external_load
         if(auto result{document.load_string(std::data(data))}; !result)
             throw std::runtime_error{"Can not parse TMX file: " + std::string{result.description()}};
 
-        parse_tileset(document.child("tileset"), output, path, load_callback);
+        parse_tileset(document.child("tileset"), output, path.parent_path(), load_callback);
     }
     else
     {
@@ -612,7 +612,7 @@ map load_map(const std::filesystem::path& path)
         if(resource_type == external_resource_type::image || resource_type == external_resource_type::file)
         {
             const std::filesystem::path output{path.parent_path() / other_path};
-            return convert<utf8, narrow>(output.string());
+            return convert<utf8, narrow>(output.u8string());
         }
         else
         {
