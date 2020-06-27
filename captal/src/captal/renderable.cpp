@@ -354,13 +354,12 @@ tilemap::tilemap(std::uint32_t width, std::uint32_t height, const tileset& tiles
 
 void tilemap::set_color(std::uint32_t row, std::uint32_t col, const color& color) noexcept
 {
-    const auto vertices{get_vertices()};
-    const auto current{(col * m_width) + row};
+    const auto vertices{get_vertices().subspan((row * m_width + col) * 4, 4)};
 
-    vertices[current + 0].color = static_cast<glm::vec4>(color);
-    vertices[current + 1].color = static_cast<glm::vec4>(color);
-    vertices[current + 2].color = static_cast<glm::vec4>(color);
-    vertices[current + 3].color = static_cast<glm::vec4>(color);
+    vertices[0].color = static_cast<glm::vec4>(color);
+    vertices[1].color = static_cast<glm::vec4>(color);
+    vertices[2].color = static_cast<glm::vec4>(color);
+    vertices[3].color = static_cast<glm::vec4>(color);
 
     update();
 }
@@ -381,7 +380,7 @@ void tilemap::set_texture_rect(std::uint32_t row, std::uint32_t col, std::int32_
 
 void tilemap::set_texture_rect(std::uint32_t row, std::uint32_t col, const tileset::texture_rect& rect) noexcept
 {
-    const auto vertices{get_vertices().subspan((col * m_width) + row, 4)};
+    const auto vertices{get_vertices().subspan((row * m_width + col) * 4, 4)};
 
     vertices[0].texture_coord = rect.top_left;
     vertices[1].texture_coord = rect.top_right;
@@ -393,7 +392,7 @@ void tilemap::set_texture_rect(std::uint32_t row, std::uint32_t col, const tiles
 
 void tilemap::set_relative_texture_coords(std::uint32_t row, std::uint32_t col, float x1, float y1, float x2, float y2) noexcept
 {
-    const auto vertices{get_vertices().subspan((col * m_width) + row, 4)};
+    const auto vertices{get_vertices().subspan((row * m_width + col) * 4, 4)};
 
     vertices[0].texture_coord = glm::vec2{x1, y1};
     vertices[1].texture_coord = glm::vec2{x2, y1};

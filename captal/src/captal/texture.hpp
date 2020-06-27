@@ -203,13 +203,13 @@ public:
     {
         texture_rect output{};
 
-        const std::uint32_t width{m_texture->width()};
-        const std::uint32_t height{m_texture->height()};
+        const float width{static_cast<float>(m_texture->width())};
+        const float height{static_cast<float>(m_texture->height())};
 
-        output.top_left     = glm::vec2{static_cast<float>(( col      * m_tile_width) / width), static_cast<float>(( row      * m_tile_height) / height)};
-        output.top_right    = glm::vec2{static_cast<float>(((col + 1) * m_tile_width) / width), static_cast<float>(( row      * m_tile_height) / height)};
-        output.bottom_right = glm::vec2{static_cast<float>(((col + 1) * m_tile_width) / width), static_cast<float>(((row + 1) * m_tile_height) / height)};
-        output.bottom_left  = glm::vec2{static_cast<float>(( col      * m_tile_width) / width), static_cast<float>(((row + 1) * m_tile_height) / height)};
+        output.top_left     = glm::vec2{static_cast<float>(( col      * m_tile_width)) / width, static_cast<float>(( row      * m_tile_height)) / height};
+        output.top_right    = glm::vec2{static_cast<float>(((col + 1) * m_tile_width)) / width, static_cast<float>(( row      * m_tile_height)) / height};
+        output.bottom_right = glm::vec2{static_cast<float>(((col + 1) * m_tile_width)) / width, static_cast<float>(((row + 1) * m_tile_height)) / height};
+        output.bottom_left  = glm::vec2{static_cast<float>(( col      * m_tile_width)) / width, static_cast<float>(((row + 1) * m_tile_height)) / height};
 
         return output;
     }
