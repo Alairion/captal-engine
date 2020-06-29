@@ -177,7 +177,7 @@ render_texture::render_texture(const render_texture_info& info, tph::sample_coun
 ,m_attachments{make_attachments(info, sample_count, depth_format)}
 ,m_framebuffer{engine::instance().renderer(), get_render_pass(), convert_framebuffer_attachments(m_attachments, get_texture()), info.width, info.height, 1}
 {
-
+    m_frames_data.reserve(4);
 }
 
 render_texture::render_texture(const render_texture_info& info, const tph::sampling_options& sampling, tph::sample_count sample_count, tph::texture_format depth_format)
@@ -186,7 +186,7 @@ render_texture::render_texture(const render_texture_info& info, const tph::sampl
 ,m_attachments{make_attachments(info, sample_count, depth_format)}
 ,m_framebuffer{engine::instance().renderer(), get_render_pass(), convert_framebuffer_attachments(m_attachments, get_texture()), info.width, info.height, 1}
 {
-
+    m_frames_data.reserve(4);
 }
 
 render_texture::~render_texture()

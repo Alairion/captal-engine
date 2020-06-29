@@ -19,7 +19,25 @@ inline void physics(entt::registry& world)
 
         if(!body.attachment()->sleeping())
         {
-            node.move_to(glm::vec3{body.attachment()->position(), node.position().z});
+            const auto position{body.attachment()->position()};
+
+            node.move_to(glm::vec3{position.x, position.y, node.position().z});
+            node.set_rotation(body.attachment()->rotation());
+        }
+    });
+}
+
+inline void physics_floored(entt::registry& world)
+{
+    world.view<components::node, const components::physical_body>().each([](components::node& node, const components::physical_body& body)
+    {
+        assert(body.attachment() && "Invalid attachment");
+
+        if(!body.attachment()->sleeping())
+        {
+            const auto position{body.attachment()->position()};
+
+            node.move_to(glm::vec3{std::floor(position.x), std::floor(position.y), node.position().z});
             node.set_rotation(body.attachment()->rotation());
         }
     });

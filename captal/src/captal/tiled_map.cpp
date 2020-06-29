@@ -266,6 +266,16 @@ static object parse_object(const pugi::xml_node& node, const std::filesystem::pa
 
             output.content = point;
         }
+        else if(child.name() == "ellipse"sv)
+        {
+            object::ellipse ellipse{};
+            ellipse.position.x = node.attribute("x").as_float();
+            ellipse.position.y = node.attribute("y").as_float();
+            ellipse.width = node.attribute("width").as_float();
+            ellipse.height = node.attribute("height").as_float();
+
+            output.content = ellipse;
+        }
         else if(child.name() == "text"sv)
         {
             object::text text{};

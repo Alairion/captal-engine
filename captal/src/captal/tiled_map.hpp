@@ -41,6 +41,13 @@ struct object
         float angle{};
     };
 
+    struct ellipse
+    {
+        glm::vec2 position{};
+        float width{};
+        float height{};
+    };
+
     struct tile
     {
         std::uint32_t gid{};
@@ -65,7 +72,7 @@ struct object
         text_drawer_options drawer_options{};
     };
 
-    using content_type = std::variant<std::monostate, point, square, tile, text>;
+    using content_type = std::variant<std::monostate, point, square, ellipse, tile, text>;
 
     std::uint32_t id{};
     std::string name{};
