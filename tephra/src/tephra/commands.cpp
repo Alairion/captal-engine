@@ -599,6 +599,18 @@ void pipeline_barrier(command_buffer& command_buffer, pipeline_stage source_stag
                          0, nullptr, 0, nullptr, 0, nullptr);
 }
 
+void pipeline_barrier(command_buffer& command_buffer, resource_access source_access, resource_access destination_access, pipeline_stage source_stage, pipeline_stage destination_stage)
+{
+    VkMemoryBarrier barrier{};
+    barrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+    barrier.srcAccessMask = static_cast<VkAccessFlags>(source_access);
+    barrier.dstAccessMask = static_cast<VkAccessFlags>(destination_access);
+
+    vkCmdPipelineBarrier(underlying_cast<VkCommandBuffer>(command_buffer),
+                         static_cast<VkPipelineStageFlags>(source_stage), static_cast<VkPipelineStageFlags>(destination_stage), 0,
+                         1, &barrier, 0, nullptr, 0, nullptr);
+}
+
 void push_constants(command_buffer& command_buffer, pipeline_layout& layout, shader_stage stages, std::uint32_t offset, std::uint32_t size, const void* data)
 {
     vkCmdPushConstants(underlying_cast<VkCommandBuffer>(command_buffer), underlying_cast<VkPipelineLayout>(layout), static_cast<VkShaderStageFlags>(stages), offset, size, data);
