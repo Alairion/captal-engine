@@ -681,10 +681,10 @@ void bind_index_buffer(command_buffer& command_buffer, buffer& buffer, std::uint
     vkCmdBindIndexBuffer(underlying_cast<VkCommandBuffer>(command_buffer), underlying_cast<VkBuffer>(buffer), offset, static_cast<VkIndexType>(type));
 }
 
-void bind_descriptor_set(command_buffer& command_buffer, descriptor_set& descriptor_set, pipeline_layout& layout)
+void bind_descriptor_set(command_buffer& command_buffer, descriptor_set& descriptor_set, pipeline_layout& layout, pipeline_type bind_point)
 {
     VkDescriptorSet native_descriptor_set{underlying_cast<VkDescriptorSet>(descriptor_set)};
-    vkCmdBindDescriptorSets(underlying_cast<VkCommandBuffer>(command_buffer), VK_PIPELINE_BIND_POINT_GRAPHICS, underlying_cast<VkPipelineLayout>(layout), 0, 1, &native_descriptor_set, 0, nullptr);
+    vkCmdBindDescriptorSets(underlying_cast<VkCommandBuffer>(command_buffer), static_cast<VkPipelineBindPoint>(bind_point), underlying_cast<VkPipelineLayout>(layout), 0, 1, &native_descriptor_set, 0, nullptr);
 }
 
 void set_viewport(command_buffer& command_buffer, const viewport& viewport, std::uint32_t index)

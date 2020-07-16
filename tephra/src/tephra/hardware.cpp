@@ -54,6 +54,7 @@ static physical_device_limits make_limits(VkPhysicalDevice physical_device) noex
     output.max_texture_size = properties.limits.maxImageDimension2D;
     output.max_push_constant_size = properties.limits.maxPushConstantsSize;
     output.min_uniform_buffer_alignment = properties.limits.minUniformBufferOffsetAlignment;
+    output.min_storage_buffer_alignment = properties.limits.minStorageBufferOffsetAlignment;
 
     return output;
 }

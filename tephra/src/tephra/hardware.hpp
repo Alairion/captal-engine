@@ -46,6 +46,7 @@ struct physical_device_limits
     std::uint32_t max_texture_size{};
     std::uint32_t max_push_constant_size{};
     std::uint64_t min_uniform_buffer_alignment{};
+    std::uint64_t min_storage_buffer_alignment{};
 };
 
 struct physical_device_memory_properties

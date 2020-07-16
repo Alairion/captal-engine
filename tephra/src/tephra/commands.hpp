@@ -10,13 +10,12 @@
 #include "renderer.hpp"
 #include "render_target.hpp"
 #include "enumerations.hpp"
+#include "pipeline.hpp"
 
 namespace tph
 {
 
 class render_pass;
-class pipeline;
-class pipeline_layout;
 class command_buffer;
 class semaphore;
 class fence;
@@ -211,7 +210,7 @@ TEPHRA_API void end_render_pass(command_buffer& command_buffer);
 TEPHRA_API void bind_pipeline(command_buffer& command_buffer, pipeline& pipeline);
 TEPHRA_API void bind_vertex_buffer(command_buffer& command_buffer, buffer& buffer, std::uint64_t offset);
 TEPHRA_API void bind_index_buffer(command_buffer& command_buffer, buffer& buffer, std::uint64_t offset, index_type type);
-TEPHRA_API void bind_descriptor_set(command_buffer& command_buffer, descriptor_set& descriptor_set, pipeline_layout& layout);
+TEPHRA_API void bind_descriptor_set(command_buffer& command_buffer, descriptor_set& descriptor_set, pipeline_layout& layout, pipeline_type bind_point = pipeline_type::graphics);
 
 TEPHRA_API void set_viewport(command_buffer& command_buffer, const viewport& viewport, std::uint32_t index = 0);
 TEPHRA_API void set_scissor(command_buffer& command_buffer, const scissor& scissor, std::uint32_t index = 0);

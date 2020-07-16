@@ -196,7 +196,7 @@ enum class resource_access
     uniform_read = VK_ACCESS_UNIFORM_READ_BIT,
     input_attachment = VK_ACCESS_INPUT_ATTACHMENT_READ_BIT,
     shader_read = VK_ACCESS_SHADER_READ_BIT,
-    shared_write = VK_ACCESS_SHADER_WRITE_BIT,
+    shader_write = VK_ACCESS_SHADER_WRITE_BIT,
     color_attachment_read = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT,
     color_attachment_write = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
     depth_stencil_attachment_read = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT,

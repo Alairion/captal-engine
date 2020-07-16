@@ -16,6 +16,7 @@ struct render_texture_info
     std::uint32_t width{};
     std::uint32_t height{};
     tph::texture_format format{tph::texture_format::r8g8b8a8_srgb};
+    tph::texture_usage usage{};
 };
 
 struct current_target_t{};
