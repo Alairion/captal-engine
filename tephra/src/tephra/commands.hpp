@@ -200,6 +200,8 @@ TEPHRA_API void transition(command_buffer& command_buffer, texture& texture, res
 TEPHRA_API void pipeline_barrier(command_buffer& command_buffer, pipeline_stage source_stage, pipeline_stage destination_stage);
 TEPHRA_API void pipeline_barrier(command_buffer& command_buffer, resource_access source_access, resource_access destination_access, pipeline_stage source_stage, pipeline_stage destination_stage);
 
+TEPHRA_API void update_buffer(command_buffer& command_buffer, tph::buffer& buffer, std::uint64_t offset, std::uint64_t size, const void* data);
+TEPHRA_API void fill_buffer(command_buffer& command_buffer, tph::buffer& buffer, std::uint64_t offset, std::uint64_t size, std::uint32_t value);
 TEPHRA_API void push_constants(command_buffer& command_buffer, pipeline_layout& layout, shader_stage stages, std::uint32_t offset, std::uint32_t size, const void* data);
 
 TEPHRA_API void begin_render_pass(command_buffer& command_buffer, const render_pass& render_pass, const framebuffer& framebuffer, render_pass_content content = render_pass_content::inlined);

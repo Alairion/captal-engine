@@ -30,8 +30,9 @@ add_library(captal SHARED
     src/captal/color.hpp
     src/captal/vertex.hpp
     src/captal/texture.hpp
-    src/captal/framed_buffer.hpp
     src/captal/uniform_buffer.hpp
+    src/captal/storage_buffer.hpp
+    src/captal/binding.hpp
     src/captal/shapes.hpp
     src/captal/renderable.hpp
     src/captal/view.hpp
@@ -66,7 +67,8 @@ add_library(captal SHARED
     src/captal/render_texture.cpp
     src/captal/state.cpp
     src/captal/texture.cpp
-    src/captal/framed_buffer.cpp
+    src/captal/uniform_buffer.cpp
+    src/captal/storage_buffer.cpp
     src/captal/shapes.cpp
     src/captal/renderable.cpp
     src/captal/view.cpp

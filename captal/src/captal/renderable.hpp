@@ -10,8 +10,8 @@
 #include <glm/mat4x4.hpp>
 
 #include "asynchronous_resource.hpp"
-#include "framed_buffer.hpp"
 #include "uniform_buffer.hpp"
+#include "binding.hpp"
 #include "color.hpp"
 #include "view.hpp"
 #include "vertex.hpp"
@@ -109,6 +109,8 @@ public:
 
     void upload();
     void draw(tph::command_buffer& buffer);
+    cpt::binding& add_binding(std::uint32_t index, cpt::binding binding);
+    void set_uniform(std::uint32_t index, cpt::binding new_binding);
 
     const glm::vec3& position() const noexcept
     {
@@ -139,24 +141,24 @@ public:
     {
         assert(m_index_count > 0 && "cpt::renderable::get_indices called on renderable with no index buffer");
 
-        return std::span{&m_buffer.get<std::uint32_t>(1), static_cast<std::size_t>(m_index_count)};
+        return std::span{&m_buffer->get<std::uint32_t>(1), static_cast<std::size_t>(m_index_count)};
     }
 
     std::span<const std::uint32_t> get_indices() const noexcept
     {
         assert(m_index_count > 0 && "cpt::renderable::get_indices called on renderable with no index buffer");
 
-        return std::span{&m_buffer.get<std::uint32_t>(1), static_cast<std::size_t>(m_index_count)};
+        return std::span{&m_buffer->get<std::uint32_t>(1), static_cast<std::size_t>(m_index_count)};
     }
 
     std::span<vertex> get_vertices() noexcept
     {
-        return std::span{&m_buffer.get<vertex>(m_index_count > 0 ? 2 : 1), static_cast<std::size_t>(m_vertex_count)};
+        return std::span{&m_buffer->get<vertex>(m_index_count > 0 ? 2 : 1), static_cast<std::size_t>(m_vertex_count)};
     }
 
     std::span<const vertex> get_vertices() const noexcept
     {
-        return std::span{&m_buffer.get<vertex>(m_index_count > 0 ? 2 : 1), static_cast<std::size_t>(m_vertex_count)};
+        return std::span{&m_buffer->get<vertex>(m_index_count > 0 ? 2 : 1), static_cast<std::size_t>(m_vertex_count)};
     }
 
     const descriptor_set_ptr& set() const noexcept
@@ -174,36 +176,19 @@ public:
         return m_texture;
     }
 
-    template<typename T>
-    cpt::uniform_binding& add_uniform_binding(std::uint32_t binding, T&& data)
+    const cpt::binding& binding(std::uint32_t index) const
     {
-        auto [it, success] = m_uniform_bindings.try_emplace(binding, cpt::uniform_binding{std::forward<T>(data)});
-        assert(success && "cpt::view::add_uniform_buffer called with already used binding.");
-
-        m_need_descriptor_update = true;
-        return it->second;
+        return m_bindings.at(index);
     }
 
-    const cpt::uniform_binding& uniform_binding(std::uint32_t binding) const
+    bool has_binding(std::uint32_t index) const
     {
-        return m_uniform_bindings.at(binding);
+        return m_bindings.find(index) != std::end(m_bindings);
     }
 
-    template<typename T>
-    void set_uniform(std::uint32_t binding, T&& data)
+    const std::unordered_map<std::uint32_t, cpt::binding>& bindings() const noexcept
     {
-        m_uniform_bindings.at(binding) = std::forward<T>(data);
-        m_need_descriptor_update = true;
-    }
-
-    bool has_binding(std::uint32_t binding) const
-    {
-        return m_uniform_bindings.find(binding) != std::end(m_uniform_bindings);
-    }
-
-    const std::unordered_map<std::uint32_t, cpt::uniform_binding>& uniform_bindings() const noexcept
-    {
-        return m_uniform_bindings;
+        return m_bindings;
     }
 
 private:
@@ -216,11 +201,11 @@ private:
     float m_rotation{};
     bool m_hidden{};
 
-    framed_buffer m_buffer{};
+    uniform_buffer_ptr m_buffer{};
     bool m_need_upload{true};
 
     texture_ptr m_texture{};
-    std::unordered_map<std::uint32_t, cpt::uniform_binding> m_uniform_bindings{};
+    std::unordered_map<std::uint32_t, cpt::binding> m_bindings{};
 
     std::unordered_map<const view*, descriptor_set_ptr> m_descriptor_sets{};
     descriptor_set_ptr m_current_set{};

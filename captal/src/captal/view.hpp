@@ -10,8 +10,8 @@
 #include <glm/mat4x4.hpp>
 
 #include "asynchronous_resource.hpp"
-#include "framed_buffer.hpp"
 #include "uniform_buffer.hpp"
+#include "binding.hpp"
 #include "render_technique.hpp"
 #include "render_window.hpp"
 #include "render_texture.hpp"
@@ -138,22 +138,8 @@ public:
         m_render_technique->set_push_constant(index, std::forward<T>(value));
     }
 
-    template<typename T>
-    cpt::uniform_binding& add_uniform(std::uint32_t binding, T&& data)
-    {
-        auto [it, success] = m_uniform_bindings.try_emplace(binding, cpt::uniform_binding{std::forward<T>(data)});
-        assert(success && "cpt::view::add_uniform_buffer called with already used binding.");
-
-        update_uniforms();
-        return it->second;
-    }
-
-    template<typename T>
-    void set_uniform(std::uint32_t binding, T&& data)
-    {
-        uniform_binding(binding) = std::forward<T>(data);
-        update_uniforms();
-    }
+    cpt::binding& add_binding(std::uint32_t index, cpt::binding binding);
+    void set_binding(std::uint32_t index, cpt::binding new_binding);
 
     void update() noexcept
     {
@@ -232,14 +218,14 @@ public:
         return *m_target;
     }
 
-    tph::buffer& buffer() noexcept
+    tph::buffer& get_buffer() noexcept
     {
-        return m_buffer.buffer();
+        return m_buffer->get_buffer();
     }
 
-    const tph::buffer& buffer() const noexcept
+    const tph::buffer& get_buffer() const noexcept
     {
-        return m_buffer.buffer();
+        return m_buffer->get_buffer();
     }
 
     template<typename T>
@@ -254,29 +240,29 @@ public:
         return m_render_technique->get_push_constant<T>(index);
     }
 
-    cpt::uniform_binding& uniform_binding(std::uint32_t binding)
+    cpt::binding& binding(std::uint32_t index)
     {
-        return m_uniform_bindings.at(binding);
+        return m_bindings.at(index);
     }
 
-    const cpt::uniform_binding& uniform_binding(std::uint32_t binding) const
+    const cpt::binding& binding(std::uint32_t index) const
     {
-        return m_uniform_bindings.at(binding);
+        return m_bindings.at(index);
     }
 
-    bool has_binding(std::uint32_t binding) const
+    bool has_binding(std::uint32_t index) const
     {
-        return m_uniform_bindings.find(binding) != std::end(m_uniform_bindings);
+        return m_bindings.find(index) != std::end(m_bindings);
     }
 
-    std::unordered_map<std::uint32_t, cpt::uniform_binding>& uniform_bindings() noexcept
+    std::unordered_map<std::uint32_t, cpt::binding>& bindings() noexcept
     {
-        return m_uniform_bindings;
+        return m_bindings;
     }
 
-    const std::unordered_map<std::uint32_t, cpt::uniform_binding>& uniform_bindings() const noexcept
+    const std::unordered_map<std::uint32_t, cpt::binding>& bindings() const noexcept
     {
-        return m_uniform_bindings;
+        return m_bindings;
     }
 
     bool need_descriptor_update(bool new_value = false) noexcept
@@ -296,9 +282,9 @@ private:
     float m_rotation{};
     view_type m_type{};
 
-    framed_buffer m_buffer{};
+    uniform_buffer_ptr m_buffer{};
     bool m_need_upload{true};
-    std::unordered_map<std::uint32_t, cpt::uniform_binding> m_uniform_bindings{};
+    std::unordered_map<std::uint32_t, cpt::binding> m_bindings{};
     bool m_need_descriptor_update{};
 
     render_target* m_target{};

@@ -30,6 +30,7 @@ L: Custom exception type
 
 Captal:
 H: Test initialization
+H: Rethink of framed buffer lifetime (problem with transfers, store connections ?)
 A: Complete text rendering support (alignments, stylized)
 A: More primitive shapes (circles, ellipses, convex polygons)
 A: Particles support

@@ -1,4 +1,8 @@
-#include "framed_buffer.hpp"
+#include "uniform_buffer.hpp"
+
+#include <tephra/commands.hpp>
+
+#include "engine.hpp"
 
 namespace cpt
 {
@@ -51,7 +55,7 @@ static tph::buffer_usage compute_usage(const std::vector<buffer_part>& parts) no
     return output;
 }
 
-framed_buffer::framed_buffer(std::vector<buffer_part> parts)
+uniform_buffer::uniform_buffer(std::vector<buffer_part> parts)
 :m_size{compute_size(parts)}
 ,m_parts{std::move(parts)}
 ,m_device_buffer{engine::instance().renderer(), m_size, compute_usage(m_parts) | tph::buffer_usage::device_only | tph::buffer_usage::transfer_destination}
@@ -59,7 +63,7 @@ framed_buffer::framed_buffer(std::vector<buffer_part> parts)
     m_data.resize(m_size);
 }
 
-void framed_buffer::upload()
+void uniform_buffer::upload()
 {
     std::size_t staging_index{std::numeric_limits<std::size_t>::max()};
     for(std::size_t i{}; i < std::size(m_stagings); ++i)
@@ -86,11 +90,15 @@ void framed_buffer::upload()
     auto&& [command_buffer, signal] = engine::instance().begin_transfer();
     tph::cmd::copy(command_buffer, buffer.buffer, m_device_buffer);
 
-    signal.connect([this, staging_index]()
+    signal.connect([buffer = shared_from_this(), staging_index]()
     {
-        m_stagings[staging_index].available = true;
+        buffer->m_stagings[staging_index].available = true;
     });
 }
 
+std::uint64_t uniform_buffer::uniform_alignement()
+{
+    return engine::instance().graphics_device().limits().min_uniform_buffer_alignment;
+}
 
 }

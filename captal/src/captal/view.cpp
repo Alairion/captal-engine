@@ -10,19 +10,19 @@ namespace cpt
 {
 
 view::view()
-:m_buffer{{buffer_part{buffer_part_type::uniform, sizeof(uniform_data)}}}
+:m_buffer{make_uniform_buffer(std::vector<buffer_part>{buffer_part{buffer_part_type::uniform, sizeof(uniform_data)}})}
 {
 
 }
 
 view::view(const render_target_ptr& target, const render_technique_info& info)
-:m_buffer{{buffer_part{buffer_part_type::uniform, sizeof(uniform_data)}}}
+:m_buffer{make_uniform_buffer(std::vector<buffer_part>{buffer_part{buffer_part_type::uniform, sizeof(uniform_data)}})}
 {
     set_target(target, info);
 }
 
 view::view(const render_target_ptr& target, render_technique_ptr technique)
-:m_buffer{{buffer_part{buffer_part_type::uniform, sizeof(uniform_data)}}}
+:m_buffer{make_uniform_buffer(std::vector<buffer_part>{buffer_part{buffer_part_type::uniform, sizeof(uniform_data)}})}
 {
     set_target(target, std::move(technique));
 }
@@ -67,13 +67,28 @@ void view::upload()
     {
         if(m_type == view_type::orthographic)
         {
-            m_buffer.get<uniform_data>(0).position = glm::vec4{m_position, 0.0f};
-            m_buffer.get<uniform_data>(0).view = glm::lookAt(m_position - (m_origin * m_scale), m_position - (m_origin * m_scale) - glm::vec3{0.0f, 0.0f, 1.0f}, glm::vec3{0.0f, 1.0f, 0.0f});
-            m_buffer.get<uniform_data>(0).projection = glm::ortho(0.0f, m_size.x * m_scale, 0.0f, m_size.y * m_scale, m_z_near, m_z_far);
+            m_buffer->get<uniform_data>(0).position = glm::vec4{m_position, 0.0f};
+            m_buffer->get<uniform_data>(0).view = glm::lookAt(m_position - (m_origin * m_scale), m_position - (m_origin * m_scale) - glm::vec3{0.0f, 0.0f, 1.0f}, glm::vec3{0.0f, 1.0f, 0.0f});
+            m_buffer->get<uniform_data>(0).projection = glm::ortho(0.0f, m_size.x * m_scale, 0.0f, m_size.y * m_scale, m_z_near, m_z_far);
         }
 
-        m_buffer.upload();
+        m_buffer->upload();
     }
+}
+
+cpt::binding& view::add_binding(std::uint32_t index, cpt::binding binding)
+{
+    auto [it, success] = m_bindings.try_emplace(index, std::move(binding));
+    assert(success && "cpt::view::add_binding called with already used binding.");
+
+    update_uniforms();
+    return it->second;
+}
+
+void view::set_binding(std::uint32_t index, cpt::binding new_binding)
+{
+    binding(index) = std::move(new_binding);
+    update_uniforms();
 }
 
 }
