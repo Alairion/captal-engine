@@ -5,8 +5,9 @@ L: low
 I: just an idea
 
 Captal Foundation:
-A: Add swap overload for stack_allocator
+L: Add swap overload for stack_allocator
 L: Replace glm with homemade math library
+L: Replace sigslot with homemade signal library
 
 Tephra:
 A: Complete commands list

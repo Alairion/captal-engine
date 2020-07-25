@@ -39,6 +39,7 @@ static physical_device_features make_features(VkPhysicalDevice physical_device) 
     output.wide_lines = features.wideLines;
     output.large_points = features.largePoints;
     output.sample_shading = features.sampleRateShading;
+    output.fragment_stores_and_atomics = features.fragmentStoresAndAtomics;
 
     return output;
 }

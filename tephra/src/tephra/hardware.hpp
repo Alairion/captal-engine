@@ -38,6 +38,7 @@ struct physical_device_features
     bool wide_lines{};
     bool large_points{};
     bool sample_shading{};
+    bool fragment_stores_and_atomics{};
 };
 
 struct physical_device_limits

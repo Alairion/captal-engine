@@ -10,7 +10,7 @@
 namespace cpt
 {
 
-class storage_buffer
+class CAPTAL_API storage_buffer
 {
 public:
     storage_buffer() = default;

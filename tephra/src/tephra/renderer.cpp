@@ -101,7 +101,9 @@ static std::vector<const char*> required_device_layers(VkPhysicalDevice physical
     std::vector<const char*> layers{};
 
     if(static_cast<bool>(options & application_options::enable_validation))
+    {
         layers.emplace_back("VK_LAYER_LUNARG_standard_validation");
+    }
 
     return filter_device_layers(physical_device, std::move(layers));
 }
@@ -113,6 +115,7 @@ static VkPhysicalDeviceFeatures parse_enabled_features(const physical_device_fea
     output.wideLines = static_cast<VkBool32>(features.wide_lines);
     output.largePoints = static_cast<VkBool32>(features.large_points);
     output.sampleRateShading = static_cast<VkBool32>(features.sample_shading);
+    output.fragmentStoresAndAtomics = static_cast<VkBool32>(features.fragment_stores_and_atomics);
 
     return output;
 }
@@ -164,8 +167,12 @@ static std::uint32_t choose_present_family(VkPhysicalDevice physical_device, con
     const auto screen_of_display = [](xcb_connection_t* connection, int screen) -> xcb_screen_t*
     {
         for(xcb_screen_iterator_t iter{xcb_setup_roots_iterator(xcb_get_setup(connection))}; iter.rem; --screen, xcb_screen_next(&iter))
+        {
             if(!screen)
+            {
                 return iter.data;
+            }
+        }
 
         return nullptr;
     };
