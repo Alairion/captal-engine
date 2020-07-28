@@ -227,6 +227,7 @@ public:
     sprite() = default;
     sprite(std::uint32_t width, std::uint32_t height, const color& color = colors::white);
     sprite(texture_ptr texture);
+    sprite(std::uint32_t width, std::uint32_t height, texture_ptr texture);
     ~sprite() = default;
     sprite(const sprite&) = delete;
     sprite& operator=(const sprite&) = delete;
@@ -237,9 +238,9 @@ public:
 
     void set_texture_coords(std::int32_t x1, std::int32_t y1, std::int32_t x2, std::int32_t y2) noexcept;
     void set_texture_rect(std::int32_t x, std::int32_t y, std::uint32_t width, std::uint32_t height) noexcept;
-
     void set_relative_texture_coords(float x1, float y1, float x2, float y2) noexcept;
     void set_relative_texture_rect(float x, float y, float width, float height) noexcept;
+    void set_spritesheet_coords(std::uint32_t x, std::uint32_t y) noexcept;
 
     void resize(std::uint32_t width, std::uint32_t height) noexcept;
 

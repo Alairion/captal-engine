@@ -223,6 +223,15 @@ sprite::sprite(texture_ptr texture)
     set_texture(std::move(texture));
 }
 
+sprite::sprite(std::uint32_t width, std::uint32_t height, texture_ptr texture)
+:renderable{6, 4}
+,m_width{width}
+,m_height{height}
+{
+    init(colors::white);
+    set_texture(std::move(texture));
+}
+
 void sprite::set_color(const color& color) noexcept
 {
     const auto vertices{get_vertices()};
@@ -263,6 +272,11 @@ void sprite::set_relative_texture_coords(float x1, float y1, float x2, float y2)
 void sprite::set_relative_texture_rect(float x, float y, float width, float height) noexcept
 {
     set_relative_texture_coords(x, y, x + width, y + height);
+}
+
+void sprite::set_spritesheet_coords(std::uint32_t x, std::uint32_t y) noexcept
+{
+    set_texture_rect(x * m_width, y * m_height, m_width, m_height);
 }
 
 void sprite::resize(std::uint32_t width, std::uint32_t height) noexcept
