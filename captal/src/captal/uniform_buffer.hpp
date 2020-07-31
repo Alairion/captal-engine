@@ -7,6 +7,8 @@
 #include <cstring>
 #include <memory>
 
+#include <sigslots/signal.hpp>
+
 #include <tephra/buffer.hpp>
 
 namespace cpt
@@ -25,7 +27,7 @@ struct buffer_part
     std::uint64_t size{};
 };
 
-class CAPTAL_API uniform_buffer : public std::enable_shared_from_this<uniform_buffer>
+class CAPTAL_API uniform_buffer
 {
 public:
     uniform_buffer() = default;
@@ -98,6 +100,7 @@ private:
     {
         tph::buffer buffer{};
         bool available{true};
+        sigslot::scoped_connection connection{};
     };
 
 private:

@@ -90,9 +90,9 @@ void uniform_buffer::upload()
     auto&& [command_buffer, signal] = engine::instance().begin_transfer();
     tph::cmd::copy(command_buffer, buffer.buffer, m_device_buffer);
 
-    signal.connect([buffer = shared_from_this(), staging_index]()
+    buffer.connection = signal.connect([this, staging_index]()
     {
-        buffer->m_stagings[staging_index].available = true;
+        m_stagings[staging_index].available = true;
     });
 }
 

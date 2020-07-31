@@ -116,7 +116,7 @@ engine::engine(cpt::application application, const audio_parameters& audio, cons
 
 engine::~engine()
 {
-    m_renderer.wait();
+    wait_all();
     m_instance = nullptr;
 }
 
@@ -331,5 +331,16 @@ void engine::update_frame()
     }
 }
 
+void engine::wait_all()
+{
+    m_renderer.wait();
+
+    for(auto& data : m_transfer_buffers)
+    {
+        data.fence.wait();
+        data.signal();
+        data.signal.disconnect_all();
+    }
+}
 
 }

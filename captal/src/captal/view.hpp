@@ -220,12 +220,12 @@ public:
 
     tph::buffer& get_buffer() noexcept
     {
-        return m_buffer->get_buffer();
+        return m_buffer.get_buffer();
     }
 
     const tph::buffer& get_buffer() const noexcept
     {
-        return m_buffer->get_buffer();
+        return m_buffer.get_buffer();
     }
 
     template<typename T>
@@ -282,9 +282,9 @@ private:
     float m_rotation{};
     view_type m_type{};
 
-    uniform_buffer_ptr m_buffer{};
-    bool m_need_upload{true};
+    uniform_buffer m_buffer{};
     std::unordered_map<std::uint32_t, cpt::binding> m_bindings{};
+    bool m_need_upload{true};
     bool m_need_descriptor_update{};
 
     render_target* m_target{};

@@ -141,24 +141,24 @@ public:
     {
         assert(m_index_count > 0 && "cpt::renderable::get_indices called on renderable with no index buffer");
 
-        return std::span{&m_buffer->get<std::uint32_t>(1), static_cast<std::size_t>(m_index_count)};
+        return std::span{&m_buffer.get<std::uint32_t>(1), static_cast<std::size_t>(m_index_count)};
     }
 
     std::span<const std::uint32_t> get_indices() const noexcept
     {
         assert(m_index_count > 0 && "cpt::renderable::get_indices called on renderable with no index buffer");
 
-        return std::span{&m_buffer->get<std::uint32_t>(1), static_cast<std::size_t>(m_index_count)};
+        return std::span{&m_buffer.get<std::uint32_t>(1), static_cast<std::size_t>(m_index_count)};
     }
 
     std::span<vertex> get_vertices() noexcept
     {
-        return std::span{&m_buffer->get<vertex>(m_index_count > 0 ? 2 : 1), static_cast<std::size_t>(m_vertex_count)};
+        return std::span{&m_buffer.get<vertex>(m_index_count > 0 ? 2 : 1), static_cast<std::size_t>(m_vertex_count)};
     }
 
     std::span<const vertex> get_vertices() const noexcept
     {
-        return std::span{&m_buffer->get<vertex>(m_index_count > 0 ? 2 : 1), static_cast<std::size_t>(m_vertex_count)};
+        return std::span{&m_buffer.get<vertex>(m_index_count > 0 ? 2 : 1), static_cast<std::size_t>(m_vertex_count)};
     }
 
     const descriptor_set_ptr& set() const noexcept
@@ -201,7 +201,9 @@ private:
     float m_rotation{};
     bool m_hidden{};
 
-    uniform_buffer_ptr m_buffer{};
+    uniform_buffer m_buffer{};
+    std::uint64_t m_index_offset{};
+    std::uint64_t m_vertex_offset{};
     bool m_need_upload{true};
 
     texture_ptr m_texture{};

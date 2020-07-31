@@ -204,6 +204,7 @@ private:
     void init();
     void update_window();
     void update_frame();
+    void wait_all();
 
 private:
     struct transfer_buffer
