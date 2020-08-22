@@ -91,14 +91,6 @@ static tph::render_pass_info make_render_pass_info(tph::texture_format color_for
         }
     }
 
-    auto& dependency{output.dependencies.emplace_back()};
-    dependency.source_subpass = tph::external_subpass;
-    dependency.destination_subpass = 0;
-    dependency.source_stage = tph::pipeline_stage::color_attachment_output;
-    dependency.destination_stage = tph::pipeline_stage::color_attachment_output;
-    dependency.source_access = tph::resource_access::none;
-    dependency.destination_access = tph::resource_access::color_attachment_read | tph::resource_access::color_attachment_write;
-
     return output;
 }
 
