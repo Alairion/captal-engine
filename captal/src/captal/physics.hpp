@@ -24,14 +24,6 @@ namespace cpt
 class physical_body;
 class physical_shape;
 
-struct bounding_box
-{
-    float x{};
-    float y{};
-    float width{};
-    float height{};
-};
-
 using collision_type_t = std::uint64_t;
 using group_t = std::uint64_t;
 using collision_id_t = std::uint64_t;
@@ -126,8 +118,8 @@ public:
     ~physical_world();
     physical_world(const physical_world&) = delete;
     physical_world& operator=(const physical_world&) = delete;
-    physical_world(physical_world&&) noexcept = delete;
-    physical_world& operator=(physical_world&&) noexcept = delete;
+    physical_world(physical_world&&) noexcept;
+    physical_world& operator=(physical_world&&) noexcept;
 
     void add_collision(collision_type_t first_type, collision_type_t second_type, collision_handler handler);
     void add_wildcard(collision_type_t type, collision_handler handler);
@@ -182,7 +174,12 @@ public:
         return m_max_steps;
     }
 
-    cpSpace* handle() const noexcept
+    cpSpace* handle() noexcept
+    {
+        return m_world;
+    }
+
+    const cpSpace* handle() const noexcept
     {
         return m_world;
     }
@@ -198,31 +195,19 @@ private:
     float m_time{};
 };
 
-using physical_world_ptr = std::shared_ptr<physical_world>;
-using physical_world_weak_ptr = std::weak_ptr<physical_world>;
-
-template<typename... Args>
-physical_world_ptr make_physical_world(Args&&... args)
-{
-    return std::make_shared<physical_world>(std::forward<Args>(args)...);
-}
-
-using physical_body_ptr = std::shared_ptr<physical_body>;
-using physical_body_weak_ptr = std::weak_ptr<physical_body>;
-
 class CAPTAL_API physical_shape
 {
 public:
-    physical_shape(physical_body_ptr body, float radius, glm::vec2 offset = glm::vec2{});
-    physical_shape(physical_body_ptr body, glm::vec2 first, glm::vec2 second, float thickness = 0.0f);
-    physical_shape(physical_body_ptr body, std::span<const glm::vec2> points, float radius = 0.0f);
-    physical_shape(physical_body_ptr body, float width, float height, float radius = 0.0f);
+    physical_shape(physical_body& body, float radius, glm::vec2 offset = glm::vec2{});
+    physical_shape(physical_body& body, glm::vec2 first, glm::vec2 second, float thickness = 0.0f);
+    physical_shape(physical_body& body, std::span<const glm::vec2> points, float radius = 0.0f);
+    physical_shape(physical_body& body, float width, float height, float radius = 0.0f);
 
     ~physical_shape();
     physical_shape(const physical_shape&) = delete;
     physical_shape& operator=(const physical_shape&) = delete;
-    physical_shape(physical_shape&&) noexcept = delete;
-    physical_shape& operator=(physical_shape&&) noexcept = delete;
+    physical_shape(physical_shape&&) noexcept;
+    physical_shape& operator=(physical_shape&&) noexcept;
 
     void set_sensor(bool enable) noexcept;
     void set_elasticity(float elasticity) noexcept;
@@ -236,6 +221,8 @@ public:
         m_userdata = userdata;
     }
 
+    physical_world& world() const noexcept;
+    physical_body& body() const noexcept;
     bool is_sensor() const noexcept;
     float elasticity() const noexcept;
     float friction() const noexcept;
@@ -245,12 +232,12 @@ public:
     collision_id_t categories() const noexcept;
     collision_id_t collision_mask() const noexcept;
 
-    const physical_body_ptr& body() const noexcept
+    cpShape* handle() noexcept
     {
-        return m_body;
+        return m_shape;
     }
 
-    cpShape* handle() const noexcept
+    const cpShape* handle() const noexcept
     {
         return m_shape;
     }
@@ -261,19 +248,9 @@ public:
     }
 
 private:
-    physical_body_ptr m_body{};
     cpShape* m_shape{};
     void* m_userdata{};
 };
-
-using physical_shape_ptr = std::shared_ptr<physical_shape>;
-using physical_shape_weak_ptr = std::weak_ptr<physical_shape>;
-
-template<typename... Args>
-physical_shape_ptr make_physical_shape(Args&&... args)
-{
-    return std::make_shared<physical_shape>(std::forward<Args>(args)...);
-}
 
 enum class physical_body_type : std::uint32_t
 {
@@ -294,12 +271,12 @@ class CAPTAL_API physical_body
     friend class physical_shape;
 
 public:
-    physical_body(physical_world_ptr world, physical_body_type type, float mass = 1.0f, float moment = no_rotation);
+    physical_body(physical_world& world, physical_body_type type, float mass = 1.0f, float moment = no_rotation);
     ~physical_body();
     physical_body(const physical_body&) = delete;
     physical_body& operator=(const physical_body&) = delete;
-    physical_body(physical_body&&) noexcept = delete;
-    physical_body& operator=(physical_body&&) noexcept = delete;
+    physical_body(physical_body&&) noexcept;
+    physical_body& operator=(physical_body&&) noexcept;
 
     void apply_force(glm::vec2 force, glm::vec2 point) noexcept;
     void apply_local_force(glm::vec2 force, glm::vec2 point) noexcept;
@@ -326,7 +303,7 @@ public:
         m_userdata = userdata;
     }
 
-    cpt::bounding_box bounding_box() const noexcept;
+    physical_world& world() const noexcept;
     float angular_damping() const noexcept;
     float angular_velocity() const noexcept;
     float mass() const noexcept;
@@ -338,54 +315,25 @@ public:
     bool sleeping() const noexcept;
     physical_body_type type() const noexcept;
 
-    std::size_t shape_count() const noexcept
-    {
-        return std::size(m_shapes);
-    }
-
-    physical_shape& shape(std::size_t index) const noexcept
-    {
-        return *m_shapes[index];
-    }
-
     void* user_data() const noexcept
     {
         return m_userdata;
     }
 
-    const physical_world_ptr& world() const noexcept
+    cpBody* handle() noexcept
     {
-        return m_world;
+        return m_body;
     }
 
-    cpBody* handle() const noexcept
+    const cpBody* handle() const noexcept
     {
         return m_body;
     }
 
 private:
-    void register_shape(physical_shape* shape)
-    {
-        m_shapes.emplace_back(shape);
-    }
-
-    void unregister_shape(physical_shape* shape)
-    {
-        m_shapes.erase(std::find(std::begin(m_shapes), std::end(m_shapes), shape));
-    }
-
-private:
-    physical_world_ptr m_world{};
     cpBody* m_body{};
-    std::vector<physical_shape*> m_shapes{};
     void* m_userdata{};
 };
-
-template<typename... Args>
-physical_body_ptr make_physical_body(Args&&... args)
-{
-    return std::make_shared<physical_body>(std::forward<Args>(args)...);
-}
 
 enum class physical_constraint_type : std::uint32_t
 {
@@ -425,23 +373,23 @@ inline constexpr motor_joint_t motor_joint{};
 class CAPTAL_API physical_constraint
 {
 public:
-    physical_constraint(pin_joint_t, physical_body_ptr first, physical_body_ptr second, glm::vec2 first_anchor, glm::vec2 second_anchor);
-    physical_constraint(slide_joint_t, physical_body_ptr first, physical_body_ptr second, glm::vec2 first_anchor, glm::vec2 second_anchor, float min, float max);
-    physical_constraint(pivot_joint_t, physical_body_ptr first, physical_body_ptr second, glm::vec2 pivot);
-    physical_constraint(pivot_joint_t, physical_body_ptr first, physical_body_ptr second, glm::vec2 first_anchor, glm::vec2 second_anchor);
-    physical_constraint(groove_joint_t, physical_body_ptr first, physical_body_ptr second, glm::vec2 first_groove, glm::vec2 second_groove, glm::vec2 anchor);
-    physical_constraint(damped_spring_t, physical_body_ptr first, physical_body_ptr second, glm::vec2 first_anchor, glm::vec2 second_anchor, float rest_length, float stiffness, float damping);
-    physical_constraint(damped_rotary_spring_t, physical_body_ptr first, physical_body_ptr second, float rest_angle, float stiffness, float damping);
-    physical_constraint(rotary_limit_joint_t, physical_body_ptr first, physical_body_ptr second, float min, float max);
-    physical_constraint(ratchet_joint_t, physical_body_ptr first, physical_body_ptr second, float phase, float ratchet);
-    physical_constraint(gear_joint_t, physical_body_ptr first, physical_body_ptr second, float phase, float ratio);
-    physical_constraint(motor_joint_t, physical_body_ptr first, physical_body_ptr second, float rate);
+    physical_constraint(pin_joint_t, physical_body& first, physical_body& second, glm::vec2 first_anchor, glm::vec2 second_anchor);
+    physical_constraint(slide_joint_t, physical_body& first, physical_body& second, glm::vec2 first_anchor, glm::vec2 second_anchor, float min, float max);
+    physical_constraint(pivot_joint_t, physical_body& first, physical_body& second, glm::vec2 pivot);
+    physical_constraint(pivot_joint_t, physical_body& first, physical_body& second, glm::vec2 first_anchor, glm::vec2 second_anchor);
+    physical_constraint(groove_joint_t, physical_body& first, physical_body& second, glm::vec2 first_groove, glm::vec2 second_groove, glm::vec2 anchor);
+    physical_constraint(damped_spring_t, physical_body& first, physical_body& second, glm::vec2 first_anchor, glm::vec2 second_anchor, float rest_length, float stiffness, float damping);
+    physical_constraint(damped_rotary_spring_t, physical_body& first, physical_body& second, float rest_angle, float stiffness, float damping);
+    physical_constraint(rotary_limit_joint_t, physical_body& first, physical_body& second, float min, float max);
+    physical_constraint(ratchet_joint_t, physical_body& first, physical_body& second, float phase, float ratchet);
+    physical_constraint(gear_joint_t, physical_body& first, physical_body& second, float phase, float ratio);
+    physical_constraint(motor_joint_t, physical_body& first, physical_body& second, float rate);
 
     ~physical_constraint();
     physical_constraint(const physical_constraint&) = delete;
     physical_constraint& operator=(const physical_constraint&) = delete;
-    physical_constraint(physical_constraint&&) noexcept = delete;
-    physical_constraint& operator=(physical_constraint&&) noexcept = delete;
+    physical_constraint(physical_constraint&&) noexcept;
+    physical_constraint& operator=(physical_constraint&&) noexcept;
 
     void set_max_force(float force) noexcept;
     void set_error_bias(float bias) noexcept;
@@ -453,24 +401,23 @@ public:
         m_userdata = userdata;
     }
 
-    std::pair<physical_body&, physical_body&> bodies() const noexcept
-    {
-        return {*m_first_body, *m_second_body};
-    }
-
-    std::pair<const physical_body_ptr&, const physical_body_ptr&> bodies_ptr() const noexcept
-    {
-        return {m_first_body, m_second_body};
-    }
-
+    physical_world& world() const noexcept;
+    physical_body& first_body() const noexcept;
+    physical_body& second_body() const noexcept;
+    std::pair<physical_body&, physical_body&> bodies() const noexcept;
     float max_force() const noexcept;
     float error_bias() const noexcept;
     float max_bias() const noexcept;
     bool collide_bodies() const noexcept;
 
-    cpConstraint* handle() const noexcept
+    cpConstraint* handle() noexcept
     {
-        return m_constaint;
+        return m_constraint;
+    }
+
+    const cpConstraint* handle() const noexcept
+    {
+        return m_constraint;
     }
 
     physical_constraint_type type() const noexcept
@@ -560,21 +507,10 @@ public:
     float motor_joint_rate() const noexcept;
 
 private:
-    cpConstraint* m_constaint{};
+    cpConstraint* m_constraint{};
     physical_constraint_type m_type{};
     void* m_userdata{};
-    physical_body_ptr m_first_body{};
-    physical_body_ptr m_second_body{};
 };
-
-using physical_constraint_ptr = std::shared_ptr<physical_constraint>;
-using physical_constraint_weak_ptr = std::weak_ptr<physical_constraint>;
-
-template<typename... Args>
-physical_constraint_ptr make_physical_constraint(Args&&... args)
-{
-    return std::make_shared<physical_constraint>(std::forward<Args>(args)...);
-}
 
 }
 

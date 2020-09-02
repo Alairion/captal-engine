@@ -114,7 +114,33 @@ physical_world::physical_world()
 
 physical_world::~physical_world()
 {
-    cpSpaceFree(m_world);
+    if(m_world)
+    {
+        cpSpaceFree(m_world);
+    }
+}
+
+physical_world::physical_world(physical_world&& other) noexcept
+:m_world{std::exchange(other.m_world, nullptr)}
+,m_callbacks{std::move(other.m_callbacks)}
+,m_step{other.m_step}
+,m_max_steps{other.m_max_steps}
+,m_time{other.m_time}
+{
+    cpSpaceSetUserData(m_world, this);
+}
+
+physical_world& physical_world::operator=(physical_world&& other) noexcept
+{
+    std::swap(m_world, other.m_world);
+    std::swap(m_callbacks, other.m_callbacks);
+    m_step = other.m_step;
+    m_max_steps = other.m_max_steps;
+    m_time = other.m_time;
+
+    cpSpaceSetUserData(m_world, this);
+
+    return *this;
 }
 
 void physical_world::add_collision(collision_type_t first_type, collision_type_t second_type, collision_handler handler)
@@ -443,32 +469,27 @@ void physical_world::add_callback(cpCollisionHandler *cphandler, collision_handl
     }
 }
 
-physical_shape::physical_shape(physical_body_ptr body, float radius, glm::vec2 offset)
-:m_body{std::move(body)}
-,m_shape{cpCircleShapeNew(m_body->handle(), tocp(radius), tocp(offset))}
+physical_shape::physical_shape(physical_body& body, float radius, glm::vec2 offset)
+:m_shape{cpCircleShapeNew(body.handle(), tocp(radius), tocp(offset))}
 {
     if(!m_shape)
         throw std::runtime_error{"Can not allocate physical shape."};
 
+    cpSpaceAddShape(cpBodyGetSpace(body.handle()), m_shape);
     cpShapeSetUserData(m_shape, this);
-    cpSpaceAddShape(m_body->world()->handle(), m_shape);
-    m_body->register_shape(this);
 }
 
-physical_shape::physical_shape(physical_body_ptr body, glm::vec2 first, glm::vec2 second, float thickness)
-:m_body{std::move(body)}
-,m_shape{cpSegmentShapeNew(m_body->handle(), tocp(first), tocp(second), tocp(thickness))}
+physical_shape::physical_shape(physical_body& body, glm::vec2 first, glm::vec2 second, float thickness)
+:m_shape{cpSegmentShapeNew(body.handle(), tocp(first), tocp(second), tocp(thickness))}
 {
     if(!m_shape)
         throw std::runtime_error{"Can not allocate physical shape."};
 
+    cpSpaceAddShape(cpBodyGetSpace(body.handle()), m_shape);
     cpShapeSetUserData(m_shape, this);
-    cpSpaceAddShape(m_body->world()->handle(), m_shape);
-    m_body->register_shape(this);
 }
 
-physical_shape::physical_shape(physical_body_ptr body, std::span<const glm::vec2> points, float radius)
-:m_body{std::move(body)}
+physical_shape::physical_shape(physical_body& body, std::span<const glm::vec2> points, float radius)
 {
     stack_memory_pool<1024> pool{};
 
@@ -479,33 +500,48 @@ physical_shape::physical_shape(physical_body_ptr body, std::span<const glm::vec2
         native_vertices.emplace_back(tocp(vertex));
     }
 
-    m_shape = cpPolyShapeNew(m_body->handle(), static_cast<int>(std::size(points)), std::data(native_vertices), cpTransformIdentity, tocp(radius));
+    m_shape = cpPolyShapeNew(body.handle(), static_cast<int>(std::size(points)), std::data(native_vertices), cpTransformIdentity, tocp(radius));
     if(!m_shape)
         throw std::runtime_error{"Can not allocate physical shape."};
 
+    cpSpaceAddShape(cpBodyGetSpace(body.handle()), m_shape);
     cpShapeSetUserData(m_shape, this);
-    cpSpaceAddShape(m_body->world()->handle(), m_shape);
-    m_body->register_shape(this);
 }
 
-physical_shape::physical_shape(physical_body_ptr body, float width, float height, float radius)
-:m_body{std::move(body)}
-,m_shape{cpBoxShapeNew(m_body->handle(), tocp(width), tocp(height), tocp(radius))}
+physical_shape::physical_shape(physical_body& body, float width, float height, float radius)
+:m_shape{cpBoxShapeNew(body.handle(), tocp(width), tocp(height), tocp(radius))}
 {
     if(!m_shape)
         throw std::runtime_error{"Can not allocate physical shape."};
 
-    cpSpaceAddShape(m_body->world()->handle(), m_shape);
-
+    cpSpaceAddShape(cpBodyGetSpace(body.handle()), m_shape);
     cpShapeSetUserData(m_shape, this);
-    m_body->register_shape(this);
 }
 
 physical_shape::~physical_shape()
 {
-    m_body->unregister_shape(this);
-    cpSpaceRemoveShape(m_body->world()->handle(), m_shape);
-    cpShapeFree(m_shape);
+    if(m_shape)
+    {
+        cpSpaceRemoveShape(cpShapeGetSpace(m_shape), m_shape);
+        cpShapeFree(m_shape);
+    }
+}
+
+physical_shape::physical_shape(physical_shape&& other) noexcept
+:m_shape{std::exchange(other.m_shape, nullptr)}
+,m_userdata{other.m_userdata}
+{
+    cpShapeSetUserData(m_shape, this);
+}
+
+physical_shape& physical_shape::operator=(physical_shape&& other) noexcept
+{
+    std::swap(m_shape, other.m_shape);
+    m_userdata = other.m_userdata;
+
+    cpShapeSetUserData(m_shape, this);
+
+    return *this;
 }
 
 void physical_shape::set_sensor(bool enable) noexcept
@@ -536,6 +572,16 @@ void physical_shape::set_collision_type(collision_type_t type) noexcept
 void physical_shape::set_filter(group_t group, collision_id_t categories, collision_id_t collision_mask) noexcept
 {
     cpShapeSetFilter(m_shape, cpShapeFilterNew(group, categories, collision_mask));
+}
+
+physical_world& physical_shape::world() const noexcept
+{
+    return *static_cast<physical_world*>(cpSpaceGetUserData(cpShapeGetSpace(m_shape)));
+}
+
+physical_body& physical_shape::body() const noexcept
+{
+    return *static_cast<physical_body*>(cpBodyGetUserData(cpShapeGetBody(m_shape)));
 }
 
 bool physical_shape::is_sensor() const noexcept
@@ -607,8 +653,7 @@ float square_moment(float mass, float width, float height) noexcept
     return fromcp(cpMomentForBox(tocp(mass), tocp(width), tocp(height)));
 }
 
-physical_body::physical_body(physical_world_ptr world, physical_body_type type, float mass, float moment)
-:m_world{std::move(world)}
+physical_body::physical_body(physical_world& world, physical_body_type type, float mass, float moment)
 {
     if(type == physical_body_type::dynamic)
     {
@@ -626,14 +671,34 @@ physical_body::physical_body(physical_world_ptr world, physical_body_type type, 
     if(!m_body)
         throw std::runtime_error{"Can not allocate physical body."};
 
+    cpSpaceAddBody(world.handle(), m_body);
     cpBodySetUserData(m_body, this);
-    cpSpaceAddBody(m_world->handle(), m_body);
 }
 
 physical_body::~physical_body()
 {
-    cpSpaceRemoveBody(m_world->handle(), m_body);
-    cpBodyFree(m_body);
+    if(m_body)
+    {
+        cpSpaceRemoveBody(cpBodyGetSpace(m_body), m_body);
+        cpBodyFree(m_body);
+    }
+}
+
+physical_body::physical_body(physical_body&& other) noexcept
+:m_body{std::exchange(other.m_body, nullptr)}
+,m_userdata{other.m_userdata}
+{
+    cpBodySetUserData(m_body, this);
+}
+
+physical_body& physical_body::operator=(physical_body&& other) noexcept
+{
+    std::swap(m_body, other.m_body);
+    m_userdata = other.m_userdata;
+
+    cpBodySetUserData(m_body, this);
+
+    return *this;
 }
 
 void physical_body::apply_force(glm::vec2 force, glm::vec2 point) noexcept
@@ -684,7 +749,7 @@ void physical_body::set_moment_of_inertia(float moment) noexcept
 void physical_body::set_position(glm::vec2 position) noexcept
 {
     cpBodySetPosition(m_body, tocp(position));
-    cpSpaceReindexShapesForBody(m_world->handle(), m_body);
+    cpSpaceReindexShapesForBody(cpBodyGetSpace(m_body), m_body);
 }
 
 void physical_body::set_rotation(float rotation) noexcept
@@ -707,6 +772,11 @@ void physical_body::wake_up() noexcept
     cpBodyActivate(m_body);
 }
 
+physical_world& physical_body::world() const noexcept
+{
+    return *static_cast<physical_world*>(cpSpaceGetUserData(cpBodyGetSpace(m_body)));
+}
+
 glm::vec2 physical_body::world_to_local(glm::vec2 vec) noexcept
 {
     return fromcp(cpBodyWorldToLocal(m_body, tocp(vec)));
@@ -715,22 +785,6 @@ glm::vec2 physical_body::world_to_local(glm::vec2 vec) noexcept
 glm::vec2 physical_body::local_to_world(glm::vec2 vec) noexcept
 {
     return fromcp(cpBodyLocalToWorld(m_body, tocp(vec)));
-}
-
-cpt::bounding_box physical_body::bounding_box() const noexcept
-{
-    if(std::empty(m_shapes))
-    {
-        return cpt::bounding_box{};
-    }
-
-    cpBB bb{};
-    for(auto shape : m_shapes)
-    {
-        bb = cpBBMerge(bb, cpShapeGetBB(shape->handle()));
-    }
-
-    return cpt::bounding_box{fromcp(bb.l), fromcp(bb.b), fromcp(bb.r - bb.l), fromcp(bb.t - bb.b)};
 }
 
 float physical_body::angular_velocity() const noexcept
@@ -785,482 +839,500 @@ physical_body_type physical_body::type() const noexcept
     std::terminate();
 }
 
-physical_constraint::physical_constraint(pin_joint_t, physical_body_ptr first, physical_body_ptr second, glm::vec2 first_anchor, glm::vec2 second_anchor)
-:m_constaint{cpPinJointNew(first->handle(), second->handle(), tocp(first_anchor), tocp(second_anchor))}
+physical_constraint::physical_constraint(pin_joint_t, physical_body& first, physical_body& second, glm::vec2 first_anchor, glm::vec2 second_anchor)
+:m_constraint{cpPinJointNew(first.handle(), second.handle(), tocp(first_anchor), tocp(second_anchor))}
 ,m_type{physical_constraint_type::pin_joint}
-,m_first_body{std::move(first)}
-,m_second_body{std::move(second)}
 {
-    if(!m_constaint)
+    if(!m_constraint)
         throw std::runtime_error{"Can not create physical constaint."};
 
-    cpConstraintSetUserData(m_constaint, this);
-    cpSpaceAddConstraint(m_first_body->world()->handle(), m_constaint);
+    cpSpaceAddConstraint(cpBodyGetSpace(first.handle()), m_constraint);
+    cpConstraintSetUserData(m_constraint, this);
 }
 
-physical_constraint::physical_constraint(slide_joint_t, physical_body_ptr first, physical_body_ptr second, glm::vec2 first_anchor, glm::vec2 second_anchor, float min, float max)
-:m_constaint{cpSlideJointNew(first->handle(), second->handle(), tocp(first_anchor), tocp(second_anchor), tocp(min), tocp(max))}
+physical_constraint::physical_constraint(slide_joint_t, physical_body& first, physical_body& second, glm::vec2 first_anchor, glm::vec2 second_anchor, float min, float max)
+:m_constraint{cpSlideJointNew(first.handle(), second.handle(), tocp(first_anchor), tocp(second_anchor), tocp(min), tocp(max))}
 ,m_type{physical_constraint_type::slide_joint}
-,m_first_body{std::move(first)}
-,m_second_body{std::move(second)}
 {
-    if(!m_constaint)
+    if(!m_constraint)
         throw std::runtime_error{"Can not create physical constaint."};
 
-    cpConstraintSetUserData(m_constaint, this);
-    cpSpaceAddConstraint(m_first_body->world()->handle(), m_constaint);
+    cpSpaceAddConstraint(cpBodyGetSpace(first.handle()), m_constraint);
+    cpConstraintSetUserData(m_constraint, this);
 }
 
-physical_constraint::physical_constraint(pivot_joint_t, physical_body_ptr first, physical_body_ptr second, glm::vec2 pivot)
-:m_constaint{cpPivotJointNew(first->handle(), second->handle(), tocp(pivot))}
+physical_constraint::physical_constraint(pivot_joint_t, physical_body& first, physical_body& second, glm::vec2 pivot)
+:m_constraint{cpPivotJointNew(first.handle(), second.handle(), tocp(pivot))}
 ,m_type{physical_constraint_type::pivot_joint}
-,m_first_body{std::move(first)}
-,m_second_body{std::move(second)}
 {
-    if(!m_constaint)
+    if(!m_constraint)
         throw std::runtime_error{"Can not create physical constaint."};
 
-    cpConstraintSetUserData(m_constaint, this);
-    cpSpaceAddConstraint(m_first_body->world()->handle(), m_constaint);
+    cpSpaceAddConstraint(cpBodyGetSpace(first.handle()), m_constraint);
+    cpConstraintSetUserData(m_constraint, this);
 }
 
-physical_constraint::physical_constraint(pivot_joint_t, physical_body_ptr first, physical_body_ptr second, glm::vec2 first_anchor, glm::vec2 second_anchor)
-:m_constaint{cpPivotJointNew2(first->handle(), second->handle(), tocp(first_anchor), tocp(second_anchor))}
+physical_constraint::physical_constraint(pivot_joint_t, physical_body& first, physical_body& second, glm::vec2 first_anchor, glm::vec2 second_anchor)
+:m_constraint{cpPivotJointNew2(first.handle(), second.handle(), tocp(first_anchor), tocp(second_anchor))}
 ,m_type{physical_constraint_type::pivot_joint}
-,m_first_body{std::move(first)}
-,m_second_body{std::move(second)}
 {
-    if(!m_constaint)
+    if(!m_constraint)
         throw std::runtime_error{"Can not create physical constaint."};
 
-    cpConstraintSetUserData(m_constaint, this);
-    cpSpaceAddConstraint(m_first_body->world()->handle(), m_constaint);
+    cpSpaceAddConstraint(cpBodyGetSpace(first.handle()), m_constraint);
+    cpConstraintSetUserData(m_constraint, this);
 }
 
-physical_constraint::physical_constraint(groove_joint_t, physical_body_ptr first, physical_body_ptr second, glm::vec2 first_groove, glm::vec2 second_groove, glm::vec2 anchor)
-:m_constaint{cpGrooveJointNew(first->handle(), second->handle(), tocp(first_groove), tocp(second_groove), tocp(anchor))}
+physical_constraint::physical_constraint(groove_joint_t, physical_body& first, physical_body& second, glm::vec2 first_groove, glm::vec2 second_groove, glm::vec2 anchor)
+:m_constraint{cpGrooveJointNew(first.handle(), second.handle(), tocp(first_groove), tocp(second_groove), tocp(anchor))}
 ,m_type{physical_constraint_type::groove_joint}
-,m_first_body{std::move(first)}
-,m_second_body{std::move(second)}
 {
-    if(!m_constaint)
+    if(!m_constraint)
         throw std::runtime_error{"Can not create physical constaint."};
 
-    cpConstraintSetUserData(m_constaint, this);
-    cpSpaceAddConstraint(m_first_body->world()->handle(), m_constaint);
+    cpSpaceAddConstraint(cpBodyGetSpace(first.handle()), m_constraint);
+    cpConstraintSetUserData(m_constraint, this);
 }
 
-physical_constraint::physical_constraint(damped_spring_t, physical_body_ptr first, physical_body_ptr second, glm::vec2 first_anchor, glm::vec2 second_anchor, float rest_length, float stiffness, float damping)
-:m_constaint{cpDampedSpringNew(first->handle(), second->handle(), tocp(first_anchor), tocp(second_anchor), tocp(rest_length), tocp(stiffness), tocp(damping))}
+physical_constraint::physical_constraint(damped_spring_t, physical_body& first, physical_body& second, glm::vec2 first_anchor, glm::vec2 second_anchor, float rest_length, float stiffness, float damping)
+:m_constraint{cpDampedSpringNew(first.handle(), second.handle(), tocp(first_anchor), tocp(second_anchor), tocp(rest_length), tocp(stiffness), tocp(damping))}
 ,m_type{physical_constraint_type::damped_spring}
-,m_first_body{std::move(first)}
-,m_second_body{std::move(second)}
 {
-    if(!m_constaint)
+    if(!m_constraint)
         throw std::runtime_error{"Can not create physical constaint."};
 
-    cpConstraintSetUserData(m_constaint, this);
-    cpSpaceAddConstraint(m_first_body->world()->handle(), m_constaint);
+    cpSpaceAddConstraint(cpBodyGetSpace(first.handle()), m_constraint);
+    cpConstraintSetUserData(m_constraint, this);
 }
 
-physical_constraint::physical_constraint(damped_rotary_spring_t, physical_body_ptr first, physical_body_ptr second, float rest_angle, float stiffness, float damping)
-:m_constaint{cpDampedRotarySpringNew(first->handle(), second->handle(), tocp(rest_angle), tocp(stiffness), tocp(damping))}
+physical_constraint::physical_constraint(damped_rotary_spring_t, physical_body& first, physical_body& second, float rest_angle, float stiffness, float damping)
+:m_constraint{cpDampedRotarySpringNew(first.handle(), second.handle(), tocp(rest_angle), tocp(stiffness), tocp(damping))}
 ,m_type{physical_constraint_type::damped_rotary_spring}
-,m_first_body{std::move(first)}
-,m_second_body{std::move(second)}
 {
-    if(!m_constaint)
+    if(!m_constraint)
         throw std::runtime_error{"Can not create physical constaint."};
 
-    cpConstraintSetUserData(m_constaint, this);
-    cpSpaceAddConstraint(m_first_body->world()->handle(), m_constaint);
+    cpSpaceAddConstraint(cpBodyGetSpace(first.handle()), m_constraint);
+    cpConstraintSetUserData(m_constraint, this);
 }
 
-physical_constraint::physical_constraint(rotary_limit_joint_t, physical_body_ptr first, physical_body_ptr second, float min, float max)
-:m_constaint{cpRotaryLimitJointNew(first->handle(), second->handle(), tocp(min), tocp(max))}
+physical_constraint::physical_constraint(rotary_limit_joint_t, physical_body& first, physical_body& second, float min, float max)
+:m_constraint{cpRotaryLimitJointNew(first.handle(), second.handle(), tocp(min), tocp(max))}
 ,m_type{physical_constraint_type::rotary_limit_joint}
-,m_first_body{std::move(first)}
-,m_second_body{std::move(second)}
 {
-    if(!m_constaint)
+    if(!m_constraint)
         throw std::runtime_error{"Can not create physical constaint."};
 
-    cpConstraintSetUserData(m_constaint, this);
-    cpSpaceAddConstraint(m_first_body->world()->handle(), m_constaint);
+    cpSpaceAddConstraint(cpBodyGetSpace(first.handle()), m_constraint);
+    cpConstraintSetUserData(m_constraint, this);
 }
 
-physical_constraint::physical_constraint(ratchet_joint_t, physical_body_ptr first, physical_body_ptr second, float phase, float ratchet)
-:m_constaint{cpRatchetJointNew(first->handle(), second->handle(), tocp(phase), tocp(ratchet))}
+physical_constraint::physical_constraint(ratchet_joint_t, physical_body& first, physical_body& second, float phase, float ratchet)
+:m_constraint{cpRatchetJointNew(first.handle(), second.handle(), tocp(phase), tocp(ratchet))}
 ,m_type{physical_constraint_type::ratchet_joint}
-,m_first_body{std::move(first)}
-,m_second_body{std::move(second)}
 {
-    if(!m_constaint)
+    if(!m_constraint)
         throw std::runtime_error{"Can not create physical constaint."};
 
-    cpConstraintSetUserData(m_constaint, this);
-    cpSpaceAddConstraint(m_first_body->world()->handle(), m_constaint);
+    cpSpaceAddConstraint(cpBodyGetSpace(first.handle()), m_constraint);
+    cpConstraintSetUserData(m_constraint, this);
 }
 
-physical_constraint::physical_constraint(gear_joint_t, physical_body_ptr first, physical_body_ptr second, float phase, float ratio)
-:m_constaint{cpGearJointNew(first->handle(), second->handle(), tocp(phase), tocp(ratio))}
+physical_constraint::physical_constraint(gear_joint_t, physical_body& first, physical_body& second, float phase, float ratio)
+:m_constraint{cpGearJointNew(first.handle(), second.handle(), tocp(phase), tocp(ratio))}
 ,m_type{physical_constraint_type::gear_joint}
-,m_first_body{std::move(first)}
-,m_second_body{std::move(second)}
 {
-    if(!m_constaint)
+    if(!m_constraint)
         throw std::runtime_error{"Can not create physical constaint."};
 
-    cpConstraintSetUserData(m_constaint, this);
-    cpSpaceAddConstraint(m_first_body->world()->handle(), m_constaint);
+    cpSpaceAddConstraint(cpBodyGetSpace(first.handle()), m_constraint);
+    cpConstraintSetUserData(m_constraint, this);
 }
 
-physical_constraint::physical_constraint(motor_joint_t, physical_body_ptr first, physical_body_ptr second, float rate)
-:m_constaint{cpSimpleMotorNew(first->handle(), second->handle(), tocp(rate))}
+physical_constraint::physical_constraint(motor_joint_t, physical_body& first, physical_body& second, float rate)
+:m_constraint{cpSimpleMotorNew(first.handle(), second.handle(), tocp(rate))}
 ,m_type{physical_constraint_type::motor_joint}
-,m_first_body{std::move(first)}
-,m_second_body{std::move(second)}
 {
-    if(!m_constaint)
+    if(!m_constraint)
         throw std::runtime_error{"Can not create physical constaint."};
 
-    cpConstraintSetUserData(m_constaint, this);
-    cpSpaceAddConstraint(m_first_body->world()->handle(), m_constaint);
+    cpSpaceAddConstraint(cpBodyGetSpace(first.handle()), m_constraint);
+    cpConstraintSetUserData(m_constraint, this);
 }
 
 physical_constraint::~physical_constraint()
 {
-    cpSpaceRemoveConstraint(cpBodyGetSpace(cpConstraintGetBodyA(m_constaint)), m_constaint);
-    cpConstraintFree(m_constaint);
+    if(m_constraint)
+    {
+        cpSpaceRemoveConstraint(cpConstraintGetSpace(m_constraint), m_constraint);
+        cpConstraintFree(m_constraint);
+    }
+}
+
+physical_constraint::physical_constraint(physical_constraint&& other) noexcept
+:m_constraint{std::exchange(other.m_constraint, nullptr)}
+,m_userdata{other.m_userdata}
+{
+    cpConstraintSetUserData(m_constraint, this);
+}
+
+physical_constraint& physical_constraint::operator=(physical_constraint&& other) noexcept
+{
+    std::swap(m_constraint, other.m_constraint);
+    m_userdata = other.m_userdata;
+
+    cpConstraintSetUserData(m_constraint, this);
+
+    return *this;
 }
 
 void physical_constraint::set_max_force(float force) noexcept
 {
-    cpConstraintSetMaxForce(m_constaint, tocp(force));
+    cpConstraintSetMaxForce(m_constraint, tocp(force));
 }
 
 void physical_constraint::set_error_bias(float bias) noexcept
 {
-    cpConstraintSetErrorBias(m_constaint, tocp(bias));
+    cpConstraintSetErrorBias(m_constraint, tocp(bias));
 }
 
 void physical_constraint::set_max_bias(float bias) noexcept
 {
-    cpConstraintSetMaxBias(m_constaint, tocp(bias));
+    cpConstraintSetMaxBias(m_constraint, tocp(bias));
 }
 
 void physical_constraint::set_collide_bodies(bool enable) noexcept
 {
-    cpConstraintSetCollideBodies(m_constaint, static_cast<bool>(enable));
+    cpConstraintSetCollideBodies(m_constraint, static_cast<bool>(enable));
 }
 
 float physical_constraint::max_force() const noexcept
 {
-    return fromcp(cpConstraintGetMaxForce(m_constaint));
+    return fromcp(cpConstraintGetMaxForce(m_constraint));
 }
 
 float physical_constraint::error_bias() const noexcept
 {
-    return fromcp(cpConstraintGetErrorBias(m_constaint));
+    return fromcp(cpConstraintGetErrorBias(m_constraint));
 }
 
 float physical_constraint::max_bias() const noexcept
 {
-    return fromcp(cpConstraintGetMaxBias(m_constaint));
+    return fromcp(cpConstraintGetMaxBias(m_constraint));
 }
 
 bool physical_constraint::collide_bodies() const noexcept
 {
-    return static_cast<bool>(cpConstraintGetCollideBodies(m_constaint));
+    return static_cast<bool>(cpConstraintGetCollideBodies(m_constraint));
 }
 
 void physical_constraint::set_pin_joint_first_anchor(glm::vec2 anchor) noexcept
 {
-    cpPinJointSetAnchorA(m_constaint, tocp(anchor));
+    cpPinJointSetAnchorA(m_constraint, tocp(anchor));
 }
 
 void physical_constraint::set_pin_joint_second_anchor(glm::vec2 anchor) noexcept
 {
-    cpPinJointSetAnchorB(m_constaint, tocp(anchor));
+    cpPinJointSetAnchorB(m_constraint, tocp(anchor));
 }
 
 void physical_constraint::set_pin_joint_distance(float distance) noexcept
 {
-    cpPinJointSetDist(m_constaint, tocp(distance));
+    cpPinJointSetDist(m_constraint, tocp(distance));
+}
+
+physical_world& physical_constraint::world() const noexcept
+{
+    return *static_cast<physical_world*>(cpSpaceGetUserData(cpConstraintGetSpace(m_constraint)));
+}
+
+physical_body& physical_constraint::first_body() const noexcept
+{
+    return *static_cast<physical_body*>(cpBodyGetUserData(cpConstraintGetBodyA(m_constraint)));
+}
+
+physical_body& physical_constraint::second_body() const noexcept
+{
+    return *static_cast<physical_body*>(cpBodyGetUserData(cpConstraintGetBodyB(m_constraint)));
+}
+
+std::pair<physical_body&, physical_body&> physical_constraint::bodies() const noexcept
+{
+    return {first_body(), second_body()};
 }
 
 glm::vec2 physical_constraint::pin_joint_first_anchor() const noexcept
 {
-    return fromcp(cpPinJointGetAnchorA(m_constaint));
+    return fromcp(cpPinJointGetAnchorA(m_constraint));
 }
 
 glm::vec2 physical_constraint::pin_joint_second_anchor() const noexcept
 {
-    return fromcp(cpPinJointGetAnchorB(m_constaint));
+    return fromcp(cpPinJointGetAnchorB(m_constraint));
 }
 
 float physical_constraint::pin_joint_distance() const noexcept
 {
-    return fromcp(cpPinJointGetDist(m_constaint));
+    return fromcp(cpPinJointGetDist(m_constraint));
 }
 
 
 void physical_constraint::set_slide_joint_first_anchor(glm::vec2 anchor) noexcept
 {
-    cpSlideJointSetAnchorA(m_constaint, tocp(anchor));
+    cpSlideJointSetAnchorA(m_constraint, tocp(anchor));
 }
 
 void physical_constraint::set_slide_joint_second_anchor(glm::vec2 anchor) noexcept
 {
-    cpSlideJointSetAnchorB(m_constaint, tocp(anchor));
+    cpSlideJointSetAnchorB(m_constraint, tocp(anchor));
 }
 
 void physical_constraint::set_slide_joint_min(float min) noexcept
 {
-    cpSlideJointSetMin(m_constaint, tocp(min));
+    cpSlideJointSetMin(m_constraint, tocp(min));
 }
 
 void physical_constraint::set_slide_joint_max(float max) noexcept
 {
-    cpSlideJointSetMax(m_constaint, tocp(max));
+    cpSlideJointSetMax(m_constraint, tocp(max));
 }
 
 glm::vec2 physical_constraint::slide_joint_first_anchor() const noexcept
 {
-    return fromcp(cpSlideJointGetAnchorA(m_constaint));
+    return fromcp(cpSlideJointGetAnchorA(m_constraint));
 }
 
 glm::vec2 physical_constraint::slide_joint_second_anchor() const noexcept
 {
-    return fromcp(cpSlideJointGetAnchorB(m_constaint));
+    return fromcp(cpSlideJointGetAnchorB(m_constraint));
 }
 
 float physical_constraint::slide_joint_min() const noexcept
 {
-    return fromcp(cpSlideJointGetMin(m_constaint));
+    return fromcp(cpSlideJointGetMin(m_constraint));
 }
 
 float physical_constraint::slide_joint_max() const noexcept
 {
-    return fromcp(cpSlideJointGetMax(m_constaint));
+    return fromcp(cpSlideJointGetMax(m_constraint));
 }
 
 
 void physical_constraint::set_pivot_joint_first_anchor(glm::vec2 anchor) noexcept
 {
-    cpPivotJointSetAnchorA(m_constaint, tocp(anchor));
+    cpPivotJointSetAnchorA(m_constraint, tocp(anchor));
 }
 
 void physical_constraint::set_pivot_joint_second_anchor(glm::vec2 anchor) noexcept
 {
-    cpPivotJointSetAnchorB(m_constaint, tocp(anchor));
+    cpPivotJointSetAnchorB(m_constraint, tocp(anchor));
 }
 
 glm::vec2 physical_constraint::pivot_joint_first_anchor() const noexcept
 {
-    return fromcp(cpPivotJointGetAnchorA(m_constaint));
+    return fromcp(cpPivotJointGetAnchorA(m_constraint));
 }
 
 glm::vec2 physical_constraint::pivot_joint_second_anchor() const noexcept
 {
-    return fromcp(cpPivotJointGetAnchorB(m_constaint));
+    return fromcp(cpPivotJointGetAnchorB(m_constraint));
 }
 
 
 void physical_constraint::set_groove_joint_first_groove(glm::vec2 groove) noexcept
 {
-    cpGrooveJointSetGrooveA(m_constaint, tocp(groove));
+    cpGrooveJointSetGrooveA(m_constraint, tocp(groove));
 }
 
 void physical_constraint::set_groove_joint_second_groove(glm::vec2 groove) noexcept
 {
-    cpGrooveJointSetGrooveB(m_constaint, tocp(groove));
+    cpGrooveJointSetGrooveB(m_constraint, tocp(groove));
 }
 
 void physical_constraint::set_groove_joint_anchor(glm::vec2 anchor) noexcept
 {
-    cpGrooveJointSetAnchorB(m_constaint, tocp(anchor));
+    cpGrooveJointSetAnchorB(m_constraint, tocp(anchor));
 }
 
 glm::vec2 physical_constraint::groove_joint_first_groove() const noexcept
 {
-    return fromcp(cpGrooveJointGetGrooveA(m_constaint));
+    return fromcp(cpGrooveJointGetGrooveA(m_constraint));
 }
 
 glm::vec2 physical_constraint::groove_joint_second_groove() const noexcept
 {
-    return fromcp(cpGrooveJointGetGrooveB(m_constaint));
+    return fromcp(cpGrooveJointGetGrooveB(m_constraint));
 }
 
 glm::vec2 physical_constraint::groove_joint_anchor() const noexcept
 {
-    return fromcp(cpGrooveJointGetAnchorB(m_constaint));
+    return fromcp(cpGrooveJointGetAnchorB(m_constraint));
 }
 
 
 void physical_constraint::set_damped_spring_first_anchor(glm::vec2 anchor) noexcept
 {
-    cpDampedSpringSetAnchorA(m_constaint, tocp(anchor));
+    cpDampedSpringSetAnchorA(m_constraint, tocp(anchor));
 }
 
 void physical_constraint::set_damped_spring_second_anchor(glm::vec2 anchor) noexcept
 {
-    cpDampedSpringSetAnchorB(m_constaint, tocp(anchor));
+    cpDampedSpringSetAnchorB(m_constraint, tocp(anchor));
 }
 
 void physical_constraint::set_damped_spring_rest_length(float rest_length) noexcept
 {
-    cpDampedSpringSetRestLength(m_constaint, tocp(rest_length));
+    cpDampedSpringSetRestLength(m_constraint, tocp(rest_length));
 }
 
 void physical_constraint::set_damped_spring_stiffness(float stiffness) noexcept
 {
-    cpDampedSpringSetStiffness(m_constaint, tocp(stiffness));
+    cpDampedSpringSetStiffness(m_constraint, tocp(stiffness));
 }
 
 void physical_constraint::set_damped_spring_damping(float damping) noexcept
 {
-    cpDampedSpringSetDamping(m_constaint, tocp(damping));
+    cpDampedSpringSetDamping(m_constraint, tocp(damping));
 }
 
 glm::vec2 physical_constraint::damped_spring_first_anchor() const noexcept
 {
-    return fromcp(cpDampedSpringGetAnchorA(m_constaint));
+    return fromcp(cpDampedSpringGetAnchorA(m_constraint));
 }
 
 glm::vec2 physical_constraint::damped_spring_second_anchor() const noexcept
 {
-    return fromcp(cpDampedSpringGetAnchorB(m_constaint));
+    return fromcp(cpDampedSpringGetAnchorB(m_constraint));
 }
 
 float physical_constraint::damped_spring_rest_length() const noexcept
 {
-    return fromcp(cpDampedSpringGetRestLength(m_constaint));
+    return fromcp(cpDampedSpringGetRestLength(m_constraint));
 }
 
 float physical_constraint::damped_spring_stiffness() const noexcept
 {
-    return fromcp(cpDampedSpringGetStiffness(m_constaint));
+    return fromcp(cpDampedSpringGetStiffness(m_constraint));
 }
 
 float physical_constraint::damped_spring_damping() const noexcept
 {
-    return fromcp(cpDampedSpringGetDamping(m_constaint));
+    return fromcp(cpDampedSpringGetDamping(m_constraint));
 }
 
 
 void physical_constraint::set_damped_rotary_spring_rest_angle(float rest_angle) noexcept
 {
-    cpDampedRotarySpringSetRestAngle(m_constaint, tocp(rest_angle));
+    cpDampedRotarySpringSetRestAngle(m_constraint, tocp(rest_angle));
 }
 
 void physical_constraint::set_damped_rotary_spring_stiffness(float stiffness) noexcept
 {
-    cpDampedRotarySpringSetStiffness(m_constaint, tocp(stiffness));
+    cpDampedRotarySpringSetStiffness(m_constraint, tocp(stiffness));
 }
 
 void physical_constraint::set_damped_rotary_spring_damping(float damping) noexcept
 {
-    cpDampedRotarySpringSetDamping(m_constaint, tocp(damping));
+    cpDampedRotarySpringSetDamping(m_constraint, tocp(damping));
 }
 
 float physical_constraint::damped_rotary_spring_rest_angle() const noexcept
 {
-    return fromcp(cpDampedRotarySpringGetRestAngle(m_constaint));
+    return fromcp(cpDampedRotarySpringGetRestAngle(m_constraint));
 }
 
 float physical_constraint::damped_rotary_spring_stiffness() const noexcept
 {
-    return fromcp(cpDampedRotarySpringGetStiffness(m_constaint));
+    return fromcp(cpDampedRotarySpringGetStiffness(m_constraint));
 }
 
 float physical_constraint::damped_rotary_spring_damping() const noexcept
 {
-    return fromcp(cpDampedRotarySpringGetDamping(m_constaint));
+    return fromcp(cpDampedRotarySpringGetDamping(m_constraint));
 }
 
 
 void physical_constraint::set_rotary_limit_joint_min(float min) noexcept
 {
-    cpRotaryLimitJointSetMin(m_constaint, tocp(min));
+    cpRotaryLimitJointSetMin(m_constraint, tocp(min));
 }
 
 void physical_constraint::set_rotary_limit_joint_max(float max) noexcept
 {
-    cpRotaryLimitJointSetMax(m_constaint, tocp(max));
+    cpRotaryLimitJointSetMax(m_constraint, tocp(max));
 }
 
 float physical_constraint::rotary_limit_joint_min() const noexcept
 {
-    return fromcp(cpRotaryLimitJointGetMin(m_constaint));
+    return fromcp(cpRotaryLimitJointGetMin(m_constraint));
 }
 
 float physical_constraint::rotary_limit_joint_max() const noexcept
 {
-    return fromcp(cpRotaryLimitJointGetMax(m_constaint));
+    return fromcp(cpRotaryLimitJointGetMax(m_constraint));
 }
 
 
 void physical_constraint::set_ratchet_joint_angle(float angle) noexcept
 {
-    cpRatchetJointSetAngle(m_constaint, tocp(angle));
+    cpRatchetJointSetAngle(m_constraint, tocp(angle));
 }
 
 void physical_constraint::set_ratchet_joint_phase(float phase) noexcept
 {
-    cpRatchetJointSetPhase(m_constaint, tocp(phase));
+    cpRatchetJointSetPhase(m_constraint, tocp(phase));
 }
 
 void physical_constraint::set_ratchet_joint_ratchet(float ratchet) noexcept
 {
-    cpRatchetJointSetRatchet(m_constaint, tocp(ratchet));
+    cpRatchetJointSetRatchet(m_constraint, tocp(ratchet));
 }
 
 float physical_constraint::ratchet_joint_angle() const noexcept
 {
-    return fromcp(cpRatchetJointGetAngle(m_constaint));
+    return fromcp(cpRatchetJointGetAngle(m_constraint));
 }
 
 float physical_constraint::ratchet_joint_phase() const noexcept
 {
-    return fromcp(cpRatchetJointGetPhase(m_constaint));
+    return fromcp(cpRatchetJointGetPhase(m_constraint));
 }
 
 float physical_constraint::ratchet_joint_ratchet() const noexcept
 {
-    return fromcp(cpRatchetJointGetRatchet(m_constaint));
+    return fromcp(cpRatchetJointGetRatchet(m_constraint));
 }
 
 
 void physical_constraint::set_gear_joint_phase(float phase) noexcept
 {
-    cpGearJointSetPhase(m_constaint, tocp(phase));
+    cpGearJointSetPhase(m_constraint, tocp(phase));
 }
 
 void physical_constraint::set_gear_joint_ratio(float ratio) noexcept
 {
-    cpGearJointSetRatio(m_constaint, tocp(ratio));
+    cpGearJointSetRatio(m_constraint, tocp(ratio));
 }
 
 float physical_constraint::gear_joint_phase() const noexcept
 {
-    return fromcp(cpGearJointGetPhase(m_constaint));
+    return fromcp(cpGearJointGetPhase(m_constraint));
 }
 
 float physical_constraint::gear_joint_ratio() const noexcept
 {
-    return fromcp(cpGearJointGetRatio(m_constaint));
+    return fromcp(cpGearJointGetRatio(m_constraint));
 }
 
 
 void physical_constraint::set_motor_joint_rate(float rate) noexcept
 {
-    cpSimpleMotorSetRate(m_constaint, tocp(rate));
+    cpSimpleMotorSetRate(m_constraint, tocp(rate));
 }
 
 float physical_constraint::motor_joint_rate() const noexcept
 {
-    return fromcp(cpSimpleMotorGetRate(m_constaint));
+    return fromcp(cpSimpleMotorGetRate(m_constraint));
 }
 
 
