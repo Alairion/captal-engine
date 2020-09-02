@@ -38,13 +38,6 @@ public:
         m_attachment = std::move(attachment);
     }
 
-    void attach(physical_shape_ptr attachment)
-    {
-        assert(attachment->body() == m_attachment && "cpt::component::physical_body::attach can only attach shape that belong to its attachment.");
-
-        m_shapes.emplace_back(std::move(attachment));
-    }
-
     template<typename... Args>
     const physical_shape_ptr& add_shape(Args&&... args)
     {

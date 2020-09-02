@@ -40,6 +40,7 @@ add_library(captal SHARED
     src/captal/sound.hpp
     src/captal/tiled_map.hpp
     src/captal/physics.hpp
+    src/captal/widgets.hpp
 
     src/captal/components/node.hpp
     src/captal/components/drawable.hpp
@@ -76,6 +77,7 @@ add_library(captal SHARED
     src/captal/sound.cpp
     src/captal/tiled_map.cpp
     src/captal/physics.cpp
+    src/captal/widgets.cpp
 )
 
 if(WIN32)
@@ -142,4 +144,5 @@ install(DIRECTORY ${PROJECT_SOURCE_DIR}/src/captal
 if(CAPTAL_BUILD_EXAMPLE)
     add_executable(captal_test "main.cpp")
     target_link_libraries(captal_test PRIVATE captal)
+    target_include_directories(captal_test PRIVATE ${GLOBAL_INCLUDES})
 endif()
