@@ -64,6 +64,16 @@ public:
     bool is_first_contact() const noexcept;
     bool is_removal() const noexcept;
 
+    cpArbiter* handle() noexcept
+    {
+        return m_arbiter;
+    }
+
+    const cpArbiter* handle() const noexcept
+    {
+        return m_arbiter;
+    }
+
 private:
     cpArbiter* m_arbiter{};
 };
@@ -195,9 +205,16 @@ private:
     float m_time{};
 };
 
+struct bounding_box
+{
+    glm::vec2 top_left{};
+    glm::vec2 bottom_right{};
+};
+
 class CAPTAL_API physical_shape
 {
 public:
+    physical_shape() = default;
     physical_shape(physical_body& body, float radius, glm::vec2 offset = glm::vec2{});
     physical_shape(physical_body& body, glm::vec2 first, glm::vec2 second, float thickness = 0.0f);
     physical_shape(physical_body& body, std::span<const glm::vec2> points, float radius = 0.0f);
@@ -231,6 +248,7 @@ public:
     group_t group() const noexcept;
     collision_id_t categories() const noexcept;
     collision_id_t collision_mask() const noexcept;
+    cpt::bounding_box bounding_box() const noexcept;
 
     cpShape* handle() noexcept
     {
@@ -271,7 +289,9 @@ class CAPTAL_API physical_body
     friend class physical_shape;
 
 public:
+    physical_body() = default;
     physical_body(physical_world& world, physical_body_type type, float mass = 1.0f, float moment = no_rotation);
+
     ~physical_body();
     physical_body(const physical_body&) = delete;
     physical_body& operator=(const physical_body&) = delete;
@@ -373,6 +393,7 @@ inline constexpr motor_joint_t motor_joint{};
 class CAPTAL_API physical_constraint
 {
 public:
+    physical_constraint() = default;
     physical_constraint(pin_joint_t, physical_body& first, physical_body& second, glm::vec2 first_anchor, glm::vec2 second_anchor);
     physical_constraint(slide_joint_t, physical_body& first, physical_body& second, glm::vec2 first_anchor, glm::vec2 second_anchor, float min, float max);
     physical_constraint(pivot_joint_t, physical_body& first, physical_body& second, glm::vec2 pivot);

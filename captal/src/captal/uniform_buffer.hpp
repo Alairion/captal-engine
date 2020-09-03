@@ -51,13 +51,13 @@ public:
     template<typename T>
     T& get(std::size_t index) noexcept
     {
-        return *reinterpret_cast<T*>(std::data(m_data) + compute_offset(index));
+        return *std::launder(reinterpret_cast<T*>(std::data(m_data) + compute_offset(index)));
     }
 
     template<typename T>
     const T& get(std::size_t index) const noexcept
     {
-        return *reinterpret_cast<const T*>(std::data(m_data) + compute_offset(index));
+        return *std::launder(reinterpret_cast<const T*>(std::data(m_data) + compute_offset(index)));
     }
 
     std::uint64_t compute_offset(std::size_t index) const noexcept

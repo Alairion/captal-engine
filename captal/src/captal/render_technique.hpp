@@ -58,7 +58,6 @@ private:
 };
 
 using descriptor_set_ptr = std::shared_ptr<descriptor_set>;
-using descriptor_set_weak_ptr = std::weak_ptr<descriptor_set>;
 
 class CAPTAL_API descriptor_pool
 {
@@ -75,7 +74,7 @@ public:
     descriptor_pool(descriptor_pool&&) noexcept = delete;
     descriptor_pool& operator=(descriptor_pool&&) noexcept = delete;
 
-    std::optional<descriptor_set_ptr> allocate() noexcept;
+    descriptor_set_ptr allocate() noexcept;
     bool unused() const noexcept;
 
     render_technique& technique() noexcept
@@ -136,7 +135,7 @@ public:
         static_assert(alignof(T) <= 4, "Alignment of T is too big.");
         assert(m_ranges[index].size == sizeof(T) && "Size of T does not match range size.");
 
-        return *reinterpret_cast<T*>(std::data(m_push_constant_buffer) + m_ranges[index].offset / 4u);
+        return *std::launder(reinterpret_cast<T*>(std::data(m_push_constant_buffer) + m_ranges[index].offset / 4u));
     }
 
     template<typename T>
@@ -145,7 +144,7 @@ public:
         static_assert(alignof(T) <= 4, "Alignment of T is too big.");
         assert(m_ranges[index].size == sizeof(T) && "Size of T does not match range size.");
 
-        return *reinterpret_cast<const T*>(std::data(m_push_constant_buffer) + m_ranges[index].offset / 4u);
+        return *std::launder(reinterpret_cast<const T*>(std::data(m_push_constant_buffer) + m_ranges[index].offset / 4u));
     }
 
     template<typename T>

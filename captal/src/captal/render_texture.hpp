@@ -36,8 +36,8 @@ public:
     ~render_texture();
     render_texture(const render_texture&) = delete;
     render_texture& operator=(const render_texture&) = delete;
-    render_texture(render_texture&&) = default;
-    render_texture& operator=(render_texture&&) = default;
+    render_texture(render_texture&&) = delete;
+    render_texture& operator=(render_texture&&) = delete;
 
     std::pair<tph::command_buffer&, frame_presented_signal&> begin_render();
     void present();

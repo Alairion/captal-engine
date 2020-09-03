@@ -36,7 +36,7 @@ public:
     texture(tph::image image, const tph::sampling_options& sampling = tph::sampling_options{}, color_space space = color_space::srgb);
 
     template<typename... Args, typename = std::enable_if_t<std::is_constructible_v<tph::texture, tph::renderer&, Args...>>>
-    texture(Args&&... args) noexcept(std::is_nothrow_constructible_v<tph::texture, tph::renderer&, Args...>)
+    texture(Args&&... args)
     :m_texture{get_renderer(), std::forward<Args>(args)...}
     {
 
@@ -45,8 +45,8 @@ public:
     virtual ~texture() = default;
     texture(const texture&) = delete;
     texture& operator=(const texture&) = delete;
-    texture(texture&&) noexcept = default;
-    texture& operator=(texture&&) noexcept = default;
+    texture(texture&&) noexcept = delete;
+    texture& operator=(texture&&) noexcept = delete;
 
     tph::texture::size_type width() const noexcept
     {
@@ -172,9 +172,7 @@ public:
     struct texture_rect
     {
         glm::vec2 top_left{};
-        glm::vec2 top_right{};
         glm::vec2 bottom_right{};
-        glm::vec2 bottom_left{};
     };
 
 public:
@@ -207,9 +205,7 @@ public:
         const float height{static_cast<float>(m_texture->height())};
 
         output.top_left     = glm::vec2{static_cast<float>(( col      * m_tile_width)) / width, static_cast<float>(( row      * m_tile_height)) / height};
-        output.top_right    = glm::vec2{static_cast<float>(((col + 1) * m_tile_width)) / width, static_cast<float>(( row      * m_tile_height)) / height};
         output.bottom_right = glm::vec2{static_cast<float>(((col + 1) * m_tile_width)) / width, static_cast<float>(((row + 1) * m_tile_height)) / height};
-        output.bottom_left  = glm::vec2{static_cast<float>(( col      * m_tile_width)) / width, static_cast<float>(((row + 1) * m_tile_height)) / height};
 
         return output;
     }

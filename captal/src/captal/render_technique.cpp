@@ -26,7 +26,7 @@ descriptor_pool::descriptor_pool(render_technique& parent, tph::descriptor_pool 
     }
 }
 
-std::optional<descriptor_set_ptr> descriptor_pool::allocate() noexcept
+descriptor_set_ptr descriptor_pool::allocate() noexcept
 {
     for(auto&& set : m_sets)
     {
@@ -36,7 +36,7 @@ std::optional<descriptor_set_ptr> descriptor_pool::allocate() noexcept
         }
     }
 
-    return std::nullopt;
+    return nullptr;
 }
 
 bool descriptor_pool::unused() const noexcept
@@ -123,15 +123,17 @@ descriptor_set_ptr render_technique::make_set()
 
     for(auto&& pool : m_pools)
     {
-        if(auto set{pool->allocate()}; set.has_value())
+        auto set{pool->allocate()};
+
+        if(set)
         {
-            return std::move(set).value();
+            return set;
         }
     }
 
     m_pools.emplace_back(std::make_unique<descriptor_pool>(*this, tph::descriptor_pool{engine::instance().renderer(), m_sizes, static_cast<std::uint32_t>(descriptor_pool::pool_size)}));
 
-    return m_pools.back()->allocate().value();
+    return m_pools.back()->allocate();
 }
 
 }

@@ -21,7 +21,7 @@ enum class binding_type : std::uint32_t
     storage_buffer = 2
 };
 
-inline binding_type get_binding_type(const binding& binding)
+inline binding_type get_binding_type(const binding& binding) noexcept
 {
     return static_cast<binding_type>(binding.index());
 }

@@ -22,12 +22,6 @@ public:
 using asynchronous_resource_ptr = std::shared_ptr<asynchronous_resource>;
 using asynchronous_resource_weak_ptr = std::weak_ptr<asynchronous_resource>;
 
-template<typename... Args>
-asynchronous_resource_ptr make_asynchronous_resource(Args&&... args)
-{
-    return std::make_shared<asynchronous_resource>(std::forward<Args>(args)...);
-}
-
 }
 
 #endif
