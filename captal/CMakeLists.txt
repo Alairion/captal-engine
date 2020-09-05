@@ -66,7 +66,6 @@ add_library(captal SHARED
     src/captal/render_target.cpp
     src/captal/render_window.cpp
     src/captal/render_texture.cpp
-    src/captal/state.cpp
     src/captal/texture.cpp
     src/captal/uniform_buffer.cpp
     src/captal/storage_buffer.cpp

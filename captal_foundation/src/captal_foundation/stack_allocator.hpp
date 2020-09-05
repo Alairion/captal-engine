@@ -230,7 +230,7 @@ public:
         return reinterpret_cast<T*>(ptr);
     }
 
-    constexpr void deallocate(T* ptr, std::size_t count)
+    constexpr void deallocate(T* ptr, std::size_t count) noexcept
     {
         if constexpr(new_fallback)
         {
