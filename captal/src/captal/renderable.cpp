@@ -76,13 +76,13 @@ void renderable::set_texture(texture_ptr texture) noexcept
     m_need_descriptor_update = true;
 }
 
-void renderable::set_view(const view_ptr& view)
+void renderable::set_view(cpt::view& view)
 {
-    const auto write_set = [this](const view_ptr& view, const descriptor_set_ptr& set)
+    const auto write_set = [this](cpt::view& view, const descriptor_set_ptr& set)
     {
-        const auto has_binding = [](const view_ptr& view, std::uint32_t binding)
+        const auto has_binding = [](cpt::view& view, std::uint32_t binding)
         {
-            for(auto&& layout_binding : view->render_technique()->bindings())
+            for(auto&& layout_binding : view.render_technique()->bindings())
             {
                 if(layout_binding.binding == binding)
                 {
@@ -118,7 +118,7 @@ void renderable::set_view(const view_ptr& view)
         auto& texture{m_impl->texture ? m_impl->texture->get_texture() : engine::instance().default_texture().get_texture()};
 
         std::vector<tph::descriptor_write> writes{};
-        writes.emplace_back(tph::descriptor_write{set->set(), 0, 0, tph::descriptor_type::uniform_buffer, tph::descriptor_buffer_info{view->get_buffer(), 0, sizeof(view::uniform_data)}});
+        writes.emplace_back(tph::descriptor_write{set->set(), 0, 0, tph::descriptor_type::uniform_buffer, tph::descriptor_buffer_info{view.get_buffer(), 0, sizeof(view::uniform_data)}});
         writes.emplace_back(tph::descriptor_write{set->set(), 1, 0, tph::descriptor_type::uniform_buffer, tph::descriptor_buffer_info{m_impl->buffer.get_buffer(), 0, sizeof(renderable::uniform_data)}});
         writes.emplace_back(tph::descriptor_write{set->set(), 2, 0, tph::descriptor_type::image_sampler, tph::descriptor_texture_info{texture, tph::texture_layout::shader_read_only_optimal}});
 
@@ -130,7 +130,7 @@ void renderable::set_view(const view_ptr& view)
             }
         }
 
-        for(auto&& [binding, data] : view->bindings())
+        for(auto&& [binding, data] : view.bindings())
         {
             if(has_binding(view, binding))
             {
@@ -141,19 +141,19 @@ void renderable::set_view(const view_ptr& view)
         tph::write_descriptors(engine::instance().renderer(), writes);
     };
 
-    auto it{m_impl->descriptor_sets.find(view.get())};
+    auto it{m_impl->descriptor_sets.find(view.resource().get())};
 
     if(it == std::end(m_impl->descriptor_sets)) //New view
     {
-        const auto [new_item, success] = m_impl->descriptor_sets.emplace(std::make_pair(view.get(), view->render_technique()->make_set()));
+        const auto [new_item, success] = m_impl->descriptor_sets.emplace(std::make_pair(view.resource().get(), view.render_technique()->make_set()));
         assert(success);
 
         it = new_item;
         write_set(view, it->second);
     }
-    else if(m_need_descriptor_update || view->need_descriptor_update()) //Already known view check
+    else if(m_need_descriptor_update || view.need_descriptor_update()) //Already known view check
     {
-        it->second = view->render_technique()->make_set();
+        it->second = view.render_technique()->make_set();
         write_set(view, it->second);
     }
 
@@ -199,10 +199,11 @@ cpt::binding& renderable::add_binding(std::uint32_t index, cpt::binding binding)
     assert(success && "cpt::view::add_binding called with already used binding.");
 
     m_need_descriptor_update = true;
+
     return it->second;
 }
 
-void renderable::set_uniform(std::uint32_t index, cpt::binding new_binding)
+void renderable::set_binding(std::uint32_t index, cpt::binding new_binding)
 {
     m_impl->bindings.at(index) = std::move(new_binding);
     m_need_descriptor_update = true;

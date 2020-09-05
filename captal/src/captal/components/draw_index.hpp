@@ -9,7 +9,7 @@ namespace cpt
 namespace components
 {
 
-struct CAPTAL_API draw_index
+struct draw_index
 {
     std::uint32_t index{};
 };

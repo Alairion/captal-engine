@@ -27,7 +27,7 @@ class CAPTAL_API renderable
         uniform_buffer buffer{};
         texture_ptr texture{};
         std::unordered_map<std::uint32_t, cpt::binding> bindings{};
-        std::unordered_map<const view*, descriptor_set_ptr> descriptor_sets{};
+        std::unordered_map<const asynchronous_resource*, descriptor_set_ptr> descriptor_sets{};
         descriptor_set_ptr current_set{};
     };
 
@@ -51,7 +51,7 @@ public:
     void set_indices(std::span<const std::uint32_t> indices) noexcept;
     void set_vertices(std::span<const vertex> vertices) noexcept;
     void set_texture(texture_ptr texture) noexcept;
-    void set_view(const view_ptr& view);
+    void set_view(cpt::view& view);
 
     void move(const glm::vec3& relative) noexcept
     {
@@ -118,8 +118,9 @@ public:
 
     void upload();
     void draw(tph::command_buffer& buffer);
+
     cpt::binding& add_binding(std::uint32_t index, cpt::binding binding);
-    void set_uniform(std::uint32_t index, cpt::binding new_binding);
+    void set_binding(std::uint32_t index, cpt::binding new_binding);
 
     const glm::vec3& position() const noexcept
     {
@@ -175,9 +176,9 @@ public:
         return m_impl->current_set;
     }
 
-    const descriptor_set_ptr& set(const view_ptr& view) const noexcept
+    const descriptor_set_ptr& set(const cpt::view& view) const noexcept
     {
-        return m_impl->descriptor_sets.at(view.get());
+        return m_impl->descriptor_sets.at(view.resource().get());
     }
 
     const texture_ptr& texture() const noexcept

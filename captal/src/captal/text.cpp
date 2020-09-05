@@ -279,7 +279,7 @@ void text_drawer::resize(std::uint32_t pixels_size)
     m_cache.clear();
 }
 
-std::pair<std::uint32_t, std::uint32_t> text_drawer::bounds(std::string_view string)
+text_bounds text_drawer::bounds(std::string_view string)
 {
     float current_x{};
     float current_y{static_cast<float>(m_font.info().max_ascent)};
@@ -318,10 +318,10 @@ std::pair<std::uint32_t, std::uint32_t> text_drawer::bounds(std::string_view str
         last = codepoint;
     }
 
-    return std::make_pair(static_cast<std::uint32_t>(greatest_x - lowest_x), static_cast<std::uint32_t>(greatest_y - lowest_y));
+    return text_bounds{static_cast<std::uint32_t>(greatest_x - lowest_x), static_cast<std::uint32_t>(greatest_y - lowest_y)};
 }
 
-text_ptr text_drawer::draw(std::string_view string, const color& color)
+text text_drawer::draw(std::string_view string, const color& color)
 {
     auto&& [command_buffer, signal] = cpt::engine::instance().begin_transfer();
 
@@ -418,10 +418,10 @@ text_ptr text_drawer::draw(std::string_view string, const color& color)
         vertex.position += shift;
     }
 
-    return std::make_shared<text>(indices, vertices, std::move(texture), static_cast<std::uint32_t>(greatest_x - lowest_x), static_cast<std::uint32_t>(greatest_y - lowest_y), std::size(string));
+    return text{indices, vertices, std::move(texture), static_cast<std::uint32_t>(greatest_x - lowest_x), static_cast<std::uint32_t>(greatest_y - lowest_y), std::size(string)};
 }
 
-text_ptr text_drawer::draw(std::string_view string, std::uint32_t line_width, text_align align, const color& color)
+text text_drawer::draw(std::string_view string, std::uint32_t line_width, text_align align, const color& color)
 {
     auto&& [command_buffer, signal] = cpt::engine::instance().begin_transfer();
 
@@ -477,7 +477,7 @@ text_ptr text_drawer::draw(std::string_view string, std::uint32_t line_width, te
     const std::uint32_t text_width{static_cast<std::uint32_t>(state.greatest_x - state.lowest_x)};
     const std::uint32_t text_height{static_cast<std::uint32_t>(state.greatest_y - state.lowest_y)};
 
-    return std::make_shared<text>(indices, vertices, std::move(texture), text_width, text_height, std::size(string));
+    return text{indices, vertices, std::move(texture), text_width, text_height, std::size(string)};
 }
 
 void text_drawer::draw_line(std::string_view line, std::uint32_t line_width, text_align align, draw_line_state& state, std::vector<vertex>& vertices, const std::unordered_map<codepoint_t, std::pair<std::shared_ptr<glyph>, glm::vec2>>& cache, const color& color)
@@ -531,20 +531,20 @@ void text_drawer::draw_line(std::string_view line, std::uint32_t line_width, tex
                 }
                 else
                 {
-                    vertices.emplace_back(vertex{});
-                    vertices.emplace_back(vertex{});
-                    vertices.emplace_back(vertex{});
-                    vertices.emplace_back(vertex{});
+                    vertices.emplace_back();
+                    vertices.emplace_back();
+                    vertices.emplace_back();
+                    vertices.emplace_back();
                 }
 
                 state.current_x += glyph.advance;
                 last = codepoint;
             }
 
-            vertices.emplace_back(vertex{});
-            vertices.emplace_back(vertex{});
-            vertices.emplace_back(vertex{});
-            vertices.emplace_back(vertex{});
+            vertices.emplace_back();
+            vertices.emplace_back();
+            vertices.emplace_back();
+            vertices.emplace_back();
 
             state.current_x += space_glyph.advance;
         }
@@ -625,40 +625,40 @@ const std::shared_ptr<glyph>& text_drawer::load_glyph(codepoint_t codepoint)
     return it->second;
 }
 
-text_ptr draw_text(cpt::font& font, std::string_view string, const color& color, text_drawer_options options)
+text draw_text(cpt::font& font, std::string_view string, const color& color, text_drawer_options options)
 {
     text_drawer drawer{std::move(font), options};
-    text_ptr text{drawer.draw(string, color)};
+    text text{drawer.draw(string, color)};
 
     font = std::move(drawer.font());
 
     return text;
 }
 
-text_ptr draw_text(cpt::font&& font, std::string_view string, const color& color, text_drawer_options options)
+text draw_text(cpt::font&& font, std::string_view string, const color& color, text_drawer_options options)
 {
     text_drawer drawer{std::move(font), options};
-    text_ptr text{drawer.draw(string, color)};
+    text text{drawer.draw(string, color)};
 
     font = std::move(drawer.font());
 
     return text;
 }
 
-text_ptr draw_text(cpt::font& font, std::string_view string, std::uint32_t line_width, text_align align, const color& color, text_drawer_options options)
+text draw_text(cpt::font& font, std::string_view string, std::uint32_t line_width, text_align align, const color& color, text_drawer_options options)
 {
     text_drawer drawer{std::move(font), options};
-    text_ptr text{drawer.draw(string, line_width, align, color)};
+    text text{drawer.draw(string, line_width, align, color)};
 
     font = std::move(drawer.font());
 
     return text;
 }
 
-text_ptr draw_text(cpt::font&& font, std::string_view string, std::uint32_t line_width, text_align align, const color& color, text_drawer_options options)
+text draw_text(cpt::font&& font, std::string_view string, std::uint32_t line_width, text_align align, const color& color, text_drawer_options options)
 {
     text_drawer drawer{std::move(font), options};
-    text_ptr text{drawer.draw(string, line_width, align, color)};
+    text text{drawer.draw(string, line_width, align, color)};
 
     font = std::move(drawer.font());
 

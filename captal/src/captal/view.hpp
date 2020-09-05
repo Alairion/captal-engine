@@ -24,8 +24,15 @@ enum class view_type
     orthographic = 0,
 };
 
-class CAPTAL_API view : public asynchronous_resource
+class CAPTAL_API view
 {
+    struct view_impl : public asynchronous_resource
+    {
+        uniform_buffer buffer{};
+        std::unordered_map<std::uint32_t, cpt::binding> bindings{};
+        render_technique_ptr render_technique{};
+    };
+
 public:
     struct uniform_data
     {
@@ -123,7 +130,7 @@ public:
 
     void set_render_technique(render_technique_ptr technique) noexcept
     {
-        m_render_technique = std::move(technique);
+        m_impl->render_technique = std::move(technique);
         update_uniforms();
     }
 
@@ -135,7 +142,7 @@ public:
     template<typename T>
     void set_push_constant(std::size_t index, T&& value) noexcept
     {
-        m_render_technique->set_push_constant(index, std::forward<T>(value));
+        get_push_constant<T>(index) = std::forward<T>(value);
     }
 
     cpt::binding& add_binding(std::uint32_t index, cpt::binding binding);
@@ -210,7 +217,7 @@ public:
 
     const render_technique_ptr& render_technique() const noexcept
     {
-        return m_render_technique;
+        return m_impl->render_technique;
     }
 
     render_target& target() const noexcept
@@ -220,49 +227,60 @@ public:
 
     tph::buffer& get_buffer() noexcept
     {
-        return m_buffer.get_buffer();
+        return m_impl->buffer.get_buffer();
     }
 
     const tph::buffer& get_buffer() const noexcept
     {
-        return m_buffer.get_buffer();
+        return m_impl->buffer.get_buffer();
     }
 
     template<typename T>
     T& get_push_constant(std::size_t index) noexcept
     {
-        return m_render_technique->get_push_constant<T>(index);
+        static_assert(alignof(T) <= 4, "Alignment of T is too big.");
+
+        const auto range{m_impl->render_technique->ranges()[index]};
+        assert(range.size == sizeof(T) && "Size of T does not match range size.");
+
+        return *std::launder(reinterpret_cast<T*>(std::data(m_push_constant_buffer) + range.offset / 4u));
     }
 
     template<typename T>
     const T& get_push_constant(std::size_t index) const noexcept
     {
-        return m_render_technique->get_push_constant<T>(index);
+        static_assert(alignof(T) <= 4, "Alignment of T is too big.");
+
+        const auto range{m_impl->render_technique->ranges()[index]};
+        assert(range.size == sizeof(T) && "Size of T does not match range size.");
+
+        return *std::launder(reinterpret_cast<const T*>(std::data(m_push_constant_buffer) + range.offset / 4u));
     }
+
 
     cpt::binding& binding(std::uint32_t index)
     {
-        return m_bindings.at(index);
+        return m_impl->bindings.at(index);
     }
 
     const cpt::binding& binding(std::uint32_t index) const
     {
-        return m_bindings.at(index);
+        return m_impl->bindings.at(index);
     }
 
     bool has_binding(std::uint32_t index) const
     {
-        return m_bindings.find(index) != std::end(m_bindings);
+        return m_impl->bindings.find(index) != std::end(m_impl->bindings);
     }
 
     std::unordered_map<std::uint32_t, cpt::binding>& bindings() noexcept
     {
-        return m_bindings;
+        return m_impl->bindings;
     }
 
     const std::unordered_map<std::uint32_t, cpt::binding>& bindings() const noexcept
     {
-        return m_bindings;
+        return m_impl->bindings;
     }
 
     bool need_descriptor_update(bool new_value = false) noexcept
@@ -270,7 +288,19 @@ public:
         return std::exchange(m_need_descriptor_update, new_value);
     }
 
+    const std::vector<std::uint32_t>& push_constant_buffer() const noexcept
+    {
+        return m_push_constant_buffer;
+    }
+
+    asynchronous_resource_ptr resource() const noexcept
+    {
+        return m_impl;
+    }
+
 private:
+    render_target* m_target{};
+
     tph::viewport m_viewport{};
     tph::scissor m_scissor{};
     glm::vec3 m_position{};
@@ -282,23 +312,12 @@ private:
     float m_rotation{};
     view_type m_type{};
 
-    uniform_buffer m_buffer{};
-    std::unordered_map<std::uint32_t, cpt::binding> m_bindings{};
     bool m_need_upload{true};
     bool m_need_descriptor_update{};
 
-    render_target* m_target{};
-    render_technique_ptr m_render_technique{};
+    std::vector<std::uint32_t> m_push_constant_buffer{};
+    std::shared_ptr<view_impl> m_impl{};
 };
-
-using view_ptr = std::shared_ptr<view>;
-using view_weak_ptr = std::weak_ptr<view>;
-
-template<typename... Args>
-view_ptr make_view(Args&&... args)
-{
-    return std::make_shared<view>(std::forward<Args>(args)...);
-}
 
 }
 

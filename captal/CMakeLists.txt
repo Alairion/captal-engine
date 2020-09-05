@@ -43,13 +43,14 @@ add_library(captal SHARED
     src/captal/widgets.hpp
 
     src/captal/components/node.hpp
-    src/captal/components/drawable.hpp
     src/captal/components/draw_index.hpp
-    src/captal/components/camera.hpp
     src/captal/components/listener.hpp
-    src/captal/components/audio_emiter.hpp
-    src/captal/components/physical_body.hpp
+    src/captal/components/rigid_body.hpp
     src/captal/components/controller.hpp
+    src/captal/components/attachment.hpp
+    src/captal/components/drawable.hpp
+    src/captal/components/camera.hpp
+    src/captal/components/audio_emiter.hpp
 
     src/captal/systems/frame.hpp
     src/captal/systems/sorting.hpp

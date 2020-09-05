@@ -5,57 +5,15 @@
 
 #include "../view.hpp"
 
-namespace cpt
+#include "attachment.hpp"
+
+namespace cpt::components
 {
 
-namespace components
+class camera : public impl::basic_attachement<view>
 {
 
-class CAPTAL_API camera
-{
-public:
-    using value_type = view;
-
-public:
-    camera() = default;
-
-    explicit camera(view_ptr attachment)
-    :m_attachment{std::move(attachment)}
-    {
-
-    }
-
-    ~camera() = default;
-    camera(const camera&) = default;
-    camera& operator=(const camera&) = default;
-    camera(camera&&) noexcept = default;
-    camera& operator=(camera&&) noexcept = default;
-
-    void attach(view_ptr attachment) noexcept
-    {
-        m_attachment = std::move(attachment);
-    }
-
-    void detach() noexcept
-    {
-        m_attachment = nullptr;
-    }
-
-    const view_ptr& attachment() const noexcept
-    {
-        return m_attachment;
-    }
-
-    view* operator->() const noexcept
-    {
-        return m_attachment.get();
-    }
-
-private:
-    view_ptr m_attachment{};
 };
-
-}
 
 }
 

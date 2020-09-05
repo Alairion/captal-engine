@@ -94,7 +94,7 @@ private:
     font_info m_info{};
 };
 
-class CAPTAL_API text : public renderable
+class CAPTAL_API text final : public renderable
 {
 public:
     text() = default;
@@ -126,9 +126,6 @@ private:
     std::size_t m_count{};
 };
 
-using text_ptr = std::shared_ptr<text>;
-using text_weak_ptr = std::weak_ptr<text>;
-
 enum class text_drawer_options : std::uint32_t
 {
     none = 0x00,
@@ -143,6 +140,12 @@ enum class text_align : std::uint32_t
     right = 1,
     center = 2,
     justify = 3
+};
+
+struct text_bounds
+{
+    std::uint32_t width{};
+    std::uint32_t height{};
 };
 
 class CAPTAL_API text_drawer
@@ -160,9 +163,9 @@ public:
     void set_style(font_style style) noexcept;
     void resize(std::uint32_t pixels_size);
 
-    std::pair<std::uint32_t, std::uint32_t> bounds(std::string_view string);
-    text_ptr draw(std::string_view string, const color& color = colors::white);
-    text_ptr draw(std::string_view string, std::uint32_t line_width, text_align align = text_align::left, const color& color = colors::white);
+    text_bounds bounds(std::string_view string);
+    text draw(std::string_view string, const color& color = colors::white);
+    text draw(std::string_view string, std::uint32_t line_width, text_align align = text_align::left, const color& color = colors::white);
 
     cpt::font& font() noexcept
     {
@@ -204,10 +207,10 @@ private:
     std::unordered_map<codepoint_t, std::shared_ptr<glyph>> m_cache{};
 };
 
-text_ptr CAPTAL_API draw_text(cpt::font& font, std::string_view string,  const color& color = colors::white, text_drawer_options options = text_drawer_options::kerning);
-text_ptr CAPTAL_API draw_text(cpt::font&& font, std::string_view string, const color& color = colors::white, text_drawer_options options = text_drawer_options::kerning);
-text_ptr CAPTAL_API draw_text(cpt::font& font, std::string_view string,  std::uint32_t line_width, text_align align = text_align::left, const color& color = colors::white, text_drawer_options options = text_drawer_options::kerning);
-text_ptr CAPTAL_API draw_text(cpt::font&& font, std::string_view string, std::uint32_t line_width, text_align align = text_align::left, const color& color = colors::white, text_drawer_options options = text_drawer_options::kerning);
+text CAPTAL_API draw_text(cpt::font& font, std::string_view string,  const color& color = colors::white, text_drawer_options options = text_drawer_options::kerning);
+text CAPTAL_API draw_text(cpt::font&& font, std::string_view string, const color& color = colors::white, text_drawer_options options = text_drawer_options::kerning);
+text CAPTAL_API draw_text(cpt::font& font, std::string_view string,  std::uint32_t line_width, text_align align = text_align::left, const color& color = colors::white, text_drawer_options options = text_drawer_options::kerning);
+text CAPTAL_API draw_text(cpt::font&& font, std::string_view string, std::uint32_t line_width, text_align align = text_align::left, const color& color = colors::white, text_drawer_options options = text_drawer_options::kerning);
 
 }
 

@@ -64,7 +64,7 @@ Header:
         [std::uint16_t file_version_minor]
         [std::uint32_t file_version_patch]
     General informations:
-        [cpt::language: source_language]the source language
+        [cpt::language: source_language] the source language
         [cpt::country: source_country] the source language country
         [cpt::language: target_language] the target language
         [cpt::country: target_country] the target language country
