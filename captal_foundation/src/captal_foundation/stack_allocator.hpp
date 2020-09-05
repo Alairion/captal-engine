@@ -42,7 +42,7 @@ private:
 private:
     static constexpr std::size_t& as_header(block_type& block) noexcept
     {
-        return reinterpret_cast<std::size_t&>(block);
+        return *std::launder(reinterpret_cast<std::size_t*>(&block));
     }
 
     static constexpr bool is_empty(block_type block) noexcept

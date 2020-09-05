@@ -53,7 +53,7 @@ inline void render(entt::registry& world)
         if(camera.attachment()->target().is_rendering_enable())
         {
             const view_ptr& view{camera.attachment()};
-            const render_technique_ptr& technique{view->render_technique()};
+            render_technique_ptr technique{view->render_technique()};
             render_target& target{view->target()};
             auto&& [buffer, signal] = target.begin_render();
 
@@ -72,7 +72,7 @@ inline void render(entt::registry& world)
             to_keep_alive.reserve(world.size<components::drawable>() * 2 + 2);
 
             to_keep_alive.emplace_back(view);
-            to_keep_alive.emplace_back(technique);
+            to_keep_alive.emplace_back(std::move(technique));
 
             world.view<components::drawable>().each([&, &buffer = buffer](entt::entity entity [[maybe_unused]], const components::drawable& drawable)
             {
