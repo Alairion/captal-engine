@@ -3,85 +3,128 @@
 
 #include "../config.hpp"
 
+#include <optional>
 #include <vector>
 
 #include "../physics.hpp"
 
-#include "attachment.hpp"
-
 namespace cpt::components
 {
 
-class rigid_body : public impl::basic_attachement<cpt::physical_body>
+class rigid_body : private std::vector<physical_shape>
 {
-public:
-    using iterator = std::vector<physical_shape>::iterator;
-    using const_iterator = std::vector<physical_shape>::const_iterator;
-    using reverse_iterator = std::vector<physical_shape>::reverse_iterator;
-    using const_reverse_iterator = std::vector<physical_shape>::const_reverse_iterator;
+    using parent_type = std::vector<physical_shape>;
 
 public:
-    template<typename... Args> requires std::constructible_from<physical_shape, Args...>
-    physical_shape& attach(Args&&... args)
+    using value_type = parent_type::value_type;
+    using size_type = parent_type::size_type;
+    using difference_type = parent_type::difference_type;
+    using pointer = parent_type::pointer;
+    using const_pointer = parent_type::const_pointer;
+    using reference = parent_type::reference;
+    using const_reference = parent_type::const_reference;
+    using iterator = parent_type::iterator;
+    using const_iterator = parent_type::const_iterator;
+    using reverse_iterator = parent_type::reverse_iterator;
+    using const_reverse_iterator = parent_type::const_reverse_iterator;
+
+public:
+    rigid_body() = default;
+
+    template<typename... Args> requires std::constructible_from<physical_body, Args...>
+    explicit rigid_body(Args&&... args) noexcept(std::is_nothrow_constructible_v<physical_body, Args...>)
+    :m_attachment{std::in_place, std::forward<Args>(args)...}
     {
-        return m_shapes.emplace_back(attachment(), std::forward<Args>(args)...);
+
     }
 
-    void detach(const_iterator position)
+    ~rigid_body() = default;
+    rigid_body(const rigid_body&) = delete;
+    rigid_body& operator=(const rigid_body&) = delete;
+    rigid_body(rigid_body&&) noexcept = default;
+    rigid_body& operator=(rigid_body&&) noexcept = default;
+
+    template<typename... Args> requires std::constructible_from<physical_body, Args...>
+    physical_body& attach(Args&&... args) noexcept(std::is_nothrow_constructible_v<physical_body, Args...>)
     {
-        m_shapes.erase(position);
+        return m_attachment.emplace(std::forward<Args>(args)...);
     }
 
-    void reserve(std::size_t count)
+    void detach() noexcept
     {
-        m_shapes.reserve(count);
+        clear();
+        m_attachment.reset();
     }
 
-    void shrink_to_fit()
+    physical_body& attachment() noexcept
     {
-        m_shapes.shrink_to_fit();
+        return m_attachment.value();
     }
 
-    std::size_t capacity() const noexcept
+    const physical_body& attachment() const noexcept
     {
-        return m_shapes.capacity();
+        return m_attachment.value();
     }
 
-    std::size_t size() const noexcept
+    bool has_attachment() const noexcept
     {
-        return std::size(m_shapes);
+        return m_attachment.has_value();
     }
 
-    bool empty() const noexcept
+    void swap(rigid_body& other) noexcept
     {
-        return std::empty(m_shapes);
+        parent_type::swap(other);
+        m_attachment.swap(other.m_attachment);
     }
 
-    physical_shape& operator[](std::size_t index) noexcept
+    explicit operator bool() const noexcept
     {
-        return m_shapes[index];
+        return m_attachment.has_value();
     }
 
-    const physical_shape& operator[](std::size_t index) const noexcept
+    physical_body& operator*() noexcept
     {
-        return m_shapes[index];
+        return m_attachment.value();
     }
 
-    iterator               begin()         noexcept {return std::begin(m_shapes);}
-    const_iterator         begin()   const noexcept {return std::begin(m_shapes);}
-    const_iterator         cbegin()  const noexcept {return std::cbegin(m_shapes);}
-    iterator               end()           noexcept {return std::end(m_shapes);}
-    const_iterator         end()     const noexcept {return std::end(m_shapes);}
-    const_iterator         cend()    const noexcept {return std::cend(m_shapes);}
-    reverse_iterator       rbegin()        noexcept {return std::rbegin(m_shapes);}
-    const_reverse_iterator rbegin()  const noexcept {return std::rbegin(m_shapes);}
-    const_reverse_iterator crbegin() const noexcept {return std::crbegin(m_shapes);}
-    reverse_iterator       rend()          noexcept {return std::rend(m_shapes);}
-    const_reverse_iterator rend()    const noexcept {return std::rend(m_shapes);}
-    const_reverse_iterator crend()   const noexcept {return std::crend(m_shapes);}
+    const physical_body& operator*() const noexcept
+    {
+        return m_attachment.value();
+    }
+
+    physical_body* operator->() noexcept
+    {
+        return &m_attachment.value();
+    }
+
+    const physical_body* operator->() const noexcept
+    {
+        return &m_attachment.value();
+    }
+
+    using parent_type::operator[];
+    using parent_type::front;
+    using parent_type::back;
+    using parent_type::data;
+
+    using parent_type::empty;
+    using parent_type::size;
+    using parent_type::max_size;
+    using parent_type::reserve;
+    using parent_type::capacity;
+    using parent_type::shrink_to_fit;
+
+    using parent_type::begin;
+    using parent_type::cbegin;
+    using parent_type::end;
+    using parent_type::cend;
+    using parent_type::rbegin;
+    using parent_type::crbegin;
+    using parent_type::rend;
+    using parent_type::crend;
 
 private:
-    std::vector<physical_shape> m_shapes{};
+    std::optional<physical_body> m_attachment{};
 };
 
 }
