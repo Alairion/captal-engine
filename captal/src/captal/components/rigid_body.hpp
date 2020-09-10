@@ -50,10 +50,26 @@ public:
         return m_attachment.emplace(std::forward<Args>(args)...);
     }
 
+    template<typename... Args> requires std::constructible_from<physical_shape, physical_body&, Args...>
+    physical_shape& attach_shape(Args&&... args) noexcept(std::is_nothrow_constructible_v<physical_shape, physical_body&, Args...>)
+    {
+        return emplace_back(attachment(), std::forward<Args>(args)...);
+    }
+
     void detach() noexcept
     {
         clear();
         m_attachment.reset();
+    }
+
+    void detach_shape(const_iterator position) noexcept
+    {
+        erase(position);
+    }
+
+    void detach_shapes() noexcept
+    {
+        clear();
     }
 
     physical_body& attachment() noexcept

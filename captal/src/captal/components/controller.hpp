@@ -13,17 +13,28 @@ namespace cpt
 namespace components
 {
 
-struct CAPTAL_API controller
+struct controller : private std::vector<physical_constraint>
 {
+    using parent_type = std::vector<physical_constraint>;
+
 public:
-    using value_type = cpt::physical_body;
+    using value_type = parent_type::value_type;
+    using size_type = parent_type::size_type;
+    using difference_type = parent_type::difference_type;
+    using pointer = parent_type::pointer;
+    using const_pointer = parent_type::const_pointer;
+    using reference = parent_type::reference;
+    using const_reference = parent_type::const_reference;
+    using iterator = parent_type::iterator;
+    using const_iterator = parent_type::const_iterator;
+    using reverse_iterator = parent_type::reverse_iterator;
+    using const_reverse_iterator = parent_type::const_reverse_iterator;
 
 public:
     controller() = default;
 
-    explicit controller(cpt::physical_body_weak_ptr controlled)
-    :m_controlled{std::move(controlled)}
-    ,m_body{cpt::make_physical_body(m_controlled.lock()->world(), physical_body_type::kinematic)}
+    explicit controller(cpt::physical_body& controlled)
+        :,m_body{cpt::make_physical_body(m_controlled.lock()->world(), physical_body_type::kinematic)}
     {
 
     }
@@ -36,7 +47,6 @@ public:
 
     void attach(cpt::physical_body_weak_ptr controlled)
     {
-        m_controlled = std::move(controlled);
         m_body = cpt::make_physical_body(m_controlled.lock()->world(), physical_body_type::kinematic);
         m_constraints.clear();
     }
@@ -93,9 +103,7 @@ public:
     }
 
 private:
-    cpt::physical_body_weak_ptr m_controlled{};
-    cpt::physical_body_ptr m_body{};
-    std::vector<cpt::physical_constraint_ptr> m_constraints{};
+    cpt::physical_body m_attachment{};
 };
 
 }
