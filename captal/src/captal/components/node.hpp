@@ -19,11 +19,11 @@ class CAPTAL_API node
 public:
     node() = default;
 
-    explicit node(const glm::vec3& position, const glm::vec3& origin = glm::vec3{0.0f, 0.0f, 0.0f}, float scale = 1.0f, float angle = 0.0f)
+    explicit node(const glm::vec3& position, const glm::vec3& origin = glm::vec3{0.0f}, const glm::vec3& scale = glm::vec3{1.0f}, float angle = 0.0f)
     :m_position{position}
     ,m_origin{origin}
-    ,m_rotation{std::fmod(angle, std::numbers::pi_v<float> * 2.0f)}
     ,m_scale{scale}
+    ,m_rotation{std::fmod(angle, std::numbers::pi_v<float> * 2.0f)}
     {
 
     }
@@ -64,21 +64,21 @@ public:
         m_updated = true;
     }
 
-    void rotate(float angle) noexcept
-    {
-        m_rotation = std::fmod(m_rotation + angle, std::numbers::pi_v<float> * 2.0f);
-        m_updated = true;
-    }
-
-    void set_scale(float scale) noexcept
+    void set_scale(const glm::vec3& scale) noexcept
     {
         m_scale = scale;
         m_updated = true;
     }
 
-    void scale(float scale) noexcept
+    void scale(const glm::vec3& scale) noexcept
     {
         m_scale *= scale;
+        m_updated = true;
+    }
+
+    void rotate(float angle) noexcept
+    {
+        m_rotation = std::fmod(m_rotation + angle, std::numbers::pi_v<float> * 2.0f);
         m_updated = true;
     }
 
@@ -97,7 +97,7 @@ public:
         return m_position - m_origin;
     }
 
-    float scale() const noexcept
+    const glm::vec3& scale() const noexcept
     {
         return m_scale;
     }
@@ -125,8 +125,8 @@ public:
 private:
     glm::vec3 m_position{};
     glm::vec3 m_origin{};
+    glm::vec3 m_scale{1.0f};
     float m_rotation{};
-    float m_scale{1.0f};
     bool m_updated{true};
 };
 

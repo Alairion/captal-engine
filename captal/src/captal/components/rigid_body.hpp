@@ -31,7 +31,7 @@ public:
 public:
     rigid_body() = default;
 
-    template<typename... Args> requires std::constructible_from<physical_body, Args...>
+    template<typename... Args>
     explicit rigid_body(Args&&... args) noexcept(std::is_nothrow_constructible_v<physical_body, Args...>)
     :m_attachment{std::in_place, std::forward<Args>(args)...}
     {
@@ -44,7 +44,7 @@ public:
     rigid_body(rigid_body&&) noexcept = default;
     rigid_body& operator=(rigid_body&&) noexcept = default;
 
-    template<typename... Args> requires std::constructible_from<physical_body, Args...>
+    template<typename... Args>
     physical_body& attach(Args&&... args) noexcept(std::is_nothrow_constructible_v<physical_body, Args...>)
     {
         clear();
@@ -52,7 +52,7 @@ public:
         return m_attachment.emplace(std::forward<Args>(args)...);
     }
 
-    template<typename... Args> requires std::constructible_from<physical_shape, physical_body&, Args...>
+    template<typename... Args>
     reference attach_shape(Args&&... args) noexcept(std::is_nothrow_constructible_v<physical_shape, physical_body&, Args...>)
     {
         return emplace_back(attachment(), std::forward<Args>(args)...);

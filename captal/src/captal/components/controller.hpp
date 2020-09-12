@@ -52,7 +52,7 @@ public:
         m_attachment.emplace(world, physical_body_type::kinematic);
     }
 
-    template<typename DisambiguationTag, typename... Args> requires std::constructible_from<physical_constraint, DisambiguationTag, physical_body&, physical_body&, Args...>
+    template<typename DisambiguationTag, typename... Args>
     reference attach_constraint(DisambiguationTag tag, physical_body& body, Args&&... args)
     {
         return emplace_back(tag, m_attachment.value(), body, std::forward<Args>(args)...);

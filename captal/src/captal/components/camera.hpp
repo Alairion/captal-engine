@@ -15,7 +15,7 @@ class camera
 public:
     camera() = default;
 
-    template<typename... Args> requires std::constructible_from<view, Args...>
+    template<typename... Args>
     explicit camera(Args&&... args) noexcept(std::is_nothrow_constructible_v<view, Args...>)
     :m_attachment{std::in_place, std::forward<Args>(args)...}
     {
@@ -28,7 +28,7 @@ public:
     camera(camera&&) noexcept = default;
     camera& operator=(camera&&) noexcept = default;
 
-    template<typename... Args> requires std::constructible_from<view, Args...>
+    template<typename... Args>
     view& attach(Args&&... args) noexcept(std::is_nothrow_constructible_v<view, Args...>)
     {
         return m_attachment.emplace(std::forward<Args>(args)...);

@@ -15,7 +15,7 @@ class audio_emiter
 public:
     audio_emiter() = default;
 
-    template<typename... Args> requires std::constructible_from<sound, Args...>
+    template<typename... Args>
     explicit audio_emiter(Args&&... args) noexcept(std::is_nothrow_constructible_v<sound, Args...>)
     :m_attachment{std::in_place, std::forward<Args>(args)...}
     {
@@ -28,7 +28,7 @@ public:
     audio_emiter(audio_emiter&&) noexcept = default;
     audio_emiter& operator=(audio_emiter&&) noexcept = default;
 
-    template<typename... Args> requires std::constructible_from<sound, Args...>
+    template<typename... Args>
     sound& attach(Args&&... args) noexcept(std::is_nothrow_constructible_v<sound, Args...>)
     {
         return m_attachment.emplace(std::forward<Args>(args)...);

@@ -25,7 +25,14 @@ public:
 public:
     basic_drawable() = default;
 
-    template<typename T, typename... Args> requires std::constructible_from<attachment_type, std::in_place_type_t<T>, Args...>
+    template<typename T>
+    basic_drawable(T&& value) noexcept(std::is_nothrow_constructible_v<attachment_type, decltype(std::forward<T>(value))>)
+    :m_attachment{std::forward<T>(value)}
+    {
+
+    }
+
+    template<typename T, typename... Args>
     explicit basic_drawable(std::in_place_type_t<T>, Args&&... args) noexcept(std::is_nothrow_constructible_v<attachment_type, std::in_place_type_t<T>, Args...>)
     :m_attachment{std::in_place_type<T>, std::forward<Args>(args)...}
     {
@@ -38,7 +45,13 @@ public:
     basic_drawable(basic_drawable&&) noexcept = default;
     basic_drawable& operator=(basic_drawable&&) noexcept = default;
 
-    template<typename T, typename... Args> requires std::constructible_from<attachment_type, std::in_place_type_t<T>, Args...>
+    template<typename T>
+    attachment_type& attach(T&& value) noexcept(std::is_nothrow_constructible_v<attachment_type, decltype(std::forward<T>(value))>)
+    {
+        return m_attachment.emplace(std::forward<T>(value));
+    }
+
+    template<typename T, typename... Args>
     attachment_type& attach(std::in_place_type_t<T>, Args&&... args) noexcept(std::is_nothrow_constructible_v<attachment_type, std::in_place_type_t<T>, Args...>)
     {
         return m_attachment.emplace(std::in_place_type<T>, std::forward<Args>(args)...);
