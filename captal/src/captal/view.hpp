@@ -26,8 +26,22 @@ enum class view_type
 
 class CAPTAL_API view
 {
-    struct view_impl : public asynchronous_resource
+    struct view_impl final : public asynchronous_resource
     {
+        view_impl() = default;
+
+        view_impl(uniform_buffer&& ubo)
+        :buffer{std::move(ubo)}
+        {
+
+        }
+
+        ~view_impl() = default;
+        view_impl(const view_impl&) = delete;
+        view_impl& operator=(const view_impl&) = delete;
+        view_impl(view_impl&& other) noexcept = default;
+        view_impl& operator=(view_impl&& other) noexcept = default;
+
         uniform_buffer buffer{};
         std::unordered_map<std::uint32_t, cpt::binding> bindings{};
         render_technique_ptr render_technique{};

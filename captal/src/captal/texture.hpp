@@ -45,8 +45,8 @@ public:
     virtual ~texture() = default;
     texture(const texture&) = delete;
     texture& operator=(const texture&) = delete;
-    texture(texture&&) noexcept = delete;
-    texture& operator=(texture&&) noexcept = delete;
+    texture(texture&&) noexcept = default;
+    texture& operator=(texture&&) noexcept = default;
 
     tph::texture::size_type width() const noexcept
     {

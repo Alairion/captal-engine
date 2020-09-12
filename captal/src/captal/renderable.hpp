@@ -22,8 +22,22 @@ namespace cpt
 
 class CAPTAL_API renderable
 {
-    struct renderable_impl : public asynchronous_resource
+    struct renderable_impl final : public asynchronous_resource
     {
+        renderable_impl() = default;
+
+        renderable_impl(uniform_buffer&& ubo)
+        :buffer{std::move(ubo)}
+        {
+
+        }
+
+        ~renderable_impl() = default;
+        renderable_impl(const renderable_impl&) = delete;
+        renderable_impl& operator=(const renderable_impl&) = delete;
+        renderable_impl(renderable_impl&& other) noexcept = default;
+        renderable_impl& operator=(renderable_impl&& other) noexcept = default;
+
         uniform_buffer buffer{};
         texture_ptr texture{};
         std::unordered_map<std::uint32_t, cpt::binding> bindings{};
