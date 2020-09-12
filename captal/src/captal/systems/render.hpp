@@ -18,31 +18,28 @@
 namespace cpt::systems
 {
 
-inline void render(entt::registry& world)
+template<typename Drawable = components::drawable>
+void render(entt::registry& world)
 {
-    const auto drawable_update = [](components::node& node, components::drawable& drawable)
+    const auto drawable_update = [](components::node& node, Drawable& drawable)
     {
-        if(node.is_updated())
+        if(drawable && node.is_updated())
         {
-            assert(drawable.attachment() && "Invalid attachment");
-
-            drawable.attachment()->move_to(node.position());
-            drawable.attachment()->set_origin(node.origin());
-            drawable.attachment()->set_rotation(node.rotation());
-            drawable.attachment()->set_scale(node.scale());
+            drawable.renderable().move_to(node.position());
+            drawable.renderable().set_origin(node.origin());
+            drawable.renderable().set_rotation(node.rotation());
+            drawable.renderable().set_scale(node.scale());
         }
     };
 
     const auto camera_update = [](components::node& node, components::camera& camera)
     {
-        if(node.is_updated())
+        if(camera && node.is_updated())
         {
-            assert(camera.attachment() && "Invalid attachment");
-
-            camera.attachment()->move_to(node.position());
-            camera.attachment()->set_origin(node.origin());
-            camera.attachment()->set_rotation(node.rotation());
-            camera.attachment()->set_scale(node.scale());
+            camera->move_to(node.position());
+            camera->set_origin(node.origin());
+            camera->set_rotation(node.rotation());
+            camera->set_scale(node.scale());
         }
     };
 

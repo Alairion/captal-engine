@@ -24,13 +24,11 @@ inline void audio(entt::registry& world)
         }
     };
 
-    const auto update_emiters = [](const components::audio_emiter& emiter, components::node& node)
+    const auto update_emiters = [](components::audio_emiter& emiter, components::node& node)
     {
-        if(node.is_updated())
+        if(node.is_updated() && emiter.has_attachment())
         {
-            assert(emiter.attachment() && "Invalid attachment");
-
-            emiter.attachment()->move_to(node.position());
+            emiter->move_to(node.position());
         }
     };
 

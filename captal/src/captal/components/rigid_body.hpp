@@ -47,11 +47,13 @@ public:
     template<typename... Args> requires std::constructible_from<physical_body, Args...>
     physical_body& attach(Args&&... args) noexcept(std::is_nothrow_constructible_v<physical_body, Args...>)
     {
+        clear();
+
         return m_attachment.emplace(std::forward<Args>(args)...);
     }
 
     template<typename... Args> requires std::constructible_from<physical_shape, physical_body&, Args...>
-    physical_shape& attach_shape(Args&&... args) noexcept(std::is_nothrow_constructible_v<physical_shape, physical_body&, Args...>)
+    reference attach_shape(Args&&... args) noexcept(std::is_nothrow_constructible_v<physical_shape, physical_body&, Args...>)
     {
         return emplace_back(attachment(), std::forward<Args>(args)...);
     }

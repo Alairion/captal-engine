@@ -33,77 +33,116 @@ public:
 public:
     controller() = default;
 
-    explicit controller(cpt::physical_body& controlled)
-        :,m_body{cpt::make_physical_body(m_controlled.lock()->world(), physical_body_type::kinematic)}
+    explicit controller(cpt::physical_world& world)
+    :m_attachment{std::in_place, world, physical_body_type::kinematic}
     {
 
     }
 
     ~controller() = default;
-    controller(const controller&) = default;
-    controller& operator=(const controller&) = default;
+    controller(const controller&) = delete;
+    controller& operator=(const controller&) = delete;
     controller(controller&&) noexcept = default;
     controller& operator=(controller&&) noexcept = default;
 
-    void attach(cpt::physical_body_weak_ptr controlled)
+    void attach(cpt::physical_world& world)
     {
-        m_body = cpt::make_physical_body(m_controlled.lock()->world(), physical_body_type::kinematic);
-        m_constraints.clear();
+        clear();
+
+        m_attachment.emplace(world, physical_body_type::kinematic);
     }
 
-    void attach(cpt::physical_constraint_ptr constraint)
+    template<typename DisambiguationTag, typename... Args> requires std::constructible_from<physical_constraint, DisambiguationTag, physical_body&, physical_body&, Args...>
+    reference attach_constraint(DisambiguationTag tag, physical_body& body, Args&&... args)
     {
-        assert((constraint->bodies_ptr().first == m_controlled.lock() || constraint->bodies_ptr().second == m_controlled.lock()) && "cpt::component::physical_body::attach can only attach constraint links its attachment and its body.");
-        assert((constraint->bodies_ptr().first == m_body || constraint->bodies_ptr().second == m_body) && "cpt::component::physical_body::attach can only attach constraint links its attachment and its body.");
-
-        m_constraints.emplace_back(std::move(constraint));
-    }
-
-    template<typename DisambiguationTag, typename... Args>
-    const cpt::physical_constraint_ptr& add_constraint(DisambiguationTag tag, Args&&... args)
-    {
-        return m_constraints.emplace_back(make_physical_constraint(tag, m_controlled.lock(), m_body, std::forward<Args>(args)...));
+        return emplace_back(tag, m_attachment.value(), body, std::forward<Args>(args)...);
     }
 
     void detach()
     {
-        m_constraints.clear();
-        m_body.reset();
-        m_controlled.reset();
+        clear();
+        m_attachment.reset();
     }
 
-    void detach(std::size_t index)
+    void detach_constraint(const_iterator position)
     {
-        m_constraints.erase(std::begin(m_constraints) + index);
+        erase(position);
     }
 
-    void detach(const cpt::physical_constraint_ptr& constraint)
+    void detach_constraints() noexcept
     {
-        m_constraints.erase(std::find(std::begin(m_constraints), std::end(m_constraints), constraint));
+        clear();
     }
 
-    const cpt::physical_body_weak_ptr& controlled() const noexcept
+    physical_body& attachment() noexcept
     {
-        return m_controlled;
+        return m_attachment.value();
     }
 
-    const cpt::physical_body_ptr& body() const noexcept
+    const physical_body& attachment() const noexcept
     {
-        return m_body;
+        return m_attachment.value();
     }
 
-    const cpt::physical_constraint_ptr& constraint(std::size_t index) const noexcept
+    bool has_attachment() const noexcept
     {
-        return m_constraints[index];
+        return m_attachment.has_value();
     }
 
-    cpt::physical_body* operator->() const noexcept
+    void swap(controller& other) noexcept
     {
-        return m_body.get();
+        parent_type::swap(other);
+        m_attachment.swap(other.m_attachment);
     }
+
+    explicit operator bool() const noexcept
+    {
+        return m_attachment.has_value();
+    }
+
+    physical_body& operator*() noexcept
+    {
+        return m_attachment.value();
+    }
+
+    const physical_body& operator*() const noexcept
+    {
+        return m_attachment.value();
+    }
+
+    physical_body* operator->() noexcept
+    {
+        return &m_attachment.value();
+    }
+
+    const physical_body* operator->() const noexcept
+    {
+        return &m_attachment.value();
+    }
+
+    using parent_type::operator[];
+    using parent_type::front;
+    using parent_type::back;
+    using parent_type::data;
+
+    using parent_type::empty;
+    using parent_type::size;
+    using parent_type::max_size;
+    using parent_type::reserve;
+    using parent_type::capacity;
+    using parent_type::shrink_to_fit;
+
+    using parent_type::begin;
+    using parent_type::cbegin;
+    using parent_type::end;
+    using parent_type::cend;
+    using parent_type::rbegin;
+    using parent_type::crbegin;
+    using parent_type::rend;
+    using parent_type::crend;
 
 private:
-    cpt::physical_body m_attachment{};
+    std::optional<cpt::physical_body> m_attachment{};
 };
 
 }

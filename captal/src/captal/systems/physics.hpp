@@ -6,39 +6,35 @@
 #include <entt/entity/registry.hpp>
 
 #include "../components/node.hpp"
-#include "../components/physical_body.hpp"
+#include "../components/rigid_body.hpp"
 
 namespace cpt::systems
 {
 
 inline void physics(entt::registry& world)
 {
-    world.view<components::node, const components::physical_body>().each([](components::node& node, const components::physical_body& body)
+    world.view<components::node, const components::rigid_body>().each([](components::node& node, const components::rigid_body& body)
     {
-        assert(body.attachment() && "Invalid attachment");
-
-        if(!body.attachment()->sleeping())
+        if(body && !body->sleeping())
         {
-            const auto position{body.attachment()->position()};
+            const auto position{body->position()};
 
-            node.move_to(glm::vec3{position.x, position.y, node.position().z});
-            node.set_rotation(body.attachment()->rotation());
+            node.move_to({position.x, position.y, node.position().z});
+            node.set_rotation(body->rotation());
         }
     });
 }
 
 inline void physics_floored(entt::registry& world)
 {
-    world.view<components::node, const components::physical_body>().each([](components::node& node, const components::physical_body& body)
+    world.view<components::node, const components::rigid_body>().each([](components::node& node, const components::rigid_body& body)
     {
-        assert(body.attachment() && "Invalid attachment");
-
-        if(!body.attachment()->sleeping())
+        if(body && !body->sleeping())
         {
-            const auto position{body.attachment()->position()};
+            const auto position{body->position()};
 
-            node.move_to(glm::vec3{std::floor(position.x), std::floor(position.y), node.position().z});
-            node.set_rotation(body.attachment()->rotation());
+            node.move_to({std::floor(position.x), std::floor(position.y), node.position().z});
+            node.set_rotation(body->rotation());
         }
     });
 }

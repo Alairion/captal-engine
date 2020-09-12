@@ -3,7 +3,10 @@
 
 #include "../config.hpp"
 
+#include <variant>
+
 #include "../renderable.hpp"
+#include "../text.hpp"
 
 namespace cpt
 {
@@ -11,49 +14,123 @@ namespace cpt
 namespace components
 {
 
-class CAPTAL_API drawable
+template<typename... Types>
+class basic_drawable
 {
-public:
-    using value_type = renderable;
+    static_assert((std::is_base_of_v<renderable, Types>, ...), "All Types must derive from cpt::renderable");
 
 public:
-    drawable() = default;
+    using attachment_type = std::variant<std::monostate, sprite, polygon, tilemap, text, Types...>;
 
-    explicit drawable(renderable_ptr attachment)
-    :m_attachment{std::move(attachment)}
+public:
+    basic_drawable() = default;
+
+    template<typename T, typename... Args> requires std::constructible_from<attachment_type, std::in_place_type_t<T>, Args...>
+    explicit basic_drawable(std::in_place_type_t<T>, Args&&... args) noexcept(std::is_nothrow_constructible_v<attachment_type, std::in_place_type_t<T>, Args...>)
+    :m_attachment{std::in_place_type<T>, std::forward<Args>(args)...}
     {
 
     }
 
-    ~drawable() = default;
-    drawable(const drawable&) = default;
-    drawable& operator=(const drawable&) = default;
-    drawable(drawable&&) noexcept = default;
-    drawable& operator=(drawable&&) noexcept = default;
+    ~basic_drawable() = default;
+    basic_drawable(const basic_drawable&) = delete;
+    basic_drawable& operator=(const basic_drawable&) = delete;
+    basic_drawable(basic_drawable&&) noexcept = default;
+    basic_drawable& operator=(basic_drawable&&) noexcept = default;
 
-    void attach(renderable_ptr attachment) noexcept
+    template<typename T, typename... Args> requires std::constructible_from<attachment_type, std::in_place_type_t<T>, Args...>
+    attachment_type& attach(std::in_place_type_t<T>, Args&&... args) noexcept(std::is_nothrow_constructible_v<attachment_type, std::in_place_type_t<T>, Args...>)
     {
-        m_attachment = std::move(attachment);
+        return m_attachment.emplace(std::in_place_type<T>, std::forward<Args>(args)...);
     }
 
     void detach() noexcept
     {
-        m_attachment = nullptr;
+        m_attachment. template emplace<0>();
     }
 
-    const renderable_ptr& attachment() const noexcept
+    attachment_type& attachment() noexcept
     {
         return m_attachment;
     }
 
-    renderable* operator->() const noexcept
+    const attachment_type& attachment() const noexcept
     {
-        return m_attachment.get();
+        return m_attachment;
+    }
+
+    bool has_attachment() const noexcept
+    {
+        return m_attachment.index() != 0;
+    }
+
+    void swap(basic_drawable& other) noexcept
+    {
+        m_attachment.swap(other.m_attachment);
+    }
+
+    explicit operator bool() const noexcept
+    {
+        return m_attachment.has_value();
+    }
+
+    attachment_type& operator*() noexcept
+    {
+        return m_attachment.value();
+    }
+
+    const attachment_type& operator*() const noexcept
+    {
+        return m_attachment.value();
+    }
+
+    attachment_type* operator->() noexcept
+    {
+        return &m_attachment.value();
+    }
+
+    const attachment_type* operator->() const noexcept
+    {
+        return &m_attachment.value();
+    }
+
+    template<typename T>
+    T& get()
+    {
+        return std::get<T>(m_attachment);
+    }
+
+    template<typename T>
+    const T& get() const
+    {
+        return std::get<T>(m_attachment);
+    }
+
+    cpt::renderable& renderable() noexcept
+    {
+        assert(has_attachment() && "cpt::basic_drawable::renderable called on empty drawable");
+
+        return std::visit([](auto&& alternative)
+        {
+            return static_cast<cpt::renderable&>(alternative);
+        }, m_attachment);
+    }
+
+    const cpt::renderable& renderable() const noexcept
+    {
+        assert(has_attachment() && "cpt::basic_drawable::renderable called on empty drawable");
+
+        return std::visit([](auto&& alternative)
+        {
+            return static_cast<const cpt::renderable&>(alternative);
+        }, m_attachment);
     }
 
 private:
-    renderable_ptr m_attachment{};
+    attachment_type m_attachment{};
 };
+
+using drawable = basic_drawable<>;
 
 }
 
