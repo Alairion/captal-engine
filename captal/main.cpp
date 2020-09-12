@@ -340,6 +340,15 @@ static void run()
     //Clear color is a part of tph::render_target, returned by cpt::render_target::get_target()
     window->set_clear_color(cpt::colors::white);
 
+    //Our physical world. See add_logic() function for more informations.
+    //You must destroy the physical world AFTER all objects which refer to so you should construct it before your entt::registry
+    cpt::physical_world physical_world{};
+    //Physical world's objects' velocity will be multiplied by the damping each second.
+    //So more the damping is low, less physical world's objects will preserve their velocity.
+    physical_world.set_damping(0.1f);
+    //Sleep threshold will put idle objects asleep if they didn't move for more than the specified time. This will increase perfomances.
+    physical_world.set_sleep_threshold(0.5f);
+
     //Our world. Captal does not provide ECS (Entity Components Systems), but is designed to work with Entt.
     //Check out how Entt works on its Github repo: https://github.com/skypjack/entt
     entt::registry world{};
@@ -359,14 +368,6 @@ static void run()
     const auto camera{world.create()};
     world.emplace<cpt::components::node>(camera, glm::vec3{320.0f, 240.0f, 1.0f}, glm::vec3{320.0f, 240.0f, 0.0f});
     world.emplace<cpt::components::camera>(camera, window, technique_info)->fit_to(window);
-
-    //Our physical world. See add_logic() function for more informations.
-    cpt::physical_world physical_world{};
-    //Physical world's objects' velocity will be multiplied by the damping each second.
-    //So more the damping is low, less physical world's objects will preserve their velocity.
-    physical_world.set_damping(0.1f);
-    //Sleep threshold will put idle objects asleep if they didn't move for more than the specified time. This will increase perfomances.
-    physical_world.set_sleep_threshold(0.5f);
 
     //See above.
     add_logic(window, world, physical_world, camera);
