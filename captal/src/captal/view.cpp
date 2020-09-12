@@ -78,7 +78,7 @@ void view::upload()
         {
             m_impl->buffer.get<uniform_data>(0).position = glm::vec4{m_position, 0.0f};
             m_impl->buffer.get<uniform_data>(0).view = glm::lookAt(m_position - (m_origin * m_scale), m_position - (m_origin * m_scale) - glm::vec3{0.0f, 0.0f, 1.0f}, glm::vec3{0.0f, 1.0f, 0.0f});
-            m_impl->buffer.get<uniform_data>(0).projection = glm::ortho(0.0f, m_size.x * m_scale, 0.0f, m_size.y * m_scale, m_z_near, m_z_far);
+            m_impl->buffer.get<uniform_data>(0).projection = glm::ortho(0.0f, m_size.x * m_scale.x, 0.0f, m_size.y * m_scale.y, m_z_near * m_scale.z, m_z_far * m_scale.z);
         }
 
         m_impl->buffer.upload();

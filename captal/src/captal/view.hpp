@@ -130,13 +130,13 @@ public:
         update();
     }
 
-    void set_scale(float scale) noexcept
+    void set_scale(const glm::vec3& scale) noexcept
     {
         m_scale = scale;
         update();
     }
 
-    void scale(float scale) noexcept
+    void scale(const glm::vec3& scale) noexcept
     {
         m_scale *= scale;
         update();
@@ -219,7 +219,7 @@ public:
         return m_rotation;
     }
 
-    float scale() const noexcept
+    const glm::vec3& scale() const noexcept
     {
         return m_scale;
     }
@@ -271,7 +271,6 @@ public:
         return *std::launder(reinterpret_cast<const T*>(std::data(m_push_constant_buffer) + range.offset / 4u));
     }
 
-
     cpt::binding& binding(std::uint32_t index)
     {
         return m_impl->bindings.at(index);
@@ -322,7 +321,7 @@ private:
     glm::vec2 m_size{};
     float m_z_near{1.0f};
     float m_z_far{0.0f};
-    float m_scale{1.0f};
+    glm::vec3 m_scale{1.0f};
     float m_rotation{};
     view_type m_type{};
 

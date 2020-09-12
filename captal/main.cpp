@@ -153,7 +153,7 @@ static entt::entity fill_world(entt::registry& world, cpt::physical_world& physi
     //A background (to slighlty increase scene's complexity)
     const auto background_entity{world.create()};
     world.emplace<cpt::components::node>(background_entity, glm::vec3{0.0f, 0.0f, 0.0f});
-    world.emplace<cpt::components::drawable>(background_entity, cpt::make_sprite(640, 480, cpt::colors::yellowgreen));
+    world.emplace<cpt::components::drawable>(background_entity, std::in_place_type<cpt::sprite>, 640, 480, cpt::colors::yellowgreen);
 
     //Add some squares to the scene
     constexpr std::array positions{glm::vec2{200.0f, 140.0f}, glm::vec2{540.0f, 140.0f}, glm::vec2{200.0f, 340.0f}, glm::vec2{540.0f, 340.0f}};
@@ -164,7 +164,7 @@ static entt::entity fill_world(entt::registry& world, cpt::physical_world& physi
 
         const auto item{world.create()};
         world.emplace<cpt::components::node>(item, glm::vec3{position, 0.5f}, glm::vec3{12.0f, 12.0f, 0.0f});
-        world.emplace<cpt::components::drawable>(item, 24, 24, cpt::colors::blue);
+        world.emplace<cpt::components::drawable>(item, std::in_place_type<cpt::sprite>, 24, 24, cpt::colors::blue);
         world.emplace<cpt::components::rigid_body>(item, std::move(body)).attach_shape(24.0f, 24.0f);
     }
 

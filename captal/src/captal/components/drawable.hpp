@@ -17,10 +17,10 @@ namespace components
 template<typename... Types>
 class basic_drawable
 {
-    static_assert((std::is_base_of_v<renderable, Types>, ...), "All Types must derive from cpt::renderable");
+    static_assert(sizeof...(Types) == 0 || (std::is_base_of_v<renderable, Types>, ...), "All Types must derive from cpt::renderable");
 
 public:
-    using attachment_type = std::variant<std::monostate, sprite, polygon, tilemap, text, Types...>;
+    using attachment_type = std::variant<std::monostate, Types...>;
 
 public:
     basic_drawable() = default;
@@ -46,15 +46,15 @@ public:
     basic_drawable& operator=(basic_drawable&&) noexcept = default;
 
     template<typename T>
-    attachment_type& attach(T&& value) noexcept(std::is_nothrow_constructible_v<attachment_type, decltype(std::forward<T>(value))>)
+    T& attach(T&& value) noexcept(std::is_nothrow_constructible_v<attachment_type, decltype(std::forward<T>(value))>)
     {
-        return m_attachment.emplace(std::forward<T>(value));
+        return m_attachment. template emplace<std::decay_t<T>>(std::forward<T>(value));
     }
 
     template<typename T, typename... Args>
-    attachment_type& attach(std::in_place_type_t<T>, Args&&... args) noexcept(std::is_nothrow_constructible_v<attachment_type, std::in_place_type_t<T>, Args...>)
+    T& attach(Args&&... args) noexcept(std::is_nothrow_constructible_v<attachment_type, Args...>)
     {
-        return m_attachment.emplace(std::in_place_type<T>, std::forward<Args>(args)...);
+        return m_attachment. template emplace<T>(std::forward<Args>(args)...);
     }
 
     void detach() noexcept
@@ -84,27 +84,27 @@ public:
 
     explicit operator bool() const noexcept
     {
-        return m_attachment.has_value();
+        return has_attachment();
     }
 
     attachment_type& operator*() noexcept
     {
-        return m_attachment.value();
+        return m_attachment;
     }
 
     const attachment_type& operator*() const noexcept
     {
-        return m_attachment.value();
+        return m_attachment;
     }
 
     attachment_type* operator->() noexcept
     {
-        return &m_attachment.value();
+        return &m_attachment;
     }
 
     const attachment_type* operator->() const noexcept
     {
-        return &m_attachment.value();
+        return &m_attachment;
     }
 
     template<typename T>
@@ -123,9 +123,16 @@ public:
     {
         assert(has_attachment() && "cpt::basic_drawable::renderable called on empty drawable");
 
-        return std::visit([](auto&& alternative)
+        return std::visit([](auto&& alternative) -> cpt::renderable&
         {
-            return static_cast<cpt::renderable&>(alternative);
+            if constexpr(std::is_same_v<std::decay_t<decltype(alternative)>, std::monostate>)
+            {
+                std::terminate();
+            }
+            else
+            {
+                return static_cast<cpt::renderable&>(alternative);
+            }
         }, m_attachment);
     }
 
@@ -133,9 +140,16 @@ public:
     {
         assert(has_attachment() && "cpt::basic_drawable::renderable called on empty drawable");
 
-        return std::visit([](auto&& alternative)
+        return std::visit([](auto&& alternative) -> const cpt::renderable&
         {
-            return static_cast<const cpt::renderable&>(alternative);
+            if constexpr(std::is_same_v<std::decay_t<decltype(alternative)>, std::monostate>)
+            {
+                std::terminate();
+            }
+            else
+            {
+                return static_cast<const cpt::renderable&>(alternative);
+            }
         }, m_attachment);
     }
 
@@ -143,7 +157,7 @@ private:
     attachment_type m_attachment{};
 };
 
-using drawable = basic_drawable<>;
+using drawable = basic_drawable<sprite, polygon, tilemap, text>;
 
 namespace impl
 {
