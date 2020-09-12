@@ -21,7 +21,7 @@ namespace cpt::systems
 template<typename Drawable = components::drawable>
 void render(entt::registry& world)
 {
-    const auto drawable_update = [](components::node& node, Drawable& drawable)
+    const auto drawable_update = [](const components::node& node, Drawable& drawable)
     {
         if(drawable && node.is_updated())
         {
@@ -32,7 +32,7 @@ void render(entt::registry& world)
         }
     };
 
-    const auto camera_update = [](components::node& node, components::camera& camera)
+    const auto camera_update = [](const components::node& node, components::camera& camera)
     {
         if(camera && node.is_updated())
         {
@@ -45,46 +45,39 @@ void render(entt::registry& world)
 
     const auto draw = [&world](components::camera& camera)
     {
-        assert(camera.attachment() && "Invalid attachment");
-
-        if(camera.attachment()->target().is_rendering_enable())
+        if(camera && camera->target().is_rendering_enable())
         {
-            const view_ptr& view{camera.attachment()};
-            render_technique_ptr technique{view->render_technique()};
-            render_target& target{view->target()};
+            render_target& target{camera->target()};
+            render_technique_ptr technique{camera->render_technique()};
             auto&& [buffer, signal] = target.begin_render();
 
-            view->upload();
+            camera->upload();
 
-            tph::cmd::set_viewport(buffer, view->viewport());
-            tph::cmd::set_scissor(buffer, view->scissor());
+            tph::cmd::set_viewport(buffer, camera->viewport());
+            tph::cmd::set_scissor(buffer, camera->scissor());
             tph::cmd::bind_pipeline(buffer, technique->pipeline());
 
-            for(auto&& range : view->render_technique()->ranges())
+            for(auto&& range : camera->render_technique()->ranges())
             {
-                tph::cmd::push_constants(buffer, technique->pipeline_layout(), range.stages, range.offset, range.size, std::data(view->render_technique()->push_constant_buffer()) + range.offset / 4u);
+                tph::cmd::push_constants(buffer, technique->pipeline_layout(), range.stages, range.offset, range.size, std::data(camera->push_constant_buffer()) + range.offset / 4u);
             }
 
             std::vector<std::shared_ptr<asynchronous_resource>> to_keep_alive{};
-            to_keep_alive.reserve(world.size<components::drawable>() * 2 + 2);
+            to_keep_alive.reserve(world.size<Drawable>() * 2 + 2);
 
-            to_keep_alive.emplace_back(view);
+            to_keep_alive.emplace_back(camera->resource());
             to_keep_alive.emplace_back(std::move(technique));
 
-            world.view<components::drawable>().each([&, &buffer = buffer](entt::entity entity [[maybe_unused]], const components::drawable& drawable)
+            world.view<Drawable>().each([&to_keep_alive, &camera, &buffer = buffer](entt::entity entity [[maybe_unused]], const Drawable& drawable)
             {
-                assert(drawable.attachment() && "Invalid attachment");
-
-                const renderable_ptr& renderable{drawable.attachment()};
-
-                if(!renderable->hidden())
+                if(drawable && !drawable.renderable().hidden())
                 {
-                    renderable->set_view(view);
-                    renderable->upload();
-                    renderable->draw(buffer);
+                    drawable.renderable().set_view(*camera);
+                    drawable.renderable().upload();
+                    drawable.renderable().draw(buffer);
 
-                    to_keep_alive.emplace_back(renderable->set());
-                    to_keep_alive.emplace_back(renderable);
+                    to_keep_alive.emplace_back(drawable.renderable().set());
+                    to_keep_alive.emplace_back(drawable.renderable().resource());
                 }
             });
 
@@ -95,8 +88,8 @@ void render(entt::registry& world)
         }
     };
 
-    world.view<components::node, components::drawable>().each(drawable_update);
-    world.view<components::node, components::camera>().each(camera_update);
+    world.view<const components::node, Drawable>().each(drawable_update);
+    world.view<const components::node, components::camera>().each(camera_update);
     world.view<components::camera>().each(draw);
 }
 
