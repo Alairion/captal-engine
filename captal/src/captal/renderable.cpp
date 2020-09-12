@@ -166,7 +166,7 @@ void renderable::upload()
     if(std::exchange(m_need_upload, false))
     {
         glm::mat4 model{1.0f};
-        model = glm::scale(model, glm::vec3{m_scale, m_scale, m_scale});
+        model = glm::scale(model, m_scale);
         model = glm::translate(model, m_position);
         model = glm::rotate(model, m_rotation, glm::vec3{0.0f, 0.0f, 1.0f});
         model = glm::translate(model, -m_origin);

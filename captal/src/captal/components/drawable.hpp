@@ -132,6 +132,19 @@ private:
 
 using drawable = basic_drawable<>;
 
+namespace impl
+{
+
+template<typename T>
+struct test_drawable : std::false_type{};
+template<typename... Types>
+struct test_drawable<basic_drawable<Types...>> : std::true_type{};
+
+}
+
+template<typename T>
+concept drawable_specialization = impl::test_drawable<T>::value;
+
 }
 
 }

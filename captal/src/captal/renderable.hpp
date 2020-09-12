@@ -95,7 +95,7 @@ public:
         update();
     }
 
-    void set_scale(float scale) noexcept
+    void set_scale(const glm::vec3& scale) noexcept
     {
         m_scale = scale;
         update();
@@ -132,7 +132,7 @@ public:
         return m_origin;
     }
 
-    float scale() const noexcept
+    const glm::vec3& scale() const noexcept
     {
         return m_scale;
     }
@@ -216,7 +216,7 @@ private:
 
     glm::vec3 m_position{};
     glm::vec3 m_origin{};
-    float m_scale{1.0f};
+    glm::vec3 m_scale{1.0f};
     float m_rotation{};
 
     bool m_hidden{};

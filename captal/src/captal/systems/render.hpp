@@ -18,17 +18,19 @@
 namespace cpt::systems
 {
 
-template<typename Drawable = components::drawable>
+template<components::drawable_specialization Drawable = components::drawable>
 void render(entt::registry& world)
 {
     const auto drawable_update = [](const components::node& node, Drawable& drawable)
     {
         if(drawable && node.is_updated())
         {
-            drawable.renderable().move_to(node.position());
-            drawable.renderable().set_origin(node.origin());
-            drawable.renderable().set_rotation(node.rotation());
-            drawable.renderable().set_scale(node.scale());
+            cpt::renderable& renderable{drawable.renderable()};
+
+            renderable.move_to(node.position());
+            renderable.set_origin(node.origin());
+            renderable.set_rotation(node.rotation());
+            renderable.set_scale(node.scale());
         }
     };
 
@@ -62,22 +64,27 @@ void render(entt::registry& world)
                 tph::cmd::push_constants(buffer, technique->pipeline_layout(), range.stages, range.offset, range.size, std::data(camera->push_constant_buffer()) + range.offset / 4u);
             }
 
-            std::vector<std::shared_ptr<asynchronous_resource>> to_keep_alive{};
+            std::vector<asynchronous_resource_ptr> to_keep_alive{};
             to_keep_alive.reserve(world.size<Drawable>() * 2 + 2);
 
             to_keep_alive.emplace_back(camera->resource());
             to_keep_alive.emplace_back(std::move(technique));
 
-            world.view<Drawable>().each([&to_keep_alive, &camera, &buffer = buffer](entt::entity entity [[maybe_unused]], const Drawable& drawable)
+            world.view<Drawable>().each([&to_keep_alive, &camera, &buffer = buffer](Drawable& drawable)
             {
-                if(drawable && !drawable.renderable().hidden())
+                if(drawable)
                 {
-                    drawable.renderable().set_view(*camera);
-                    drawable.renderable().upload();
-                    drawable.renderable().draw(buffer);
+                    cpt::renderable& renderable{drawable.renderable()};
 
-                    to_keep_alive.emplace_back(drawable.renderable().set());
-                    to_keep_alive.emplace_back(drawable.renderable().resource());
+                    if(!renderable.hidden())
+                    {
+                        renderable.set_view(*camera);
+                        renderable.upload();
+                        renderable.draw(buffer);
+
+                        to_keep_alive.emplace_back(renderable.set());
+                        to_keep_alive.emplace_back(renderable.resource());
+                    }
                 }
             });
 
