@@ -414,16 +414,25 @@ int main()
 {
     try
     {
-        //The first value is the number of channels, 2 is stereo.
-        //The second value is the frequency of the output stream.
-        const cpt::audio_parameters audio{2, 44100};
+        const cpt::audio_parameters audio
+        {
+            //The number of channels, 2 is stereo.
+            .channel_count = 2,
+            //The frequency of the output stream.
+            .frequency = 44100
+        };
 
-        //In real world application we should chack feature availability
-        tph::physical_device_features features{};
-        features.sample_shading = true;
-        //The first value is the renderer options (c.f. tph::renderer_options)
-        //The second value is the physical device's features
-        const cpt::graphics_parameters graphics{tph::renderer_options::tiny_memory_heaps, features};
+        const cpt::graphics_parameters graphics
+        {
+            //The renderer options (c.f. tph::renderer_options)
+            .options = tph::renderer_options::tiny_memory_heaps,
+            //The physical device's features. In real world application we should check feature availability
+            .features = tph::physical_device_features
+            {
+                //Enable sample shading (i.e. MSAA inside textures)
+                .sample_shading = true
+            }
+        };
 
         //The engine instance. It must be created before most call to captal functions.
         //The first value is your application name. It will be passed to Tephra's instance then to Vulkan's instance.
