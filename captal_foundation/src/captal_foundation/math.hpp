@@ -416,11 +416,11 @@ constexpr vec<T, Size>& operator/=(vec<T, Size>& left, const vec<T, Size>& right
 struct identity_t{};
 inline constexpr identity_t identity{};
 
-template<arithmetic T, std::size_t Rows, std::size_t Cols>
+template<arithmetic T, std::size_t Cols, std::size_t Rows>
 struct mat;
 
 template<arithmetic T, std::size_t Cols>
-struct mat<T, 2, Cols> : private std::array<vec<T, Cols>, 2>
+struct mat<T, Cols, 2> : private std::array<vec<T, Cols>, 2>
 {
     using parent_type = std::array<vec<T, Cols>, 2>;
 
@@ -507,7 +507,7 @@ public:
 };
 
 template<arithmetic T, std::size_t Cols>
-struct mat<T, 3, Cols> : private std::array<vec<T, Cols>, 3>
+struct mat<T, Cols, 3> : private std::array<vec<T, Cols>, 3>
 {
     using parent_type = std::array<vec<T, Cols>, 3>;
 
@@ -568,6 +568,16 @@ public:
         return operator[](1);
     }
 
+    constexpr reference z() noexcept
+    {
+        return operator[](2);
+    }
+
+    constexpr const_reference z() const noexcept
+    {
+        return operator[](2);
+    }
+
     using parent_type::operator[];
     using parent_type::empty;
     using parent_type::data;
@@ -576,7 +586,7 @@ public:
 
     constexpr size_type rows() const noexcept
     {
-        return 2;
+        return 3;
     }
 
     constexpr size_type cols() const noexcept
@@ -593,6 +603,131 @@ public:
     using parent_type::rend;
     using parent_type::crend;
 };
+
+template<arithmetic T, std::size_t Cols>
+struct mat<T, Cols, 4> : private std::array<vec<T, Cols>, 4>
+{
+    using parent_type = std::array<vec<T, Cols>, 4>;
+
+public:
+    using arithmetic_type = T;
+    using value_type = typename parent_type::value_type;
+    using row_type = value_type;
+    using size_type = typename parent_type::size_type;
+    using difference_type = typename parent_type::difference_type;
+    using reference = typename parent_type::reference;
+    using const_reference = typename parent_type::const_reference;
+    using pointer = typename parent_type::pointer;
+    using const_pointer = typename parent_type::const_pointer;
+    using iterator = typename parent_type::iterator;
+    using const_iterator = typename parent_type::const_iterator;
+    using reverse_iterator  = typename parent_type::reverse_iterator;
+    using const_reverse_iterator = typename parent_type::const_reverse_iterator;
+
+public:
+    constexpr mat() noexcept = default;
+
+    constexpr explicit mat(identity_t) noexcept requires (Cols == 4)
+    :parent_type{{static_cast<arithmetic_type>(1), arithmetic_type{}, arithmetic_type{}, arithmetic_type{}},
+                 {arithmetic_type{}, static_cast<arithmetic_type>(1), arithmetic_type{}, arithmetic_type{}},
+                 {arithmetic_type{}, arithmetic_type{}}, static_cast<arithmetic_type>(1), arithmetic_type{},
+                 {arithmetic_type{}, arithmetic_type{}}, arithmetic_type{}, static_cast<arithmetic_type>(1)}
+    {
+
+    }
+
+    constexpr explicit mat(const value_type& x, const value_type& y, const value_type& z, const value_type& w) noexcept
+    :parent_type{x, y, z, w}
+    {
+
+    }
+
+    constexpr mat(const mat&) noexcept = default;
+    constexpr mat& operator=(const mat&) noexcept = default;
+    constexpr mat(mat&&) noexcept = default;
+    constexpr mat& operator=(mat&&) noexcept = default;
+
+    constexpr reference x() noexcept
+    {
+        return operator[](0);
+    }
+
+    constexpr const_reference x() const noexcept
+    {
+        return operator[](0);
+    }
+
+    constexpr reference y() noexcept
+    {
+        return operator[](1);
+    }
+
+    constexpr const_reference y() const noexcept
+    {
+        return operator[](1);
+    }
+
+    constexpr reference z() noexcept
+    {
+        return operator[](2);
+    }
+
+    constexpr const_reference z() const noexcept
+    {
+        return operator[](2);
+    }
+
+    constexpr reference w() noexcept
+    {
+        return operator[](3);
+    }
+
+    constexpr const_reference w() const noexcept
+    {
+        return operator[](3);
+    }
+
+    using parent_type::operator[];
+    using parent_type::empty;
+    using parent_type::data;
+    using parent_type::size;
+    using parent_type::max_size;
+
+    constexpr size_type rows() const noexcept
+    {
+        return 4;
+    }
+
+    constexpr size_type cols() const noexcept
+    {
+        return Cols;
+    }
+
+    using parent_type::begin;
+    using parent_type::cbegin;
+    using parent_type::end;
+    using parent_type::cend;
+    using parent_type::rbegin;
+    using parent_type::crbegin;
+    using parent_type::rend;
+    using parent_type::crend;
+};
+
+template<typename T, std::size_t Cols, std::size_t Rows>
+constexpr mat<T, Rows, Cols> transpose(const mat<T, Cols, Rows>& matrix) noexcept
+{
+    mat<T, Rows, Cols> output{};
+
+    for(std::size_t y{}; y < Rows; ++y)
+    {
+        for(std::size_t x{}; x < Cols; ++x)
+        {
+            output[y][x] = matrix[x][y];
+        }
+    }
+
+    return output;
+}
 
 }
 
