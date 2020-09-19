@@ -37,8 +37,9 @@ add_library(swell SHARED
     src/swell/config.hpp
     src/swell/application.hpp
     src/swell/physical_device.hpp
+    src/swell/sound_reader.hpp
     src/swell/mixer.hpp
-    #src/swell/audio_world.hpp
+    src/swell/audio_world.hpp
     src/swell/stream.hpp
     src/swell/wave.hpp
     src/swell/ogg.hpp
@@ -47,7 +48,7 @@ add_library(swell SHARED
     #Sources:
     src/swell/application.cpp
     src/swell/mixer.cpp
-    #src/swell/audio_world.cpp
+    src/swell/audio_world.cpp
     src/swell/stream.cpp
     src/swell/wave.cpp
     src/swell/ogg.cpp

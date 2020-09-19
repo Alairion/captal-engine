@@ -33,7 +33,7 @@ public:
 public:
     controller() = default;
 
-    explicit controller(cpt::physical_world& world)
+    explicit controller(physical_world& world)
     :m_attachment{std::in_place, world, physical_body_type::kinematic}
     {
 
@@ -142,7 +142,7 @@ public:
     using parent_type::crend;
 
 private:
-    std::optional<cpt::physical_body> m_attachment{};
+    std::optional<physical_body> m_attachment{};
 };
 
 }

@@ -18,6 +18,7 @@ target_sources(captal_foundation INTERFACE
     ${PROJECT_SOURCE_DIR}/src/captal_foundation/optional_ref.hpp
     ${PROJECT_SOURCE_DIR}/src/captal_foundation/stack_allocator.hpp
     ${PROJECT_SOURCE_DIR}/src/captal_foundation/utility.hpp
+    ${PROJECT_SOURCE_DIR}/src/captal_foundation/math.hpp
     ${PROJECT_SOURCE_DIR}/src/captal_foundation/version.hpp
 )
 

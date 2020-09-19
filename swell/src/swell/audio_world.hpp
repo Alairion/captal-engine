@@ -8,11 +8,6 @@
 namespace swl
 {
 
-class sound
-{
-
-};
-
 class listener
 {
 

@@ -14,63 +14,13 @@
 
 #include <glm/vec3.hpp>
 
+#include "sound_reader.hpp"
+
 namespace swl
 {
 
 using clock = std::chrono::steady_clock;
 using sample_buffer_t = std::vector<float>;
-
-enum class sound_reader_options : std::uint32_t
-{
-    none = 0x00,
-    buffered = 0x01
-};
-
-class SWELL_API sound_reader
-{
-public:
-    virtual ~sound_reader()
-    {
-
-    }
-
-    virtual bool read(float* output [[maybe_unused]], std::size_t frame_count [[maybe_unused]])
-    {
-        return false;
-    }
-
-    virtual void seek(std::uint64_t frame_offset [[maybe_unused]])
-    {
-
-    }
-
-    virtual std::uint64_t tell()
-    {
-        return 0;
-    }
-
-    virtual std::uint64_t frame_count()
-    {
-        return 0;
-    }
-
-    virtual std::uint32_t frequency()
-    {
-        return 0;
-    }
-
-    virtual std::uint32_t channel_count()
-    {
-        return 0;
-    }
-
-protected:
-    sound_reader() = default;
-    sound_reader(const sound_reader&) = delete;
-    sound_reader& operator=(const sound_reader&) = delete;
-    sound_reader(sound_reader&& other) noexcept = default;
-    sound_reader& operator=(sound_reader&& other) noexcept = default;
-};
 
 enum class sound_status : std::uint32_t
 {
@@ -251,13 +201,13 @@ public:
     template<typename DurationT>
     DurationT frames_to_time(std::uint64_t frames) const
     {
-        return std::chrono::duration_cast<DurationT>(seconds{static_cast<double>(frames) / m_data->reader->frequency()});
+        return std::chrono::duration_cast<DurationT>(seconds{static_cast<double>(frames) / m_data->reader->info().frequency});
     }
 
     template<typename Rep, typename Period>
     std::uint64_t time_to_frame(std::chrono::duration<Rep, Period> time) const
     {
-        return static_cast<std::uint64_t>(std::chrono::duration_cast<seconds>(time).count() * m_data->reader->frequency());
+        return static_cast<std::uint64_t>(std::chrono::duration_cast<seconds>(time).count() * m_data->reader->info().frequency);
     }
 
 private:

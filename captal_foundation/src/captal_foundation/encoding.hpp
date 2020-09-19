@@ -10,6 +10,9 @@
 namespace cpt
 {
 
+inline namespace foundation
+{
+
 namespace impl
 {
 
@@ -170,9 +173,6 @@ inline constexpr std::array<char32_t, 666> uppers
 };
 
 }
-
-inline namespace foundation
-{
 
 /*
 struct some_encoding
