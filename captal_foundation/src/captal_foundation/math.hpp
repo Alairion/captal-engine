@@ -5,10 +5,13 @@
 #include <cstdint>
 #include <concepts>
 #include <ranges>
+#include <type_traits>
 #include <cmath>
 
 namespace cpt
 {
+
+//abs, pow, sqrt, sin, cos, tan
 
 inline namespace foundation
 {
@@ -320,27 +323,6 @@ constexpr auto operator<=>(const vec<T, Size>& left, const vec<T, Size>& right) 
     return std::lexicographical_compare_three_way(std::begin(left), std::end(left), std::begin(right), std::end(right));
 }
 
-template<typename T>
-using vec2 = vec<T, 2>;
-using vec2f = vec2<float>;
-using vec2d = vec2<double>;
-using vec2i = vec2<std::int32_t>;
-using vec2u = vec2<std::uint32_t>;
-
-template<typename T>
-using vec3 = vec<T, 3>;
-using vec3f = vec3<float>;
-using vec3d = vec3<double>;
-using vec3i = vec3<std::int32_t>;
-using vec3u = vec3<std::uint32_t>;
-
-template<typename T>
-using vec4 = vec<T, 4>;
-using vec4f = vec4<float>;
-using vec4d = vec4<double>;
-using vec4i = vec4<std::int32_t>;
-using vec4u = vec4<std::uint32_t>;
-
 template<arithmetic T, std::size_t Size>
 constexpr vec<T, Size> operator+(const vec<T, Size>& left, const vec<T, Size>& right) noexcept
 {
@@ -424,6 +406,66 @@ constexpr vec<T, Size>& operator/=(vec<T, Size>& left, const vec<T, Size>& right
 
     return left;
 }
+
+template<arithmetic T, std::size_t Size>
+constexpr T dot(const vec<T, Size>& left, const vec<T, Size>& right) noexcept
+{
+    T output{};
+
+    for(std::size_t i{}; i < Size; ++i)
+    {
+        output += left[i] * right[i];
+    }
+
+    return output;
+}
+
+template<arithmetic T>
+constexpr vec<T, 3> cross(const vec<T, 3>& left, const vec<T, 3>& right) noexcept
+{
+    return vec<T, 3>{left[1] * right[2] - left[2] * right[1],
+                     left[2] * right[0] - left[0] * right[2],
+                     left[0] * right[1] - left[1] * right[0]};
+}
+
+template<arithmetic T, std::size_t Size>
+T length(const vec<T, Size>& vector) noexcept
+{
+    return static_cast<T>(std::sqrt(dot(vector, vector)));
+}
+
+template<arithmetic T, std::size_t Size>
+vec<T, Size> normalize(const vec<T, Size>& vector) noexcept
+{
+    return vector / vec<T, Size>{length(vector)};
+}
+
+template<arithmetic T, std::size_t Size>
+T distance(const vec<T, Size>& left, const vec<T, Size>& right) noexcept
+{
+    return length(left - right);
+}
+
+template<typename T>
+using vec2 = vec<T, 2>;
+using vec2f = vec2<float>;
+using vec2d = vec2<double>;
+using vec2i = vec2<std::int32_t>;
+using vec2u = vec2<std::uint32_t>;
+
+template<typename T>
+using vec3 = vec<T, 3>;
+using vec3f = vec3<float>;
+using vec3d = vec3<double>;
+using vec3i = vec3<std::int32_t>;
+using vec3u = vec3<std::uint32_t>;
+
+template<typename T>
+using vec4 = vec<T, 4>;
+using vec4f = vec4<float>;
+using vec4d = vec4<double>;
+using vec4i = vec4<std::int32_t>;
+using vec4u = vec4<std::uint32_t>;
 
 struct identity_t{};
 inline constexpr identity_t identity{};
@@ -737,27 +779,6 @@ constexpr auto operator<=>(const mat<T, Rows, Cols>& left, const mat<T, Rows, Co
     return std::lexicographical_compare_three_way(std::begin(left), std::end(left), std::begin(right), std::end(right));
 }
 
-template<typename T>
-using mat2 = mat<T, 2, 2>;
-using mat2f = mat2<float>;
-using mat2d = mat2<double>;
-using mat2i = mat2<std::int32_t>;
-using mat2u = mat2<std::uint32_t>;
-
-template<typename T>
-using mat3 = mat<T, 3, 3>;
-using mat3f = mat3<float>;
-using mat3d = mat3<double>;
-using mat3i = mat3<std::int32_t>;
-using mat3u = mat3<std::uint32_t>;
-
-template<typename T>
-using mat4 = mat<T, 4, 4>;
-using mat4f = mat4<float>;
-using mat4d = mat4<double>;
-using mat4i = mat4<std::int32_t>;
-using mat4u = mat4<std::uint32_t>;
-
 template<arithmetic T, std::size_t Rows, std::size_t Cols>
 constexpr mat<T, Rows, Cols> operator+(const mat<T, Rows, Cols>& left, const mat<T, Rows, Cols>& right) noexcept
 {
@@ -880,7 +901,7 @@ constexpr mat<T, Rows, Cols>& operator/=(mat<T, Rows, Cols>& left, const mat<T, 
     return left;
 }
 
-template<typename T, std::size_t Rows, std::size_t Cols>
+template<arithmetic T, std::size_t Rows, std::size_t Cols>
 constexpr mat<T, Cols, Rows> transpose(const mat<T, Rows, Cols>& matrix) noexcept
 {
     mat<T, Cols, Rows> output{};
@@ -894,6 +915,59 @@ constexpr mat<T, Cols, Rows> transpose(const mat<T, Rows, Cols>& matrix) noexcep
     }
 
     return output;
+}
+/*
+template<arithmetic T>
+constexpr T determinant(const mat<T, 2, 2>& matrix) noexcept
+{
+    return matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0];
+}
+
+template<arithmetic T>
+constexpr T determinant(const mat<T, 3, 3>& matrix) noexcept
+{
+    const auto first{matrix[0][0] * (matrix[1][1] * matrix[2][2] - matrix[1][2] * matrix[2][1])};
+    const auto second{matrix[0][1] * (matrix[1][0] * matrix[2][2] - matrix[1][2] * matrix[2][0])};
+    const auto third{matrix[0][2] * (matrix[1][0] * matrix[2][1] - matrix[1][1] * matrix[2][0])};
+
+    return first - second + third;
+}
+
+template<arithmetic T>
+constexpr T determinant(const mat<T, 4, 4>& matrix) noexcept
+{
+
+}*/
+
+template<typename T>
+using mat2 = mat<T, 2, 2>;
+using mat2f = mat2<float>;
+using mat2d = mat2<double>;
+using mat2i = mat2<std::int32_t>;
+using mat2u = mat2<std::uint32_t>;
+
+template<typename T>
+using mat3 = mat<T, 3, 3>;
+using mat3f = mat3<float>;
+using mat3d = mat3<double>;
+using mat3i = mat3<std::int32_t>;
+using mat3u = mat3<std::uint32_t>;
+
+template<typename T>
+using mat4 = mat<T, 4, 4>;
+using mat4f = mat4<float>;
+using mat4d = mat4<double>;
+using mat4i = mat4<std::int32_t>;
+using mat4u = mat4<std::uint32_t>;
+
+namespace indices
+{
+
+inline constexpr std::size_t x{0};
+inline constexpr std::size_t y{1};
+inline constexpr std::size_t z{2};
+inline constexpr std::size_t w{3};
+
 }
 
 }
