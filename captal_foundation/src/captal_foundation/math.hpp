@@ -308,6 +308,18 @@ public:
     using parent_type::crend;
 };
 
+template<typename T, std::size_t Size>
+constexpr bool operator==(const vec<T, Size>& left, const vec<T, Size>& right) noexcept
+{
+    return std::equal(std::begin(left), std::end(left), std::begin(right), std::end(right));
+}
+
+template<typename T, std::size_t Size>
+constexpr auto operator<=>(const vec<T, Size>& left, const vec<T, Size>& right) noexcept
+{
+    return std::lexicographical_compare_three_way(std::begin(left), std::end(left), std::begin(right), std::end(right));
+}
+
 template<typename T>
 using vec2 = vec<T, 2>;
 using vec2f = vec2<float>;
@@ -416,11 +428,11 @@ constexpr vec<T, Size>& operator/=(vec<T, Size>& left, const vec<T, Size>& right
 struct identity_t{};
 inline constexpr identity_t identity{};
 
-template<arithmetic T, std::size_t Cols, std::size_t Rows>
+template<arithmetic T, std::size_t Rows, std::size_t Cols>
 struct mat;
 
 template<arithmetic T, std::size_t Cols>
-struct mat<T, Cols, 2> : private std::array<vec<T, Cols>, 2>
+struct mat<T, 2, Cols> : private std::array<vec<T, Cols>, 2>
 {
     using parent_type = std::array<vec<T, Cols>, 2>;
 
@@ -507,7 +519,7 @@ public:
 };
 
 template<arithmetic T, std::size_t Cols>
-struct mat<T, Cols, 3> : private std::array<vec<T, Cols>, 3>
+struct mat<T, 3, Cols> : private std::array<vec<T, Cols>, 3>
 {
     using parent_type = std::array<vec<T, Cols>, 3>;
 
@@ -605,7 +617,7 @@ public:
 };
 
 template<arithmetic T, std::size_t Cols>
-struct mat<T, Cols, 4> : private std::array<vec<T, Cols>, 4>
+struct mat<T, 4, Cols> : private std::array<vec<T, Cols>, 4>
 {
     using parent_type = std::array<vec<T, Cols>, 4>;
 
@@ -713,16 +725,171 @@ public:
     using parent_type::crend;
 };
 
-template<typename T, std::size_t Cols, std::size_t Rows>
-constexpr mat<T, Rows, Cols> transpose(const mat<T, Cols, Rows>& matrix) noexcept
+template<typename T, std::size_t Rows, std::size_t Cols>
+constexpr bool operator==(const mat<T, Rows, Cols>& left, const mat<T, Rows, Cols>& right) noexcept
+{
+    return std::equal(std::begin(left), std::end(left), std::begin(right), std::end(right));
+}
+
+template<typename T, std::size_t Rows, std::size_t Cols>
+constexpr auto operator<=>(const mat<T, Rows, Cols>& left, const mat<T, Rows, Cols>& right) noexcept
+{
+    return std::lexicographical_compare_three_way(std::begin(left), std::end(left), std::begin(right), std::end(right));
+}
+
+template<typename T>
+using mat2 = mat<T, 2, 2>;
+using mat2f = mat2<float>;
+using mat2d = mat2<double>;
+using mat2i = mat2<std::int32_t>;
+using mat2u = mat2<std::uint32_t>;
+
+template<typename T>
+using mat3 = mat<T, 3, 3>;
+using mat3f = mat3<float>;
+using mat3d = mat3<double>;
+using mat3i = mat3<std::int32_t>;
+using mat3u = mat3<std::uint32_t>;
+
+template<typename T>
+using mat4 = mat<T, 4, 4>;
+using mat4f = mat4<float>;
+using mat4d = mat4<double>;
+using mat4i = mat4<std::int32_t>;
+using mat4u = mat4<std::uint32_t>;
+
+template<arithmetic T, std::size_t Rows, std::size_t Cols>
+constexpr mat<T, Rows, Cols> operator+(const mat<T, Rows, Cols>& left, const mat<T, Rows, Cols>& right) noexcept
 {
     mat<T, Rows, Cols> output{};
 
-    for(std::size_t y{}; y < Rows; ++y)
+    for(std::size_t i{}; i < Rows; ++i)
     {
-        for(std::size_t x{}; x < Cols; ++x)
+        output[i] = left[i] + right[i];
+    }
+
+    return output;
+}
+
+template<arithmetic T, std::size_t Rows, std::size_t Cols>
+constexpr mat<T, Rows, Cols>& operator+=(mat<T, Rows, Cols>& left, const mat<T, Rows, Cols>& right) noexcept
+{
+    left = left + right;
+
+    return left;
+}
+
+template<arithmetic T, std::size_t Rows, std::size_t Cols>
+constexpr mat<T, Rows, Cols> operator-(const mat<T, Rows, Cols>& left, const mat<T, Rows, Cols>& right) noexcept
+{
+    mat<T, Rows, Cols> output{};
+
+    for(std::size_t i{}; i < Rows; ++i)
+    {
+        output[i] = left[i] - right[i];
+    }
+
+    return output;
+}
+
+template<arithmetic T, std::size_t Rows, std::size_t Cols>
+constexpr mat<T, Rows, Cols>& operator-=(mat<T, Rows, Cols>& left, const mat<T, Rows, Cols>& right) noexcept
+{
+    left = left - right;
+
+    return left;
+}
+
+template<arithmetic T, std::size_t Size1, std::size_t Size2, std::size_t Size3>
+constexpr mat<T, Size1, Size3> operator*(const mat<T, Size1, Size2>& left, const mat<T, Size2, Size3>& right) noexcept
+{
+    mat<T, Size1, Size3> output{};
+
+    for(std::size_t i{}; i < Size1; ++i)
+    {
+        for(std::size_t j{}; j < Size3; ++j)
         {
-            output[y][x] = matrix[x][y];
+            for(std::size_t k{}; k < Size2; ++k)
+            {
+                output[i][j] += left[i][k] * right[k][j];
+            }
+        }
+    }
+
+    return output;
+}
+
+template<arithmetic T, std::size_t Rows, std::size_t Cols>
+constexpr vec<T, Rows> operator*(const mat<T, Rows, Cols>& left, const vec<T, Cols>& right) noexcept
+{
+    vec<T, Rows> output{};
+
+    for(std::size_t i{}; i < Rows; ++i)
+    {
+        for(std::size_t j{}; j < Cols; ++j)
+        {
+            output[i] += left[i][j] * right[j];
+        }
+    }
+
+    return output;
+}
+
+template<arithmetic T, std::size_t Rows, std::size_t Cols>
+constexpr vec<T, Cols> operator*(const vec<T, Rows>& left, const mat<T, Rows, Cols>& right) noexcept
+{
+    vec<T, Cols> output{};
+
+    for(std::size_t j{}; j < Cols; ++j)
+    {
+        for(std::size_t i{}; i < Rows; ++i)
+        {
+            output[j] += left[i] * right[i][j];
+        }
+    }
+
+    return output;
+}
+
+template<arithmetic T, std::size_t Rows, std::size_t Cols>
+constexpr mat<T, Rows, Cols>& operator*=(mat<T, Rows, Cols>& left, const mat<T, Rows, Cols>& right) noexcept
+{
+    left = left * right;
+
+    return left;
+}
+
+template<arithmetic T, std::size_t Rows, std::size_t Cols>
+constexpr mat<T, Rows, Cols> operator/(const mat<T, Rows, Cols>& left, const mat<T, Rows, Cols>& right) noexcept
+{
+    mat<T, Rows, Cols> output{};
+
+    for(std::size_t i{}; i < Rows; ++i)
+    {
+        output[i] = left[i] / right[i];
+    }
+
+    return output;
+}
+
+template<arithmetic T, std::size_t Rows, std::size_t Cols>
+constexpr mat<T, Rows, Cols>& operator/=(mat<T, Rows, Cols>& left, const mat<T, Rows, Cols>& right) noexcept
+{
+    left = left / right;
+
+    return left;
+}
+
+template<typename T, std::size_t Rows, std::size_t Cols>
+constexpr mat<T, Cols, Rows> transpose(const mat<T, Rows, Cols>& matrix) noexcept
+{
+    mat<T, Cols, Rows> output{};
+
+    for(std::size_t x{}; x < Rows; ++x)
+    {
+        for(std::size_t y{}; y < Cols; ++y)
+        {
+            output[x][y] = matrix[y][x];
         }
     }
 
