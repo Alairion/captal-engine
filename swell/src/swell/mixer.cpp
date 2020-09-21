@@ -561,7 +561,7 @@ std::vector<sample_buffer_t> mixer::get_sounds_data(std::size_t frame_count)
 
             if(sound.state.status == sound_status::playing || sound.state.status == sound_status::fading_in || sound.state.status == sound_status::fading_out)
             {
-                const std::uint32_t sound_channels{sound.reader->channel_count()};
+                const std::uint32_t sound_channels{sound.reader->info().channel_count};
 
                 sample_buffer_t sound_data{};
                 sound_data = get_sound_data(sound, frame_count, sound_channels);

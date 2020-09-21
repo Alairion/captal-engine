@@ -106,11 +106,7 @@ ogg_reader::ogg_reader(const std::filesystem::path& file, sound_reader_options o
     if(const auto error{ov_open_callbacks(&m_file, m_vorbis.get(), nullptr, 0, stream_callbacks)}; error < 0)
         throw std::runtime_error{"Can not open the ogg file. #" + std::to_string(error)};
 
-    const vorbis_info* info{ov_info(m_vorbis.get(), 0)};
-
-    m_frame_count = static_cast<std::uint64_t>(ov_pcm_total(m_vorbis.get(), -1));
-    m_channel_count = static_cast<std::uint32_t>(info->channels);
-    m_frequency = static_cast<std::uint32_t>(info->rate);
+    fill_info();
 
     if(static_cast<bool>(m_options & sound_reader_options::buffered))
     {
@@ -128,11 +124,7 @@ ogg_reader::ogg_reader(std::span<const uint8_t> data, sound_reader_options optio
     if(auto error = ov_open_callbacks(&m_source, m_vorbis.get(), nullptr, 0, memory_callbacks); error < 0)
         throw std::runtime_error{"Can not open the audio file. #" + std::to_string(error)};
 
-    const vorbis_info* info{ov_info(m_vorbis.get(), 0)};
-
-    m_frame_count = static_cast<std::uint64_t>(ov_pcm_total(m_vorbis.get(), -1));
-    m_channel_count = static_cast<std::uint32_t>(info->channels);
-    m_frequency = static_cast<std::uint32_t>(info->rate);
+    fill_info();
 
     if(static_cast<bool>(m_options & sound_reader_options::buffered))
     {
@@ -151,11 +143,7 @@ ogg_reader::ogg_reader(std::istream& stream, sound_reader_options options)
     if(const auto error{ov_open_callbacks(m_stream, m_vorbis.get(), nullptr, 0, stream_callbacks)}; error < 0)
         throw std::runtime_error{"Can not open the ogg file. #" + std::to_string(error)};
 
-    const vorbis_info* info{ov_info(m_vorbis.get(), 0)};
-
-    m_frame_count = static_cast<std::uint64_t>(ov_pcm_total(m_vorbis.get(), -1));
-    m_channel_count = static_cast<std::uint32_t>(info->channels);
-    m_frequency = static_cast<std::uint32_t>(info->rate);
+    fill_info();
 
     if(static_cast<bool>(m_options & sound_reader_options::buffered))
     {
@@ -203,35 +191,34 @@ std::uint64_t ogg_reader::tell()
     }
 }
 
-std::uint64_t ogg_reader::frame_count()
+void ogg_reader::fill_info()
 {
-    return m_frame_count;
-}
+    const vorbis_info* vorbis_info{ov_info(m_vorbis.get(), 0)};
 
-std::uint32_t ogg_reader::frequency()
-{
-    return m_frequency;
-}
+    sound_info info{};
 
-std::uint32_t ogg_reader::channel_count()
-{
-    return static_cast<std::uint32_t>(m_channel_count);
+    info.frame_count = static_cast<std::uint64_t>(ov_pcm_total(m_vorbis.get(), -1));
+    info.channel_count = static_cast<std::uint32_t>(vorbis_info->channels);
+    info.frequency = static_cast<std::uint32_t>(vorbis_info->rate);
+    info.seekable = true;
+
+    set_info(info);
 }
 
 void ogg_reader::fill_buffer()
 {
-    m_buffer.reserve(m_frame_count * m_channel_count);
+    m_buffer.reserve(info().frame_count * info().channel_count);
 
     std::uint64_t total_read{};
 
-    while(total_read < m_frame_count)
+    while(total_read < info().frame_count)
     {
         float** data{};
-        const auto read{ov_read_float(m_vorbis.get(), &data, static_cast<int>(m_frame_count), &m_current_section)};
+        const auto read{ov_read_float(m_vorbis.get(), &data, static_cast<int>(info().frame_count), &m_current_section)};
 
         for(std::size_t i{}; i < static_cast<std::size_t>(read); ++i)
         {
-            for(std::size_t j{}; j < m_channel_count; ++j)
+            for(std::size_t j{}; j < info().channel_count; ++j)
             {
                 m_buffer.emplace_back(data[j][i]);
             }
@@ -261,7 +248,7 @@ void ogg_reader::close()
 
 std::size_t ogg_reader::sample_size(std::size_t frame_count)
 {
-    return frame_count * m_channel_count;
+    return frame_count * info().channel_count;
 }
 
 bool ogg_reader::read_samples_from_buffer(float* output, std::size_t frame_count)
@@ -298,16 +285,16 @@ bool ogg_reader::read_samples_from_vorbis(float* output, std::size_t frame_count
 
         for(std::size_t i{}; i < static_cast<std::size_t>(read); ++i)
         {
-            for(std::size_t j{}; j < m_channel_count; ++j)
+            for(std::size_t j{}; j < info().channel_count; ++j)
             {
-                output[(i * m_channel_count) + j] = data[j][i];
+                output[(i * info().channel_count) + j] = data[j][i];
             }
         }
 
         if(read > 0)
         {
             total_read += read;
-            output += read * m_channel_count;
+            output += read * info().channel_count;
         }
         else if(read == 0)
         {

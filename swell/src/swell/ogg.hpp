@@ -42,11 +42,9 @@ public:
     bool read(float* output, std::size_t frame_count) override;
     void seek(std::uint64_t frame_offset) override;
     std::uint64_t tell() override;
-    std::uint64_t frame_count() override;
-    std::uint32_t frequency() override;
-    std::uint32_t channel_count() override;
 
 private:
+    void fill_info();
     void fill_buffer();
     void close();
 
@@ -58,9 +56,6 @@ private:
 private:
     sound_reader_options m_options{};
     std::unique_ptr<OggVorbis_File, vorbis_deleter> m_vorbis{};
-    std::uint64_t m_frame_count{};
-    std::uint32_t m_frequency{};
-    std::uint32_t m_channel_count{};
     int m_current_section{};
     std::uint32_t m_current_frame{};
     std::vector<float> m_buffer{};

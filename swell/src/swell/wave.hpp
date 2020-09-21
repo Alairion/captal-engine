@@ -46,13 +46,11 @@ public:
     bool read(float* output, std::size_t frame_count) override;
     void seek(std::uint64_t frame_offset) override;
     std::uint64_t tell() override;
-    std::uint64_t frame_count() override;
-    std::uint32_t frequency() override;
-    std::uint32_t channel_count() override;
 
 private:
     void read_header(const std::array<std::uint8_t, 44>& data);
     void check_header();
+    void fill_info();
 
     std::size_t sample_size(std::size_t frame_count);
     std::size_t byte_size(std::size_t frame_count);

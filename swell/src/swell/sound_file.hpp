@@ -51,21 +51,6 @@ public:
         return m_reader->tell();
     }
 
-    std::uint64_t frame_count() override
-    {
-        return m_reader->frame_count();
-    }
-
-    std::uint32_t frequency() override
-    {
-        return m_reader->frequency();
-    }
-
-    std::uint32_t channel_count() override
-    {
-        return m_reader->channel_count();
-    }
-
 private:
     std::unique_ptr<sound_reader> m_reader{};
 };

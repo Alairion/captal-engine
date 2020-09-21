@@ -195,21 +195,6 @@ std::uint64_t wave_reader::tell()
     return static_cast<std::uint64_t>(m_current_frame);
 }
 
-std::uint64_t wave_reader::frame_count()
-{
-    return m_header.data_size / (m_header.bits_per_sample / 8u) / m_header.channel_count;
-}
-
-std::uint32_t wave_reader::frequency()
-{
-    return m_header.frequency;
-}
-
-std::uint32_t wave_reader::channel_count()
-{
-    return static_cast<std::uint32_t>(m_header.channel_count);
-}
-
 void wave_reader::read_header(const std::array<std::uint8_t, 44>& header_data)
 {
     const auto* const data{std::data(header_data)};
@@ -229,6 +214,7 @@ void wave_reader::read_header(const std::array<std::uint8_t, 44>& header_data)
     m_header.data_size          = read_uint32(data + 40);
 
     check_header();
+    fill_info();
 }
 
 void wave_reader::check_header()
@@ -252,6 +238,18 @@ void wave_reader::check_header()
     {
         throw std::runtime_error{"Invalid Wave format."};
     }
+}
+
+void wave_reader::fill_info()
+{
+    sound_info info{};
+
+    info.frame_count = m_header.data_size / (m_header.bits_per_sample / 8u) / m_header.channel_count;
+    info.frequency = m_header.frequency;
+    info.channel_count = static_cast<std::uint32_t>(m_header.channel_count);
+    info.seekable = true;
+
+    set_info(info);
 }
 
 std::size_t wave_reader::sample_size(std::size_t frame_count)
