@@ -20,25 +20,25 @@ namespace cpt
 namespace impl
 {
 
-class CAPTAL_API deflate
+class CAPTAL_API deflate_base
 {
 public:
     static constexpr bool flush{true};
     static constexpr bool known_compress_bound{true};
 
 public:
-    deflate(std::uint32_t compression_level, std::int32_t window_bits);
-    ~deflate();
-    deflate(const deflate&) = delete;
-    deflate& operator=(const deflate&) = delete;
-    deflate(deflate&&) noexcept = default;
-    deflate& operator=(deflate&&) noexcept = default;
+    deflate_base(std::uint32_t compression_level, std::int32_t window_bits);
+    ~deflate_base();
+    deflate_base(const deflate_base&) = delete;
+    deflate_base& operator=(const deflate_base&) = delete;
+    deflate_base(deflate_base&&) noexcept = default;
+    deflate_base& operator=(deflate_base&&) noexcept = default;
 
     template<std::contiguous_iterator InContiguousIt, std::contiguous_iterator OutContiguousIt>
     bool compress(InContiguousIt& input_begin, InContiguousIt input_end, OutContiguousIt& output_begin, OutContiguousIt output_end, bool flush = false)
     {
-        static_assert(sizeof(typename std::iterator_traits<InContiguousIt>::value_type) == 1, "cpt::deflate::compress only works on bytes.");
-        static_assert(sizeof(typename std::iterator_traits<OutContiguousIt>::value_type) == 1, "cpt::deflate::compress only works on bytes.");
+        static_assert(sizeof(typename std::iterator_traits<InContiguousIt>::value_type) == 1, "cpt::deflate_base::compress only works on bytes.");
+        static_assert(sizeof(typename std::iterator_traits<OutContiguousIt>::value_type) == 1, "cpt::deflate_base::compress only works on bytes.");
 
         const std::uint8_t* const input_address{reinterpret_cast<const std::uint8_t*>(std::addressof(*input_begin))};
         const std::uint8_t* input_ptr{input_address};
@@ -98,7 +98,7 @@ public:
     template<std::input_iterator InputIt>
     std::size_t compress_bound(InputIt begin, InputIt end) const
     {
-        static_assert(sizeof(typename std::iterator_traits<InputIt>::value_type) == 1, "cpt::deflate::compress_bound only works on bytes.");
+        static_assert(sizeof(typename std::iterator_traits<InputIt>::value_type) == 1, "cpt::deflate_base::compress_bound only works on bytes.");
 
         return compress_bound(static_cast<std::size_t>(std::distance(begin, end)));
     }
@@ -124,24 +124,24 @@ private:
     bool m_valid{};
 };
 
-class CAPTAL_API inflate
+class CAPTAL_API inflate_base
 {
 public:
     static constexpr bool flush{true};
 
 public:
-    explicit inflate(std::int32_t window_bits);
-    ~inflate();
-    inflate(const inflate&) = delete;
-    inflate& operator=(const inflate&) = delete;
-    inflate(inflate&&) noexcept = default;
-    inflate& operator=(inflate&&) noexcept = default;
+    explicit inflate_base(std::int32_t window_bits);
+    ~inflate_base();
+    inflate_base(const inflate_base&) = delete;
+    inflate_base& operator=(const inflate_base&) = delete;
+    inflate_base(inflate_base&&) noexcept = default;
+    inflate_base& operator=(inflate_base&&) noexcept = default;
 
     template<std::contiguous_iterator InContiguousIt, std::contiguous_iterator OutContiguousIt>
     bool decompress(InContiguousIt& input_begin, InContiguousIt input_end, OutContiguousIt& output_begin, OutContiguousIt output_end, bool flush)
     {
-        static_assert(sizeof(typename std::iterator_traits<InContiguousIt>::value_type) == 1, "cpt::inflate::decompress only works on bytes.");
-        static_assert(sizeof(typename std::iterator_traits<OutContiguousIt>::value_type) == 1, "cpt::inflate::decompress only works on bytes.");
+        static_assert(sizeof(typename std::iterator_traits<InContiguousIt>::value_type) == 1, "cpt::inflate_base::decompress only works on bytes.");
+        static_assert(sizeof(typename std::iterator_traits<OutContiguousIt>::value_type) == 1, "cpt::inflate_base::decompress only works on bytes.");
 
         const std::uint8_t* const input_address{reinterpret_cast<const std::uint8_t*>(std::addressof(*input_begin))};
         const std::uint8_t* input_ptr{input_address};
@@ -219,7 +219,7 @@ private:
 
 }
 
-class CAPTAL_API deflate : public impl::deflate
+class CAPTAL_API deflate : public impl::deflate_base
 {
 public:
     explicit deflate(std::uint32_t compression_level = 6);
@@ -230,7 +230,7 @@ public:
     deflate& operator=(deflate&&) noexcept = default;
 };
 
-class CAPTAL_API zlib_deflate : public impl::deflate
+class CAPTAL_API zlib_deflate : public impl::deflate_base
 {
 public:
     explicit zlib_deflate(std::uint32_t compression_level = 6);
@@ -241,7 +241,7 @@ public:
     zlib_deflate& operator=(zlib_deflate&&) noexcept = default;
 };
 
-class CAPTAL_API gzip_deflate : public impl::deflate
+class CAPTAL_API gzip_deflate : public impl::deflate_base
 {
 public:
     explicit gzip_deflate(std::uint32_t compression_level = 6);
@@ -261,7 +261,7 @@ private:
     std::unique_ptr<gz_header_s> m_header{};
 };
 
-class CAPTAL_API inflate : public impl::inflate
+class CAPTAL_API inflate : public impl::inflate_base
 {
 public:
     explicit inflate();
@@ -272,7 +272,7 @@ public:
     inflate& operator=(inflate&&) noexcept = default;
 };
 
-class CAPTAL_API zlib_inflate : public impl::inflate
+class CAPTAL_API zlib_inflate : public impl::inflate_base
 {
 public:
     explicit zlib_inflate();
@@ -283,7 +283,7 @@ public:
     zlib_inflate& operator=(zlib_inflate&&) noexcept = default;
 };
 
-class CAPTAL_API gzip_inflate : public impl::inflate
+class CAPTAL_API gzip_inflate : public impl::inflate_base
 {
     struct gzip_info;
 

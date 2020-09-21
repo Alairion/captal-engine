@@ -8,7 +8,7 @@
 #include <span>
 #include <istream>
 
-#include "mixer.hpp"
+#include "sound_reader.hpp"
 
 namespace swl
 {
@@ -20,40 +20,13 @@ enum class audio_file_format : std::uint32_t
     ogg = 2
 };
 
-class SWELL_API sound_file_reader : public sound_reader
-{
-public:
-    constexpr sound_file_reader() = default;
+SWELL_API audio_file_format file_format(std::span<const std::uint8_t> data) noexcept;
+SWELL_API audio_file_format file_format(std::istream& stream);
+SWELL_API audio_file_format file_format(const std::filesystem::path& file);
 
-    sound_file_reader(const std::filesystem::path& file, sound_reader_options options = sound_reader_options::none);
-    sound_file_reader(std::span<const std::uint8_t> data, sound_reader_options options = sound_reader_options::none);
-    sound_file_reader(std::istream& stream, sound_reader_options options = sound_reader_options::none);
-    sound_file_reader(std::unique_ptr<sound_reader> m_reader) noexcept;
-
-    virtual ~sound_file_reader() = default;
-    sound_file_reader(const sound_file_reader&) = delete;
-    sound_file_reader& operator=(const sound_file_reader&) = delete;
-    sound_file_reader(sound_file_reader&& other) noexcept = default;
-    sound_file_reader& operator=(sound_file_reader&& other) noexcept = default;
-
-    bool read(float* output, std::size_t frame_count) override
-    {
-        return m_reader->read(output, frame_count);
-    }
-
-    void seek(std::uint64_t frame_offset) override
-    {
-        m_reader->seek(frame_offset);
-    }
-
-    std::uint64_t tell() override
-    {
-        return m_reader->tell();
-    }
-
-private:
-    std::unique_ptr<sound_reader> m_reader{};
-};
+SWELL_API std::unique_ptr<sound_reader> open_file(const std::filesystem::path& file, sound_reader_options options = sound_reader_options::none);
+SWELL_API std::unique_ptr<sound_reader> open_file(std::span<const std::uint8_t> data, sound_reader_options options = sound_reader_options::none);
+SWELL_API std::unique_ptr<sound_reader> open_file(std::istream& stream, sound_reader_options options = sound_reader_options::none);
 
 }
 

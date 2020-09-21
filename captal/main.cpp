@@ -29,11 +29,16 @@ class sawtooth_generator : public swl::sound_reader
 {
 public:
     sawtooth_generator(std::uint32_t frequency, std::uint32_t channels, std::uint32_t wave_lenght)
-    :m_frequency{frequency}
-    ,m_channels{channels}
-    ,m_wave_lenght{wave_lenght}
+    :m_wave_lenght{wave_lenght}
     {
+        const swl::sound_info info
+        {
+            .frame_count = std::numeric_limits<std::uint64_t>::max(),
+            .frequency = frequency,
+            .channel_count = channels,
+        };
 
+        set_info(info);
     }
 
     ~sawtooth_generator() = default;
@@ -48,28 +53,13 @@ public:
         {
             const float value{next_value()};
 
-            for(std::size_t j{}; j < m_channels; ++j)
+            for(std::size_t j{}; j < info().channel_count; ++j)
             {
-                output[i * m_channels + j] = value;
+                output[i * info().channel_count + j] = value;
             }
         }
 
         return true;
-    }
-
-    std::uint64_t frame_count() override
-    {
-        return std::numeric_limits<std::uint64_t>::max();
-    }
-
-    std::uint32_t frequency() override
-    {
-        return m_frequency;
-    }
-
-    std::uint32_t channel_count() override
-    {
-        return m_channels;
     }
 
 private:
@@ -88,8 +78,6 @@ private:
 
 private:
     float m_value{-1.0f};
-    std::uint32_t m_frequency{};
-    std::uint32_t m_channels{};
     std::uint32_t m_wave_lenght{};
 };
 
@@ -231,11 +219,11 @@ static void add_logic(const cpt::render_window_ptr& window, entt::registry& worl
     {
         if(event.wheel > 0)
         {
-            world.get<cpt::components::node>(camera).scale(glm::vec3{1.0f / 2.0f});
+            world.get<cpt::components::node>(camera).scale(glm::vec3{1.0f / 2.0f, 1.0f / 2.0f, 1.0f});
         }
         else
         {
-            world.get<cpt::components::node>(camera).scale(glm::vec3{2.0f / 1.0f});
+            world.get<cpt::components::node>(camera).scale(glm::vec3{2.0f / 1.0f, 2.0f / 1.0f, 1.0f});
         }
     });
 

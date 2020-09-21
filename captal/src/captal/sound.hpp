@@ -3,8 +3,11 @@
 
 #include "config.hpp"
 
+#include <filesystem>
+#include <span>
+#include <istream>
+
 #include <swell/mixer.hpp>
-#include <swell/sound_file.hpp>
 
 namespace cpt
 {

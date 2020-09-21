@@ -287,7 +287,7 @@ bool ogg_reader::read_samples_from_vorbis(float* output, std::size_t frame_count
         {
             for(std::size_t j{}; j < info().channel_count; ++j)
             {
-                output[(i * info().channel_count) + j] = data[j][i];
+                output[i * info().channel_count + j] = data[j][i];
             }
         }
 

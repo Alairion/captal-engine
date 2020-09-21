@@ -12,7 +12,7 @@ namespace cpt
 namespace impl
 {
 
-deflate::deflate(std::uint32_t compression_level, std::int32_t window_bits)
+deflate_base::deflate_base(std::uint32_t compression_level, std::int32_t window_bits)
 :m_stream{std::make_unique<z_stream_s>()}
 {
     assert(compression_level <= 9 && "cpt::impl::deflate compression level must be in range [0; 9]");
@@ -23,12 +23,12 @@ deflate::deflate(std::uint32_t compression_level, std::int32_t window_bits)
     m_valid = true;
 }
 
-deflate::~deflate()
+deflate_base::~deflate_base()
 {
     deflateEnd(m_stream.get());
 }
 
-void deflate::compress_impl(const std::uint8_t*& input, std::size_t input_size, std::uint8_t*& output, std::size_t output_size, bool finish)
+void deflate_base::compress_impl(const std::uint8_t*& input, std::size_t input_size, std::uint8_t*& output, std::size_t output_size, bool finish)
 {
     assert(valid() && "cpt::impl::deflate::compress called on an invalid stream.");
 
@@ -52,12 +52,12 @@ void deflate::compress_impl(const std::uint8_t*& input, std::size_t input_size, 
     output = reinterpret_cast<std::uint8_t*>(m_stream->next_out);
 }
 
-std::size_t deflate::compress_bound(std::size_t input_size) const noexcept
+std::size_t deflate_base::compress_bound(std::size_t input_size) const noexcept
 {
     return static_cast<std::size_t>(deflateBound(m_stream.get(), static_cast<uLong>(input_size)));
 }
 
-void deflate::reset()
+void deflate_base::reset()
 {
     if(deflateReset(m_stream.get()) != Z_OK)
         throw std::runtime_error{"Can not reset deflate stream."};
@@ -65,7 +65,7 @@ void deflate::reset()
     m_valid = true;
 }
 
-inflate::inflate(std::int32_t window_bits)
+inflate_base::inflate_base(std::int32_t window_bits)
 :m_stream{std::make_unique<z_stream_s>()}
 {
     if(inflateInit2(m_stream.get(), static_cast<int>(window_bits)) != Z_OK)
@@ -74,12 +74,12 @@ inflate::inflate(std::int32_t window_bits)
     m_valid = true;
 }
 
-inflate::~inflate()
+inflate_base::~inflate_base()
 {
     inflateEnd(m_stream.get());
 }
 
-void inflate::decompress_impl(const std::uint8_t*& input, std::size_t input_size, std::uint8_t*& output, std::size_t output_size, bool flush)
+void inflate_base::decompress_impl(const std::uint8_t*& input, std::size_t input_size, std::uint8_t*& output, std::size_t output_size, bool flush)
 {
     assert(valid() && "cpt::impl::inflate::compress called on an invalid stream.");
 
@@ -103,7 +103,7 @@ void inflate::decompress_impl(const std::uint8_t*& input, std::size_t input_size
     output = reinterpret_cast<std::uint8_t*>(m_stream->next_out);
 }
 
-void inflate::reset()
+void inflate_base::reset()
 {
     if(inflateReset(m_stream.get()) != Z_OK)
         throw std::runtime_error{"Can not reset inflate stream."};
@@ -114,19 +114,19 @@ void inflate::reset()
 }
 
 deflate::deflate(std::uint32_t compression_level)
-:cpt::impl::deflate{compression_level, -15}
+:cpt::impl::deflate_base{compression_level, -15}
 {
 
 }
 
 zlib_deflate::zlib_deflate(std::uint32_t compression_level)
-:cpt::impl::deflate{compression_level, 15}
+:cpt::impl::deflate_base{compression_level, 15}
 {
 
 }
 
 gzip_deflate::gzip_deflate(std::uint32_t compression_level)
-:impl::deflate{compression_level, 16 + 15}
+:impl::deflate_base{compression_level, 16 + 15}
 {
 
 }
@@ -165,13 +165,13 @@ void gzip_deflate::set_header(std::string_view name, std::string_view comment, s
 }
 
 inflate::inflate()
-:impl::inflate{-15}
+:impl::inflate_base{-15}
 {
 
 }
 
 zlib_inflate::zlib_inflate()
-:impl::inflate{15}
+:impl::inflate_base{15}
 {
 
 }
@@ -185,7 +185,7 @@ struct gzip_inflate::gzip_info
 };
 
 gzip_inflate::gzip_inflate()
-:impl::inflate{16 + 15}
+:impl::inflate_base{16 + 15}
 {
 
 }
