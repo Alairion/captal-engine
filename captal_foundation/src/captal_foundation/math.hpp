@@ -982,21 +982,70 @@ constexpr T determinant(const mat<T, 4, 4>& matrix) noexcept
     return matrix[0][0] * determinant(matrices[0]) - matrix[0][1] * determinant(matrices[1]) + matrix[0][2] * determinant(matrices[2]) - matrix[0][3] * determinant(matrices[3]);
 }
 
-template<typename T>
+template<arithmetic T>
+constexpr mat<T, 4, 4> translate(const vec<T, 3>& translation) noexcept
+{
+    mat<T, 4, 4> output{identity};
+
+    output[0][3] = translation[0];
+    output[1][3] = translation[1];
+    output[2][3] = translation[2];
+
+    return output;
+}
+
+template<arithmetic T>
+constexpr mat<T, 4, 4> scale(const vec<T, 3>& scale) noexcept
+{
+    mat<T, 4, 4> output{identity};
+
+    output[0][0] = scale[0];
+    output[1][1] = scale[1];
+    output[2][2] = scale[2];
+
+    return output;
+}
+
+template<arithmetic T>
+mat<T, 4, 4> rotate(T angle, const vec<T, 3>& axis) noexcept
+{
+    const auto cos{std::cos(angle)};
+    const auto sin{std::sin(angle)};
+    const auto factor{static_cast<T>(1) - cos};
+    const auto temp{vec<T, 3>{factor} * axis};
+
+    mat<T, 4, 4> output{identity};
+
+    output[0][0] = axis[0] * temp[0] + cos;
+    output[0][1] = axis[1] * temp[0] - axis[2] * sin;
+    output[0][2] = axis[2] * temp[0] + axis[1] * sin;
+
+    output[1][0] = axis[0] * temp[1] + axis[2] * sin;
+    output[1][1] = axis[1] * temp[1] + cos;
+    output[1][2] = axis[2] * temp[1] - axis[0] * sin;
+
+    output[2][0] = axis[0] * temp[2] - axis[1] * sin;
+    output[2][1] = axis[1] * temp[2] + axis[0] * sin;
+    output[2][2] = axis[2] * temp[2] + cos;
+
+    return output;
+}
+
+template<arithmetic T>
 using mat2 = mat<T, 2, 2>;
 using mat2f = mat2<float>;
 using mat2d = mat2<double>;
 using mat2i = mat2<std::int32_t>;
 using mat2u = mat2<std::uint32_t>;
 
-template<typename T>
+template<arithmetic T>
 using mat3 = mat<T, 3, 3>;
 using mat3f = mat3<float>;
 using mat3d = mat3<double>;
 using mat3i = mat3<std::int32_t>;
 using mat3u = mat3<std::uint32_t>;
 
-template<typename T>
+template<arithmetic T>
 using mat4 = mat<T, 4, 4>;
 using mat4f = mat4<float>;
 using mat4d = mat4<double>;
