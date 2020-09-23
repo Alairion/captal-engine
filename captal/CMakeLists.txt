@@ -58,6 +58,9 @@ add_library(captal SHARED
     src/captal/systems/render.hpp
     src/captal/systems/physics.hpp
 
+    src/captal/signal.hpp
+    src/captal/entity.hpp
+
     #Sources:
     src/captal/application.cpp
     src/captal/engine.cpp

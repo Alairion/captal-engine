@@ -916,7 +916,7 @@ constexpr mat<T, Cols, Rows> transpose(const mat<T, Rows, Cols>& matrix) noexcep
 
     return output;
 }
-/*
+
 template<arithmetic T>
 constexpr T determinant(const mat<T, 2, 2>& matrix) noexcept
 {
@@ -926,18 +926,61 @@ constexpr T determinant(const mat<T, 2, 2>& matrix) noexcept
 template<arithmetic T>
 constexpr T determinant(const mat<T, 3, 3>& matrix) noexcept
 {
-    const auto first{matrix[0][0] * (matrix[1][1] * matrix[2][2] - matrix[1][2] * matrix[2][1])};
-    const auto second{matrix[0][1] * (matrix[1][0] * matrix[2][2] - matrix[1][2] * matrix[2][0])};
-    const auto third{matrix[0][2] * (matrix[1][0] * matrix[2][1] - matrix[1][1] * matrix[2][0])};
+    const std::array matrices
+    {
+        mat<T, 2, 2>
+        {
+            vec<T, 2>{matrix[1][1], matrix[1][2]},
+            vec<T, 2>{matrix[2][1], matrix[2][2]}
+        },
+        mat<T, 2, 2>
+        {
+            vec<T, 2>{matrix[1][0], matrix[1][2]},
+            vec<T, 2>{matrix[2][0], matrix[2][2]}
+        },
+        mat<T, 2, 2>
+        {
+            vec<T, 2>{matrix[1][0], matrix[1][1]},
+            vec<T, 2>{matrix[2][0], matrix[2][1]}
+        },
+    };
 
-    return first - second + third;
+    return matrix[0][0] * determinant(matrices[0]) - matrix[0][0] * determinant(matrices[1]) + matrix[0][0] * determinant(matrices[2]);
 }
 
 template<arithmetic T>
 constexpr T determinant(const mat<T, 4, 4>& matrix) noexcept
 {
+    const std::array matrices
+    {
+        mat<T, 3, 3>
+        {
+            vec<T, 3>{matrix[1][1], matrix[1][2], matrix[1][3]},
+            vec<T, 3>{matrix[2][1], matrix[2][2], matrix[2][3]},
+            vec<T, 3>{matrix[3][1], matrix[3][2], matrix[3][3]}
+        },
+        mat<T, 3, 3>
+        {
+            vec<T, 3>{matrix[1][0], matrix[1][2], matrix[1][3]},
+            vec<T, 3>{matrix[2][0], matrix[2][2], matrix[2][3]},
+            vec<T, 3>{matrix[3][0], matrix[3][2], matrix[3][3]}
+        },
+        mat<T, 3, 3>
+        {
+            vec<T, 3>{matrix[1][0], matrix[1][1], matrix[1][3]},
+            vec<T, 3>{matrix[2][0], matrix[2][1], matrix[2][3]},
+            vec<T, 3>{matrix[3][0], matrix[3][1], matrix[3][3]}
+        },
+        mat<T, 3, 3>
+        {
+            vec<T, 3>{matrix[1][0], matrix[1][1], matrix[1][2]},
+            vec<T, 3>{matrix[2][0], matrix[2][1], matrix[2][2]},
+            vec<T, 3>{matrix[3][0], matrix[3][1], matrix[3][2]}
+        },
+    };
 
-}*/
+    return matrix[0][0] * determinant(matrices[0]) - matrix[0][1] * determinant(matrices[1]) + matrix[0][2] * determinant(matrices[2]) - matrix[0][3] * determinant(matrices[3]);
+}
 
 template<typename T>
 using mat2 = mat<T, 2, 2>;

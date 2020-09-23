@@ -3,6 +3,7 @@
 #include <captal_foundation/optional_ref.hpp>
 #include <captal_foundation/enum_operations.hpp>
 #include <captal_foundation/stack_allocator.hpp>
+#include <captal_foundation/math.hpp>
 
 #include <vector>
 
@@ -10,7 +11,7 @@
 #define CATCH_CONFIG_MAIN
 #define CATCH_CONFIG_CONSOLE_WIDTH 120
 #include "catch.hpp"
-
+/*
 TEST_CASE("Version check", "[version]")
 {
     const cpt::version lowest{1, 4, 12};
@@ -166,7 +167,7 @@ TEST_CASE("Encoding test", "[encoding]")
     REQUIRE(count.operator()<cpt::narrow>() == codepoint_count);
     REQUIRE(count.operator()<cpt::wide>() == codepoint_count);
 }
-
+*/
 /*
 static constexpr std::size_t pool_size{1024};
 
@@ -199,3 +200,35 @@ TEST_CASE("cpt::stack_allocator benchmark", "[stack_alloc_bench]")
     };
 }
 */
+
+TEST_CASE("maths test", "[math_test]")
+{
+    using namespace cpt::indices;
+
+    const cpt::vec3f point{cpt::vec2f{1.0f}, 0.0f};
+    const cpt::vec3f other{12.0f, 3.14f, 2.0f};
+
+    REQUIRE(cpt::dot(other, point) == Approx(15.14));
+
+    const auto cross{cpt::cross(point, other)};
+    REQUIRE(cross[x] == Approx(2.0));
+    REQUIRE(cross[y] == Approx(-2.0));
+    REQUIRE(cross[z] == Approx(-8.86));
+
+    REQUIRE(cpt::length(other) == Approx(12.56).margin(0.01));
+
+    const auto normalized{cpt::normalize(other)};
+    REQUIRE(normalized[x] == Approx(0.95).margin(0.01));
+    REQUIRE(normalized[y] == Approx(0.24).margin(0.01));
+    REQUIRE(normalized[z] == Approx(0.15).margin(0.01));
+
+    REQUIRE(cpt::distance(point, other) == Approx(11.38).margin(0.01));
+
+    const cpt::mat2f matrix2{cpt::vec2f{1.0f, 2.0f}, cpt::vec2f{3.0f, 4.0f}};
+    const cpt::mat3f matrix3{cpt::vec3f{1.0f, 2.0f, 3.0f}, cpt::vec3f{4.0f, 5.0f, 6.0f}, cpt::vec3f{7.0, 8.0, 9.0f}};
+    const cpt::mat4f matrix4{cpt::vec4f{1.0f, 2.0f, 3.0f, 4.0f}, cpt::vec4f{5.0f, 6.0f, 7.0f, 8.0f}, cpt::vec4f{9.0f, 10.0f, 11.0f, 12.0f}, cpt::vec4f{13.0f, 14.0f, 15.0f, 16.0f}};
+
+    REQUIRE(cpt::determinant(matrix2) == Approx(-2.0f).margin(0.01));
+    REQUIRE(cpt::determinant(matrix3) == Approx(0.0f).margin(0.01));
+    REQUIRE(cpt::determinant(matrix4) == Approx(0.0f).margin(0.01));
+}
