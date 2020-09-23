@@ -17,7 +17,7 @@ namespace components
 template<typename... Types>
 class basic_drawable
 {
-    static_assert(sizeof...(Types) == 0 || (std::is_base_of_v<renderable, Types>, ...), "All Types must derive from cpt::renderable");
+    static_assert(sizeof...(Types) != 0 && (std::is_base_of_v<renderable, Types> && ...), "All Types must derive from cpt::renderable");
 
 public:
     using attachment_type = std::variant<std::monostate, Types...>;

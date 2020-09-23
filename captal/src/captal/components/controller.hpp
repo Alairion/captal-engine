@@ -39,7 +39,11 @@ public:
 
     }
 
-    ~controller() = default;
+    ~controller()
+    {
+        clear();
+    }
+
     controller(const controller&) = delete;
     controller& operator=(const controller&) = delete;
     controller(controller&&) noexcept = default;

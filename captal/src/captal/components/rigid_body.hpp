@@ -38,7 +38,11 @@ public:
 
     }
 
-    ~rigid_body() = default;
+    ~rigid_body()
+    {
+        clear();
+    }
+
     rigid_body(const rigid_body&) = delete;
     rigid_body& operator=(const rigid_body&) = delete;
     rigid_body(rigid_body&&) noexcept = default;

@@ -44,7 +44,10 @@ public:
 
     }
 
-    virtual void update(state_stack<state>& stack, float elapsed_time) = 0;
+    virtual void update(state_stack<state>& stack [[maybe_unused]], float elapsed_time [[maybe_unused]])
+    {
+
+    }
 };
 
 template<typename T>

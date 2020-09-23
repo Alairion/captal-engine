@@ -16,7 +16,7 @@ namespace cpt::systems
 
 inline void audio(entt::registry& world)
 {
-    const auto update_listener = [](components::node& node)
+    const auto update_listener = [](const components::node& node)
     {
         if(node.is_updated())
         {
@@ -24,7 +24,7 @@ inline void audio(entt::registry& world)
         }
     };
 
-    const auto update_emiters = [](components::audio_emiter& emiter, components::node& node)
+    const auto update_emiters = [](components::audio_emiter& emiter, const components::node& node)
     {
         if(node.is_updated() && emiter.has_attachment())
         {
@@ -32,8 +32,8 @@ inline void audio(entt::registry& world)
         }
     };
 
-    world.view<components::listener, components::node>().each(update_listener);
-    world.view<components::audio_emiter, components::node>().each(update_emiters);
+    world.view<components::listener, const components::node>().each(update_listener);
+    world.view<components::audio_emiter, const components::node>().each(update_emiters);
 }
 
 }

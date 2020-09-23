@@ -238,6 +238,8 @@ public:
         m_userdata = userdata;
     }
 
+    void deactivate() noexcept;
+
     physical_world& world() const noexcept;
     physical_body& body() const noexcept;
     bool is_sensor() const noexcept;
@@ -265,9 +267,15 @@ public:
         return m_userdata;
     }
 
+    bool active() const noexcept
+    {
+        return m_active;
+    }
+
 private:
     cpShape* m_shape{};
     void* m_userdata{};
+    bool m_active{};
 };
 
 enum class physical_body_type : std::uint32_t
@@ -351,6 +359,9 @@ public:
     }
 
 private:
+    void unregister() noexcept;
+
+private:
     cpBody* m_body{};
     void* m_userdata{};
 };
@@ -422,6 +433,8 @@ public:
         m_userdata = userdata;
     }
 
+    void deactivate() noexcept;
+
     physical_world& world() const noexcept;
     physical_body& first_body() const noexcept;
     physical_body& second_body() const noexcept;
@@ -449,6 +462,11 @@ public:
     void* user_data() const noexcept
     {
         return m_userdata;
+    }
+
+    bool active() const noexcept
+    {
+        return m_active;
     }
 
 public:
@@ -531,6 +549,7 @@ private:
     cpConstraint* m_constraint{};
     physical_constraint_type m_type{};
     void* m_userdata{};
+    bool m_active{};
 };
 
 }
