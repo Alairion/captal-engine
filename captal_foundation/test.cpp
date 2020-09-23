@@ -6,6 +6,7 @@
 #include <captal_foundation/math.hpp>
 
 #include <vector>
+#include <numbers>
 
 #define CATCH_CONFIG_ENABLE_BENCHMARKING
 #define CATCH_CONFIG_MAIN
@@ -205,30 +206,72 @@ TEST_CASE("maths test", "[math_test]")
 {
     using namespace cpt::indices;
 
-    const cpt::vec3f point{cpt::vec2f{1.0f}, 0.0f};
-    const cpt::vec3f other{12.0f, 3.14f, 2.0f};
+    SECTION("Vector arithmetic")
+    {
+        const cpt::vec3f point{cpt::vec2f{1.0f}, 0.0f};
+        const cpt::vec3f other{12.0f, 3.14f, 2.0f};
 
-    REQUIRE(cpt::dot(other, point) == Approx(15.14));
+        REQUIRE(cpt::dot(other, point) == Approx(15.14));
 
-    const auto cross{cpt::cross(point, other)};
-    REQUIRE(cross[x] == Approx(2.0));
-    REQUIRE(cross[y] == Approx(-2.0));
-    REQUIRE(cross[z] == Approx(-8.86));
+        const auto cross{cpt::cross(point, other)};
+        REQUIRE(cross[x] == Approx(2.0));
+        REQUIRE(cross[y] == Approx(-2.0));
+        REQUIRE(cross[z] == Approx(-8.86));
 
-    REQUIRE(cpt::length(other) == Approx(12.56).margin(0.01));
+        REQUIRE(cpt::length(other) == Approx(12.56).margin(0.01));
 
-    const auto normalized{cpt::normalize(other)};
-    REQUIRE(normalized[x] == Approx(0.95).margin(0.01));
-    REQUIRE(normalized[y] == Approx(0.24).margin(0.01));
-    REQUIRE(normalized[z] == Approx(0.15).margin(0.01));
+        const auto normalized{cpt::normalize(other)};
+        REQUIRE(normalized[x] == Approx(0.95).margin(0.01));
+        REQUIRE(normalized[y] == Approx(0.24).margin(0.01));
+        REQUIRE(normalized[z] == Approx(0.15).margin(0.01));
 
-    REQUIRE(cpt::distance(point, other) == Approx(11.38).margin(0.01));
+        REQUIRE(cpt::distance(point, other) == Approx(11.38).margin(0.01));
+    }
 
-    const cpt::mat2f matrix2{cpt::vec2f{1.0f, 2.0f}, cpt::vec2f{3.0f, 4.0f}};
-    const cpt::mat3f matrix3{cpt::vec3f{1.0f, 2.0f, 3.0f}, cpt::vec3f{4.0f, 5.0f, 6.0f}, cpt::vec3f{7.0, 8.0, 9.0f}};
-    const cpt::mat4f matrix4{cpt::vec4f{1.0f, 2.0f, 3.0f, 4.0f}, cpt::vec4f{5.0f, 6.0f, 7.0f, 8.0f}, cpt::vec4f{9.0f, 10.0f, 11.0f, 12.0f}, cpt::vec4f{13.0f, 14.0f, 15.0f, 16.0f}};
+    SECTION("Matrix arithmetic")
+    {
+        const cpt::mat2f matrix2{cpt::vec2f{1.0f, 2.0f}, cpt::vec2f{3.0f, 4.0f}};
+        const cpt::mat3f matrix3{cpt::vec3f{1.0f, 2.0f, 3.0f}, cpt::vec3f{4.0f, 5.0f, 6.0f}, cpt::vec3f{7.0, 8.0, 9.0f}};
+        const cpt::mat4f matrix4{cpt::vec4f{1.0f, 2.0f, 3.0f, 4.0f}, cpt::vec4f{5.0f, 6.0f, 7.0f, 8.0f}, cpt::vec4f{9.0f, 10.0f, 11.0f, 12.0f}, cpt::vec4f{13.0f, 14.0f, 15.0f, 16.0f}};
 
-    REQUIRE(cpt::determinant(matrix2) == Approx(-2.0f).margin(0.01));
-    REQUIRE(cpt::determinant(matrix3) == Approx(0.0f).margin(0.01));
-    REQUIRE(cpt::determinant(matrix4) == Approx(0.0f).margin(0.01));
+        REQUIRE(cpt::determinant(matrix2) == Approx(-2.0f).margin(0.01));
+        REQUIRE(cpt::determinant(matrix3) == Approx(0.0f).margin(0.01));
+        REQUIRE(cpt::determinant(matrix4) == Approx(0.0f).margin(0.01));
+    }
+
+    SECTION("Matrix tranforms")
+    {
+        const cpt::vec4f vector{2.0f, 2.0f, 2.0f, 1.0f};
+
+        const auto scale{cpt::scale(cpt::vec3f{2.0f, 2.0f, 1.0f})};
+        const auto scaled{scale * vector};
+
+        REQUIRE(scaled[x] == Approx(4.0).margin(0.01));
+        REQUIRE(scaled[y] == Approx(4.0).margin(0.01));
+        REQUIRE(scaled[z] == Approx(2.0).margin(0.01));
+        REQUIRE(scaled[w] == Approx(1.0).margin(0.01));
+
+        const auto translation{cpt::translate(cpt::vec3f{12.0f, 3.0f, 6.0f})};
+        const auto translated{translation * vector};
+
+        REQUIRE(translated[x] == Approx(14.0).margin(0.01));
+        REQUIRE(translated[y] == Approx(5.0).margin(0.01));
+        REQUIRE(translated[z] == Approx(8.0).margin(0.01));
+        REQUIRE(translated[w] == Approx(1.0).margin(0.01));
+
+        const auto rotation{cpt::rotate(std::numbers::pi_v<float> / 3.0f, cpt::vec3f{0.0f, 0.0f, 1.0f})};
+        const auto rotated{rotation * vector};
+
+        REQUIRE(rotated[x] == Approx(-0.73).margin(0.01));
+        REQUIRE(rotated[y] == Approx(2.73).margin(0.01));
+        REQUIRE(rotated[z] == Approx(2.0).margin(0.01));
+        REQUIRE(rotated[w] == Approx(1.0).margin(0.01));
+
+        const auto transformed{translation * rotation * scale * vector};
+
+        REQUIRE(transformed[x] == Approx(1.93).margin(0.01));
+        REQUIRE(transformed[y] == Approx(17.35).margin(0.01));
+        REQUIRE(transformed[z] == Approx(8.0).margin(0.01));
+        REQUIRE(transformed[w] == Approx(1.0).margin(0.01));
+    }
 }

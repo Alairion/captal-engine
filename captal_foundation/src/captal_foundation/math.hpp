@@ -497,8 +497,8 @@ public:
     constexpr mat() noexcept = default;
 
     constexpr explicit mat(identity_t) noexcept requires (Cols == 2)
-    :parent_type{{static_cast<arithmetic_type>(1), arithmetic_type{}},
-                 {arithmetic_type{}, static_cast<arithmetic_type>(1)}}
+    :parent_type{value_type{static_cast<T>(1), T{}},
+                 value_type{T{}, static_cast<T>(1)}}
     {
 
     }
@@ -584,9 +584,9 @@ public:
     constexpr mat() noexcept = default;
 
     constexpr explicit mat(identity_t) noexcept requires (Cols == 3)
-    :parent_type{{static_cast<arithmetic_type>(1), arithmetic_type{}, arithmetic_type{}},
-                 {arithmetic_type{}, static_cast<arithmetic_type>(1), arithmetic_type{}},
-                 {arithmetic_type{}, arithmetic_type{}}, static_cast<arithmetic_type>(1)}
+    :parent_type{value_type{static_cast<T>(1), T{}, T{}},
+                 value_type{T{}, static_cast<T>(1), T{}},
+                 value_type{T{}, T{}, static_cast<T>(1)}}
     {
 
     }
@@ -682,10 +682,10 @@ public:
     constexpr mat() noexcept = default;
 
     constexpr explicit mat(identity_t) noexcept requires (Cols == 4)
-    :parent_type{{static_cast<arithmetic_type>(1), arithmetic_type{}, arithmetic_type{}, arithmetic_type{}},
-                 {arithmetic_type{}, static_cast<arithmetic_type>(1), arithmetic_type{}, arithmetic_type{}},
-                 {arithmetic_type{}, arithmetic_type{}}, static_cast<arithmetic_type>(1), arithmetic_type{},
-                 {arithmetic_type{}, arithmetic_type{}}, arithmetic_type{}, static_cast<arithmetic_type>(1)}
+    :parent_type{value_type{static_cast<T>(1), T{}, T{}, T{}},
+                 value_type{T{}, static_cast<T>(1), T{}, T{}},
+                 value_type{T{}, T{}, static_cast<T>(1), T{}},
+                 value_type{T{}, T{}, T{}, static_cast<T>(1)}}
     {
 
     }
