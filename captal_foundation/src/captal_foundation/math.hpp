@@ -345,6 +345,19 @@ constexpr vec<T, Size>& operator+=(vec<T, Size>& left, const vec<T, Size>& right
 }
 
 template<arithmetic T, std::size_t Size>
+constexpr vec<T, Size> operator-(const vec<T, Size>& vector) noexcept
+{
+    vec<T, Size> output{};
+
+    for(std::size_t i{}; i < Size; ++i)
+    {
+        output[i] = -vector[i];
+    }
+
+    return output;
+}
+
+template<arithmetic T, std::size_t Size>
 constexpr vec<T, Size> operator-(const vec<T, Size>& left, const vec<T, Size>& right) noexcept
 {
     vec<T, Size> output{};
@@ -801,6 +814,19 @@ constexpr mat<T, Rows, Cols>& operator+=(mat<T, Rows, Cols>& left, const mat<T, 
 }
 
 template<arithmetic T, std::size_t Rows, std::size_t Cols>
+constexpr mat<T, Rows, Cols> operator-(const mat<T, Rows, Cols>& matrix) noexcept
+{
+    mat<T, Rows, Cols> output{};
+
+    for(std::size_t i{}; i < Rows; ++i)
+    {
+        output[i] = -matrix[i];
+    }
+
+    return output;
+}
+
+template<arithmetic T, std::size_t Rows, std::size_t Cols>
 constexpr mat<T, Rows, Cols> operator-(const mat<T, Rows, Cols>& left, const mat<T, Rows, Cols>& right) noexcept
 {
     mat<T, Rows, Cols> output{};
@@ -995,18 +1021,6 @@ constexpr mat<T, 4, 4> translate(const vec<T, 3>& translation) noexcept
 }
 
 template<arithmetic T>
-constexpr mat<T, 4, 4> scale(const vec<T, 3>& scale) noexcept
-{
-    mat<T, 4, 4> output{identity};
-
-    output[0][0] = scale[0];
-    output[1][1] = scale[1];
-    output[2][2] = scale[2];
-
-    return output;
-}
-
-template<arithmetic T>
 mat<T, 4, 4> rotate(T angle, const vec<T, 3>& axis) noexcept
 {
     const auto cos{std::cos(angle)};
@@ -1029,6 +1043,30 @@ mat<T, 4, 4> rotate(T angle, const vec<T, 3>& axis) noexcept
     output[2][2] = axis[2] * temp[2] + cos;
 
     return output;
+}
+
+template<arithmetic T>
+constexpr mat<T, 4, 4> scale(const vec<T, 3>& scale) noexcept
+{
+    mat<T, 4, 4> output{identity};
+
+    output[0][0] = scale[0];
+    output[1][1] = scale[1];
+    output[2][2] = scale[2];
+
+    return output;
+}
+
+template<arithmetic T>
+mat<T, 4, 4> model(const vec<T, 3>& translation, T angle, const vec<T, 3>& axis, const vec<T, 3>& factor)
+{
+    return translate(translation) * rotate(angle, axis) * scale(factor);
+}
+
+template<arithmetic T>
+mat<T, 4, 4> model(const vec<T, 3>& translation, T angle, const vec<T, 3>& axis, const vec<T, 3>& factor, const vec<T, 3>& origin)
+{
+    return translate(-origin) * rotate(angle, axis) * translate(translation) * scale(factor);
 }
 
 template<arithmetic T>

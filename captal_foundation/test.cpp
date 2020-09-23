@@ -269,8 +269,8 @@ TEST_CASE("maths test", "[math_test]")
 
         const auto transformed{translation * rotation * scale * vector};
 
-        REQUIRE(transformed[x] == Approx(1.93).margin(0.01));
-        REQUIRE(transformed[y] == Approx(17.35).margin(0.01));
+        REQUIRE(transformed[x] == Approx(10.54).margin(0.01));
+        REQUIRE(transformed[y] == Approx(8.46).margin(0.01));
         REQUIRE(transformed[z] == Approx(8.0).margin(0.01));
         REQUIRE(transformed[w] == Approx(1.0).margin(0.01));
     }
