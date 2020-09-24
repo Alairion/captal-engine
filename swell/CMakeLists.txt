@@ -6,13 +6,6 @@ include(cmake/buildportaudio.cmake)
 include(cmake/buildogg.cmake)
 include(cmake/buildvorbis.cmake)
 
-set(PORTAUDIO_INCLUDES "${GLOBAL_INCLUDES}/portaudio")
-set(PORTAUDIO_LIBRARIES "${GLOBAL_LIBRARIES}/libportaudio_static.a" ole32 uuid setupapi winmm)
-set(VORBISENC_LIBRARIES "${GLOBAL_LIBRARIES}/libvorbisenc.a")
-set(VORBISFILE_LIBRARIES "${GLOBAL_LIBRARIES}/libvorbisfile.a")
-set(VORBIS_LIBRARIES "${GLOBAL_LIBRARIES}/libvorbis.a")
-set(OGG_LIBRARIES "${GLOBAL_LIBRARIES}/libogg.a")
-
 #[[
 set(BUILD_CXXLIBS OFF CACHE BOOL "Flac options")
 set(BUILD_DOCS OFF CACHE BOOL "Flac options")
@@ -55,6 +48,7 @@ set_target_properties(swell PROPERTIES PREFIX "")
 target_compile_definitions(swell
     PRIVATE
         CAPTAL_FOUNDATION_SHARED_BUILD
+        OV_EXCLUDE_STATIC_CALLBACKS
     PUBLIC
         SWELL_MAJOR_VERSION=${PROJECT_VERSION_MAJOR}
         SWELL_MINOR_VERSION=${PROJECT_VERSION_MINOR}
@@ -71,7 +65,11 @@ target_include_directories(swell
 
 target_link_libraries(swell
     PRIVATE
-        ${PORTAUDIO_LIBRARIES} ${VORBISENC_LIBRARIES} ${VORBISFILE_LIBRARIES} ${VORBIS_LIBRARIES} ${OGG_LIBRARIES}
+        portaudio_static
+        vorbisenc
+        vorbisfile
+        vorbis
+        ogg
     PUBLIC
         captal_foundation
 )

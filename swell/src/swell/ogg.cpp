@@ -2,7 +2,6 @@
 
 #include <cassert>
 
-#define OV_EXCLUDE_STATIC_CALLBACKS
 #include <vorbis/vorbisfile.h>
 
 namespace swl

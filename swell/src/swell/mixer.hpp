@@ -12,7 +12,7 @@
 #include <future>
 #include <chrono>
 
-#include <glm/vec3.hpp>
+#include <captal_foundation/math.hpp>
 
 #include "sound_reader.hpp"
 
@@ -43,7 +43,7 @@ struct sound_spatialization
     bool relative{};
     float minimum_distance{1.0f};
     float attenuation{1.0f};
-    glm::vec3 position{};
+    cpt::vec3f position{};
 };
 
 struct sound_state
@@ -169,8 +169,8 @@ public:
     void absolute_spatialization();
     void set_minimum_distance(float distance);
     void set_attenuation(float attenuation);
-    void move(const glm::vec3& relative);
-    void move_to(const glm::vec3& position);
+    void move(const cpt::vec3f& relative);
+    void move_to(const cpt::vec3f& position);
     void seek(std::uint64_t frame);
 
     template<typename Rep1, typename Period1, typename Rep2, typename Period2>
@@ -194,7 +194,7 @@ public:
     bool is_spatialization_relative() const;
     float minimum_distance() const;
     float attenuation() const;
-    glm::vec3 position() const;
+    cpt::vec3f position() const;
     std::uint64_t tell() const;
     sound_reader& reader() const;
 
@@ -240,16 +240,16 @@ public:
 
     void start();
     void stop();
-    void move_listener(const glm::vec3& relative);
-    void move_listener_to(const glm::vec3& position);
-    void set_listener_direction(const glm::vec3& direction);
-    void set_up(const glm::vec3& direction);
+    void move_listener(const cpt::vec3f& relative);
+    void move_listener_to(const cpt::vec3f& position);
+    void set_listener_direction(const cpt::vec3f& direction);
+    void set_up(const cpt::vec3f& direction);
     void set_volume(float volume);
     impl::sound_data* make_sound();
 
-    glm::vec3 listener_position() const;
-    glm::vec3 listener_direction() const;
-    glm::vec3 up() const;
+    cpt::vec3f listener_position() const;
+    cpt::vec3f listener_direction() const;
+    cpt::vec3f up() const;
     float volume() const;
 
     std::uint32_t sample_rate() const noexcept
@@ -283,9 +283,9 @@ private:
     std::uint32_t m_channel_count{};
     seconds m_minimum_latency{};
 
-    glm::vec3 m_position{0.0f, 0.0f, 0.0f};
-    glm::vec3 m_up{0.0f, 1.0f, 0.0f};
-    glm::vec3 m_direction{0.0f, 0.0f, 1.0f};
+    cpt::vec3f m_position{0.0f, 0.0f, 0.0f};
+    cpt::vec3f m_up{0.0f, 1.0f, 0.0f};
+    cpt::vec3f m_direction{0.0f, 0.0f, 1.0f};
     float m_volume{1.0f};
 
     std::vector<std::unique_ptr<impl::sound_data>> m_sounds{};
