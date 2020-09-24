@@ -39,7 +39,7 @@ TEST_CASE("Version check", "[version]")
         REQUIRE(cpt::foundation::unpack_version(cpt::foundation::pack_version(highest)) == highest);
     }
 }
-
+*/
 enum class test_enum : std::uint32_t
 {
     none   = 0x00,
@@ -80,7 +80,7 @@ TEST_CASE("Enum operations test", "[enums_ops]")
         value &= ~test_enum::second;
         REQUIRE(value == test_enum::first);
     }
-}
+}/*
 
 TEST_CASE("Stack allocator test", "[stack_alloc]")
 {
@@ -239,7 +239,7 @@ TEST_CASE("maths test", "[math_test]")
         REQUIRE(cpt::determinant(matrix4) == Approx(0.0f).margin(0.01));
     }
 
-    SECTION("Matrix tranforms")
+    SECTION("Matrix transforms")
     {
         const cpt::vec4f vector{2.0f, 2.0f, 2.0f, 1.0f};
 

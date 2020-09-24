@@ -1,15 +1,15 @@
-#ifndef CAPTAL_FOUNDATION_SIGNAL_HPP_INCLUDED
-#define CAPTAL_FOUNDATION_SIGNAL_HPP_INCLUDED
+#ifndef CAPTAL_SIGNAL_HPP_INCLUDED
+#define CAPTAL_SIGNAL_HPP_INCLUDED
 
 #include <sigslots/signal.hpp>
 
 namespace cpt
 {
 
-inline namespace foundation
+inline namespace sigslot
 {
 
-using namespace sigslot;
+using namespace ::sigslot;
 
 }
 

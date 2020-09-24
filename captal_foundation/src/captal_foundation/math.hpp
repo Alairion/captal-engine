@@ -1069,6 +1069,37 @@ mat<T, 4, 4> model(const vec<T, 3>& translation, T angle, const vec<T, 3>& axis,
     return translate(-origin) * rotate(angle, axis) * translate(translation) * scale(factor);
 }
 
+template<typename T>
+constexpr mat<T, 4, 4> orthographic(T left, T right, T bottom, T top, T z_near, T z_far) noexcept
+{
+    mat<T, 4, 4> output{identity};
+
+    output[0][0] = static_cast<T>(2) / (right - left);
+    output[1][1] = static_cast<T>(2) / (top - bottom);
+    output[2][2] = static_cast<T>(-1) / (z_far - z_near);
+    output[0][3] = -(right + left) / (right - left);
+    output[1][3] = -(top + bottom) / (top - bottom);
+    output[2][3] = -z_near / (z_far - z_near);
+
+    return output;
+}
+
+template<typename T>
+mat<T, 4, 4> perspective(T fovy, T aspect, T z_near, T z_far) noexcept
+{
+    const T half{std::tan(fovy / static_cast<T>(2))};
+
+    mat<T, 4, 4> output{};
+
+    output[0][0] = static_cast<T>(1) / (aspect * half);
+    output[1][1] = static_cast<T>(1) / half;
+    output[2][2] = z_far / (z_near - z_far);
+    output[2][3] = -(z_far * z_near) / (z_far - z_near);
+    output[3][2] = static_cast<T>(-1);
+
+    return output;
+}
+
 template<arithmetic T>
 using mat2 = mat<T, 2, 2>;
 using mat2f = mat2<float>;
