@@ -1,0 +1,3 @@
+[submodule "apyre/external/sdl"]
+	path = apyre/external/sdl
+	url = https://github.com/spurious/SDL-mirror
