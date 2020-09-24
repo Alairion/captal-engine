@@ -2,8 +2,9 @@ cmake_minimum_required(VERSION 3.14)
 
 project(swell VERSION 0.1.0)
 
-set(GLOBAL_INCLUDES "${PROJECT_SOURCE_DIR}/../libs/include")
-set(GLOBAL_LIBRARIES "${PROJECT_SOURCE_DIR}/../libs/external")
+include(cmake/buildportaudio.cmake)
+include(cmake/buildogg.cmake)
+include(cmake/buildvorbis.cmake)
 
 set(PORTAUDIO_INCLUDES "${GLOBAL_INCLUDES}/portaudio")
 set(PORTAUDIO_LIBRARIES "${GLOBAL_LIBRARIES}/libportaudio_static.a" ole32 uuid setupapi winmm)
@@ -27,10 +28,6 @@ add_subdirectory("${PROJECT_SOURCE_DIR}/dependencies/flac" EXCLUDE_FROM_ALL)
 ]]
 
 option(SWELL_BUILD_EXAMPLE OFF)
-
-set(HEADERS)
-
-set(SOURCES)
 
 add_library(swell SHARED
     #Headers
@@ -102,8 +99,4 @@ install(TARGETS swell
 
 install(DIRECTORY ${PROJECT_SOURCE_DIR}/src/swell
         DESTINATION ${PROJECT_SOURCE_DIR}/include
-        FILES_MATCHING PATTERN *.hpp)
-
-install(DIRECTORY ${PROJECT_SOURCE_DIR}/src/swell
-        DESTINATION ${PROJECT_SOURCE_DIR}/../libs/include
         FILES_MATCHING PATTERN *.hpp)

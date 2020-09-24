@@ -11,13 +11,9 @@ option(TEPHRA_USE_PLATFORM_XLIB "If on, enable the Linux Xlib surface extension"
 option(TEPHRA_USE_PLATFORM_XCB "If on, enable the Linux XCB surface extension" OFF)
 option(TEPHRA_USE_PLATFORM_WAYLAND "If on, enable the Linux Wayland surface extension" OFF)
 
-set(GLOBAL_INCLUDES "${PROJECT_SOURCE_DIR}/../libs/include")
-set(GLOBAL_LIBRARIES "${PROJECT_SOURCE_DIR}/../libs/external")
+include(../cmake/buildnes.cmake)
 
-if(TEPHRA_BUILD_EXAMPLE)
-    set(SDL_INCLUDES "${GLOBAL_INCLUDES}/sdl")
-    set(SDL_LIBRARIES "${GLOBAL_LIBRARIES}/libSDL2main.a" "${GLOBAL_LIBRARIES}/libSDL2.a" "${GLOBAL_LIBRARIES}/libSDL2-static.a")
-endif()
+find_package(Vulkan REQUIRED)
 
 add_library(tephra SHARED
     #Headers:
@@ -77,7 +73,12 @@ target_compile_definitions(tephra
         TEPHRA_PATCH_VERSION=${PROJECT_VERSION_PATCH}
 )
 
-target_link_libraries(tephra PUBLIC captal_foundation)
+target_link_libraries(tephra
+    PUBLIC
+        captal_foundation
+    PRIVATE
+        not_enough_standards
+)
 
 if(TEPHRA_USE_PLATFORM_ANDROID)
     target_compile_definitions(tephra
@@ -143,8 +144,8 @@ if(TEPHRA_USE_PLATFORM_WAYLAND)
 endif()
 
 target_include_directories(tephra
-    SYSTEM PUBLIC
-        ${GLOBAL_INCLUDES}
+    PUBLIC
+        ${Vulkan_INCLUDE_DIRS}
     INTERFACE
         ${PROJECT_SOURCE_DIR}/src
 )
@@ -154,10 +155,8 @@ if(WIN32)
 endif()
 
 if(TEPHRA_BUILD_EXAMPLE)
-    add_executable(tephra_test "main.cpp" "window.hpp" "vertex.hpp")
-    target_compile_definitions(tephra_test PRIVATE SDL_MAIN_HANDLED)
-    target_include_directories(tephra_test PRIVATE ${SDL_INCLUDES} ${GLOBAL_INCLUDES})
-    target_link_libraries(tephra_test tephra PRIVATE ${SDL_LIBRARIES})
+    add_executable(tephra_test "main.cpp")
+    target_link_libraries(tephra_test PRIVATE tephra apyre)
 endif()
 
 install(TARGETS tephra
@@ -174,8 +173,4 @@ install(TARGETS tephra
 
 install(DIRECTORY ${PROJECT_SOURCE_DIR}/src/tephra
         DESTINATION ${PROJECT_SOURCE_DIR}/include
-        FILES_MATCHING PATTERN *.hpp)
-
-install(DIRECTORY ${PROJECT_SOURCE_DIR}/src/tephra
-        DESTINATION ${PROJECT_SOURCE_DIR}/../libs/include
         FILES_MATCHING PATTERN *.hpp)
