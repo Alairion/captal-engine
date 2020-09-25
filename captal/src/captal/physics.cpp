@@ -4,11 +4,6 @@
 
 #include <captal_foundation/stack_allocator.hpp>
 
-#define CP_COLLISION_TYPE_TYPE uint64_t
-#define CP_GROUP_TYPE uint64_t
-#define CP_BITMASK_TYPE uint64_t
-#define CP_TIMESTAMP_TYPE uint64_t
-
 #include <chipmunk/chipmunk.h>
 
 namespace cpt

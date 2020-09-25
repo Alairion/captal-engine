@@ -6,7 +6,7 @@
 #include <cmath>
 #include <numbers>
 
-#include <glm/vec3.hpp>
+#include <captal_foundation/math.hpp>
 
 namespace cpt
 {
@@ -19,7 +19,7 @@ class CAPTAL_API node
 public:
     node() = default;
 
-    explicit node(const glm::vec3& position, const glm::vec3& origin = glm::vec3{0.0f}, const glm::vec3& scale = glm::vec3{1.0f}, float angle = 0.0f)
+    explicit node(const vec3f& position, const vec3f& origin = vec3f{0.0f}, const vec3f& scale = vec3f{1.0f}, float angle = 0.0f)
     :m_position{position}
     ,m_origin{origin}
     ,m_scale{scale}
@@ -34,25 +34,25 @@ public:
     node(node&&) noexcept = default;
     node& operator=(node&&) noexcept = default;
 
-    void move_to(const glm::vec3& position) noexcept
+    void move_to(const vec3f& position) noexcept
     {
         m_position = position;
         m_updated = true;
     }
 
-    void move(const glm::vec3& relative) noexcept
+    void move(const vec3f& relative) noexcept
     {
         m_position += relative;
         m_updated = true;
     }
 
-    void set_origin(const glm::vec3& origin) noexcept
+    void set_origin(const vec3f& origin) noexcept
     {
         m_origin = origin;
         m_updated = true;
     }
 
-    void move_origin(const glm::vec3& relative) noexcept
+    void move_origin(const vec3f& relative) noexcept
     {
         m_origin += relative;
         m_updated = true;
@@ -64,13 +64,13 @@ public:
         m_updated = true;
     }
 
-    void set_scale(const glm::vec3& scale) noexcept
+    void set_scale(const vec3f& scale) noexcept
     {
         m_scale = scale;
         m_updated = true;
     }
 
-    void scale(const glm::vec3& scale) noexcept
+    void scale(const vec3f& scale) noexcept
     {
         m_scale *= scale;
         m_updated = true;
@@ -82,22 +82,22 @@ public:
         m_updated = true;
     }
 
-    const glm::vec3& position() const noexcept
+    const vec3f& position() const noexcept
     {
         return m_position;
     }
 
-    const glm::vec3& origin() const noexcept
+    const vec3f& origin() const noexcept
     {
         return m_origin;
     }
 
-    glm::vec3 real_position() const noexcept
+    vec3f real_position() const noexcept
     {
         return m_position - m_origin;
     }
 
-    const glm::vec3& scale() const noexcept
+    const vec3f& scale() const noexcept
     {
         return m_scale;
     }
@@ -123,9 +123,9 @@ public:
     }
 
 private:
-    glm::vec3 m_position{};
-    glm::vec3 m_origin{};
-    glm::vec3 m_scale{1.0f};
+    vec3f m_position{};
+    vec3f m_origin{};
+    vec3f m_scale{1.0f};
     float m_rotation{};
     bool m_updated{true};
 };

@@ -19,7 +19,7 @@ inline void physics(entt::registry& world)
         {
             const auto position{body->position()};
 
-            node.move_to({position.x, position.y, node.position().z});
+            node.move_to(vec3f{position.x(), position.y(), node.position().z()});
             node.set_rotation(body->rotation());
         }
     });
@@ -33,7 +33,7 @@ inline void physics_floored(entt::registry& world)
         {
             const auto position{body->position()};
 
-            node.move_to({std::floor(position.x), std::floor(position.y), node.position().z});
+            node.move_to(vec3f{std::floor(position.x()), std::floor(position.y()), node.position().z()});
             node.set_rotation(body->rotation());
         }
     });
