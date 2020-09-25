@@ -9,7 +9,7 @@
 #include <iterator>
 #include <concepts>
 
-#include <glm/vec2.hpp>
+#include <captal_foundation/math.hpp>
 
 namespace cpt
 {
@@ -61,15 +61,10 @@ constexpr std::size_t unique_count(InputIt first, InputIt last, Predicate pred)
     return result;
 }
 
-constexpr bool bounding_box_query(const glm::vec2& point, const glm::vec2& box_position, const glm::vec2& box_size) noexcept
+template<arithmetic T>
+constexpr bool bounding_box_query(const vec2<T>& point, const vec2<T>& box_position, const vec2<T>& box_size) noexcept
 {
     return point.x >= box_position.x && point.x < box_position.x + box_size.x && point.y >= box_position.y && point.y < box_position.y + box_size.y;
-}
-
-template<typename T, typename U, typename V, typename W, typename X, typename Y>
-constexpr bool bounding_box_query(T&& point_x, U&& point_y, V&& box_x, W&& box_y, X&& box_width, Y&& box_height) noexcept
-{
-    return bounding_box_query(glm::vec2{point_x, point_y}, glm::vec2{box_x, box_y}, glm::vec2{box_width, box_height});
 }
 
 template<typename CharT, typename Traits>

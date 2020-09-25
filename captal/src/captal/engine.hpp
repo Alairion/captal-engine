@@ -13,10 +13,7 @@
 #include <tephra/commands.hpp>
 #include <tephra/shader.hpp>
 
-#include <entt/entity/registry.hpp>
-
-#include <sigslots/signal.hpp>
-
+#include "signal.hpp"
 #include "application.hpp"
 #include "render_window.hpp"
 #include "texture.hpp"
@@ -39,10 +36,10 @@ struct graphics_parameters
     optional_ref<const tph::physical_device> physical_device{};
 };
 
-using update_signal = sigslot::signal<float>;
-using transfer_ended_signal = sigslot::signal<>;
-using render_ended_signal = sigslot::signal<>;
-using frame_per_second_signal = sigslot::signal<std::uint32_t>;
+using update_signal = cpt::signal<float>;
+using transfer_ended_signal = cpt::signal<>;
+using render_ended_signal = cpt::signal<>;
+using frame_per_second_signal = cpt::signal<std::uint32_t>;
 
 class CAPTAL_API engine
 {

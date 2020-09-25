@@ -7,8 +7,6 @@
 #include <span>
 #include <numbers>
 
-#include <glm/mat4x4.hpp>
-
 #include "asynchronous_resource.hpp"
 #include "uniform_buffer.hpp"
 #include "binding.hpp"
@@ -48,7 +46,7 @@ class CAPTAL_API renderable
 public:
     struct uniform_data
     {
-        glm::mat4 model{};
+        mat4f model{};
     };
 
 public:
@@ -67,25 +65,25 @@ public:
     void set_texture(texture_ptr texture) noexcept;
     void set_view(cpt::view& view);
 
-    void move(const glm::vec3& relative) noexcept
+    void move(const vec3f& relative) noexcept
     {
         m_position += relative;
         update();
     }
 
-    void move_to(const glm::vec3& position) noexcept
+    void move_to(const vec3f& position) noexcept
     {
         m_position = position;
         update();
     }
 
-    void set_origin(const glm::vec3& origin) noexcept
+    void set_origin(const vec3f& origin) noexcept
     {
         m_origin = origin;
         update();
     }
 
-    void move_origin(const glm::vec3& relative) noexcept
+    void move_origin(const vec3f& relative) noexcept
     {
         m_origin += relative;
         update();
@@ -109,7 +107,7 @@ public:
         update();
     }
 
-    void set_scale(const glm::vec3& scale) noexcept
+    void set_scale(const vec3f& scale) noexcept
     {
         m_scale = scale;
         update();
@@ -136,17 +134,17 @@ public:
     cpt::binding& add_binding(std::uint32_t index, cpt::binding binding);
     void set_binding(std::uint32_t index, cpt::binding new_binding);
 
-    const glm::vec3& position() const noexcept
+    const vec3f& position() const noexcept
     {
         return m_position;
     }
 
-    const glm::vec3& origin() const noexcept
+    const vec3f& origin() const noexcept
     {
         return m_origin;
     }
 
-    const glm::vec3& scale() const noexcept
+    const vec3f& scale() const noexcept
     {
         return m_scale;
     }
@@ -228,9 +226,9 @@ private:
     std::uint64_t m_index_offset{};
     std::uint64_t m_vertex_offset{};
 
-    glm::vec3 m_position{};
-    glm::vec3 m_origin{};
-    glm::vec3 m_scale{1.0f};
+    vec3f m_position{};
+    vec3f m_origin{};
+    vec3f m_scale{1.0f};
     float m_rotation{};
 
     bool m_hidden{};
@@ -292,7 +290,7 @@ class CAPTAL_API polygon final : public renderable
 {
 public:
     polygon() = default;
-    polygon(std::vector<glm::vec2> points, const color& color = colors::white);
+    polygon(std::vector<vec2f> points, const color& color = colors::white);
 
     ~polygon() = default;
     polygon(const polygon&) = delete;
@@ -311,16 +309,16 @@ public:
     void set_relative_texture_coords(float x1, float y1, float x2, float y2) noexcept;
     void set_relative_texture_rect(float x, float y, float width, float height) noexcept;
 
-    std::span<const glm::vec2> points() const noexcept
+    std::span<const vec2f> points() const noexcept
     {
         return m_points;
     }
 
 private:
-    void init(std::vector<glm::vec2> points, const color& color);
+    void init(std::vector<vec2f> points, const color& color);
 
 private:
-    std::vector<glm::vec2> m_points{};
+    std::vector<vec2f> m_points{};
 };
 
 class CAPTAL_API tilemap final : public renderable

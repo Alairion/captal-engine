@@ -11,8 +11,6 @@
 #include <tephra/render_target.hpp>
 #include <tephra/commands.hpp>
 
-#include <sigslots/signal.hpp>
-
 #include "render_target.hpp"
 #include "color.hpp"
 
@@ -30,10 +28,10 @@ struct video_mode
     bool clipping{true};
 };
 
-using window_event_signal = sigslot::signal<const apr::window_event&>;
-using mouse_event_signal = sigslot::signal<const apr::mouse_event&>;
-using keyboard_event_signal = sigslot::signal<const apr::keyboard_event&>;
-using text_event_signal = sigslot::signal<const apr::text_event&>;
+using window_event_signal = cpt::signal<const apr::window_event&>;
+using mouse_event_signal = cpt::signal<const apr::mouse_event&>;
+using keyboard_event_signal = cpt::signal<const apr::keyboard_event&>;
+using text_event_signal = cpt::signal<const apr::text_event&>;
 
 class CAPTAL_API render_window : apr::window, tph::surface, public render_target
 {

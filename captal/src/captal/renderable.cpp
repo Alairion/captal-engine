@@ -4,8 +4,6 @@
 
 #include <tephra/commands.hpp>
 
-#include <glm/gtc/matrix_transform.hpp>
-
 #include "engine.hpp"
 
 namespace cpt
@@ -165,13 +163,7 @@ void renderable::upload()
 {
     if(std::exchange(m_need_upload, false))
     {
-        glm::mat4 model{1.0f};
-        model = glm::scale(model, m_scale);
-        model = glm::translate(model, m_position);
-        model = glm::rotate(model, m_rotation, glm::vec3{0.0f, 0.0f, 1.0f});
-        model = glm::translate(model, -m_origin);
-
-        m_impl->buffer.get<uniform_data>(0).model = model;
+        m_impl->buffer.get<uniform_data>(0).model = cpt::model(m_position, m_rotation, vec3f{0.0f, 0.0f, 1.0f}, m_scale, m_origin);
         m_impl->buffer.upload();
     }
 }
@@ -239,10 +231,10 @@ void sprite::set_color(const color& color) noexcept
 {
     const auto vertices{get_vertices()};
 
-    vertices[0].color = static_cast<glm::vec4>(color);
-    vertices[1].color = static_cast<glm::vec4>(color);
-    vertices[2].color = static_cast<glm::vec4>(color);
-    vertices[3].color = static_cast<glm::vec4>(color);
+    vertices[0].color = static_cast<vec4f>(color);
+    vertices[1].color = static_cast<vec4f>(color);
+    vertices[2].color = static_cast<vec4f>(color);
+    vertices[3].color = static_cast<vec4f>(color);
 
     update();
 }
@@ -264,10 +256,10 @@ void sprite::set_relative_texture_coords(float x1, float y1, float x2, float y2)
 {
     const auto vertices{get_vertices()};
 
-    vertices[0].texture_coord = glm::vec2{x1, y1};
-    vertices[1].texture_coord = glm::vec2{x2, y1};
-    vertices[2].texture_coord = glm::vec2{x2, y2};
-    vertices[3].texture_coord = glm::vec2{x1, y2};
+    vertices[0].texture_coord = vec2f{x1, y1};
+    vertices[1].texture_coord = vec2f{x2, y1};
+    vertices[2].texture_coord = vec2f{x2, y2};
+    vertices[3].texture_coord = vec2f{x1, y2};
 
     update();
 }
@@ -289,10 +281,10 @@ void sprite::resize(std::uint32_t width, std::uint32_t height) noexcept
 
     const auto vertices{get_vertices()};
 
-    vertices[0].position = glm::vec3{0.0f, 0.0f, 0.0f};
-    vertices[1].position = glm::vec3{static_cast<float>(m_width), 0.0f, 0.0f};
-    vertices[2].position = glm::vec3{static_cast<float>(m_width), static_cast<float>(m_height), 0.0f};
-    vertices[3].position = glm::vec3{0.0f, static_cast<float>(m_height), 0.0f};
+    vertices[0].position = vec3f{0.0f, 0.0f, 0.0f};
+    vertices[1].position = vec3f{static_cast<float>(m_width), 0.0f, 0.0f};
+    vertices[2].position = vec3f{static_cast<float>(m_width), static_cast<float>(m_height), 0.0f};
+    vertices[3].position = vec3f{0.0f, static_cast<float>(m_height), 0.0f};
 
     update();
 }
@@ -305,7 +297,7 @@ void sprite::init(const color& color)
     set_relative_texture_coords(0.0f, 0.0f, 1.0f, 1.0f);
 }
 
-polygon::polygon(std::vector<glm::vec2> points, const color& color)
+polygon::polygon(std::vector<vec2f> points, const color& color)
 :renderable{static_cast<std::uint32_t>(std::size(points) * 3), static_cast<std::uint32_t>(std::size(points) + 1)}
 {
     assert(std::size(points) > 2 && "cpt::polygon created with less than 3 points.");
@@ -321,7 +313,7 @@ void polygon::set_color(const color& color) noexcept
 
 void polygon::set_center_color(const color& color) noexcept
 {
-    get_vertices()[0].color = static_cast<glm::vec4>(color);
+    get_vertices()[0].color = static_cast<vec4f>(color);
     update();
 }
 
@@ -335,11 +327,11 @@ void polygon::set_outline_color(const color& color) noexcept
 
 void polygon::set_point_color(std::uint32_t point, const color& color) noexcept
 {
-    get_vertices()[point + 1].color = static_cast<glm::vec4>(color);
+    get_vertices()[point + 1].color = static_cast<vec4f>(color);
     update();
 }
 
-void polygon::init(std::vector<glm::vec2> points, const color& color)
+void polygon::init(std::vector<vec2f> points, const color& color)
 {
     m_points = std::move(points);
 
@@ -358,13 +350,13 @@ void polygon::init(std::vector<glm::vec2> points, const color& color)
     last_triangle[1] = 1; //Loop on the first point
     last_triangle[2] = static_cast<std::uint32_t>(std::size(m_points));
 
-    const glm::vec4 native_color{color};
+    const vec4f native_color{color};
     const auto vertices{get_vertices()};
 
     vertices[0].color = native_color;
     for(std::uint32_t i{}; i < std::size(m_points); ++i)
     {
-        vertices[i + 1].position = glm::vec3{m_points[i], 0.0f};
+        vertices[i + 1].position = vec3f{m_points[i], 0.0f};
         vertices[i + 1].color = native_color;
     }
 
@@ -396,10 +388,10 @@ void tilemap::set_color(std::uint32_t row, std::uint32_t col, const color& color
 {
     const auto vertices{get_vertices().subspan((row * m_width + col) * 4, 4)};
 
-    vertices[0].color = static_cast<glm::vec4>(color);
-    vertices[1].color = static_cast<glm::vec4>(color);
-    vertices[2].color = static_cast<glm::vec4>(color);
-    vertices[3].color = static_cast<glm::vec4>(color);
+    vertices[0].color = static_cast<vec4f>(color);
+    vertices[1].color = static_cast<vec4f>(color);
+    vertices[2].color = static_cast<vec4f>(color);
+    vertices[3].color = static_cast<vec4f>(color);
 
     update();
 }
@@ -423,9 +415,9 @@ void tilemap::set_texture_rect(std::uint32_t row, std::uint32_t col, const tiles
     const auto vertices{get_vertices().subspan((row * m_width + col) * 4, 4)};
 
     vertices[0].texture_coord = rect.top_left;
-    vertices[1].texture_coord = glm::vec2{rect.bottom_right.x, rect.top_left.y};
+    vertices[1].texture_coord = vec2f{rect.bottom_right.x, rect.top_left.y};
     vertices[2].texture_coord = rect.bottom_right;
-    vertices[3].texture_coord = glm::vec2{rect.top_left.x, rect.bottom_right.y};
+    vertices[3].texture_coord = vec2f{rect.top_left.x, rect.bottom_right.y};
 
     update();
 }
@@ -434,10 +426,10 @@ void tilemap::set_relative_texture_coords(std::uint32_t row, std::uint32_t col, 
 {
     const auto vertices{get_vertices().subspan((row * m_width + col) * 4, 4)};
 
-    vertices[0].texture_coord = glm::vec2{x1, y1};
-    vertices[1].texture_coord = glm::vec2{x2, y1};
-    vertices[2].texture_coord = glm::vec2{x2, y2};
-    vertices[3].texture_coord = glm::vec2{x1, y2};
+    vertices[0].texture_coord = vec2f{x1, y1};
+    vertices[1].texture_coord = vec2f{x2, y1};
+    vertices[2].texture_coord = vec2f{x2, y2};
+    vertices[3].texture_coord = vec2f{x1, y2};
 
     update();
 }
@@ -457,14 +449,14 @@ void tilemap::init()
         for(std::uint32_t i{}; i < m_width; ++i)
         {
             const auto current_vertices{vertices.subspan((j * m_width + i) * 4, 4)};
-            current_vertices[0].position = glm::vec3{i * m_tile_width, j * m_tile_height, 0.0f};
-            current_vertices[1].position = glm::vec3{(i + 1) * m_tile_width, j * m_tile_height, 0.0f};
-            current_vertices[2].position = glm::vec3{(i + 1) * m_tile_width, (j + 1) * m_tile_height, 0.0f};
-            current_vertices[3].position = glm::vec3{i * m_tile_width, (j + 1) * m_tile_height, 0.0f};
-            current_vertices[0].color = glm::vec4{1.0f, 1.0f, 1.0f, 1.0f};
-            current_vertices[1].color = glm::vec4{1.0f, 1.0f, 1.0f, 1.0f};
-            current_vertices[2].color = glm::vec4{1.0f, 1.0f, 1.0f, 1.0f};
-            current_vertices[3].color = glm::vec4{1.0f, 1.0f, 1.0f, 1.0f};
+            current_vertices[0].position = vec3f{static_cast<float>(i * m_tile_width), static_cast<float>(j * m_tile_height), 0.0f};
+            current_vertices[1].position = vec3f{static_cast<float>((i + 1) * m_tile_width), static_cast<float>(j * m_tile_height), 0.0f};
+            current_vertices[2].position = vec3f{static_cast<float>((i + 1) * m_tile_width), static_cast<float>((j + 1) * m_tile_height), 0.0f};
+            current_vertices[3].position = vec3f{static_cast<float>(i * m_tile_width), static_cast<float>((j + 1) * m_tile_height), 0.0f};
+            current_vertices[0].color = vec4f{1.0f, 1.0f, 1.0f, 1.0f};
+            current_vertices[1].color = vec4f{1.0f, 1.0f, 1.0f, 1.0f};
+            current_vertices[2].color = vec4f{1.0f, 1.0f, 1.0f, 1.0f};
+            current_vertices[3].color = vec4f{1.0f, 1.0f, 1.0f, 1.0f};
 
             const auto shift{(j * m_width + i) * 4};
             const auto current_indices{indices.subspan((j * m_width + i) * 6, 6)};

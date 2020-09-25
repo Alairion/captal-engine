@@ -3,13 +3,13 @@
 
 #include "config.hpp"
 
-#include <glm/vec2.hpp>
-
 #include <memory>
 #include <vector>
 #include <functional>
 #include <variant>
 #include <span>
+
+#include <captal_foundation/math.hpp>
 
 struct cpSpace;
 struct cpBody;
@@ -50,15 +50,15 @@ public:
 
     void set_restitution(float restitution) noexcept;
     void set_friction(float friction) noexcept;
-    void set_surface_velocity(glm::vec2 surface_velocity) noexcept;
+    void set_surface_velocity(vec2f surface_velocity) noexcept;
     void set_user_data(void* user_data) noexcept;
 
     std::pair<physical_shape&, physical_shape&> shapes() const noexcept;
     std::pair<physical_body&, physical_body&> bodies() const noexcept;
-    glm::vec2 normal() const noexcept;
+    vec2f normal() const noexcept;
 
     std::size_t contact_count() const noexcept;
-    std::pair<glm::vec2, glm::vec2> points(std::size_t contact_index) const noexcept;
+    std::pair<vec2f, vec2f> points(std::size_t contact_index) const noexcept;
     float depth(std::size_t contact_index) const noexcept;
 
     bool is_first_contact() const noexcept;
@@ -100,9 +100,9 @@ public:
     struct point_hit
     {
         physical_shape& shape;
-        glm::vec2 position{};
+        vec2f position{};
         float distance{};
-        glm::vec2 gradient{};
+        vec2f gradient{};
     };
 
     struct region_hit
@@ -113,8 +113,8 @@ public:
     struct ray_hit
     {
         physical_shape& shape;
-        glm::vec2 position{};
-        glm::vec2 normal{};
+        vec2f position{};
+        vec2f normal{};
         float distance{};
     };
 
@@ -134,20 +134,20 @@ public:
     void add_collision(collision_type_t first_type, collision_type_t second_type, collision_handler handler);
     void add_wildcard(collision_type_t type, collision_handler handler);
 
-    void point_query(glm::vec2 point, float max_distance, group_t group, collision_id_t id, collision_id_t mask, point_query_callback_type callback);
+    void point_query(vec2f point, float max_distance, group_t group, collision_id_t id, collision_id_t mask, point_query_callback_type callback);
     void region_query(float x, float y, float width, float height, group_t group, collision_id_t id, collision_id_t mask, region_query_callback_type callback);
-    void ray_query(glm::vec2 from, glm::vec2 to, float thickness, group_t group, collision_id_t id, collision_id_t mask, ray_callback_type callback);
+    void ray_query(vec2f from, vec2f to, float thickness, group_t group, collision_id_t id, collision_id_t mask, ray_callback_type callback);
 
-    std::vector<point_hit> point_query(glm::vec2 point, float max_distance, group_t group, collision_id_t id, collision_id_t mask);
+    std::vector<point_hit> point_query(vec2f point, float max_distance, group_t group, collision_id_t id, collision_id_t mask);
     std::vector<region_hit> region_query(float x, float y, float width, float height, group_t group, collision_id_t id, collision_id_t mask);
-    std::vector<ray_hit> ray_query(glm::vec2 from, glm::vec2 to, float thickness, group_t group, collision_id_t id, collision_id_t mask);
+    std::vector<ray_hit> ray_query(vec2f from, vec2f to, float thickness, group_t group, collision_id_t id, collision_id_t mask);
 
-    std::optional<point_hit> point_query_nearest(glm::vec2 point, float max_distance, group_t group, collision_id_t id, collision_id_t mask);
-    std::optional<ray_hit> ray_query_first(glm::vec2 from, glm::vec2 to, float thickness, group_t group, collision_id_t id, collision_id_t mask);
+    std::optional<point_hit> point_query_nearest(vec2f point, float max_distance, group_t group, collision_id_t id, collision_id_t mask);
+    std::optional<ray_hit> ray_query_first(vec2f from, vec2f to, float thickness, group_t group, collision_id_t id, collision_id_t mask);
 
     void update(float time);
 
-    void set_gravity(glm::vec2 gravity) noexcept;
+    void set_gravity(vec2f gravity) noexcept;
     void set_damping(float damping) noexcept;
     void set_idle_threshold(float idle_threshold) noexcept;
     void set_sleep_threshold(float speed_threshold) noexcept;
@@ -166,7 +166,7 @@ public:
         m_max_steps = max_steps;
     }
 
-    glm::vec2 gravity() const noexcept;
+    vec2f gravity() const noexcept;
     float damping() const noexcept;
     float idle_threshold() const noexcept;
     float sleep_threshold() const noexcept;
@@ -207,17 +207,17 @@ private:
 
 struct bounding_box
 {
-    glm::vec2 top_left{};
-    glm::vec2 bottom_right{};
+    vec2f top_left{};
+    vec2f bottom_right{};
 };
 
 class CAPTAL_API physical_shape
 {
 public:
     physical_shape() = default;
-    physical_shape(physical_body& body, float radius, glm::vec2 offset = glm::vec2{});
-    physical_shape(physical_body& body, glm::vec2 first, glm::vec2 second, float thickness = 0.0f);
-    physical_shape(physical_body& body, std::span<const glm::vec2> points, float radius = 0.0f);
+    physical_shape(physical_body& body, float radius, vec2f offset = vec2f{});
+    physical_shape(physical_body& body, vec2f first, vec2f second, float thickness = 0.0f);
+    physical_shape(physical_body& body, std::span<const vec2f> points, float radius = 0.0f);
     physical_shape(physical_body& body, float width, float height, float radius = 0.0f);
 
     ~physical_shape();
@@ -229,7 +229,7 @@ public:
     void set_sensor(bool enable) noexcept;
     void set_elasticity(float elasticity) noexcept;
     void set_friction(float friction) noexcept;
-    void set_surface_velocity(glm::vec2 surface_velocity) noexcept;
+    void set_surface_velocity(vec2f surface_velocity) noexcept;
     void set_collision_type(collision_type_t type) noexcept;
     void set_filter(group_t group, collision_id_t categories, collision_id_t collision_mask) noexcept;
 
@@ -245,7 +245,7 @@ public:
     bool is_sensor() const noexcept;
     float elasticity() const noexcept;
     float friction() const noexcept;
-    glm::vec2 surface_velocity() const noexcept;
+    vec2f surface_velocity() const noexcept;
     collision_type_t collision_type() const noexcept;
     group_t group() const noexcept;
     collision_id_t categories() const noexcept;
@@ -285,9 +285,9 @@ enum class physical_body_type : std::uint32_t
     kinematic = 2
 };
 
-CAPTAL_API float circle_moment(float mass, float radius, glm::vec2 origin = glm::vec2{}, float inner_radius = 0.0f) noexcept;
-CAPTAL_API float segment_moment(float mass, glm::vec2 first, glm::vec2 second, float thickness = 0.0f) noexcept;
-CAPTAL_API float polygon_moment(float mass, std::span<const glm::vec2> points, glm::vec2 offset = glm::vec2{}, float radius = 0.0f) noexcept;
+CAPTAL_API float circle_moment(float mass, float radius, vec2f origin = vec2f{}, float inner_radius = 0.0f) noexcept;
+CAPTAL_API float segment_moment(float mass, vec2f first, vec2f second, float thickness = 0.0f) noexcept;
+CAPTAL_API float polygon_moment(float mass, std::span<const vec2f> points, vec2f offset = vec2f{}, float radius = 0.0f) noexcept;
 CAPTAL_API float square_moment(float mass, float width, float height) noexcept;
 
 inline constexpr float no_rotation{std::numeric_limits<float>::infinity()};
@@ -306,25 +306,25 @@ public:
     physical_body(physical_body&&) noexcept;
     physical_body& operator=(physical_body&&) noexcept;
 
-    void apply_force(glm::vec2 force, glm::vec2 point) noexcept;
-    void apply_local_force(glm::vec2 force, glm::vec2 point) noexcept;
-    void apply_impulse(glm::vec2 impulse, glm::vec2 point) noexcept;
-    void apply_local_impulse(glm::vec2 impulse, glm::vec2 point) noexcept;
+    void apply_force(vec2f force, vec2f point) noexcept;
+    void apply_local_force(vec2f force, vec2f point) noexcept;
+    void apply_impulse(vec2f impulse, vec2f point) noexcept;
+    void apply_local_impulse(vec2f impulse, vec2f point) noexcept;
     void add_torque(float torque) noexcept;
 
     void set_angular_velocity(float velocity) noexcept;
     void set_mass(float mass) noexcept;
-    void set_mass_center(glm::vec2 center) noexcept;
+    void set_mass_center(vec2f center) noexcept;
     void set_moment_of_inertia(float moment) noexcept;
-    void set_position(glm::vec2 position) noexcept;
+    void set_position(vec2f position) noexcept;
     void set_rotation(float rotation) noexcept;
-    void set_velocity(glm::vec2 velocity) noexcept;
+    void set_velocity(vec2f velocity) noexcept;
 
     void sleep() noexcept;
     void wake_up() noexcept;
 
-    glm::vec2 world_to_local(glm::vec2 vec) noexcept;
-    glm::vec2 local_to_world(glm::vec2 vec) noexcept;
+    vec2f world_to_local(vec2f vec) noexcept;
+    vec2f local_to_world(vec2f vec) noexcept;
 
     void set_user_data(void* userdata) noexcept
     {
@@ -335,11 +335,11 @@ public:
     float angular_damping() const noexcept;
     float angular_velocity() const noexcept;
     float mass() const noexcept;
-    glm::vec2 mass_center() const noexcept;
+    vec2f mass_center() const noexcept;
     float moment_of_inertia() const noexcept;
-    glm::vec2 position() const noexcept;
+    vec2f position() const noexcept;
     float rotation() const noexcept;
-    glm::vec2 velocity() const noexcept;
+    vec2f velocity() const noexcept;
     bool sleeping() const noexcept;
     physical_body_type type() const noexcept;
 
@@ -405,12 +405,12 @@ class CAPTAL_API physical_constraint
 {
 public:
     physical_constraint() = default;
-    physical_constraint(pin_joint_t, physical_body& first, physical_body& second, glm::vec2 first_anchor, glm::vec2 second_anchor);
-    physical_constraint(slide_joint_t, physical_body& first, physical_body& second, glm::vec2 first_anchor, glm::vec2 second_anchor, float min, float max);
-    physical_constraint(pivot_joint_t, physical_body& first, physical_body& second, glm::vec2 pivot);
-    physical_constraint(pivot_joint_t, physical_body& first, physical_body& second, glm::vec2 first_anchor, glm::vec2 second_anchor);
-    physical_constraint(groove_joint_t, physical_body& first, physical_body& second, glm::vec2 first_groove, glm::vec2 second_groove, glm::vec2 anchor);
-    physical_constraint(damped_spring_t, physical_body& first, physical_body& second, glm::vec2 first_anchor, glm::vec2 second_anchor, float rest_length, float stiffness, float damping);
+    physical_constraint(pin_joint_t, physical_body& first, physical_body& second, vec2f first_anchor, vec2f second_anchor);
+    physical_constraint(slide_joint_t, physical_body& first, physical_body& second, vec2f first_anchor, vec2f second_anchor, float min, float max);
+    physical_constraint(pivot_joint_t, physical_body& first, physical_body& second, vec2f pivot);
+    physical_constraint(pivot_joint_t, physical_body& first, physical_body& second, vec2f first_anchor, vec2f second_anchor);
+    physical_constraint(groove_joint_t, physical_body& first, physical_body& second, vec2f first_groove, vec2f second_groove, vec2f anchor);
+    physical_constraint(damped_spring_t, physical_body& first, physical_body& second, vec2f first_anchor, vec2f second_anchor, float rest_length, float stiffness, float damping);
     physical_constraint(damped_rotary_spring_t, physical_body& first, physical_body& second, float rest_angle, float stiffness, float damping);
     physical_constraint(rotary_limit_joint_t, physical_body& first, physical_body& second, float min, float max);
     physical_constraint(ratchet_joint_t, physical_body& first, physical_body& second, float phase, float ratchet);
@@ -470,45 +470,45 @@ public:
     }
 
 public:
-    void set_pin_joint_first_anchor(glm::vec2 anchor) noexcept;
-    void set_pin_joint_second_anchor(glm::vec2 anchor) noexcept;
+    void set_pin_joint_first_anchor(vec2f anchor) noexcept;
+    void set_pin_joint_second_anchor(vec2f anchor) noexcept;
     void set_pin_joint_distance(float distance) noexcept;
-    glm::vec2 pin_joint_first_anchor() const noexcept;
-    glm::vec2 pin_joint_second_anchor() const noexcept;
+    vec2f pin_joint_first_anchor() const noexcept;
+    vec2f pin_joint_second_anchor() const noexcept;
     float pin_joint_distance() const noexcept;
 
 public:
-    void set_slide_joint_first_anchor(glm::vec2 anchor) noexcept;
-    void set_slide_joint_second_anchor(glm::vec2 anchor) noexcept;
+    void set_slide_joint_first_anchor(vec2f anchor) noexcept;
+    void set_slide_joint_second_anchor(vec2f anchor) noexcept;
     void set_slide_joint_min(float min) noexcept;
     void set_slide_joint_max(float max) noexcept;
-    glm::vec2 slide_joint_first_anchor() const noexcept;
-    glm::vec2 slide_joint_second_anchor() const noexcept;
+    vec2f slide_joint_first_anchor() const noexcept;
+    vec2f slide_joint_second_anchor() const noexcept;
     float slide_joint_min() const noexcept;
     float slide_joint_max() const noexcept;
 
 public:
-    void set_pivot_joint_first_anchor(glm::vec2 anchor) noexcept;
-    void set_pivot_joint_second_anchor(glm::vec2 anchor) noexcept;
-    glm::vec2 pivot_joint_first_anchor() const noexcept;
-    glm::vec2 pivot_joint_second_anchor() const noexcept;
+    void set_pivot_joint_first_anchor(vec2f anchor) noexcept;
+    void set_pivot_joint_second_anchor(vec2f anchor) noexcept;
+    vec2f pivot_joint_first_anchor() const noexcept;
+    vec2f pivot_joint_second_anchor() const noexcept;
 
 public:
-    void set_groove_joint_first_groove(glm::vec2 groove) noexcept;
-    void set_groove_joint_second_groove(glm::vec2 groove) noexcept;
-    void set_groove_joint_anchor(glm::vec2 anchor) noexcept;
-    glm::vec2 groove_joint_first_groove() const noexcept;
-    glm::vec2 groove_joint_second_groove() const noexcept;
-    glm::vec2 groove_joint_anchor() const noexcept;
+    void set_groove_joint_first_groove(vec2f groove) noexcept;
+    void set_groove_joint_second_groove(vec2f groove) noexcept;
+    void set_groove_joint_anchor(vec2f anchor) noexcept;
+    vec2f groove_joint_first_groove() const noexcept;
+    vec2f groove_joint_second_groove() const noexcept;
+    vec2f groove_joint_anchor() const noexcept;
 
 public:
-    void set_damped_spring_first_anchor(glm::vec2 anchor) noexcept;
-    void set_damped_spring_second_anchor(glm::vec2 anchor) noexcept;
+    void set_damped_spring_first_anchor(vec2f anchor) noexcept;
+    void set_damped_spring_second_anchor(vec2f anchor) noexcept;
     void set_damped_spring_rest_length(float rest_length) noexcept;
     void set_damped_spring_stiffness(float stiffness) noexcept;
     void set_damped_spring_damping(float damping) noexcept;
-    glm::vec2 damped_spring_first_anchor() const noexcept;
-    glm::vec2 damped_spring_second_anchor() const noexcept;
+    vec2f damped_spring_first_anchor() const noexcept;
+    vec2f damped_spring_second_anchor() const noexcept;
     float damped_spring_rest_length() const noexcept;
     float damped_spring_stiffness() const noexcept;
     float damped_spring_damping() const noexcept;

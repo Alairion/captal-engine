@@ -5,14 +5,13 @@
 
 #include <tephra/render_target.hpp>
 
-#include <sigslots/signal.hpp>
-
+#include "signal.hpp"
 #include "texture.hpp"
 
 namespace cpt
 {
 
-using frame_presented_signal = sigslot::signal<>;
+using frame_presented_signal = cpt::signal<>;
 
 class CAPTAL_API render_target
 {

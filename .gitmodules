@@ -25,3 +25,6 @@
 [submodule "captal/external/entt"]
 	path = captal/external/entt
 	url = https://github.com/skypjack/entt.git
+[submodule "captal/external/sigslots"]
+	path = captal/external/sigslots
+	url = https://github.com/palacaze/sigslot.git

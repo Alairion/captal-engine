@@ -3,13 +3,13 @@
 
 #include "config.hpp"
 
+#include <cassert>
 #include <cmath>
 #include <concepts>
 
-#include <tephra/image.hpp>
+#include <captal_foundation/math.hpp>
 
-#include <glm/vec3.hpp>
-#include <glm/vec4.hpp>
+#include <tephra/image.hpp>
 
 namespace cpt
 {
@@ -19,7 +19,7 @@ struct color
     constexpr color() noexcept = default;
 
     template<std::floating_point T>
-    constexpr color(T r, T g, T b, T a = static_cast<T>(1)) noexcept
+    constexpr explicit color(T r, T g, T b, T a = static_cast<T>(1)) noexcept
     :red{static_cast<float>(r)}
     ,green{static_cast<float>(g)}
     ,blue{static_cast<float>(b)}
@@ -29,7 +29,7 @@ struct color
     }
 
     template<std::unsigned_integral T>
-    constexpr color(T r, T g, T b, T a = std::numeric_limits<T>::max()) noexcept
+    constexpr explicit color(T r, T g, T b, T a = std::numeric_limits<T>::max()) noexcept
     :red{static_cast<float>(r) / std::numeric_limits<T>::max()}
     ,green{static_cast<float>(g) / std::numeric_limits<T>::max()}
     ,blue{static_cast<float>(b) / std::numeric_limits<T>::max()}
@@ -38,27 +38,27 @@ struct color
 
     }
 
-    constexpr color(const glm::vec4& value) noexcept
-    :color{value.r, value.g, value.b, value.a}
+    constexpr explicit color(const vec4f& value) noexcept
+    :color{value.x(), value.y(), value.z(), value.w()}
     {
 
     }
 
-    constexpr color(const tph::pixel& pixel) noexcept
+    constexpr explicit color(const tph::pixel& pixel) noexcept
     :color{pixel.red, pixel.blue, pixel.green, pixel.alpha}
     {
 
     }
 
-    constexpr color(std::uint32_t rgba_value) noexcept
+    constexpr explicit color(std::uint32_t rgba_value) noexcept
     :color{static_cast<std::uint8_t>(rgba_value >> 16), static_cast<std::uint8_t>(rgba_value >> 8), static_cast<std::uint8_t>(rgba_value), static_cast<std::uint8_t>(rgba_value >> 24)}
     {
 
     }
 
-    constexpr explicit operator glm::vec4() const noexcept
+    constexpr explicit operator vec4f() const noexcept
     {
-        return glm::vec4{glm::vec3{red, green, blue}, alpha};
+        return vec4f{red, green, blue, alpha};
     }
 
     constexpr explicit operator tph::pixel() const noexcept

@@ -3,18 +3,16 @@
 
 #include "config.hpp"
 
-#include <glm/vec2.hpp>
-#include <glm/vec3.hpp>
-#include <glm/vec4.hpp>
+#include <captal_foundation/math.hpp>
 
 namespace cpt
 {
 
 struct vertex
 {
-    glm::vec3 position{};
-    glm::vec4 color{};
-    glm::vec2 texture_coord{};
+    vec3f position{};
+    vec4f color{};
+    vec2f texture_coord{};
 };
 
 }
