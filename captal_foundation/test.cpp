@@ -39,7 +39,7 @@ TEST_CASE("Version check", "[version]")
         REQUIRE(cpt::foundation::unpack_version(cpt::foundation::pack_version(highest)) == highest);
     }
 }
-*/
+*//*
 enum class test_enum : std::uint32_t
 {
     none   = 0x00,
@@ -80,7 +80,7 @@ TEST_CASE("Enum operations test", "[enums_ops]")
         value &= ~test_enum::second;
         REQUIRE(value == test_enum::first);
     }
-}/*
+}*//*
 
 TEST_CASE("Stack allocator test", "[stack_alloc]")
 {

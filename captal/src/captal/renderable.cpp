@@ -163,7 +163,7 @@ void renderable::upload()
 {
     if(std::exchange(m_need_upload, false))
     {
-        m_impl->buffer.get<uniform_data>(0).model = cpt::model(m_position, m_rotation, vec3f{0.0f, 0.0f, 1.0f}, m_scale, m_origin);
+        m_impl->buffer.get<uniform_data>(0).model = transpose(cpt::model(m_position, m_rotation, vec3f{0.0f, 0.0f, 1.0f}, m_scale, m_origin));
         m_impl->buffer.upload();
     }
 }

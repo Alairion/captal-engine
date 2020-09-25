@@ -75,8 +75,8 @@ void view::upload()
         if(m_type == view_type::orthographic)
         {
             m_impl->buffer.get<uniform_data>(0).position = vec4f{m_position, 0.0f};
-            m_impl->buffer.get<uniform_data>(0).view = look_at(m_position - (m_origin * m_scale), m_position - (m_origin * m_scale) - vec3f{0.0f, 0.0f, 1.0f}, vec3f{0.0f, 1.0f, 0.0f});
-            m_impl->buffer.get<uniform_data>(0).projection = orthographic(0.0f, m_size.x() * m_scale.x(), 0.0f, m_size.y() * m_scale.y(), m_z_near * m_scale.z(), m_z_far * m_scale.z());
+            m_impl->buffer.get<uniform_data>(0).view = transpose(look_at(m_position - (m_origin * m_scale), m_position - (m_origin * m_scale) - vec3f{0.0f, 0.0f, 1.0f}, vec3f{0.0f, 1.0f, 0.0f}));
+            m_impl->buffer.get<uniform_data>(0).projection = transpose(orthographic(0.0f, m_size.x() * m_scale.x(), 0.0f, m_size.y() * m_scale.y(), m_z_near * m_scale.z(), m_z_far * m_scale.z()));
         }
 
         m_impl->buffer.upload();

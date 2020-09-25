@@ -1,12 +1,12 @@
 [submodule "apyre/external/sdl"]
 	path = apyre/external/sdl
-	url = https://github.com/spurious/SDL-mirror
+	url = https://github.com/spurious/SDL-mirror.git
 [submodule "external/nes"]
 	path = external/nes
 	url = https://github.com/Alairion/not-enough-standards.git
 [submodule "swell/external/portaudio"]
 	path = swell/external/portaudio
-	url = https://github.com/PortAudio/portaudio
+	url = https://github.com/PortAudio/portaudio.git
 [submodule "swell/external/vorbis"]
 	path = swell/external/vorbis
 	url = https://github.com/xiph/vorbis.git

@@ -1066,20 +1066,20 @@ mat<T, 4, 4> model(const vec<T, 3>& translation, T angle, const vec<T, 3>& axis,
 template<arithmetic T>
 mat<T, 4, 4> model(const vec<T, 3>& translation, T angle, const vec<T, 3>& axis, const vec<T, 3>& factor, const vec<T, 3>& origin)
 {
-    return translate(-origin) * rotate(angle, axis) * translate(translation) * scale(factor);
+    return translate(translation) * rotate(angle, axis) * translate(origin) * scale(factor);
 }
 
 template<arithmetic T>
-constexpr mat<T, 4, 4> orthographic(T left, T right, T bottom, T top, T z_near, T z_far) noexcept
+constexpr mat<T, 4, 4> orthographic(T left, T right, T bottom, T top, T near, T far) noexcept
 {
     mat<T, 4, 4> output{identity};
 
     output[0][0] = static_cast<T>(2) / (right - left);
     output[1][1] = static_cast<T>(2) / (top - bottom);
-    output[2][2] = static_cast<T>(-1) / (z_far - z_near);
+    output[2][2] = -static_cast<T>(1) / (far - near);
     output[0][3] = -(right + left) / (right - left);
     output[1][3] = -(top + bottom) / (top - bottom);
-    output[2][3] = -z_near / (z_far - z_near);
+    output[2][3] = -near / (far - near);
 
     return output;
 }
@@ -1103,16 +1103,16 @@ mat<T, 4, 4> perspective(T fovy, T aspect, T z_near, T z_far) noexcept
 template<arithmetic T>
 mat<T, 4, 4> look_at(const vec<T, 3>& eye, const vec<T, 3>& center, const vec<T, 3>& up) noexcept
 {
-    const auto zaxis{-normalize(center - eye)};
+    const auto zaxis{normalize(center - eye)};
     const auto xaxis{normalize(cross(zaxis, up))};
     const auto yaxis{cross(xaxis, zaxis)};
 
     const mat<T, 4, 4> output
     {
-        vec<T, 4>{xaxis[0], xaxis[1], xaxis[2], static_cast<T>(0)},
-        vec<T, 4>{yaxis[0], yaxis[1], yaxis[2], static_cast<T>(0)},
-        vec<T, 4>{zaxis[0], zaxis[1], zaxis[2], static_cast<T>(0)},
-        vec<T, 4>{-dot(xaxis, eye), -dot(yaxis, eye), dot(zaxis, eye), static_cast<T>(1)}
+        vec<T, 4>{xaxis[0], yaxis[0], -zaxis[0], -dot(xaxis, eye)},
+        vec<T, 4>{xaxis[1], yaxis[1], -zaxis[1], -dot(yaxis, eye)},
+        vec<T, 4>{xaxis[2], yaxis[2], -zaxis[2], dot(zaxis, eye)},
+        vec<T, 4>{static_cast<T>(0), static_cast<T>(0), static_cast<T>(0), static_cast<T>(1)}
     };
 
     return output;
