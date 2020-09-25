@@ -117,6 +117,7 @@ target_link_libraries(captal
         freetype
         chipmunk_static
         zlib_static
+        not_enough_standards
 )
 
 install(TARGETS captal
@@ -133,10 +134,6 @@ install(TARGETS captal
 
 install(DIRECTORY ${PROJECT_SOURCE_DIR}/src/captal
         DESTINATION ${PROJECT_SOURCE_DIR}/include
-        FILES_MATCHING PATTERN *.hpp)
-
-install(DIRECTORY ${PROJECT_SOURCE_DIR}/src/captal
-        DESTINATION ${PROJECT_SOURCE_DIR}/../libs/include
         FILES_MATCHING PATTERN *.hpp)
 
 if(CAPTAL_BUILD_EXAMPLE)

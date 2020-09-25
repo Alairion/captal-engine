@@ -1,7 +1,7 @@
 
 #Ogg is built in this project
-set(OGG_LIBRARY ogg CACHE INTERNAL "")
-set(OGG_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/external/ogg/include CACHE INTERNAL "")
+set(OGG_LIBRARY "ogg" CACHE INTERNAL "")
+set(OGG_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/external/ogg/include" CACHE INTERNAL "")
 
 set(BUILD_SHARED_LIBS            OFF CACHE INTERNAL "")
 set(BUILD_FRAMEWORK              OFF CACHE INTERNAL "")

@@ -13,7 +13,7 @@ add_compile_definitions(CP_COLLISION_TYPE_TYPE=uint64_t
                         CP_BITMASK_TYPE=uint64_t
                         CP_TIMESTAMP_TYPE=uint64_t)
 
-add_subdirectory(external/chipmunk)
+add_subdirectory(external/chipmunk EXCLUDE_FROM_ALL)
 
 unset(LIB_INSTALL_DIR    CACHE)
 unset(BIN_INSTALL_DIR    CACHE)

@@ -9,8 +9,7 @@
 #include <istream>
 #include <unordered_map>
 
-#include <glm/vec2.hpp>
-
+#include <captal_foundation/math.hpp>
 #include <captal_foundation/encoding.hpp>
 
 #include <tephra/texture.hpp>
@@ -24,7 +23,7 @@ namespace cpt
 
 struct glyph
 {
-    glm::vec2 origin{};
+    vec2f origin{};
     float advance{};
     float ascent{};
     float descent{};
@@ -195,10 +194,10 @@ private:
         float texture_height{};
     };
 
-    void draw_line(std::string_view line, std::uint32_t line_width, text_align align, draw_line_state& state, std::vector<vertex>& vertices, const std::unordered_map<codepoint_t, std::pair<std::shared_ptr<glyph>, glm::vec2>>& cache, const color& color);
+    void draw_line(std::string_view line, std::uint32_t line_width, text_align align, draw_line_state& state, std::vector<vertex>& vertices, const std::unordered_map<codepoint_t, std::pair<std::shared_ptr<glyph>, vec2f>>& cache, const color& color);
 
 private:
-    texture_ptr make_texture(std::string_view string, std::unordered_map<codepoint_t, std::pair<std::shared_ptr<glyph>, glm::vec2>>& cache, tph::command_buffer& command_buffer);
+    texture_ptr make_texture(std::string_view string, std::unordered_map<codepoint_t, std::pair<std::shared_ptr<glyph>, vec2f>>& cache, tph::command_buffer& command_buffer);
     const std::shared_ptr<glyph>& load_glyph(codepoint_t codepoint);
 
 private:

@@ -3,11 +3,10 @@ cmake_minimum_required(VERSION 3.13)
 project(captal_engine VERSION 0.0.1
                       DESCRIPTION "Captal Game Engine")
 
-set(GLOBAL_INCLUDES "${PROJECT_SOURCE_DIR}/../libs/include")
-set(GLOBAL_LIBRARIES "${PROJECT_SOURCE_DIR}/../libs/external")
-
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+include(cmake/buildnes.cmake)
 
 add_subdirectory(captal_foundation)
 add_subdirectory(tephra)

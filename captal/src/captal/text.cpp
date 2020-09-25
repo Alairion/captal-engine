@@ -10,8 +10,6 @@
 #include FT_OUTLINE_H
 #include FT_BITMAP_H
 
-#include <glm/vec2.hpp>
-
 #include <captal_foundation/utility.hpp>
 
 #include "engine.hpp"
@@ -109,7 +107,7 @@ std::optional<glyph> font::load(codepoint_t codepoint)
     }
 
     glyph output{};
-    output.origin = glm::vec2{m_loader->face->glyph->metrics.horiBearingX / 64.0f, -m_loader->face->glyph->metrics.horiBearingY / 64.0f};
+    output.origin = vec2f{m_loader->face->glyph->metrics.horiBearingX / 64.0f, -m_loader->face->glyph->metrics.horiBearingY / 64.0f};
     output.advance = m_loader->face->glyph->metrics.horiAdvance / 64.0f;
     output.ascent = m_loader->face->glyph->metrics.horiBearingY / 64.0f;
     output.descent = (m_loader->face->glyph->metrics.height / 64.0f) - (m_loader->face->glyph->metrics.horiBearingY / 64.0f);
@@ -214,7 +212,7 @@ text::text(std::span<const std::uint32_t> indices, std::span<const vertex> verti
 
 void text::set_color(const color& color)
 {
-    const glm::vec4 native_color{static_cast<glm::vec4>(color)};
+    const vec4f native_color{static_cast<vec4f>(color)};
     for(auto& vertex : get_vertices())
     {
         vertex.color = native_color;
@@ -226,7 +224,7 @@ void text::set_color(const color& color)
 void text::set_color(std::uint32_t character_index, const color& color)
 {
     const auto current{get_vertices().subspan(character_index * 4, 4)};
-    const glm::vec4 native_color{static_cast<glm::vec4>(color)};
+    const vec4f native_color{static_cast<vec4f>(color)};
 
     current[0].color = native_color;
     current[1].color = native_color;
@@ -239,7 +237,7 @@ void text::set_color(std::uint32_t character_index, const color& color)
 void text::set_color(std::uint32_t first, std::uint32_t count, const color& color)
 {
     const auto vertices{get_vertices().subspan(first * 4)};
-    const glm::vec4 native_color{static_cast<glm::vec4>(color)};
+    const vec4f native_color{static_cast<vec4f>(color)};
 
     for(std::uint32_t i{}; i < count; ++i)
     {
@@ -305,8 +303,8 @@ text_bounds text_drawer::bounds(std::string_view string)
         if(width > 0 && height > 0)
         {
             const float kerning{last != 0 && static_cast<bool>(m_options & text_drawer_options::kerning) ? m_font.kerning(last, codepoint) : 0.0f};
-            const float x{current_x + glyph.origin.x + kerning};
-            const float y{current_y + glyph.origin.y};
+            const float x{current_x + glyph.origin.x() + kerning};
+            const float y{current_y + glyph.origin.y()};
 
             lowest_x = std::min(lowest_x, x);
             lowest_y = std::min(lowest_y, y);
@@ -325,7 +323,7 @@ text text_drawer::draw(std::string_view string, const color& color)
 {
     auto&& [command_buffer, signal] = cpt::engine::instance().begin_transfer();
 
-    std::unordered_map<codepoint_t, std::pair<std::shared_ptr<glyph>, glm::vec2>> cache{};
+    std::unordered_map<codepoint_t, std::pair<std::shared_ptr<glyph>, vec2f>> cache{};
     texture_ptr texture{make_texture(string, cache, command_buffer)};
 
     const float texture_width{static_cast<float>(texture->width())};
@@ -361,7 +359,7 @@ text text_drawer::draw(std::string_view string, const color& color)
             auto& slot{cache.at(codepoint)};
 
             const glyph& glyph{*slot.first};
-            const glm::vec2& texture_pos{slot.second};
+            const vec2f& texture_pos{slot.second};
 
             const float width {static_cast<float>(glyph.image.width())};
             const float height{static_cast<float>(glyph.image.height())};
@@ -369,13 +367,13 @@ text text_drawer::draw(std::string_view string, const color& color)
             if(width > 0 && height > 0)
             {
                 const float kerning{last != 0 && static_cast<bool>(m_options & text_drawer_options::kerning) ? m_font.kerning(last, codepoint) : 0.0f};
-                const float x{current_x + glyph.origin.x + kerning};
-                const float y{current_y + glyph.origin.y};
+                const float x{current_x + glyph.origin.x() + kerning};
+                const float y{current_y + glyph.origin.y()};
 
-                vertices.emplace_back(vertex{{x, y, 0.0f}, static_cast<glm::vec4>(color), {(texture_pos.x) / texture_width, (texture_pos.y) / texture_height}});
-                vertices.emplace_back(vertex{{x + width, y, 0.0f}, static_cast<glm::vec4>(color), {(texture_pos.x + width) / texture_width, (texture_pos.y) / texture_height}});
-                vertices.emplace_back(vertex{{x + width, y + height, 0.0f}, static_cast<glm::vec4>(color), {(texture_pos.x + width) / texture_width, (texture_pos.y + height) / texture_height}});
-                vertices.emplace_back(vertex{{x, y + height, 0.0f}, static_cast<glm::vec4>(color), {(texture_pos.x) / texture_width, (texture_pos.y + height) / texture_height}});
+                vertices.emplace_back(vertex{vec3f{x, y, 0.0f}, static_cast<vec4f>(color), vec2f{(texture_pos.x()) / texture_width, (texture_pos.y()) / texture_height}});
+                vertices.emplace_back(vertex{vec3f{x + width, y, 0.0f}, static_cast<vec4f>(color), vec2f{(texture_pos.x() + width) / texture_width, (texture_pos.y()) / texture_height}});
+                vertices.emplace_back(vertex{vec3f{x + width, y + height, 0.0f}, static_cast<vec4f>(color), vec2f{(texture_pos.x() + width) / texture_width, (texture_pos.y() + height) / texture_height}});
+                vertices.emplace_back(vertex{vec3f{x, y + height, 0.0f}, static_cast<vec4f>(color), vec2f{(texture_pos.x()) / texture_width, (texture_pos.y() + height) / texture_height}});
 
                 lowest_x = std::min(lowest_x, x);
                 lowest_y = std::min(lowest_y, y);
@@ -412,7 +410,7 @@ text text_drawer::draw(std::string_view string, const color& color)
         indices.emplace_back(static_cast<std::uint32_t>(shift + 0));
     }
 
-    const glm::vec3 shift{-lowest_x, -lowest_y, 0.0f};
+    const vec3f shift{-lowest_x, -lowest_y, 0.0f};
     for(auto& vertex : vertices)
     {
         vertex.position += shift;
@@ -425,7 +423,7 @@ text text_drawer::draw(std::string_view string, std::uint32_t line_width, text_a
 {
     auto&& [command_buffer, signal] = cpt::engine::instance().begin_transfer();
 
-    std::unordered_map<codepoint_t, std::pair<std::shared_ptr<glyph>, glm::vec2>> cache{};
+    std::unordered_map<codepoint_t, std::pair<std::shared_ptr<glyph>, vec2f>> cache{};
     texture_ptr texture{make_texture(string, cache, command_buffer)};
 
     const std::size_t codepoint_count{utf8::count(std::begin(string), std::end(string))};
@@ -468,7 +466,7 @@ text text_drawer::draw(std::string_view string, std::uint32_t line_width, text_a
         indices.emplace_back(static_cast<std::uint32_t>(shift + 0));
     }
 
-    const glm::vec3 shift{-state.lowest_x, -state.lowest_y, 0.0f};
+    const vec3f shift{-state.lowest_x, -state.lowest_y, 0.0f};
     for(auto& vertex : vertices)
     {
         vertex.position += shift;
@@ -480,7 +478,7 @@ text text_drawer::draw(std::string_view string, std::uint32_t line_width, text_a
     return text{indices, vertices, std::move(texture), text_width, text_height, std::size(string)};
 }
 
-void text_drawer::draw_line(std::string_view line, std::uint32_t line_width, text_align align, draw_line_state& state, std::vector<vertex>& vertices, const std::unordered_map<codepoint_t, std::pair<std::shared_ptr<glyph>, glm::vec2>>& cache, const color& color)
+void text_drawer::draw_line(std::string_view line, std::uint32_t line_width, text_align align, draw_line_state& state, std::vector<vertex>& vertices, const std::unordered_map<codepoint_t, std::pair<std::shared_ptr<glyph>, vec2f>>& cache, const color& color)
 {
     if(align == text_align::left)
     {
@@ -508,7 +506,7 @@ void text_drawer::draw_line(std::string_view line, std::uint32_t line_width, tex
                 auto& slot{cache.at(codepoint)};
 
                 const glyph& glyph{*slot.first};
-                const glm::vec2& texture_pos{slot.second};
+                const vec2f texture_pos{slot.second};
 
                 const float width {static_cast<float>(glyph.image.width())};
                 const float height{static_cast<float>(glyph.image.height())};
@@ -516,13 +514,13 @@ void text_drawer::draw_line(std::string_view line, std::uint32_t line_width, tex
                 if(width > 0 && height > 0)
                 {
                     const float kerning{last != 0 && static_cast<bool>(m_options & text_drawer_options::kerning) ? m_font.kerning(last, codepoint) : 0.0f};
-                    const float x{state.current_x + glyph.origin.x + kerning};
-                    const float y{state.current_y + glyph.origin.y};
+                    const float x{state.current_x + glyph.origin.x() + kerning};
+                    const float y{state.current_y + glyph.origin.y()};
 
-                    vertices.emplace_back(vertex{{x, y, 0.0f}, static_cast<glm::vec4>(color), {(texture_pos.x) / state.texture_width, (texture_pos.y) / state.texture_height}});
-                    vertices.emplace_back(vertex{{x + width, y, 0.0f}, static_cast<glm::vec4>(color), {(texture_pos.x + width) / state.texture_width, (texture_pos.y) / state.texture_height}});
-                    vertices.emplace_back(vertex{{x + width, y + height, 0.0f}, static_cast<glm::vec4>(color), {(texture_pos.x + width) / state.texture_width, (texture_pos.y + height) / state.texture_height}});
-                    vertices.emplace_back(vertex{{x, y + height, 0.0f}, static_cast<glm::vec4>(color), {(texture_pos.x) / state.texture_width, (texture_pos.y + height) / state.texture_height}});
+                    vertices.emplace_back(vertex{vec3f{x, y, 0.0f}, static_cast<vec4f>(color), vec2f{(texture_pos.x()) / state.texture_width, (texture_pos.y()) / state.texture_height}});
+                    vertices.emplace_back(vertex{vec3f{x + width, y, 0.0f}, static_cast<vec4f>(color), vec2f{(texture_pos.x() + width) / state.texture_width, (texture_pos.y()) / state.texture_height}});
+                    vertices.emplace_back(vertex{vec3f{x + width, y + height, 0.0f}, static_cast<vec4f>(color), vec2f{(texture_pos.x() + width) / state.texture_width, (texture_pos.y() + height) / state.texture_height}});
+                    vertices.emplace_back(vertex{vec3f{x, y + height, 0.0f}, static_cast<vec4f>(color), vec2f{(texture_pos.x()) / state.texture_width, (texture_pos.y() + height) / state.texture_height}});
 
                     state.lowest_x = std::min(state.lowest_x, x);
                     state.lowest_y = std::min(state.lowest_y, y);
@@ -558,7 +556,7 @@ void text_drawer::draw_line(std::string_view line, std::uint32_t line_width, tex
     }
 }
 
-texture_ptr text_drawer::make_texture(std::string_view string, std::unordered_map<codepoint_t, std::pair<std::shared_ptr<glyph>, glm::vec2>>& cache, tph::command_buffer& command_buffer)
+texture_ptr text_drawer::make_texture(std::string_view string, std::unordered_map<codepoint_t, std::pair<std::shared_ptr<glyph>, vec2f>>& cache, tph::command_buffer& command_buffer)
 {
     constexpr std::uint32_t max_texture_width{4096};
 
@@ -580,7 +578,7 @@ texture_ptr text_drawer::make_texture(std::string_view string, std::unordered_ma
             current_y += texture_height;
         }
 
-        const glm::vec2 texture_pos{static_cast<float>(current_x), static_cast<float>(current_y)};
+        const vec2f texture_pos{static_cast<float>(current_x), static_cast<float>(current_y)};
 
         current_x += character_glyph->image.width();
         texture_width = std::max(current_x, texture_width);
@@ -600,8 +598,8 @@ texture_ptr text_drawer::make_texture(std::string_view string, std::unordered_ma
         if(glyph->image.width() > 0 && glyph->image.height() > 0)
         {
             tph::image_texture_copy copy_region{};
-            copy_region.texture_offset.x = static_cast<std::int32_t>(position.x);
-            copy_region.texture_offset.y = static_cast<std::int32_t>(position.y);
+            copy_region.texture_offset.x = static_cast<std::int32_t>(position.x());
+            copy_region.texture_offset.y = static_cast<std::int32_t>(position.y());
             copy_region.texture_size.width = static_cast<std::uint32_t>(glyph->image.width());
             copy_region.texture_size.height = static_cast<std::uint32_t>(glyph->image.height());
 

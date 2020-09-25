@@ -11,7 +11,7 @@ set(CMAKE_DISABLE_FIND_PACKAGE_PNG       OFF CACHE INTERNAL "")
 set(CMAKE_DISABLE_FIND_PACKAGE_HarfBuzz  OFF CACHE INTERNAL "")
 set(CMAKE_DISABLE_FIND_PACKAGE_BrotliDec OFF CACHE INTERNAL "")
 
-add_subdirectory(external/freetype)
+add_subdirectory(external/freetype EXCLUDE_FROM_ALL)
 
 unset(BUILD_SHARED_LIBS                    CACHE)
 unset(FT_WITH_ZLIB                         CACHE)

@@ -11,8 +11,6 @@ option(TEPHRA_USE_PLATFORM_XLIB "If on, enable the Linux Xlib surface extension"
 option(TEPHRA_USE_PLATFORM_XCB "If on, enable the Linux XCB surface extension" OFF)
 option(TEPHRA_USE_PLATFORM_WAYLAND "If on, enable the Linux Wayland surface extension" OFF)
 
-include(../cmake/buildnes.cmake)
-
 find_package(Vulkan REQUIRED)
 
 add_library(tephra SHARED
@@ -144,6 +142,8 @@ if(TEPHRA_USE_PLATFORM_WAYLAND)
 endif()
 
 target_include_directories(tephra
+    SYSTEM PRIVATE
+        ${PROJECT_SOURCE_DIR}/external/stb
     PUBLIC
         ${Vulkan_INCLUDE_DIRS}
     INTERFACE

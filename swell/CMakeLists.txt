@@ -58,7 +58,6 @@ target_compile_definitions(swell
 target_include_directories(swell
     SYSTEM PRIVATE
         ${PORTAUDIO_INCLUDES}
-        ${GLOBAL_INCLUDES}
     INTERFACE
         ${PROJECT_SOURCE_DIR}/src
 )
@@ -66,10 +65,7 @@ target_include_directories(swell
 target_link_libraries(swell
     PRIVATE
         portaudio_static
-        vorbisenc
         vorbisfile
-        vorbis
-        ogg
     PUBLIC
         captal_foundation
 )

@@ -222,8 +222,8 @@ void engine::init()
 
     m_instance = this;
 
-    m_audio_mixer.set_up(glm::vec3{0.0f, 0.0f, 1.0f});
-    m_audio_mixer.set_listener_direction(glm::vec3{0.0f, 1.0f, 0.0f});
+    m_audio_mixer.set_up(vec3f{0.0f, 0.0f, 1.0f});
+    m_audio_mixer.set_listener_direction(vec3f{0.0f, 1.0f, 0.0f});
     m_audio_stream.start();
 
     m_transfer_pool = tph::command_pool{m_renderer};

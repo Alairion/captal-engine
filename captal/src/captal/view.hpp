@@ -6,8 +6,7 @@
 #include <vector>
 #include <numbers>
 
-#include <glm/vec4.hpp>
-#include <glm/mat4x4.hpp>
+#include <captal_foundation/math.hpp>
 
 #include "asynchronous_resource.hpp"
 #include "uniform_buffer.hpp"
@@ -50,9 +49,9 @@ class CAPTAL_API view
 public:
     struct uniform_data
     {
-        glm::vec4 position{};
-        glm::mat4 view{1.0f};
-        glm::mat4 projection{1.0f};
+        vec4f position{};
+        mat4f view{identity};
+        mat4f projection{identity};
     };
 
 public:
@@ -76,25 +75,25 @@ public:
         m_scissor = scissor;
     }
 
-    void move_to(const glm::vec3& position) noexcept
+    void move_to(const vec3f& position) noexcept
     {
         m_position = position;
         update();
     }
 
-    void move(const glm::vec3& relative) noexcept
+    void move(const vec3f& relative) noexcept
     {
         m_position += relative;
         update();
     }
 
-    void set_origin(const glm::vec3& origin) noexcept
+    void set_origin(const vec3f& origin) noexcept
     {
         m_origin = origin;
         update();
     }
 
-    void move_origin(const glm::vec3& relative) noexcept
+    void move_origin(const vec3f& relative) noexcept
     {
         m_origin += relative;
         update();
@@ -102,7 +101,7 @@ public:
 
     void resize(float witdh, float height) noexcept
     {
-        m_size = glm::vec2{witdh, height};
+        m_size = vec2f{witdh, height};
         update();
     }
 
@@ -130,13 +129,13 @@ public:
         update();
     }
 
-    void set_scale(const glm::vec3& scale) noexcept
+    void set_scale(const vec3f& scale) noexcept
     {
         m_scale = scale;
         update();
     }
 
-    void scale(const glm::vec3& scale) noexcept
+    void scale(const vec3f& scale) noexcept
     {
         m_scale *= scale;
         update();
@@ -184,24 +183,24 @@ public:
         return m_scissor;
     }
 
-    const glm::vec3& position() const noexcept
+    const vec3f& position() const noexcept
     {
         return m_position;
     }
 
-    const glm::vec3& origin() const noexcept
+    const vec3f& origin() const noexcept
     {
         return m_origin;
     }
 
     float width() const noexcept
     {
-        return m_size.x;
+        return m_size.x();
     }
 
     float height() const noexcept
     {
-        return m_size.y;
+        return m_size.y();
     }
 
     float z_near() const noexcept
@@ -219,7 +218,7 @@ public:
         return m_rotation;
     }
 
-    const glm::vec3& scale() const noexcept
+    const vec3f& scale() const noexcept
     {
         return m_scale;
     }
@@ -316,12 +315,12 @@ private:
 
     tph::viewport m_viewport{};
     tph::scissor m_scissor{};
-    glm::vec3 m_position{};
-    glm::vec3 m_origin{};
-    glm::vec2 m_size{};
+    vec3f m_position{};
+    vec3f m_origin{};
+    vec2f m_size{};
     float m_z_near{1.0f};
     float m_z_far{0.0f};
-    glm::vec3 m_scale{1.0f};
+    vec3f m_scale{1.0f};
     float m_rotation{};
     view_type m_type{};
 

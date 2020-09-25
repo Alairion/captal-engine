@@ -28,3 +28,6 @@
 [submodule "captal/external/sigslots"]
 	path = captal/external/sigslots
 	url = https://github.com/palacaze/sigslot.git
+[submodule "tephra/external/stb"]
+	path = tephra/external/stb
+	url = https://github.com/nothings/stb.git

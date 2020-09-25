@@ -11,7 +11,7 @@
 #include <cmath>
 #include <filesystem>
 
-#include <glm/vec2.hpp>
+#include <captal_foundation/math.hpp>
 
 #include "color.hpp"
 #include "text.hpp"
@@ -29,12 +29,12 @@ struct object
 {
     struct point
     {
-        glm::vec2 position{};
+        vec2f position{};
     };
 
     struct square
     {
-        glm::vec2 position{};
+        vec2f position{};
         float width{};
         float height{};
         float angle{};
@@ -42,7 +42,7 @@ struct object
 
     struct ellipse
     {
-        glm::vec2 position{};
+        vec2f position{};
         float width{};
         float height{};
     };
@@ -50,7 +50,7 @@ struct object
     struct tile
     {
         std::uint32_t gid{};
-        glm::vec2 position{};
+        vec2f position{};
         float width{};
         float height{};
         float angle{};
@@ -61,7 +61,7 @@ struct object
         std::string text{};
         std::string font_family{};
         std::uint32_t pixel_size{};
-        glm::vec2 position{};
+        vec2f position{};
         float width{};
         float height{};
         float angle{};
@@ -116,7 +116,7 @@ struct layer
     using content_type = std::variant<std::monostate, tiles, objects, image, group>;
 
     std::string name{};
-    glm::vec2 position{};
+    vec2f position{};
     float opacity{};
     bool visible{};
     content_type content{};
@@ -148,7 +148,7 @@ struct tileset
     std::uint32_t height{};
     std::int32_t spacing{};
     std::int32_t margin{};
-    glm::vec2 offset{};
+    vec2f offset{};
     image image{};
     std::vector<tile> tiles{};
     properties_set properties{};

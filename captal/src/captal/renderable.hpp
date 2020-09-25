@@ -101,9 +101,9 @@ public:
         update();
     }
 
-    void scale(float scale) noexcept
+    void scale(const vec3f& scale) noexcept
     {
-        m_scale += scale;
+        m_scale *= scale;
         update();
     }
 

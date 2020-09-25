@@ -7,9 +7,9 @@
 #include <cstring>
 #include <memory>
 
-#include <sigslots/signal.hpp>
-
 #include <tephra/buffer.hpp>
+
+#include "signal.hpp"
 
 namespace cpt
 {
@@ -100,7 +100,7 @@ private:
     {
         tph::buffer buffer{};
         bool available{true};
-        sigslot::scoped_connection connection{};
+        cpt::scoped_connection connection{};
     };
 
 private:

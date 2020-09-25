@@ -1069,7 +1069,7 @@ mat<T, 4, 4> model(const vec<T, 3>& translation, T angle, const vec<T, 3>& axis,
     return translate(-origin) * rotate(angle, axis) * translate(translation) * scale(factor);
 }
 
-template<typename T>
+template<arithmetic T>
 constexpr mat<T, 4, 4> orthographic(T left, T right, T bottom, T top, T z_near, T z_far) noexcept
 {
     mat<T, 4, 4> output{identity};
@@ -1084,7 +1084,7 @@ constexpr mat<T, 4, 4> orthographic(T left, T right, T bottom, T top, T z_near, 
     return output;
 }
 
-template<typename T>
+template<arithmetic T>
 mat<T, 4, 4> perspective(T fovy, T aspect, T z_near, T z_far) noexcept
 {
     const T half{std::tan(fovy / static_cast<T>(2))};
@@ -1096,6 +1096,24 @@ mat<T, 4, 4> perspective(T fovy, T aspect, T z_near, T z_far) noexcept
     output[2][2] = z_far / (z_near - z_far);
     output[2][3] = -(z_far * z_near) / (z_far - z_near);
     output[3][2] = static_cast<T>(-1);
+
+    return output;
+}
+
+template<arithmetic T>
+mat<T, 4, 4> look_at(const vec<T, 3>& eye, const vec<T, 3>& center, const vec<T, 3>& up) noexcept
+{
+    const auto zaxis{-normalize(center - eye)};
+    const auto xaxis{normalize(cross(zaxis, up))};
+    const auto yaxis{cross(xaxis, zaxis)};
+
+    const mat<T, 4, 4> output
+    {
+        vec<T, 4>{xaxis[0], xaxis[1], xaxis[2], static_cast<T>(0)},
+        vec<T, 4>{yaxis[0], yaxis[1], yaxis[2], static_cast<T>(0)},
+        vec<T, 4>{zaxis[0], zaxis[1], zaxis[2], static_cast<T>(0)},
+        vec<T, 4>{-dot(xaxis, eye), -dot(yaxis, eye), dot(zaxis, eye), static_cast<T>(1)}
+    };
 
     return output;
 }

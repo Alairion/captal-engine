@@ -2,7 +2,7 @@
 
 #include <cassert>
 
-#include <zlib/zlib.h>
+#include <zlib.h>
 
 #include <captal_foundation/encoding.hpp>
 

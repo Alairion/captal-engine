@@ -261,16 +261,16 @@ static object parse_object(const pugi::xml_node& node, const std::filesystem::pa
         if(child.name() == "point"sv)
         {
             object::point point{};
-            point.position.x = node.attribute("x").as_float();
-            point.position.y = node.attribute("y").as_float();
+            point.position.x() = node.attribute("x").as_float();
+            point.position.y() = node.attribute("y").as_float();
 
             output.content = point;
         }
         else if(child.name() == "ellipse"sv)
         {
             object::ellipse ellipse{};
-            ellipse.position.x = node.attribute("x").as_float();
-            ellipse.position.y = node.attribute("y").as_float();
+            ellipse.position.x() = node.attribute("x").as_float();
+            ellipse.position.y() = node.attribute("y").as_float();
             ellipse.width = node.attribute("width").as_float();
             ellipse.height = node.attribute("height").as_float();
 
@@ -282,8 +282,8 @@ static object parse_object(const pugi::xml_node& node, const std::filesystem::pa
             text.text = child.child_value();
             text.font_family = child.attribute("fontfamily").as_string();
             text.pixel_size = child.attribute("pixelsize").as_uint();
-            text.position.x = node.attribute("x").as_float();
-            text.position.y = node.attribute("y").as_float();
+            text.position.x() = node.attribute("x").as_float();
+            text.position.y() = node.attribute("y").as_float();
             text.width = node.attribute("width").as_float();
             text.height = node.attribute("height").as_float();
             text.angle = node.attribute("rotation").as_float() * (std::numbers::pi_v<float> * 180.0f);
@@ -323,8 +323,8 @@ static object parse_object(const pugi::xml_node& node, const std::filesystem::pa
     {
         object::tile tile{};
         tile.gid = attribute.as_uint();
-        tile.position.x = node.attribute("x").as_float();
-        tile.position.y = node.attribute("y").as_float();
+        tile.position.x() = node.attribute("x").as_float();
+        tile.position.y() = node.attribute("y").as_float();
         tile.width = node.attribute("width").as_float();
         tile.height = node.attribute("height").as_float();
         tile.angle = node.attribute("rotation").as_float() * (std::numbers::pi_v<float> * 180.0f);
@@ -335,8 +335,8 @@ static object parse_object(const pugi::xml_node& node, const std::filesystem::pa
     if(std::holds_alternative<std::monostate>(output.content))
     {
         object::square square{};
-        square.position.x = node.attribute("x").as_float();
-        square.position.y = node.attribute("y").as_float();
+        square.position.x() = node.attribute("x").as_float();
+        square.position.y() = node.attribute("y").as_float();
         square.width = node.attribute("width").as_float();
         square.height = node.attribute("height").as_float();
         square.angle = node.attribute("rotation").as_float() * (std::numbers::pi_v<float> * 180.0f);
@@ -404,8 +404,8 @@ static void parse_tileset(const pugi::xml_node& node, tileset& output, const std
     {
         if(child.name() == "tileoffset"sv)
         {
-            output.offset.x = static_cast<float>(child.attribute("x").as_int());
-            output.offset.y = static_cast<float>(child.attribute("y").as_int());
+            output.offset.x() = static_cast<float>(child.attribute("x").as_int());
+            output.offset.y() = static_cast<float>(child.attribute("y").as_int());
         }
         else if(child.name() == "image"sv)
         {
@@ -452,8 +452,8 @@ static layer parse_layer(const pugi::xml_node& node, const std::filesystem::path
     output.name = node.attribute("name").as_string();
     output.opacity = node.attribute("opacity").as_float(1.0f);
     output.visible = node.attribute("visible").as_uint(1) == 1;
-    output.position.x = node.attribute("offsetx").as_float();
-    output.position.y = node.attribute("offsety").as_float();
+    output.position.x() = node.attribute("offsetx").as_float();
+    output.position.y() = node.attribute("offsety").as_float();
 
     for(auto&& child : node)
     {
@@ -482,8 +482,8 @@ static layer parse_object_group(const pugi::xml_node& node, const std::filesyste
     output.name = node.attribute("name").as_string();
     output.opacity = node.attribute("opacity").as_float(1.0f);
     output.visible = node.attribute("visible").as_uint(1) == 1;
-    output.position.x = node.attribute("offsetx").as_float();
-    output.position.y = node.attribute("offsety").as_float();
+    output.position.x() = node.attribute("offsetx").as_float();
+    output.position.y() = node.attribute("offsety").as_float();
 
     layer::objects objects{};
     objects.draw_order = node.attribute("draworder").as_string("topdown") == "index"sv ? objects_layer_draw_order::index : objects_layer_draw_order::topdown;
@@ -511,8 +511,8 @@ static layer parse_image_layer(const pugi::xml_node& node, const std::filesystem
     output.name = node.attribute("name").as_string();
     output.opacity = node.attribute("opacity").as_float(1.0f);
     output.visible = node.attribute("visible").as_uint(1) == 1;
-    output.position.x = node.attribute("offsetx").as_float();
-    output.position.y = node.attribute("offsety").as_float();
+    output.position.x() = node.attribute("offsetx").as_float();
+    output.position.y() = node.attribute("offsety").as_float();
 
     for(auto&& child : node)
     {
@@ -535,8 +535,8 @@ static layer parse_group_layer(const pugi::xml_node& node, const std::filesystem
     output.name = node.attribute("name").as_string();
     output.opacity = node.attribute("opacity").as_float(1.0f);
     output.visible = node.attribute("visible").as_uint(1) == 1;
-    output.position.x = node.attribute("offsetx").as_float();
-    output.position.y = node.attribute("offsety").as_float();
+    output.position.x() = node.attribute("offsetx").as_float();
+    output.position.y() = node.attribute("offsety").as_float();
 
     layer::group group{};
     for(auto&& child : node)

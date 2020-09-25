@@ -5,15 +5,15 @@
 
 #include <vector>
 
-#include <glm/vec2.hpp>
+#include <captal_foundation/math.hpp>
 
 namespace cpt
 {
 
-CAPTAL_API std::vector<glm::vec2> circle(float radius, std::uint32_t point_count);
-CAPTAL_API std::vector<glm::vec2> circle(float radius);
-CAPTAL_API std::vector<glm::vec2> ellipse(float width, float height, std::uint32_t point_count);
-CAPTAL_API std::vector<glm::vec2> ellipse(float width, float height);
+CAPTAL_API std::vector<vec2f> circle(float radius, std::uint32_t point_count);
+CAPTAL_API std::vector<vec2f> circle(float radius);
+CAPTAL_API std::vector<vec2f> ellipse(float width, float height, std::uint32_t point_count);
+CAPTAL_API std::vector<vec2f> ellipse(float width, float height);
 
 }
 

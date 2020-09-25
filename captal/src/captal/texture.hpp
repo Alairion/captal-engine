@@ -11,7 +11,7 @@
 #include <tephra/image.hpp>
 #include <tephra/texture.hpp>
 
-#include <glm/vec2.hpp>
+#include <captal_foundation/math.hpp>
 
 #include "asynchronous_resource.hpp"
 
@@ -171,8 +171,8 @@ class CAPTAL_API tileset
 public:
     struct texture_rect
     {
-        glm::vec2 top_left{};
-        glm::vec2 bottom_right{};
+        vec2f top_left{};
+        vec2f bottom_right{};
     };
 
 public:
@@ -204,8 +204,8 @@ public:
         const float width{static_cast<float>(m_texture->width())};
         const float height{static_cast<float>(m_texture->height())};
 
-        output.top_left     = glm::vec2{static_cast<float>(( col      * m_tile_width)) / width, static_cast<float>(( row      * m_tile_height)) / height};
-        output.bottom_right = glm::vec2{static_cast<float>(((col + 1) * m_tile_width)) / width, static_cast<float>(((row + 1) * m_tile_height)) / height};
+        output.top_left     = vec2f{static_cast<float>(( col      * m_tile_width)) / width, static_cast<float>(( row      * m_tile_height)) / height};
+        output.bottom_right = vec2f{static_cast<float>(((col + 1) * m_tile_width)) / width, static_cast<float>(((row + 1) * m_tile_height)) / height};
 
         return output;
     }

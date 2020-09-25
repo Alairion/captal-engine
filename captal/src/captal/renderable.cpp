@@ -415,9 +415,9 @@ void tilemap::set_texture_rect(std::uint32_t row, std::uint32_t col, const tiles
     const auto vertices{get_vertices().subspan((row * m_width + col) * 4, 4)};
 
     vertices[0].texture_coord = rect.top_left;
-    vertices[1].texture_coord = vec2f{rect.bottom_right.x, rect.top_left.y};
+    vertices[1].texture_coord = vec2f{rect.bottom_right.x(), rect.top_left.y()};
     vertices[2].texture_coord = rect.bottom_right;
-    vertices[3].texture_coord = vec2f{rect.top_left.x, rect.bottom_right.y};
+    vertices[3].texture_coord = vec2f{rect.top_left.x(), rect.bottom_right.y()};
 
     update();
 }

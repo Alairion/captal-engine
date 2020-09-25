@@ -6,6 +6,7 @@ set(INSTALL_PKG_CONFIG_MODULE    OFF CACHE INTERNAL "")
 set(INSTALL_CMAKE_PACKAGE_MODULE OFF CACHE INTERNAL "")
 
 add_subdirectory(external/ogg EXCLUDE_FROM_ALL)
+add_library(Ogg::ogg ALIAS ogg)
 
 unset(BUILD_SHARED_LIBS            CACHE)
 unset(BUILD_FRAMEWORK              CACHE)
