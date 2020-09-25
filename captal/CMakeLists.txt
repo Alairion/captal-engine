@@ -4,14 +4,9 @@ project(captal VERSION 0.1.0)
 
 option(CAPTAL_BUILD_EXAMPLE OFF)
 
-set(GLOBAL_INCLUDES "${PROJECT_SOURCE_DIR}/../libs/include")
-set(GLOBAL_LIBRARIES "${PROJECT_SOURCE_DIR}/../libs/external")
-
-set(FREETYPE_INCLUDES "${GLOBAL_INCLUDES}/freetype")
-set(FREETYPE_LIBRARIES "${GLOBAL_LIBRARIES}/libfreetype.a")
-
-set(CHIPMUNK_LIBRARIES "${GLOBAL_LIBRARIES}/libchipmunk.a")
-set(ZLIB_LIBRARIES "${GLOBAL_LIBRARIES}/libzlibstatic.a")
+include(cmake/buildchipmunk.cmake)
+include(cmake/buildfreetype.cmake)
+include(cmake/buildzlib.cmake)
 
 add_library(captal SHARED
     #Headers:
@@ -90,9 +85,6 @@ endif()
 target_compile_definitions(captal
     PRIVATE
         CAPTAL_FOUNDATION_SHARED_BUILD
-        ZLIB_CONST
-        GLM_FORCE_RADIANS
-        GLM_FORCE_DEPTH_ZERO_TO_ONE
     PUBLIC
         CAPTAL_MAJOR_VERSION=${PROJECT_VERSION_MAJOR}
         CAPTAL_MINOR_VERSION=${PROJECT_VERSION_MINOR}
@@ -106,22 +98,22 @@ if(CMAKE_BUILD_TYPE STREQUAL Debug)
 endif()
 
 target_include_directories(captal
-    SYSTEM PRIVATE
-        ${GLOBAL_INCLUDES} ${FREETYPE_INCLUDES}
     INTERFACE
-        ${PROJECT_SOURCE_DIR}/src
+        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src>
+        $<INSTALL_INTERFACE:include>
+    SYSTEM PRIVATE
+        ${chipmunk_public_header}
 )
 
 target_link_libraries(captal
     PUBLIC
-        captal_foundation
         tephra
         swell
         apyre
     PRIVATE
-        ${FREETYPE_LIBRARIES}
-        ${CHIPMUNK_LIBRARIES}
-        ${ZLIB_LIBRARIES}
+        freetype
+        chipmunk_static
+        zlib_static
 )
 
 install(TARGETS captal

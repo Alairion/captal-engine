@@ -13,3 +13,15 @@
 [submodule "swell/external/ogg"]
 	path = swell/external/ogg
 	url = https://github.com/xiph/ogg.git
+[submodule "captal/external/zlib"]
+	path = captal/external/zlib
+	url = https://github.com/madler/zlib.git
+[submodule "captal/external/chipmunk"]
+	path = captal/external/chipmunk
+	url = https://github.com/slembcke/Chipmunk2D.git
+[submodule "captal/external/freetype"]
+	path = captal/external/freetype
+	url = https://git.sv.nongnu.org/r/freetype/freetype2.git
+[submodule "captal/external/entt"]
+	path = captal/external/entt
+	url = https://github.com/skypjack/entt.git

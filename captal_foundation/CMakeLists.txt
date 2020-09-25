@@ -31,7 +31,4 @@ install(DIRECTORY ${PROJECT_SOURCE_DIR}/src/captal_foundation
         DESTINATION ${PROJECT_SOURCE_DIR}/include
         FILES_MATCHING PATTERN *.hpp)
 
-install(DIRECTORY ${PROJECT_SOURCE_DIR}/src/captal_foundation
-        DESTINATION ${PROJECT_SOURCE_DIR}/../libs/include
-        FILES_MATCHING PATTERN *.hpp)
 
