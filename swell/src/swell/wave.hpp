@@ -7,7 +7,7 @@
 #include <filesystem>
 #include <span>
 
-#include "mixer.hpp"
+#include "sound_reader.hpp"
 
 namespace swl
 {

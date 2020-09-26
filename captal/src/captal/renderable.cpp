@@ -158,6 +158,12 @@ void renderable::set_view(cpt::view& view)
     m_impl->current_set = it->second;
     m_need_descriptor_update = false;
 }
+/*
+template<arithmetic T>
+mat<T, 4, 4> rotate_and_scale(const vec<T, 3>& translation, T angle, const vec<T, 3>& axis, const vec<T, 3>& factor, const vec<T, 3>& origin)
+{
+    return translate(translation - origin) * (rotate(angle, axis) + translate(origin)) * scale(factor);
+}*/
 
 void renderable::upload()
 {

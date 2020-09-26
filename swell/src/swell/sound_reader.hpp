@@ -65,4 +65,6 @@ private:
 
 }
 
+template<> struct swl::enable_enum_operations<swl::sound_reader_options> {static constexpr bool value{true};};
+
 #endif

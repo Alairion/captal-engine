@@ -1060,13 +1060,13 @@ constexpr mat<T, 4, 4> scale(const vec<T, 3>& scale) noexcept
 template<arithmetic T>
 mat<T, 4, 4> model(const vec<T, 3>& translation, T angle, const vec<T, 3>& axis, const vec<T, 3>& factor)
 {
-    return translate(translation) * rotate(angle, axis) * scale(factor);
+    return scale(factor) * rotate(angle, axis) * translate(translation);
 }
 
 template<arithmetic T>
 mat<T, 4, 4> model(const vec<T, 3>& translation, T angle, const vec<T, 3>& axis, const vec<T, 3>& factor, const vec<T, 3>& origin)
 {
-    return translate(translation) * rotate(angle, axis) * translate(origin) * scale(factor);
+    return scale(factor) * translate(translation) * rotate(angle, axis) * translate(-origin);
 }
 
 template<arithmetic T>
