@@ -31,3 +31,6 @@
 [submodule "tephra/external/stb"]
 	path = tephra/external/stb
 	url = https://github.com/nothings/stb.git
+[submodule "external/catch"]
+	path = external/catch
+	url = https://github.com/catchorg/Catch2.git
