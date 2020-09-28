@@ -23,9 +23,7 @@ function(captal_download_submodule PATH)
     endif()
 
     if(NOT EXISTS "${CAPTAL_ROOT_DIRECTORY}/${PATH}/CMakeLists.txt")
-        else()
-            message(FATAL_ERROR "The submodule \"${PATH}\" has not been downloaded! Try update submodules and try again.")
-        endif()
+        message(FATAL_ERROR "The submodule \"${PATH}\" has not been downloaded! Try update submodules and try again.")
     endif()
 
     message(STATUS "Successfully downloaded submodule ${PATH}")
