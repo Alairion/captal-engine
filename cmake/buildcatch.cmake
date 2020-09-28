@@ -8,6 +8,7 @@ set(CATCH_ENABLE_WERROR     OFF CACHE INTERNAL "")
 set(CATCH_INSTALL_DOCS      OFF CACHE INTERNAL "")
 set(CATCH_INSTALL_HELPERS   OFF CACHE INTERNAL "")
 
+captal_download_submodule(external/catch)
 add_subdirectory(external/catch EXCLUDE_FROM_ALL)
 
 unset(CATCH_USE_VALGRIND      CACHE)

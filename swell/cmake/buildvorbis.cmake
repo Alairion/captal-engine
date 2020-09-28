@@ -10,6 +10,7 @@ set(INSTALL_DOCS                 OFF CACHE INTERNAL "")
 set(INSTALL_PKG_CONFIG_MODULE    OFF CACHE INTERNAL "")
 set(INSTALL_CMAKE_PACKAGE_MODULE OFF CACHE INTERNAL "")
 
+captal_download_submodule(swell/external/vorbis)
 add_subdirectory(external/vorbis EXCLUDE_FROM_ALL)
 
 unset(BUILD_SHARED_LIBS            CACHE)

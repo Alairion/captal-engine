@@ -36,7 +36,7 @@ include(cmake/download_submodule.cmake)
 if(CAPTAL_BUILD_FOUNDATION_TESTS OR CAPTAL_BUILD_APYRE_TESTS OR CAPTAL_BUILD_TEPHRA_TESTS OR CAPTAL_BUILD_SWELL_TESTS OR CAPTAL_BUILD_CAPTAL_TESTS)
     include(cmake/buildcatch.cmake)
 endif()
-#ogg, vorbis, freetype
+
 include(cmake/buildnes.cmake)
 
 add_subdirectory(captal_foundation)
