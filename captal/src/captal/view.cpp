@@ -83,6 +83,18 @@ void view::upload()
     }
 }
 
+void view::bind(tph::command_buffer& buffer)
+{
+    tph::cmd::set_viewport(buffer, m_viewport);
+    tph::cmd::set_scissor(buffer, m_scissor);
+    tph::cmd::bind_pipeline(buffer, m_impl->render_technique->pipeline());
+
+    for(auto&& range : m_impl->render_technique->ranges())
+    {
+        tph::cmd::push_constants(buffer, m_impl->render_technique->pipeline_layout(), range.stages, range.offset, range.size, std::data(m_push_constant_buffer) + range.offset / 4u);
+    }
+}
+
 cpt::binding& view::add_binding(std::uint32_t index, cpt::binding binding)
 {
     auto [it, success] = m_impl->bindings.try_emplace(index, std::move(binding));

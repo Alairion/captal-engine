@@ -49,26 +49,16 @@ void render(entt::registry& world)
     {
         if(camera && camera->target().is_rendering_enable())
         {
-            render_target& target{camera->target()};
-            render_technique_ptr technique{camera->render_technique()};
-            auto&& [buffer, signal] = target.begin_render();
+            auto&& [buffer, signal] = camera->target().begin_render();
 
+            camera->bind(buffer);
             camera->upload();
-
-            tph::cmd::set_viewport(buffer, camera->viewport());
-            tph::cmd::set_scissor(buffer, camera->scissor());
-            tph::cmd::bind_pipeline(buffer, technique->pipeline());
-
-            for(auto&& range : camera->render_technique()->ranges())
-            {
-                tph::cmd::push_constants(buffer, technique->pipeline_layout(), range.stages, range.offset, range.size, std::data(camera->push_constant_buffer()) + range.offset / 4u);
-            }
 
             std::vector<asynchronous_resource_ptr> to_keep_alive{};
             to_keep_alive.reserve(world.size<Drawable>() * 2 + 2);
 
             to_keep_alive.emplace_back(camera->resource());
-            to_keep_alive.emplace_back(std::move(technique));
+            to_keep_alive.emplace_back(camera->render_technique());
 
             world.view<Drawable>().each([&to_keep_alive, &camera, &buffer = buffer](Drawable& drawable)
             {

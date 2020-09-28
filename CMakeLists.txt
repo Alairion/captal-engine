@@ -40,7 +40,19 @@ endif()
 include(cmake/buildnes.cmake)
 
 add_subdirectory(captal_foundation)
-add_subdirectory(apyre)
-add_subdirectory(tephra)
-add_subdirectory(swell)
-add_subdirectory(captal)
+
+if(CAPTAL_BUILD_APYRE)
+    add_subdirectory(apyre)
+endif()
+
+if(CAPTAL_BUILD_TEPHRA)
+    add_subdirectory(tephra)
+endif()
+
+if(CAPTAL_BUILD_SWELL)
+    add_subdirectory(swell)
+endif()
+
+if(CAPTAL_BUILD_CAPTAL)
+    add_subdirectory(captal)
+endif()

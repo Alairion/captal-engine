@@ -172,6 +172,7 @@ public:
     }
 
     void upload();
+    void bind(tph::command_buffer& buffer);
 
     const tph::viewport& viewport() const noexcept
     {
