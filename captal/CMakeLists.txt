@@ -7,8 +7,8 @@ option(CAPTAL_BUILD_EXAMPLE OFF)
 include(cmake/buildchipmunk.cmake)
 include(cmake/buildfreetype.cmake)
 include(cmake/buildzlib.cmake)
-captal_download_submodule(captal/external/entt FALSE)
-captal_download_submodule(captal/external/sigslots FALSE)
+captal_download_submodule(captal/external/entt TRUE)
+captal_download_submodule(captal/external/sigslots TRUE)
 
 add_library(captal SHARED
     #Headers:
