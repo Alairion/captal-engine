@@ -11,7 +11,7 @@ set(CMAKE_DISABLE_FIND_PACKAGE_PNG       OFF CACHE INTERNAL "")
 set(CMAKE_DISABLE_FIND_PACKAGE_HarfBuzz  OFF CACHE INTERNAL "")
 set(CMAKE_DISABLE_FIND_PACKAGE_BrotliDec OFF CACHE INTERNAL "")
 
-captal_download_submodule(captal/external/freetype)
+captal_download_submodule(captal/external/freetype TRUE)
 add_subdirectory(external/freetype EXCLUDE_FROM_ALL)
 
 unset(BUILD_SHARED_LIBS                    CACHE)

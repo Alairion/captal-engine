@@ -8,7 +8,7 @@ set(PA_ENABLE_DEBUG_OUTPUT OFF CACHE INTERNAL "")
 set(PA_LIBNAME_ADD_SUFFIX  OFF CACHE INTERNAL "")
 set(PA_UNICODE_BUILD       ON  CACHE INTERNAL "")
 
-captal_download_submodule(swell/external/portaudio)
+captal_download_submodule(swell/external/portaudio TRUE)
 add_subdirectory(external/portaudio EXCLUDE_FROM_ALL)
 
 unset(PA_BUILD_EXAMPLES      CACHE)

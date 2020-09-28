@@ -13,7 +13,7 @@ add_compile_definitions(CP_COLLISION_TYPE_TYPE=uint64_t
                         CP_BITMASK_TYPE=uint64_t
                         CP_TIMESTAMP_TYPE=uint64_t)
 
-captal_download_submodule(captal/external/chipmunk)
+captal_download_submodule(captal/external/chipmunk TRUE)
 add_subdirectory(external/chipmunk EXCLUDE_FROM_ALL)
 
 unset(LIB_INSTALL_DIR    CACHE)

@@ -93,7 +93,7 @@ set(WASAPI                 OFF CACHE INTERNAL "")
 set(WAYLAND_SHARED         OFF CACHE INTERNAL "")
 set(X11_SHARED             OFF CACHE INTERNAL "")
 
-captal_download_submodule(apyre/external/sdl)
+captal_download_submodule(apyre/external/sdl TRUE)
 add_subdirectory(external/sdl EXCLUDE_FROM_ALL)
 
 unset(3DNOW                   CACHE)
