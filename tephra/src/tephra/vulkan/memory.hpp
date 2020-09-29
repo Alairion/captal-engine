@@ -7,6 +7,7 @@
 #include <forward_list>
 #include <optional>
 #include <mutex>
+#include <variant>
 
 #include "vulkan.hpp"
 
@@ -92,28 +93,41 @@ private:
         memory_resource_type type{};
     };
 
+    struct non_dedicated_heap
+    {
+        non_dedicated_heap(std::uint64_t _granularity, std::uint64_t _non_coherent_atom_size)
+        :granularity{_granularity}
+        ,non_coherent_atom_size{_non_coherent_atom_size}
+        {
+
+        }
+
+        std::uint64_t granularity{};
+        std::uint64_t non_coherent_atom_size{};
+        std::uint64_t map_count{};
+        std::vector<range> ranges{};
+        std::mutex mutex{};
+    };
+
+    struct dedicated_heap
+    {
+        std::optional<range> range{};
+    };
+
 public:
     memory_heap(VkDevice device, std::uint32_t type, std::uint64_t size, std::uint64_t granularity, std::uint64_t non_coherent_atom_size, bool coherent);
-    ~memory_heap();
+    memory_heap(VkDevice device, VkImage image, std::uint32_t type, std::uint64_t size);
+    memory_heap(VkDevice device, VkBuffer buffer, std::uint32_t type, std::uint64_t size);
 
+    ~memory_heap();
     memory_heap(const memory_heap&) = delete;
     memory_heap& operator=(const memory_heap&) = delete;
-
     memory_heap(memory_heap&&) noexcept = delete;
     memory_heap& operator=(memory_heap&&) noexcept = delete;
 
-    memory_heap_chunk allocate(memory_resource_type ressource_type, std::uint64_t size, std::uint64_t alignment);
-    std::optional<memory_heap_chunk> try_allocate(memory_resource_type ressource_type, std::uint64_t size, std::uint64_t alignment);
-
-    void* map();
-    void flush(std::uint64_t offset, std::uint64_t size);
-    void invalidate(std::uint64_t offset, std::uint64_t size);
-    void unmap() noexcept;
-
-    std::uint64_t free_space() const noexcept
-    {
-        return m_free_space;
-    }
+    memory_heap_chunk allocate(memory_resource_type resource_type, std::uint64_t size, std::uint64_t alignment);
+    memory_heap_chunk allocate_dedicated(std::uint64_t size);
+    std::optional<memory_heap_chunk> try_allocate(memory_resource_type resource_type, std::uint64_t size, std::uint64_t alignment);
 
     std::uint32_t type() const noexcept
     {
@@ -125,14 +139,31 @@ public:
         return m_size;
     }
 
+    std::uint64_t free_space() const noexcept
+    {
+        return m_free_space;
+    }
+
     std::size_t allocation_count() const noexcept
     {
-        return std::size(m_ranges);
+        if(std::holds_alternative<non_dedicated_heap>(m_heap))
+        {
+            return std::size(std::get<non_dedicated_heap>(m_heap).ranges);
+        }
+        else
+        {
+            return std::get<dedicated_heap>(m_heap).range.has_value() ? 1 : 0;
+        }
     }
 
     bool coherent() const noexcept
     {
         return m_coherent;
+    }
+
+    bool dedicated() const noexcept
+    {
+        return m_heap.index() == 2;
     }
 
     operator VkDevice() const noexcept
@@ -146,6 +177,10 @@ public:
     }
 
 private:
+    void* map();
+    void flush(std::uint64_t offset, std::uint64_t size);
+    void invalidate(std::uint64_t offset, std::uint64_t size);
+    void unmap() noexcept;
     void unregister_chunk(const memory_heap_chunk& chunk) noexcept;
 
 private:
@@ -154,13 +189,9 @@ private:
     std::uint32_t m_type{};
     std::uint64_t m_size{};
     std::uint64_t m_free_space{};
-    std::uint64_t m_granularity{};
-    std::uint64_t m_non_coherent_atom_size{};
     bool m_coherent{};
-    std::uint64_t m_map_count{};
     void* m_map{};
-    std::vector<range> m_ranges{};
-    std::mutex m_mutex{};
+    std::variant<non_dedicated_heap, dedicated_heap> m_heap;
 };
 
 class TEPHRA_API memory_allocator
@@ -183,12 +214,13 @@ public:
     memory_allocator(memory_allocator&&) noexcept = delete;
     memory_allocator& operator=(memory_allocator&&) noexcept = delete;
 
-    memory_heap_chunk allocate(const VkMemoryRequirements& requirements, memory_resource_type ressource_type, VkMemoryPropertyFlags minimal, VkMemoryPropertyFlags optimal = 0);
-    memory_heap_chunk allocate(VkBuffer buffer, memory_resource_type ressource_type, VkMemoryPropertyFlags minimal, VkMemoryPropertyFlags optimal = 0);
-    memory_heap_chunk allocate(VkImage image, memory_resource_type ressource_type, VkMemoryPropertyFlags minimal, VkMemoryPropertyFlags optimal = 0);
+    memory_heap_chunk allocate(const VkMemoryRequirements& requirements, const VkMemoryDedicatedRequirements& dedicated, memory_resource_type resource_type, VkMemoryPropertyFlags minimal, VkMemoryPropertyFlags optimal = 0);
+    memory_heap_chunk allocate(const VkMemoryRequirements& requirements, memory_resource_type resource_type, VkMemoryPropertyFlags minimal, VkMemoryPropertyFlags optimal = 0);
+    memory_heap_chunk allocate(VkBuffer buffer, memory_resource_type resource_type, VkMemoryPropertyFlags minimal, VkMemoryPropertyFlags optimal = 0);
+    memory_heap_chunk allocate(VkImage image, memory_resource_type resource_type, VkMemoryPropertyFlags minimal, VkMemoryPropertyFlags optimal = 0);
 
-    memory_heap_chunk allocate_bound(VkBuffer buffer, memory_resource_type ressource_type, VkMemoryPropertyFlags minimal, VkMemoryPropertyFlags optimal = 0);
-    memory_heap_chunk allocate_bound(VkImage image, memory_resource_type ressource_type, VkMemoryPropertyFlags minimal, VkMemoryPropertyFlags optimal = 0);
+    memory_heap_chunk allocate_bound(VkBuffer buffer, memory_resource_type resource_type, VkMemoryPropertyFlags minimal, VkMemoryPropertyFlags optimal = 0);
+    memory_heap_chunk allocate_bound(VkImage image, memory_resource_type resource_type, VkMemoryPropertyFlags minimal, VkMemoryPropertyFlags optimal = 0);
 
     void clean();
 
@@ -218,6 +250,7 @@ private:
 private:
     VkPhysicalDevice m_physical_device{};
     VkDevice m_device{};
+    tph::version m_version{};
     VkPhysicalDeviceMemoryProperties m_memory_properties{};
     std::vector<VkMemoryPropertyFlags> m_heaps_flags{};
     heap_sizes m_sizes{};

@@ -113,15 +113,15 @@ const char* error::what() const noexcept
     return "VK_SUCCESS: No error";
 }
 
-instance::instance(const std::string& application_name, version version, std::span<const char* const> extensions, std::span<const char* const> layers)
+instance::instance(const std::string& application_name, version application_version, version api_version, std::span<const char* const> extensions, std::span<const char* const> layers)
 {
     VkApplicationInfo application_info{};
     application_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
     application_info.pApplicationName = std::data(application_name);
-    application_info.applicationVersion = VK_MAKE_VERSION(version.major, version.minor, version.patch);
+    application_info.applicationVersion = VK_MAKE_VERSION(application_version.major, application_version.minor, application_version.patch);
     application_info.pEngineName = "Tephra";
     application_info.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-    application_info.apiVersion = VK_API_VERSION_1_1;
+    application_info.apiVersion = VK_MAKE_VERSION(api_version.major, api_version.minor, 0);
 
     VkInstanceCreateInfo create_info = {};
     create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -367,7 +367,7 @@ image& image::operator=(image&& other) noexcept
 
 /////////////////////////////////////////////////////////////////////
 
-image_view::image_view(VkDevice device, VkImage image, VkImageViewType type, VkFormat format, VkImageAspectFlags aspect)
+image_view::image_view(VkDevice device, VkImage image, VkImageViewType type, VkFormat format, VkComponentMapping components, VkImageAspectFlags aspect)
 :m_device{device}
 {
     VkImageViewCreateInfo create_info{};
@@ -375,10 +375,7 @@ image_view::image_view(VkDevice device, VkImage image, VkImageViewType type, VkF
     create_info.image = image;
     create_info.viewType = type;
     create_info.format = format;
-    create_info.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-    create_info.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-    create_info.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-    create_info.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+    create_info.components = components;
     create_info.subresourceRange.aspectMask = aspect;
     create_info.subresourceRange.baseMipLevel = 0;
     create_info.subresourceRange.levelCount = 1;

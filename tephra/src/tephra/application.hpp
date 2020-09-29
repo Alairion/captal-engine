@@ -15,6 +15,8 @@
 namespace tph
 {
 
+TEPHRA_API tph::version enumerate_instance_version();
+
 enum class application_options : std::uint32_t
 {
     none = 0x00,
@@ -35,6 +37,7 @@ public:
     constexpr application() = default;
 
     application(const std::string& application_name, version application_version, application_options options = application_options::none);
+    application(const std::string& application_name, version application_version, version api_version, application_options options = application_options::none);
 
     ~application() = default;
     application(const application&) = delete;
@@ -63,6 +66,11 @@ public:
         return m_options;
     }
 
+    tph::version api_version() const noexcept
+    {
+        return m_version;
+    }
+
     std::span<const physical_device> enumerate_physical_devices() const noexcept
     {
         return m_physical_devices;
@@ -72,6 +80,7 @@ private:
     application_options m_options{};
     vulkan::instance m_instance{};
     vulkan::debug_messenger m_debug_messenger{};
+    tph::version m_version{};
     std::vector<physical_device> m_physical_devices{};
 };
 

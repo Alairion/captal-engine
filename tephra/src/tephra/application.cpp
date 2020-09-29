@@ -11,6 +11,24 @@ using namespace tph::vulkan::functions;
 namespace tph
 {
 
+tph::version enumerate_instance_version()
+{
+    tph::vulkan::functions::load_external_level_functions();
+    tph::vulkan::functions::load_global_level_functions();
+
+    std::uint32_t native_version{};
+
+    if(const auto result{vkEnumerateInstanceVersion(&native_version)}; result != VK_SUCCESS)
+        throw vulkan::error{result};
+
+    tph::version output{};
+    output.major = static_cast<std::uint16_t>(VK_VERSION_MAJOR(native_version));
+    output.minor = static_cast<std::uint16_t>(VK_VERSION_MINOR(native_version));
+    output.patch = VK_VERSION_PATCH(native_version);
+
+    return output;
+}
+
 static VKAPI_ATTR VkBool32 VKAPI_CALL debug_messenger_callback(VkDebugUtilsMessageSeverityFlagBitsEXT severity, VkDebugUtilsMessageTypeFlagsEXT type, const VkDebugUtilsMessengerCallbackDataEXT* callback_data, void*)
 {
     const auto format_type = [](VkDebugUtilsMessageTypeFlagsEXT type) -> std::string
@@ -207,7 +225,14 @@ static std::vector<physical_device> make_physical_devices(VkInstance instance)
 }
 
 application::application(const std::string& application_name, version application_version, application_options options)
+:application{application_name, application_version, enumerate_instance_version(), options}
+{
+
+}
+
+application::application(const std::string& application_name, version application_version, version api_version, application_options options)
 :m_options{options}
+,m_version{api_version}
 {
     tph::vulkan::functions::load_external_level_functions();
     tph::vulkan::functions::load_global_level_functions();
@@ -215,7 +240,7 @@ application::application(const std::string& application_name, version applicatio
     const std::vector<const char*> layers{required_instance_layers(m_options)};
     const std::vector<const char*> extensions{required_instance_extensions(m_options, layers)};
 
-    m_instance = vulkan::instance{application_name, application_version, extensions, layers};
+    m_instance = vulkan::instance{application_name, application_version, api_version, extensions, layers};
 
     tph::vulkan::functions::load_instance_level_functions(m_instance);
 

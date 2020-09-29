@@ -48,17 +48,17 @@ public:
     texture(texture&&) noexcept = default;
     texture& operator=(texture&&) noexcept = default;
 
-    tph::texture::size_type width() const noexcept
+    std::uint32_t width() const noexcept
     {
         return m_texture.width();
     }
 
-    tph::texture::size_type height() const noexcept
+    std::uint32_t height() const noexcept
     {
         return m_texture.height();
     }
 
-    tph::texture::size_type depth() const noexcept
+    std::uint32_t depth() const noexcept
     {
         return m_texture.depth();
     }

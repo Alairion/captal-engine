@@ -30,6 +30,25 @@ enum class texture_usage : std::uint32_t
     input_attachment = VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT,
 };
 
+enum class component_swizzle : std::uint32_t
+{
+    identity = VK_COMPONENT_SWIZZLE_IDENTITY,
+    zero = VK_COMPONENT_SWIZZLE_ZERO,
+    one = VK_COMPONENT_SWIZZLE_ONE,
+    r = VK_COMPONENT_SWIZZLE_R,
+    g = VK_COMPONENT_SWIZZLE_G,
+    b = VK_COMPONENT_SWIZZLE_B,
+    a = VK_COMPONENT_SWIZZLE_A
+};
+
+struct component_mapping
+{
+    component_swizzle r{component_swizzle::identity};
+    component_swizzle g{component_swizzle::identity};
+    component_swizzle b{component_swizzle::identity};
+    component_swizzle a{component_swizzle::identity};
+};
+
 enum class address_mode : std::uint32_t
 {
     repeat = VK_SAMPLER_ADDRESS_MODE_REPEAT,
@@ -58,7 +77,15 @@ struct sampling_options
     bool normalized_coordinates{true};
 };
 
-texture_aspect aspect_from_format(texture_format format) noexcept;
+struct texture_info
+{
+    texture_format format{};
+    texture_usage usage{};
+    component_mapping components{};
+    tph::sample_count sample_count{tph::sample_count::msaa_x1};
+};
+
+TEPHRA_API texture_aspect aspect_from_format(texture_format format) noexcept;
 
 class TEPHRA_API texture
 {
@@ -69,19 +96,16 @@ class TEPHRA_API texture
     friend class swapchain;
 
 public:
-    using size_type = std::uint32_t;
-
-public:
     constexpr texture() = default;
 
-    texture(renderer& renderer, size_type width, texture_format format, texture_usage usage, tph::sample_count sample_count = tph::sample_count::msaa_x1);
-    texture(renderer& renderer, size_type width, const sampling_options& options, texture_format format, texture_usage usage, tph::sample_count sample_count = tph::sample_count::msaa_x1);
+    texture(renderer& renderer, std::uint32_t width, const texture_info& info);
+    texture(renderer& renderer, std::uint32_t width, const texture_info& info, const sampling_options& options);
 
-    texture(renderer& renderer, size_type width, size_type height, texture_format format, texture_usage usage, tph::sample_count sample_count = tph::sample_count::msaa_x1);
-    texture(renderer& renderer, size_type width, size_type height, const sampling_options& options, texture_format format, texture_usage usage, tph::sample_count sample_count = tph::sample_count::msaa_x1);
+    texture(renderer& renderer, std::uint32_t width, std::uint32_t height, const texture_info& info);
+    texture(renderer& renderer, std::uint32_t width, std::uint32_t height, const texture_info& info, const sampling_options& options);
 
-    texture(renderer& renderer, size_type width, size_type height, size_type depth, texture_format format, texture_usage usage, tph::sample_count sample_count = tph::sample_count::msaa_x1);
-    texture(renderer& renderer, size_type width, size_type height, size_type depth, const sampling_options& options, texture_format format, texture_usage usage, tph::sample_count sample_count = tph::sample_count::msaa_x1);
+    texture(renderer& renderer, std::uint32_t width, std::uint32_t height, std::uint32_t depth, const texture_info& info);
+    texture(renderer& renderer, std::uint32_t width, std::uint32_t height, std::uint32_t depth, const texture_info& info, const sampling_options& options);
 
     ~texture() = default;
     texture(const texture&) = delete;
@@ -99,17 +123,17 @@ public:
         return m_aspect;
     }
 
-    size_type width() const noexcept
+    std::uint32_t width() const noexcept
     {
         return m_width;
     }
 
-    size_type height() const noexcept
+    std::uint32_t height() const noexcept
     {
         return m_height;
     }
 
-    size_type depth() const noexcept
+    std::uint32_t depth() const noexcept
     {
         return m_depth;
     }
@@ -123,9 +147,9 @@ private:
     vulkan::sampler m_sampler{};
     texture_format m_format{texture_format::undefined};
     texture_aspect m_aspect{};
-    size_type m_width{};
-    size_type m_height{};
-    size_type m_depth{};
+    std::uint32_t m_width{};
+    std::uint32_t m_height{};
+    std::uint32_t m_depth{};
 };
 
 template<>

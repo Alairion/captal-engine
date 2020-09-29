@@ -96,7 +96,7 @@
 namespace tph::vulkan
 {
 
-class TEPHRA_API error : public std::exception
+class TEPHRA_API error final : public std::exception
 {
 public:
     error() noexcept = default;
@@ -129,7 +129,7 @@ class TEPHRA_API instance
 {
 public:
     constexpr instance() = default;
-    explicit instance(const std::string& application_name, tph::version version, std::span<const char* const> extensions, std::span<const char* const> layers);
+    explicit instance(const std::string& application_name, tph::version application_version, tph::version api_version, std::span<const char* const> extensions, std::span<const char* const> layers);
     ~instance();
 
     instance(const instance&) = delete;
@@ -312,7 +312,7 @@ class TEPHRA_API image_view
 {
 public:
     constexpr image_view() = default;
-    image_view(VkDevice device, VkImage image, VkImageViewType type, VkFormat format, VkImageAspectFlags aspect);
+    image_view(VkDevice device, VkImage image, VkImageViewType type, VkFormat format, VkComponentMapping components, VkImageAspectFlags aspect);
     ~image_view();
 
     image_view(const image_view&) = delete;

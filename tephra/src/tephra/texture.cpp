@@ -11,6 +11,17 @@ using namespace tph::vulkan::functions;
 namespace tph
 {
 
+static VkComponentMapping make_mapping(const component_mapping& mapping)
+{
+    return VkComponentMapping
+    {
+        static_cast<VkComponentSwizzle>(mapping.r),
+        static_cast<VkComponentSwizzle>(mapping.g),
+        static_cast<VkComponentSwizzle>(mapping.b),
+        static_cast<VkComponentSwizzle>(mapping.a)
+    };
+}
+
 static vulkan::sampler make_sampler(renderer& renderer, const sampling_options& options)
 {
     return vulkan::sampler
@@ -49,8 +60,8 @@ texture_aspect aspect_from_format(texture_format format) noexcept
     }
 }
 
-texture::texture(renderer& renderer, size_type width, texture_format format, texture_usage usage, tph::sample_count sample_count)
-:m_format{format}
+texture::texture(renderer& renderer, std::uint32_t width, const texture_info& info)
+:m_format{info.format}
 ,m_aspect{aspect_from_format(m_format)}
 ,m_width{width}
 ,m_height{1}
@@ -62,14 +73,14 @@ texture::texture(renderer& renderer, size_type width, texture_format format, tex
         VkExtent3D{width, 1, 1},
         VK_IMAGE_TYPE_1D,
         static_cast<VkFormat>(m_format),
-        static_cast<VkImageUsageFlags>(usage),
+        static_cast<VkImageUsageFlags>(info.usage),
         VK_IMAGE_TILING_OPTIMAL,
-        static_cast<VkSampleCountFlagBits>(sample_count)
+        static_cast<VkSampleCountFlagBits>(info.sample_count)
     };
 
     m_memory = renderer.allocator().allocate_bound(m_image, vulkan::memory_resource_type::non_linear, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-    if(need_image_view(usage))
+    if(need_image_view(info.usage))
     {
         m_image_view = vulkan::image_view
         {
@@ -77,13 +88,14 @@ texture::texture(renderer& renderer, size_type width, texture_format format, tex
             m_image,
             VK_IMAGE_VIEW_TYPE_1D,
             static_cast<VkFormat>(m_format),
+            make_mapping(info.components),
             static_cast<VkImageAspectFlags>(m_aspect)
         };
     }
 }
 
-texture::texture(renderer& renderer, size_type width, const sampling_options& options, texture_format format, texture_usage usage, tph::sample_count sample_count)
-:m_format{format}
+texture::texture(renderer& renderer, std::uint32_t width, const texture_info& info, const sampling_options& options)
+:m_format{info.format}
 ,m_aspect{aspect_from_format(m_format)}
 ,m_width{width}
 ,m_height{1}
@@ -95,14 +107,14 @@ texture::texture(renderer& renderer, size_type width, const sampling_options& op
         VkExtent3D{width, 1, 1},
         VK_IMAGE_TYPE_1D,
         static_cast<VkFormat>(m_format),
-        static_cast<VkImageUsageFlags>(usage),
+        static_cast<VkImageUsageFlags>(info.usage),
         VK_IMAGE_TILING_OPTIMAL,
-        static_cast<VkSampleCountFlagBits>(sample_count)
+        static_cast<VkSampleCountFlagBits>(info.sample_count)
     };
 
     m_memory = renderer.allocator().allocate_bound(m_image, vulkan::memory_resource_type::non_linear, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-    if(need_image_view(usage))
+    if(need_image_view(info.usage))
     {
         m_image_view = vulkan::image_view
         {
@@ -110,18 +122,19 @@ texture::texture(renderer& renderer, size_type width, const sampling_options& op
             m_image,
             VK_IMAGE_VIEW_TYPE_1D,
             static_cast<VkFormat>(m_format),
+            make_mapping(info.components),
             static_cast<VkImageAspectFlags>(m_aspect)
         };
     }
 
-    if(static_cast<bool>(usage & texture_usage::sampled))
+    if(static_cast<bool>(info.usage & texture_usage::sampled))
     {
         m_sampler = make_sampler(renderer, options);
     }
 }
 
-texture::texture(renderer& renderer, size_type width, size_type height, texture_format format, texture_usage usage, tph::sample_count sample_count)
-:m_format{format}
+texture::texture(renderer& renderer, std::uint32_t width, std::uint32_t height, const texture_info& info)
+:m_format{info.format}
 ,m_aspect{aspect_from_format(m_format)}
 ,m_width{width}
 ,m_height{height}
@@ -133,14 +146,14 @@ texture::texture(renderer& renderer, size_type width, size_type height, texture_
         VkExtent3D{width, height, 1},
         VK_IMAGE_TYPE_2D,
         static_cast<VkFormat>(m_format),
-        static_cast<VkImageUsageFlags>(usage),
+        static_cast<VkImageUsageFlags>(info.usage),
         VK_IMAGE_TILING_OPTIMAL,
-        static_cast<VkSampleCountFlagBits>(sample_count)
+        static_cast<VkSampleCountFlagBits>(info.sample_count)
     };
 
     m_memory = renderer.allocator().allocate_bound(m_image, vulkan::memory_resource_type::non_linear, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-    if(need_image_view(usage))
+    if(need_image_view(info.usage))
     {
         m_image_view = vulkan::image_view
         {
@@ -148,13 +161,14 @@ texture::texture(renderer& renderer, size_type width, size_type height, texture_
             m_image,
             VK_IMAGE_VIEW_TYPE_2D,
             static_cast<VkFormat>(m_format),
+            make_mapping(info.components),
             static_cast<VkImageAspectFlags>(m_aspect)
         };
     }
 }
 
-texture::texture(renderer& renderer, size_type width, size_type height, const sampling_options& options, texture_format format, texture_usage usage, tph::sample_count sample_count)
-:m_format{format}
+texture::texture(renderer& renderer, std::uint32_t width, std::uint32_t height, const texture_info& info, const sampling_options& options)
+:m_format{info.format}
 ,m_aspect{aspect_from_format(m_format)}
 ,m_width{width}
 ,m_height{height}
@@ -166,14 +180,14 @@ texture::texture(renderer& renderer, size_type width, size_type height, const sa
         VkExtent3D{width, height, 1},
         VK_IMAGE_TYPE_2D,
         static_cast<VkFormat>(m_format),
-        static_cast<VkImageUsageFlags>(usage),
+        static_cast<VkImageUsageFlags>(info.usage),
         VK_IMAGE_TILING_OPTIMAL,
-        static_cast<VkSampleCountFlagBits>(sample_count)
+        static_cast<VkSampleCountFlagBits>(info.sample_count)
     };
 
     m_memory = renderer.allocator().allocate_bound(m_image, vulkan::memory_resource_type::non_linear, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-    if(need_image_view(usage))
+    if(need_image_view(info.usage))
     {
         m_image_view = vulkan::image_view
         {
@@ -181,18 +195,19 @@ texture::texture(renderer& renderer, size_type width, size_type height, const sa
             m_image,
             VK_IMAGE_VIEW_TYPE_2D,
             static_cast<VkFormat>(m_format),
+            make_mapping(info.components),
             static_cast<VkImageAspectFlags>(m_aspect)
         };
     }
 
-    if(static_cast<bool>(usage & texture_usage::sampled))
+    if(static_cast<bool>(info.usage & texture_usage::sampled))
     {
         m_sampler = make_sampler(renderer, options);
     }
 }
 
-texture::texture(renderer& renderer, size_type width, size_type height, size_type depth, texture_format format, texture_usage usage, tph::sample_count sample_count)
-:m_format{format}
+texture::texture(renderer& renderer, std::uint32_t width, std::uint32_t height, std::uint32_t depth, const texture_info& info)
+:m_format{info.format}
 ,m_aspect{aspect_from_format(m_format)}
 ,m_width{width}
 ,m_height{height}
@@ -204,14 +219,14 @@ texture::texture(renderer& renderer, size_type width, size_type height, size_typ
         VkExtent3D{width, height, depth},
         VK_IMAGE_TYPE_3D,
         static_cast<VkFormat>(m_format),
-        static_cast<VkImageUsageFlags>(usage),
+        static_cast<VkImageUsageFlags>(info.usage),
         VK_IMAGE_TILING_OPTIMAL,
-        static_cast<VkSampleCountFlagBits>(sample_count)
+        static_cast<VkSampleCountFlagBits>(info.sample_count)
     };
 
     m_memory = renderer.allocator().allocate_bound(m_image, vulkan::memory_resource_type::non_linear, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-    if(need_image_view(usage))
+    if(need_image_view(info.usage))
     {
         m_image_view = vulkan::image_view
         {
@@ -219,13 +234,14 @@ texture::texture(renderer& renderer, size_type width, size_type height, size_typ
             m_image,
             VK_IMAGE_VIEW_TYPE_3D,
             static_cast<VkFormat>(m_format),
+            make_mapping(info.components),
             static_cast<VkImageAspectFlags>(m_aspect)
         };
     }
 }
 
-texture::texture(renderer& renderer, size_type width, size_type height, size_type depth, const sampling_options& options, texture_format format, texture_usage usage, tph::sample_count sample_count)
-:m_format{format}
+texture::texture(renderer& renderer, std::uint32_t width, std::uint32_t height, std::uint32_t depth, const texture_info& info, const sampling_options& options)
+:m_format{info.format}
 ,m_aspect{aspect_from_format(m_format)}
 ,m_width{width}
 ,m_height{height}
@@ -237,14 +253,14 @@ texture::texture(renderer& renderer, size_type width, size_type height, size_typ
         VkExtent3D{width, height, depth},
         VK_IMAGE_TYPE_3D,
         static_cast<VkFormat>(m_format),
-        static_cast<VkImageUsageFlags>(usage),
+        static_cast<VkImageUsageFlags>(info.usage),
         VK_IMAGE_TILING_OPTIMAL,
-        static_cast<VkSampleCountFlagBits>(sample_count)
+        static_cast<VkSampleCountFlagBits>(info.sample_count)
     };
 
     m_memory = renderer.allocator().allocate_bound(m_image, vulkan::memory_resource_type::non_linear, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-    if(need_image_view(usage))
+    if(need_image_view(info.usage))
     {
         m_image_view = vulkan::image_view
         {
@@ -252,11 +268,12 @@ texture::texture(renderer& renderer, size_type width, size_type height, size_typ
             m_image,
             VK_IMAGE_VIEW_TYPE_3D,
             static_cast<VkFormat>(m_format),
+            make_mapping(info.components),
             static_cast<VkImageAspectFlags>(m_aspect)
         };
     }
 
-    if(static_cast<bool>(usage & texture_usage::sampled))
+    if(static_cast<bool>(info.usage & texture_usage::sampled))
     {
         m_sampler = make_sampler(renderer, options);
     }

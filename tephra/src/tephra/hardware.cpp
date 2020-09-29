@@ -23,6 +23,9 @@ static physical_device_properties make_properties(VkPhysicalDevice physical_devi
 
     physical_device_properties output{};
     output.name = properties.deviceName;
+    output.api_version.major = static_cast<std::uint16_t>(VK_VERSION_MAJOR(properties.apiVersion));
+    output.api_version.minor = static_cast<std::uint16_t>(VK_VERSION_MINOR(properties.apiVersion));
+    output.api_version.patch = VK_VERSION_PATCH(properties.apiVersion);
     output.type = static_cast<physical_device_type>(properties.deviceType);
     std::copy(std::cbegin(properties.pipelineCacheUUID), std::cend(properties.pipelineCacheUUID), std::begin(output.uuid));
 

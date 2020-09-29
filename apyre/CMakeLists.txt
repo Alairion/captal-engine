@@ -14,12 +14,14 @@ add_library(apyre SHARED
     src/apyre/window.hpp
     src/apyre/event.hpp
     src/apyre/messagebox.hpp
+    src/apyre/battery.hpp
 
     #Sources:
     src/apyre/application.cpp
     src/apyre/window.cpp
     src/apyre/event.cpp
     src/apyre/messagebox.cpp
+    src/apyre/battery.cpp
 )
 
 set_target_properties(apyre PROPERTIES PREFIX "")

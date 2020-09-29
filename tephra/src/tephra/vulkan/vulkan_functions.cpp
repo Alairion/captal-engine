@@ -1,5 +1,6 @@
 #include "vulkan_functions.hpp"
 
+#include <mutex>
 #include <nes/shared_library.hpp>
 
 namespace tph::vulkan::functions
@@ -22,17 +23,33 @@ namespace tph::vulkan::functions
 
 void load_external_level_functions()
 {
-    static nes::shared_library vulkan_library{};
-    vulkan_library = nes::shared_library{vulkan_path};
+    static std::mutex mutex{};
+    std::lock_guard lock{mutex};
 
-    #define TEPHRA_EXTERNAL_LEVEL_FUNCTION(function) function = vulkan_library.load<PFN_##function>(#function);
-    #include "vulkan_functions_list"
+    static nes::shared_library vulkan_library{};
+    static bool loaded{};
+
+    if(!std::exchange(loaded, true))
+    {
+        vulkan_library = nes::shared_library{vulkan_path};
+
+        #define TEPHRA_EXTERNAL_LEVEL_FUNCTION(function) function = vulkan_library.load<PFN_##function>(#function);
+        #include "vulkan_functions_list"
+    }
 }
 
 void load_global_level_functions()
 {
-    #define TEPHRA_GLOBAL_LEVEL_FUNCTION(function) function = reinterpret_cast<PFN_##function>(vkGetInstanceProcAddr(nullptr, #function));
-    #include "vulkan_functions_list"
+    static std::mutex mutex{};
+    std::lock_guard lock{mutex};
+
+    static bool loaded{};
+
+    if(!std::exchange(loaded, true))
+    {
+        #define TEPHRA_GLOBAL_LEVEL_FUNCTION(function) function = reinterpret_cast<PFN_##function>(vkGetInstanceProcAddr(nullptr, #function));
+        #include "vulkan_functions_list"
+    }
 }
 
 void load_instance_level_functions(VkInstance instance)

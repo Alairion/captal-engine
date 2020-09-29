@@ -29,6 +29,7 @@ enum class physical_device_type : std::uint32_t
 struct physical_device_properties
 {
     physical_device_type type{};
+    tph::version api_version{};
     std::string name{};
     std::array<std::uint8_t, 16> uuid{};
 };

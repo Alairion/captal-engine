@@ -17,7 +17,8 @@ static tph::texture_format format_from_color_space(color_space space) noexcept
 
 static tph::texture make_texture(const tph::sampling_options& sampling, tph::texture_format format, tph::image image)
 {
-    tph::texture texture{cpt::engine::instance().renderer(), static_cast<std::uint32_t>(image.width()), static_cast<std::uint32_t>(image.height()), sampling, format, tph::texture_usage::sampled | tph::texture_usage::transfer_destination};
+    tph::texture texture{cpt::engine::instance().renderer(), static_cast<std::uint32_t>(image.width()), static_cast<std::uint32_t>(image.height()),
+                         tph::texture_info{format, tph::texture_usage::sampled | tph::texture_usage::transfer_destination}, sampling};
 
     auto&& [command_buffer, signal] = cpt::engine::instance().begin_transfer();
 
