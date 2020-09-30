@@ -587,9 +587,14 @@ texture_ptr text_drawer::make_texture(std::string_view string, std::unordered_ma
         cache.emplace(std::make_pair(codepoint, std::make_pair(std::move(character_glyph), texture_pos)));
     }
 
-    texture_ptr texture{cpt::make_texture(texture_width, texture_height, tph::sampling_options{}, tph::texture_format::r8g8b8a8_srgb, tph::texture_usage::transfer_destination | tph::texture_usage::sampled)};
+    constexpr auto format{tph::texture_format::r8g8b8a8_srgb};
+    constexpr auto usage{tph::texture_usage::transfer_destination | tph::texture_usage::sampled};
+    auto texture{cpt::make_texture(texture_width, texture_height, tph::texture_info{format, usage}, tph::sampling_options{})};
 
-    tph::cmd::transition(command_buffer, texture->get_texture(), tph::resource_access::none, tph::resource_access::transfer_write, tph::pipeline_stage::top_of_pipe, tph::pipeline_stage::transfer, tph::texture_layout::undefined, tph::texture_layout::transfer_destination_optimal);
+    tph::cmd::transition(command_buffer, texture->get_texture(),
+                         tph::resource_access::none, tph::resource_access::transfer_write,
+                         tph::pipeline_stage::top_of_pipe, tph::pipeline_stage::transfer,
+                         tph::texture_layout::undefined, tph::texture_layout::transfer_destination_optimal);
 
     for(auto&& [codepoint, slot] : cache)
     {
@@ -607,7 +612,10 @@ texture_ptr text_drawer::make_texture(std::string_view string, std::unordered_ma
         }
     }
 
-    tph::cmd::transition(command_buffer, texture->get_texture(), tph::resource_access::transfer_write, tph::resource_access::shader_read, tph::pipeline_stage::transfer, tph::pipeline_stage::fragment_shader, tph::texture_layout::transfer_destination_optimal, tph::texture_layout::shader_read_only_optimal);
+    tph::cmd::transition(command_buffer, texture->get_texture(),
+                         tph::resource_access::transfer_write, tph::resource_access::shader_read,
+                         tph::pipeline_stage::transfer, tph::pipeline_stage::fragment_shader,
+                         tph::texture_layout::transfer_destination_optimal, tph::texture_layout::shader_read_only_optimal);
 
     return texture;
 }

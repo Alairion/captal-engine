@@ -155,7 +155,7 @@ static tph::texture make_multisampling_texture(const video_mode& info, tph::text
         return tph::texture{};
     }
 
-    return tph::texture{engine::instance().renderer(), info.width, info.height, surface_format, tph::texture_usage::color_attachment, info.sample_count};
+    return tph::texture{engine::instance().renderer(), info.width, info.height, tph::texture_info{surface_format, tph::texture_usage::color_attachment, {}, info.sample_count}};
 }
 
 static tph::texture make_depth_texture(const video_mode& info)
@@ -165,7 +165,7 @@ static tph::texture make_depth_texture(const video_mode& info)
         return tph::texture{};
     }
 
-    return tph::texture{engine::instance().renderer(), info.width, info.height, info.depth_format, tph::texture_usage::depth_stencil_attachment, info.sample_count};
+    return tph::texture{engine::instance().renderer(), info.width, info.height, tph::texture_info{info.depth_format, tph::texture_usage::depth_stencil_attachment, {}, info.sample_count}};
 }
 
 static std::vector<std::reference_wrapper<tph::texture>> make_attachments(const video_mode& info, tph::texture& color, tph::texture& multisampling, tph::texture& depth)

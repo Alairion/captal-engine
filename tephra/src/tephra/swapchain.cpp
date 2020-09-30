@@ -51,7 +51,7 @@ swapchain::swapchain(renderer& renderer, surface& surface, const swapchain_info&
         auto& texture{m_textures.emplace_back()};
 
         texture.m_image = vulkan::image{image};
-        texture.m_image_view = vulkan::image_view{m_device, image, VK_IMAGE_VIEW_TYPE_2D, static_cast<VkFormat>(info.format), static_cast<VkImageAspectFlags>(aspect_from_format(info.format))};
+        texture.m_image_view = vulkan::image_view{m_device, image, VK_IMAGE_VIEW_TYPE_2D, static_cast<VkFormat>(info.format), VkComponentMapping{}, static_cast<VkImageAspectFlags>(aspect_from_format(info.format))};
         texture.m_format = info.format;
         texture.m_aspect = aspect_from_format(info.format);
         texture.m_width = info.width;
