@@ -1,9 +1,5 @@
 #include "vulkan.hpp"
 
-#include <algorithm>
-#include <stdexcept>
-#include <fstream>
-
 #include "vulkan_functions.hpp"
 
 using namespace tph::vulkan::functions;
