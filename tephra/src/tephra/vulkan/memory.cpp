@@ -558,7 +558,7 @@ memory_heap_chunk memory_allocator::allocate(VkBuffer buffer, memory_resource_ty
             const std::uint32_t memory_type{find_memory_type(m_memory_properties, requirements.memoryRequirements.memoryTypeBits, minimal, optimal)};
             const std::uint64_t size{requirements.memoryRequirements.size};
 
-            return m_heaps.emplace_front(m_device, buffer, memory_type, size).allocate(resource_type, size, 0);
+            return m_heaps.emplace_front(m_device, buffer, memory_type, size).allocate_dedicated(size);
         }
         else
         {
@@ -596,7 +596,7 @@ memory_heap_chunk memory_allocator::allocate(VkImage image, memory_resource_type
             const std::uint32_t memory_type{find_memory_type(m_memory_properties, requirements.memoryRequirements.memoryTypeBits, minimal, optimal)};
             const std::uint64_t size{requirements.memoryRequirements.size};
 
-            return m_heaps.emplace_front(m_device, image, memory_type, size).allocate(resource_type, size, 0);
+            return m_heaps.emplace_front(m_device, image, memory_type, size).allocate_dedicated(size);
         }
         else
         {

@@ -238,7 +238,6 @@ void render_texture::present()
     };
 
     auto& data{find_data()};
-    data.begin = false;
 
     engine::instance().flush_transfers();
 
@@ -253,6 +252,8 @@ void render_texture::present()
     std::unique_lock lock{engine::instance().submit_mutex()};
     tph::submit(engine::instance().renderer(), submit_info, data.fence);
     lock.unlock();
+
+    data.begin = false;
 }
 
 render_texture::frame_data& render_texture::add_frame_data()
@@ -266,9 +267,12 @@ void render_texture::wait_all()
 {
     for(frame_data& data : m_frames_data)
     {
-        data.fence.wait();
-        data.signal();
-        data.signal.disconnect_all();
+        if(!data.begin)
+        {
+            data.fence.wait();
+            data.signal();
+            data.signal.disconnect_all();
+        }
     }
 }
 

@@ -13,9 +13,6 @@
 [submodule "swell/external/ogg"]
 	path = swell/external/ogg
 	url = https://github.com/xiph/ogg.git
-[submodule "captal/external/zlib"]
-	path = captal/external/zlib
-	url = https://github.com/zlib-ng/zlib-ng.git
 [submodule "captal/external/chipmunk"]
 	path = captal/external/chipmunk
 	url = https://github.com/slembcke/Chipmunk2D.git
@@ -34,3 +31,6 @@
 [submodule "external/catch"]
 	path = external/catch
 	url = https://github.com/catchorg/Catch2.git
+[submodule "captal/external/zlib"]
+	path = captal/external/zlib
+	url = https://github.com/zlib-ng/zlib-ng.git

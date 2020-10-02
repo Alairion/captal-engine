@@ -2,8 +2,6 @@ cmake_minimum_required(VERSION 3.15.7)
 
 project(captal VERSION 0.1.0)
 
-option(CAPTAL_BUILD_EXAMPLE OFF)
-
 include(cmake/buildchipmunk.cmake)
 include(cmake/buildfreetype.cmake)
 include(cmake/buildzlib.cmake)
@@ -121,7 +119,7 @@ target_link_libraries(captal
     PRIVATE
         freetype
         chipmunk_static
-        zlib_static
+        zlib
         not_enough_standards
 )
 
@@ -141,7 +139,7 @@ install(DIRECTORY ${PROJECT_SOURCE_DIR}/src/captal
         DESTINATION ${PROJECT_SOURCE_DIR}/include
         FILES_MATCHING PATTERN *.hpp)
 
-if(CAPTAL_BUILD_EXAMPLE)
+if(CAPTAL_BUILD_CAPTAL_EXAMPLES)
     add_executable(captal_test "main.cpp")
     target_link_libraries(captal_test PRIVATE captal)
     target_include_directories(captal_test PRIVATE ${GLOBAL_INCLUDES})

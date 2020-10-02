@@ -65,4 +65,4 @@ if(CAPTAL_BUILD_CAPTAL)
     add_subdirectory(captal)
 endif()
 
-export(TARGETS captal_foundation apyre tephra swell captal NAMESPACE Captal:: FILE CaptalTargets.cmake)
+#export(TARGETS captal_foundation apyre tephra swell captal NAMESPACE Captal:: FILE CaptalTargets.cmake)

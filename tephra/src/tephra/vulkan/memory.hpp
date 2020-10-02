@@ -163,7 +163,7 @@ public:
 
     bool dedicated() const noexcept
     {
-        return m_heap.index() == 2;
+        return m_heap.index() == 1;
     }
 
     operator VkDevice() const noexcept

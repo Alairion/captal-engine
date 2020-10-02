@@ -10,6 +10,17 @@ option(TEPHRA_USE_PLATFORM_XLIB "If on, enable the Linux Xlib surface extension"
 option(TEPHRA_USE_PLATFORM_XCB "If on, enable the Linux XCB surface extension" OFF)
 option(TEPHRA_USE_PLATFORM_WAYLAND "If on, enable the Linux Wayland surface extension" OFF)
 
+if(    NOT TEPHRA_USE_PLATFORM_ANDROID
+   AND NOT TEPHRA_USE_PLATFORM_IOS
+   AND NOT TEPHRA_USE_PLATFORM_WIN32
+   AND NOT TEPHRA_USE_PLATFORM_MACOS
+   AND NOT TEPHRA_USE_PLATFORM_XLIB
+   AND NOT TEPHRA_USE_PLATFORM_XCB
+   AND NOT TEPHRA_USE_PLATFORM_WAYLAND)
+
+
+endif()
+
 find_package(Vulkan REQUIRED)
 captal_download_submodule(tephra/external/stb FALSE)
 

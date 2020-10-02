@@ -133,7 +133,7 @@ static std::uint32_t choose_generic_family(const std::vector<VkQueueFamilyProper
     std::terminate();
 }
 
-static std::uint32_t choose_present_family(VkPhysicalDevice physical_device, const std::vector<VkQueueFamilyProperties>& queue_families)
+static std::uint32_t choose_present_family(VkPhysicalDevice physical_device [[maybe_unused]], const std::vector<VkQueueFamilyProperties>& queue_families)
 {
 #if defined(TPH_PLATFORM_WIN32)
 

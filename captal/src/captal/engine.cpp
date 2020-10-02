@@ -337,9 +337,12 @@ void engine::wait_all()
 
     for(auto& data : m_transfer_buffers)
     {
-        data.fence.wait();
-        data.signal();
-        data.signal.disconnect_all();
+        if(!m_transfer_began)
+        {
+            data.fence.wait();
+            data.signal();
+            data.signal.disconnect_all();
+        }
     }
 }
 
