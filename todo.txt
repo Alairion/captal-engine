@@ -6,20 +6,17 @@ I: just an idea
 
 Captal Foundation:
 L: Add swap overload for stack_allocator
-L: Replace glm with homemade math library
-L: Replace sigslot with homemade signal library
 
 Tephra:
-A: Complete commands list
+A: Complete commands list (WIP)
 A: Queue family ownership transfer support (tph::texture::transition and tph::buffer::???, and free functions)
-A: Complete physical devices properties structures
-L: Performance query support
-L: Windows export symbol
+A: Complete physical devices properties structures (WIP)
+L: Queries support (WIP)
 L: Multiple applications/renderer support
-I: Multiple queue support ? (maybe overkill for 2D, but may be useful for 3D (since tephra is becoming a generic renderer))
+I: Multiple queue support ?
 
 Swell:
-A: Rework mixer (already a bit reworked, but not the definitive one)
+A: Rework mixer (already a bit reworked, but not the definitive one) (WIP)
 A: Wave block awareness
 L: Support other platforms (as of 18 may 2020 only Win32/OSX/Linux are supported (Portaudio limitation))
 L: Custom exception type
@@ -31,9 +28,8 @@ L: Custom exception type
 
 Captal:
 H: Test initialization
-A: Complete text rendering support (alignments, stylized)
-A: More primitive shapes (circles, ellipses, convex polygons)
+A: Complete text rendering support (alignments, stylized) (WIP)
+A: More primitive shapes (circles, ellipses, convex polygons) (WIP)
 A: Particles support
 L: Custom exception type
 I: Virtual file archive system ? (based on something i wrote few wears ago)
-I: Inject entt namespace in cpt namespace ?

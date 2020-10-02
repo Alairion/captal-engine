@@ -141,19 +141,6 @@ instance::~instance()
         vkDestroyInstance(m_instance, nullptr);
 }
 
-instance::instance(instance&& other) noexcept
-:m_instance{std::exchange(other.m_instance, nullptr)}
-{
-
-}
-
-instance& instance::operator=(instance&& other) noexcept
-{
-    m_instance = std::exchange(other.m_instance, m_instance);
-
-    return *this;
-}
-
 /////////////////////////////////////////////////////////////////////
 
 device::device(VkPhysicalDevice physical_device, std::span<const char* const> extensions, std::span<const char* const> layers, std::span<const VkDeviceQueueCreateInfo> queues, const VkPhysicalDeviceFeatures& features)
@@ -178,19 +165,6 @@ device::~device()
         vkDestroyDevice(m_device, nullptr);
 }
 
-device::device(device&& other) noexcept
-:m_device{std::exchange(other.m_device, nullptr)}
-{
-
-}
-
-device& device::operator=(device&& other) noexcept
-{
-    m_device = std::exchange(other.m_device, m_device);
-
-    return *this;
-}
-
 /////////////////////////////////////////////////////////////////////
 
 device_memory::device_memory(VkDevice device, std::uint32_t memory_type, std::uint64_t size)
@@ -209,21 +183,6 @@ device_memory::~device_memory()
 {
     if(m_device_memory)
         vkFreeMemory(m_device, m_device_memory, nullptr);
-}
-
-device_memory::device_memory(device_memory&& other) noexcept
-:m_device{other.m_device}
-,m_device_memory{std::exchange(other.m_device_memory, nullptr)}
-{
-
-}
-
-device_memory& device_memory::operator=(device_memory&& other) noexcept
-{
-    m_device = std::exchange(other.m_device, m_device);
-    m_device_memory = std::exchange(other.m_device_memory, m_device_memory);
-
-    return *this;
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -245,21 +204,6 @@ buffer::~buffer()
 {
     if(m_buffer)
         vkDestroyBuffer(m_device, m_buffer, nullptr);
-}
-
-buffer::buffer(buffer&& other) noexcept
-:m_device{other.m_device}
-,m_buffer{std::exchange(other.m_buffer, nullptr)}
-{
-
-}
-
-buffer& buffer::operator=(buffer&& other) noexcept
-{
-    m_device = std::exchange(other.m_device, m_device);
-    m_buffer = std::exchange(other.m_buffer, m_buffer);
-
-    return *this;
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -284,22 +228,6 @@ buffer_view::~buffer_view()
         vkDestroyBufferView(m_device, m_buffer_view, nullptr);
 }
 
-buffer_view::buffer_view(buffer_view&& other) noexcept
-:m_device{other.m_device}
-,m_buffer_view{std::exchange(other.m_buffer_view, nullptr)}
-{
-
-}
-
-buffer_view& buffer_view::operator=(buffer_view&& other) noexcept
-{
-    m_device = std::exchange(other.m_device, m_device);
-    m_buffer_view = std::exchange(other.m_buffer_view, m_buffer_view);
-
-    return *this;
-}
-
-
 /////////////////////////////////////////////////////////////////////
 
 image::image(VkDevice device, VkExtent3D size, VkImageType type, VkFormat format, VkImageUsageFlags usage, VkImageTiling tiling, VkSampleCountFlagBits samples)
@@ -322,47 +250,10 @@ image::image(VkDevice device, VkExtent3D size, VkImageType type, VkFormat format
         throw error{result};
 }
 
-image::image(VkDevice device, VkExtent2D size, VkImageType type, VkFormat format, VkImageUsageFlags usage, VkImageTiling tiling, VkSampleCountFlagBits samples)
-:m_device{device}
-{
-    VkImageCreateInfo create_info{};
-    create_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-    create_info.imageType = type;
-    create_info.extent.width = size.width;
-    create_info.extent.height = size.height;
-    create_info.extent.depth = 1;
-    create_info.format = format;
-    create_info.mipLevels = 1;
-    create_info.arrayLayers = 1;
-    create_info.samples = samples;
-    create_info.tiling = tiling;
-    create_info.usage = usage;
-    create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    create_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-
-    if(auto result{vkCreateImage(m_device, &create_info, nullptr, &m_image)}; result != VK_SUCCESS)
-        throw error{result};
-}
-
 image::~image()
 {
     if(m_device && m_image)
         vkDestroyImage(m_device, m_image, nullptr);
-}
-
-image::image(image&& other) noexcept
-:m_device{other.m_device}
-,m_image{std::exchange(other.m_image, nullptr)}
-{
-
-}
-
-image& image::operator=(image&& other) noexcept
-{
-    m_device = std::exchange(other.m_device, m_device);
-    m_image = std::exchange(other.m_image, m_image);
-
-    return *this;
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -390,21 +281,6 @@ image_view::~image_view()
 {
     if(m_image_view)
         vkDestroyImageView(m_device, m_image_view, nullptr);
-}
-
-image_view::image_view(image_view&& other) noexcept
-:m_device{other.m_device}
-,m_image_view{std::exchange(other.m_image_view, nullptr)}
-{
-
-}
-
-image_view& image_view::operator=(image_view&& other) noexcept
-{
-    m_device = std::exchange(other.m_device, m_device);
-    m_image_view = std::exchange(other.m_image_view, m_image_view);
-
-    return *this;
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -440,21 +316,6 @@ sampler::~sampler()
         vkDestroySampler(m_device, m_sampler, nullptr);
 }
 
-sampler::sampler(sampler&& other) noexcept
-:m_device{other.m_device}
-,m_sampler{std::exchange(other.m_sampler, nullptr)}
-{
-
-}
-
-sampler& sampler::operator=(sampler&& other) noexcept
-{
-    m_device = std::exchange(other.m_device, m_device);
-    m_sampler = std::exchange(other.m_sampler, m_sampler);
-
-    return *this;
-}
-
 /////////////////////////////////////////////////////////////////////
 
 framebuffer::framebuffer(VkDevice device, VkRenderPass render_pass, std::span<const VkImageView> attachments, VkExtent2D size, std::uint32_t layers)
@@ -479,21 +340,6 @@ framebuffer::~framebuffer()
         vkDestroyFramebuffer(m_device, m_framebuffer, nullptr);
 }
 
-framebuffer::framebuffer(framebuffer&& other) noexcept
-:m_device{other.m_device}
-,m_framebuffer{std::exchange(other.m_framebuffer, nullptr)}
-{
-
-}
-
-framebuffer& framebuffer::operator=(framebuffer&& other) noexcept
-{
-    m_device = std::exchange(other.m_device, m_device);
-    m_framebuffer = std::exchange(other.m_framebuffer, m_framebuffer);
-
-    return *this;
-}
-
 /////////////////////////////////////////////////////////////////////
 
 shader::shader(VkDevice device, std::size_t size, const std::uint32_t* code)
@@ -514,21 +360,6 @@ shader::~shader()
         vkDestroyShaderModule(m_device, m_shader, nullptr);
 }
 
-shader::shader(shader&& other) noexcept
-:m_device{other.m_device}
-,m_shader{std::exchange(other.m_shader, nullptr)}
-{
-
-}
-
-shader& shader::operator=(shader&& other) noexcept
-{
-    m_device = std::exchange(other.m_device, m_device);
-    m_shader = std::exchange(other.m_shader, m_shader);
-
-    return *this;
-}
-
 /////////////////////////////////////////////////////////////////////
 
 semaphore::semaphore(VkDevice device)
@@ -545,21 +376,6 @@ semaphore::~semaphore()
 {
     if(m_semaphore)
         vkDestroySemaphore(m_device, m_semaphore, nullptr);
-}
-
-semaphore::semaphore(semaphore&& other) noexcept
-:m_device{other.m_device}
-,m_semaphore{std::exchange(other.m_semaphore, nullptr)}
-{
-
-}
-
-semaphore& semaphore::operator=(semaphore&& other) noexcept
-{
-    m_device = std::exchange(other.m_device, m_device);
-    m_semaphore = std::exchange(other.m_semaphore, m_semaphore);
-
-    return *this;
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -581,21 +397,6 @@ fence::~fence()
         vkDestroyFence(m_device, m_fence, nullptr);
 }
 
-fence::fence(fence&& other) noexcept
-:m_device{other.m_device}
-,m_fence{std::exchange(other.m_fence, nullptr)}
-{
-
-}
-
-fence& fence::operator=(fence&& other) noexcept
-{
-    m_device = std::exchange(other.m_device, m_device);
-    m_fence = std::exchange(other.m_fence, m_fence);
-
-    return *this;
-}
-
 /////////////////////////////////////////////////////////////////////
 
 event::event(VkDevice device)
@@ -612,21 +413,6 @@ event::~event()
 {
     if(m_event)
         vkDestroyEvent(m_device, m_event, nullptr);
-}
-
-event::event(event&& other) noexcept
-:m_device{other.m_device}
-,m_event{std::exchange(other.m_event, nullptr)}
-{
-
-}
-
-event& event::operator=(event&& other) noexcept
-{
-    m_device = std::exchange(other.m_device, m_device);
-    m_event = std::exchange(other.m_event, m_event);
-
-    return *this;
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -647,21 +433,6 @@ command_pool::~command_pool()
 {
     if(m_command_pool)
         vkDestroyCommandPool(m_device, m_command_pool, nullptr);
-}
-
-command_pool::command_pool(command_pool&& other) noexcept
-:m_device{other.m_device}
-,m_command_pool{std::exchange(other.m_command_pool, nullptr)}
-{
-
-}
-
-command_pool& command_pool::operator=(command_pool&& other) noexcept
-{
-    m_device = std::exchange(other.m_device, m_device);
-    m_command_pool = std::exchange(other.m_command_pool, m_command_pool);
-
-    return *this;
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -686,23 +457,6 @@ command_buffer::~command_buffer()
         vkFreeCommandBuffers(m_device, m_command_pool, 1, &m_command_buffer);
 }
 
-command_buffer::command_buffer(command_buffer&& other) noexcept
-:m_device{other.m_device}
-,m_command_pool{other.m_command_pool}
-,m_command_buffer{std::exchange(other.m_command_buffer, nullptr)}
-{
-
-}
-
-command_buffer& command_buffer::operator=(command_buffer&& other) noexcept
-{
-    m_device = std::exchange(other.m_device, m_device);
-    m_command_pool = std::exchange(other.m_command_pool, m_command_pool);
-    m_command_buffer = std::exchange(other.m_command_buffer, m_command_buffer);
-
-    return *this;
-}
-
 /////////////////////////////////////////////////////////////////////
 
 descriptor_set_layout::descriptor_set_layout(VkDevice device, std::span<const VkDescriptorSetLayoutBinding> bindings)
@@ -722,22 +476,6 @@ descriptor_set_layout::~descriptor_set_layout()
     if(m_descriptor_set_layout)
         vkDestroyDescriptorSetLayout(m_device, m_descriptor_set_layout, nullptr);
 }
-
-descriptor_set_layout::descriptor_set_layout(descriptor_set_layout&& other) noexcept
-:m_device{other.m_device}
-,m_descriptor_set_layout{std::exchange(other.m_descriptor_set_layout, nullptr)}
-{
-
-}
-
-descriptor_set_layout& descriptor_set_layout::operator=(descriptor_set_layout&& other) noexcept
-{
-    m_device = std::exchange(other.m_device, m_device);
-    m_descriptor_set_layout = std::exchange(other.m_descriptor_set_layout, m_descriptor_set_layout);
-
-    return *this;
-}
-
 
 /////////////////////////////////////////////////////////////////////
 
@@ -760,21 +498,6 @@ descriptor_pool::~descriptor_pool()
         vkDestroyDescriptorPool(m_device, m_descriptor_pool, nullptr);
 }
 
-descriptor_pool::descriptor_pool(descriptor_pool&& other) noexcept
-:m_device{other.m_device}
-,m_descriptor_pool{std::exchange(other.m_descriptor_pool, nullptr)}
-{
-
-}
-
-descriptor_pool& descriptor_pool::operator=(descriptor_pool&& other) noexcept
-{
-    m_device = std::exchange(other.m_device, m_device);
-    m_descriptor_pool = std::exchange(other.m_descriptor_pool, m_descriptor_pool);
-
-    return *this;
-}
-
 /////////////////////////////////////////////////////////////////////
 
 descriptor_set::descriptor_set(VkDevice device, VkDescriptorPool descriptor_pool, VkDescriptorSetLayout descriptor_set_layout)
@@ -788,21 +511,6 @@ descriptor_set::descriptor_set(VkDevice device, VkDescriptorPool descriptor_pool
 
     if(auto result{vkAllocateDescriptorSets(m_device, &allocator_info, &m_descriptor_set)}; result != VK_SUCCESS)
         throw error{result};
-}
-
-descriptor_set::descriptor_set(descriptor_set&& other) noexcept
-:m_device{other.m_device}
-,m_descriptor_set{std::exchange(other.m_descriptor_set, nullptr)}
-{
-
-}
-
-descriptor_set& descriptor_set::operator=(descriptor_set&& other) noexcept
-{
-    m_device = std::exchange(other.m_device, m_device);
-    m_descriptor_set = std::exchange(other.m_descriptor_set, m_descriptor_set);
-
-    return *this;
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -825,21 +533,6 @@ pipeline_layout::~pipeline_layout()
 {
     if(m_pipeline_layout)
         vkDestroyPipelineLayout(m_device, m_pipeline_layout, nullptr);
-}
-
-pipeline_layout::pipeline_layout(pipeline_layout&& other) noexcept
-:m_device{other.m_device}
-,m_pipeline_layout{std::exchange(other.m_pipeline_layout, nullptr)}
-{
-
-}
-
-pipeline_layout& pipeline_layout::operator=(pipeline_layout&& other) noexcept
-{
-    m_device = std::exchange(other.m_device, m_device);
-    m_pipeline_layout = std::exchange(other.m_pipeline_layout, m_pipeline_layout);
-
-    return *this;
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -866,21 +559,6 @@ render_pass::~render_pass()
         vkDestroyRenderPass(m_device, m_render_pass, nullptr);
 }
 
-render_pass::render_pass(render_pass&& other) noexcept
-:m_device{other.m_device}
-,m_render_pass{std::exchange(other.m_render_pass, nullptr)}
-{
-
-}
-
-render_pass& render_pass::operator=(render_pass&& other) noexcept
-{
-    m_device = std::exchange(other.m_device, m_device);
-    m_render_pass = std::exchange(other.m_render_pass, m_render_pass);
-
-    return *this;
-}
-
 /////////////////////////////////////////////////////////////////////
 
 pipeline::pipeline(VkDevice device, const VkGraphicsPipelineCreateInfo& create_info, VkPipelineCache cache)
@@ -903,21 +581,6 @@ pipeline::~pipeline()
         vkDestroyPipeline(m_device, m_pipeline, nullptr);
 }
 
-pipeline::pipeline(pipeline&& other) noexcept
-:m_device{other.m_device}
-,m_pipeline{std::exchange(other.m_pipeline, nullptr)}
-{
-
-}
-
-pipeline& pipeline::operator=(pipeline&& other) noexcept
-{
-    m_device = std::exchange(other.m_device, m_device);
-    m_pipeline = std::exchange(other.m_pipeline, m_pipeline);
-
-    return *this;
-}
-
 /////////////////////////////////////////////////////////////////////
 
 pipeline_cache::pipeline_cache(VkDevice device, const void* initial_data, std::size_t size)
@@ -936,21 +599,6 @@ pipeline_cache::~pipeline_cache()
 {
     if(m_pipeline_cache)
         vkDestroyPipelineCache(m_device, m_pipeline_cache, nullptr);
-}
-
-pipeline_cache::pipeline_cache(pipeline_cache&& other) noexcept
-:m_device{other.m_device}
-,m_pipeline_cache{std::exchange(other.m_pipeline_cache, nullptr)}
-{
-
-}
-
-pipeline_cache& pipeline_cache::operator=(pipeline_cache&& other) noexcept
-{
-    m_device = std::exchange(other.m_device, m_device);
-    m_pipeline_cache = std::exchange(other.m_pipeline_cache, m_pipeline_cache);
-
-    return *this;
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -974,21 +622,6 @@ query_pool::~query_pool()
         vkDestroyQueryPool(m_device, m_query_pool, nullptr);
 }
 
-query_pool::query_pool(query_pool&& other) noexcept
-:m_device{other.m_device}
-,m_query_pool{std::exchange(other.m_query_pool, nullptr)}
-{
-
-}
-
-query_pool& query_pool::operator=(query_pool&& other) noexcept
-{
-    m_device = std::exchange(other.m_device, m_device);
-    m_query_pool = std::exchange(other.m_query_pool, m_query_pool);
-
-    return *this;
-}
-
 /////////////////////////////////////////////////////////////////////
 
 debug_messenger::debug_messenger(VkInstance instance, PFN_vkDebugUtilsMessengerCallbackEXT callback, VkDebugUtilsMessageSeverityFlagBitsEXT severity, VkDebugUtilsMessageTypeFlagBitsEXT type)
@@ -1009,22 +642,6 @@ debug_messenger::~debug_messenger()
     if(m_debug_messenger)
         vkDestroyDebugUtilsMessengerEXT(m_instance, m_debug_messenger, nullptr);
 }
-
-debug_messenger::debug_messenger(debug_messenger&& other) noexcept
-:m_instance{other.m_instance}
-,m_debug_messenger{std::exchange(other.m_debug_messenger, nullptr)}
-{
-
-}
-
-debug_messenger& debug_messenger::operator=(debug_messenger&& other) noexcept
-{
-    m_instance = std::exchange(other.m_instance, m_instance);
-    m_debug_messenger = std::exchange(other.m_debug_messenger, m_debug_messenger);
-
-    return *this;
-}
-
 
 /////////////////////////////////////////////////////////////////////
 
@@ -1122,21 +739,6 @@ surface::~surface()
         vkDestroySurfaceKHR(m_instance, m_surface, nullptr);
 }
 
-surface::surface(surface&& other) noexcept
-:m_instance{other.m_instance}
-,m_surface{std::exchange(other.m_surface, nullptr)}
-{
-
-}
-
-surface& surface::operator=(surface&& other) noexcept
-{
-    m_instance = std::exchange(other.m_instance, m_instance);
-    m_surface = std::exchange(other.m_surface, m_surface);
-
-    return *this;
-}
-
 swapchain::swapchain(VkDevice device, VkSurfaceKHR surface, VkExtent2D size, std::uint32_t image_count, VkSurfaceFormatKHR format, VkImageUsageFlags usage, std::span<const std::uint32_t> families, VkSurfaceTransformFlagBitsKHR transform, VkCompositeAlphaFlagBitsKHR composite, VkPresentModeKHR present_mode, VkBool32 clipped, VkSwapchainKHR old)
 :m_device{device}
 {
@@ -1175,21 +777,6 @@ swapchain::~swapchain()
 {
     if(m_swapchain)
         vkDestroySwapchainKHR(m_device, m_swapchain, nullptr);
-}
-
-swapchain::swapchain(swapchain&& other) noexcept
-:m_device{other.m_device}
-,m_swapchain{std::exchange(other.m_swapchain, nullptr)}
-{
-
-}
-
-swapchain& swapchain::operator=(swapchain&& other) noexcept
-{
-    m_device = std::exchange(other.m_device, m_device);
-    m_swapchain = std::exchange(other.m_swapchain, m_swapchain);
-
-    return *this;
 }
 
 }
