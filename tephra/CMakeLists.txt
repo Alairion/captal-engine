@@ -1,8 +1,7 @@
-cmake_minimum_required(VERSION 3.0.0)
+cmake_minimum_required(VERSION 3.15.7)
 
 project(tephra VERSION 0.1.0)
 
-option(TEPHRA_BUILD_EXAMPLE OFF)
 option(TEPHRA_USE_PLATFORM_ANDROID "If on, enable the Android surface extension" OFF)
 option(TEPHRA_USE_PLATFORM_IOS "If on, enable the IOS surface extension" OFF)
 option(TEPHRA_USE_PLATFORM_WIN32 "If on, enable the Windows surface extension" OFF)
@@ -14,7 +13,7 @@ option(TEPHRA_USE_PLATFORM_WAYLAND "If on, enable the Linux Wayland surface exte
 find_package(Vulkan REQUIRED)
 captal_download_submodule(tephra/external/stb FALSE)
 
-add_library(tephra SHARED
+set(TEPHRA_SOURCES
     #Headers:
     src/tephra/config.hpp
     src/tephra/enumerations.hpp
@@ -60,11 +59,16 @@ add_library(tephra SHARED
     src/tephra/vulkan/helper.cpp
 )
 
+if(CAPTAL_BUILD_TEPHRA_STATIC)
+    add_library(tephra STATIC ${TEPHRA_SOURCES})
+else()
+    add_library(tephra SHARED ${TEPHRA_SOURCES})
+    target_compile_definitions(tephra PRIVATE CAPTAL_FOUNDATION_SHARED_BUILD)
+endif()
+
 set_target_properties(tephra PROPERTIES PREFIX "")
 
 target_compile_definitions(tephra
-    PRIVATE
-        CAPTAL_FOUNDATION_SHARED_BUILD
     PUBLIC
         VK_NO_PROTOTYPES
         TEPHRA_MAJOR_VERSION=${PROJECT_VERSION_MAJOR}
@@ -79,68 +83,24 @@ target_link_libraries(tephra
         not_enough_standards
 )
 
-if(TEPHRA_USE_PLATFORM_ANDROID)
-    target_compile_definitions(tephra
-        PUBLIC
-            TPH_PLATFORM_ANDROID
-        PRIVATE
-            VK_USE_PLATFORM_ANDROID_KHR
-    )
-endif()
-
-if(TEPHRA_USE_PLATFORM_IOS)
-    target_compile_definitions(tephra
-        PUBLIC
-            TPH_PLATFORM_IOS
-        PRIVATE
-            VK_USE_PLATFORM_IOS_MVK
-    )
-endif()
-
-if(TEPHRA_USE_PLATFORM_WIN32)
-    target_compile_definitions(tephra
-        PUBLIC
-            TPH_PLATFORM_WIN32
-        PRIVATE
-            VK_USE_PLATFORM_WIN32_KHR
-    )
-endif()
-
-if(TEPHRA_USE_PLATFORM_MACOS)
-    target_compile_definitions(tephra
-        PUBLIC
-            TPH_PLATFORM_MACOS
-        PRIVATE
-            VK_USE_PLATFORM_MACOS_MVK
-    )
-endif()
-
-if(TEPHRA_USE_PLATFORM_XLIB)
-    target_compile_definitions(tephra
-        PUBLIC
-            TPH_PLATFORM_XLIB
-        PRIVATE
-            VK_USE_PLATFORM_XLIB_KHR
-    )
-endif()
-
-if(TEPHRA_USE_PLATFORM_XCB)
-    target_compile_definitions(tephra
-        PUBLIC
-            TPH_PLATFORM_XCB
-        PRIVATE
-            VK_USE_PLATFORM_XCB_KHR
-    )
-endif()
-
-if(TEPHRA_USE_PLATFORM_WAYLAND)
-    target_compile_definitions(tephra
-        PUBLIC
-            TPH_PLATFORM_WAYLAND
-        PRIVATE
-            VK_USE_PLATFORM_WAYLAND_KHR
-    )
-endif()
+target_compile_definitions(tephra
+    PUBLIC
+        $<$<BOOL:${TEPHRA_USE_PLATFORM_ANDROID}>:TPH_PLATFORM_ANDROID>
+        $<$<BOOL:${TEPHRA_USE_PLATFORM_IOS}>:TPH_PLATFORM_IOS>
+        $<$<BOOL:${TEPHRA_USE_PLATFORM_WIN32}>:TPH_PLATFORM_WIN32>
+        $<$<BOOL:${TEPHRA_USE_PLATFORM_MACOS}>:TPH_PLATFORM_MACOS>
+        $<$<BOOL:${TEPHRA_USE_PLATFORM_XLIB}>:TPH_PLATFORM_XLIB>
+        $<$<BOOL:${TEPHRA_USE_PLATFORM_XCB}>:TPH_PLATFORM_XCB>
+        $<$<BOOL:${TEPHRA_USE_PLATFORM_WAYLAND}>:TPH_PLATFORM_WAYLAND>
+    PRIVATE
+        $<$<BOOL:${TEPHRA_USE_PLATFORM_ANDROID}>:VK_USE_PLATFORM_ANDROID_KHR>
+        $<$<BOOL:${TEPHRA_USE_PLATFORM_IOS}>:VK_USE_PLATFORM_IOS_MVK>
+        $<$<BOOL:${TEPHRA_USE_PLATFORM_WIN32}>:VK_USE_PLATFORM_WIN32_KHR>
+        $<$<BOOL:${TEPHRA_USE_PLATFORM_MACOS}>:VK_USE_PLATFORM_MACOS_MVK>
+        $<$<BOOL:${TEPHRA_USE_PLATFORM_XLIB}>:VK_USE_PLATFORM_XLIB_KHR>
+        $<$<BOOL:${TEPHRA_USE_PLATFORM_XCB}>:VK_USE_PLATFORM_XCB_KHR>
+        $<$<BOOL:${TEPHRA_USE_PLATFORM_WAYLAND}>:VK_USE_PLATFORM_WAYLAND_KHR>
+)
 
 target_include_directories(tephra
     SYSTEM PRIVATE
@@ -155,7 +115,7 @@ if(WIN32)
     target_sources(tephra PRIVATE src/tephra/resources.rc)
 endif()
 
-if(TEPHRA_BUILD_EXAMPLE)
+if(CAPTAL_BUILD_TEPHRA_EXAMPLES)
     add_executable(tephra_test "main.cpp")
     target_link_libraries(tephra_test PRIVATE tephra apyre)
 endif()

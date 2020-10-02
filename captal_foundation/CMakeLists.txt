@@ -1,8 +1,6 @@
-cmake_minimum_required(VERSION 3.0.0)
+cmake_minimum_required(VERSION 3.15.7)
 
 project(captal_foundation VERSION 0.1.0)
-
-option(CAPTAL_FOUNDATION_BUILD_TESTS ON)
 
 add_library(captal_foundation INTERFACE)
 
@@ -22,7 +20,7 @@ target_sources(captal_foundation INTERFACE
     ${PROJECT_SOURCE_DIR}/src/captal_foundation/version.hpp
 )
 
-if(CAPTAL_FOUNDATION_BUILD_TESTS)
+if(CAPTAL_BUILD_FOUNDATION_TESTS)
     add_executable(captal_foundation_test ${PROJECT_SOURCE_DIR}/test.cpp)
     target_link_libraries(captal_foundation_test captal_foundation)
 endif()

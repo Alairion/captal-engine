@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.15.7)
 
 project(swell VERSION 0.1.0)
 
@@ -6,23 +6,7 @@ include(cmake/buildportaudio.cmake)
 include(cmake/buildogg.cmake)
 include(cmake/buildvorbis.cmake)
 
-#[[
-set(BUILD_CXXLIBS OFF CACHE BOOL "Flac options")
-set(BUILD_DOCS OFF CACHE BOOL "Flac options")
-set(BUILD_EXAMPLES OFF CACHE BOOL "Flac options")
-set(BUILD_SHARED_LIBS OFF CACHE BOOL "Flac options")
-set(BUILD_TESTING OFF CACHE BOOL "Flac options")
-set(WITH_ASM ON CACHE BOOL "Flac options")
-set(WITH_AVX ON CACHE BOOL "Flac options")
-set(WITH_OGG OFF CACHE BOOL "Flac options")
-set(WITH_STACK_PROTECTOR OFF CACHE BOOL "Flac options")
-set(WITH_XMMS OFF CACHE BOOL "Flac options")
-add_subdirectory("${PROJECT_SOURCE_DIR}/dependencies/flac" EXCLUDE_FROM_ALL)
-]]
-
-option(SWELL_BUILD_EXAMPLE OFF)
-
-add_library(swell SHARED
+set(SWELL_SOURCES
     #Headers
     src/swell/config.hpp
     src/swell/application.hpp
@@ -43,11 +27,17 @@ add_library(swell SHARED
     src/swell/sound_file.cpp
 )
 
+if(CAPTAL_BUILD_SWELL_STATIC)
+    add_library(swell STATIC ${SWELL_SOURCES})
+else()
+    add_library(swell SHARED ${SWELL_SOURCES})
+    target_compile_definitions(swell PRIVATE CAPTAL_FOUNDATION_SHARED_BUILD)
+endif()
+
 set_target_properties(swell PROPERTIES PREFIX "")
 
 target_compile_definitions(swell
     PRIVATE
-        CAPTAL_FOUNDATION_SHARED_BUILD
         OV_EXCLUDE_STATIC_CALLBACKS
     PUBLIC
         SWELL_MAJOR_VERSION=${PROJECT_VERSION_MAJOR}
@@ -74,7 +64,7 @@ if(WIN32)
     target_sources(swell PRIVATE src/swell/resources.rc)
 endif()
 
-if(SWELL_BUILD_EXAMPLE)
+if(CAPTAL_BUILD_SWELL_EXAMPLES)
     add_executable(swell_test "main.cpp")
     target_link_libraries(swell_test swell)
 endif()

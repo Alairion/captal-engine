@@ -1,12 +1,10 @@
-cmake_minimum_required(VERSION 3.0.0)
+cmake_minimum_required(VERSION 3.15.7)
 
 project(apyre VERSION 0.1.0)
 
-option(APYRE_BUILD_EXAMPLE ON)
-
 include(cmake/buildsdl.cmake)
 
-add_library(apyre SHARED
+set(APYRE_SOURCES
     #Headers:
     src/apyre/config.hpp
     src/apyre/application.hpp
@@ -24,11 +22,16 @@ add_library(apyre SHARED
     src/apyre/battery.cpp
 )
 
+if(CAPTAL_BUILD_APYRE_STATIC)
+    add_library(apyre STATIC ${APYRE_SOURCES})
+else()
+    add_library(apyre SHARED ${APYRE_SOURCES})
+    target_compile_definitions(apyre PRIVATE CAPTAL_FOUNDATION_SHARED_BUILD)
+endif()
+
 set_target_properties(apyre PROPERTIES PREFIX "")
 
 target_compile_definitions(apyre
-    PRIVATE
-        CAPTAL_FOUNDATION_SHARED_BUILD
     PUBLIC
         APYRE_MAJOR_VERSION=${PROJECT_VERSION_MAJOR}
         APYRE_MINOR_VERSION=${PROJECT_VERSION_MINOR}
@@ -53,10 +56,9 @@ if(WIN32)
     target_sources(apyre PRIVATE src/apyre/resources.rc)
 endif()
 
-if(APYRE_BUILD_EXAMPLE)
+if(CAPTAL_BUILD_APYRE_EXAMPLES)
     add_executable(apyre_test "main.cpp")
     target_link_libraries(apyre_test PRIVATE apyre)
-    target_include_directories(apyre_test PRIVATE ${GLOBAL_INCLUDES})
 endif()
 
 install(TARGETS apyre

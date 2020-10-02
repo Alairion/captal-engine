@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.0.0)
+cmake_minimum_required(VERSION 3.15.7)
 
 project(captal VERSION 0.1.0)
 
@@ -10,7 +10,7 @@ include(cmake/buildzlib.cmake)
 captal_download_submodule(captal/external/entt TRUE)
 captal_download_submodule(captal/external/sigslots TRUE)
 
-add_library(captal SHARED
+set(CAPTAL_SOURCES
     #Headers:
     src/captal/config.hpp
     src/captal/algorithm.hpp
@@ -80,24 +80,27 @@ add_library(captal SHARED
     src/captal/widgets.cpp
 )
 
+if(CAPTAL_BUILD_CAPTAL_STATIC)
+    add_library(captal STATIC ${CAPTAL_SOURCES})
+else()
+    add_library(captal SHARED ${CAPTAL_SOURCES})
+    target_compile_definitions(captal PRIVATE CAPTAL_FOUNDATION_SHARED_BUILD)
+endif()
+
+set_target_properties(captal PROPERTIES PREFIX "")
+
 if(WIN32)
     target_sources(captal PRIVATE src/captal/resources.rc)
 endif()
 
 target_compile_definitions(captal
     PRIVATE
-        CAPTAL_FOUNDATION_SHARED_BUILD
+        $<$<CONFIG:Debug>:CAPTAL_DEBUG>
     PUBLIC
         CAPTAL_MAJOR_VERSION=${PROJECT_VERSION_MAJOR}
         CAPTAL_MINOR_VERSION=${PROJECT_VERSION_MINOR}
         CAPTAL_PATCH_VERSION=${PROJECT_VERSION_PATCH}
 )
-
-set_target_properties(captal PROPERTIES PREFIX "")
-
-if(CMAKE_BUILD_TYPE STREQUAL Debug)
-    target_compile_definitions(captal PRIVATE CAPTAL_DEBUG)
-endif()
 
 target_include_directories(captal
     INTERFACE
