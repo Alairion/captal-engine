@@ -60,6 +60,12 @@ private:
 };
 
 template<>
+inline VkDevice underlying_cast(const buffer& buffer) noexcept
+{
+    return buffer.m_buffer.device();
+}
+
+template<>
 inline VkBuffer underlying_cast(const buffer& buffer) noexcept
 {
     return buffer.m_buffer;

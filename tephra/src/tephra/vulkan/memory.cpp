@@ -638,6 +638,16 @@ void memory_allocator::clean()
     });
 }
 
+void memory_allocator::clean_dedicated()
+{
+    std::lock_guard lock{m_mutex};
+
+    m_heaps.remove_if([](const memory_heap& heap)
+    {
+        return heap.dedicated() && heap.allocation_count() == 0;
+    });
+}
+
 memory_allocator::heap_sizes memory_allocator::heap_count()
 {
     std::lock_guard lock{m_mutex};

@@ -80,13 +80,18 @@ public:
     }
 
 private:
-    VkDevice m_device{};
     VkQueue m_queue{};
     vulkan::swapchain m_swapchain{};
     swapchain_info m_info{};
     std::vector<tph::texture> m_textures{};
     std::uint32_t m_image_index{};
 };
+
+template<>
+inline VkDevice underlying_cast(const swapchain& swapchain) noexcept
+{
+    return swapchain.m_swapchain.device();
+}
 
 template<>
 inline VkSwapchainKHR underlying_cast(const swapchain& swapchain) noexcept

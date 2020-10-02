@@ -84,7 +84,11 @@ private:
     std::vector<physical_device> m_physical_devices{};
 };
 
-template<> inline VkInstance underlying_cast(const application& initializer) noexcept {return initializer.m_instance;}
+template<>
+inline VkInstance underlying_cast(const application& initializer) noexcept
+{
+    return initializer.m_instance;
+}
 
 }
 

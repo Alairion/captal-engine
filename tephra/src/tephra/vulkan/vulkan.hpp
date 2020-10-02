@@ -201,6 +201,11 @@ public:
 
     }
 
+    VkDevice device() const noexcept
+    {
+        return m_device;
+    }
+
     operator VkDeviceMemory() const noexcept
     {
         return m_device_memory;
@@ -231,6 +236,11 @@ public:
 
     }
 
+    VkDevice device() const noexcept
+    {
+        return m_device;
+    }
+
     operator VkBuffer() const noexcept
     {
         return m_buffer;
@@ -259,6 +269,11 @@ public:
     ,m_buffer_view{buffer_view}
     {
 
+    }
+
+    VkDevice device() const noexcept
+    {
+        return m_device;
     }
 
     operator VkBufferView() const noexcept
@@ -298,6 +313,11 @@ public:
 
     }
 
+    VkDevice device() const noexcept
+    {
+        return m_device;
+    }
+
     operator VkImage() const noexcept
     {
         return m_image;
@@ -326,6 +346,11 @@ public:
     ,m_image_view{image_view}
     {
 
+    }
+
+    VkDevice device() const noexcept
+    {
+        return m_device;
     }
 
     operator VkImageView() const noexcept
@@ -358,6 +383,11 @@ public:
 
     }
 
+    VkDevice device() const noexcept
+    {
+        return m_device;
+    }
+
     operator VkSampler() const noexcept
     {
         return m_sampler;
@@ -386,6 +416,11 @@ public:
     ,m_framebuffer{framebuffer}
     {
 
+    }
+
+    VkDevice device() const noexcept
+    {
+        return m_device;
     }
 
     operator VkFramebuffer() const noexcept
@@ -418,6 +453,11 @@ public:
 
     }
 
+    VkDevice device() const noexcept
+    {
+        return m_device;
+    }
+
     operator VkShaderModule() const noexcept
     {
         return m_shader;
@@ -446,6 +486,11 @@ public:
     ,m_semaphore{semaphore}
     {
 
+    }
+
+    VkDevice device() const noexcept
+    {
+        return m_device;
     }
 
     operator VkSemaphore() const noexcept
@@ -478,6 +523,11 @@ public:
 
     }
 
+    VkDevice device() const noexcept
+    {
+        return m_device;
+    }
+
     operator VkFence() const noexcept
     {
         return m_fence;
@@ -508,6 +558,11 @@ public:
 
     }
 
+    VkDevice device() const noexcept
+    {
+        return m_device;
+    }
+
     operator VkEvent() const noexcept
     {
         return m_event;
@@ -536,6 +591,11 @@ public:
     ,m_command_pool{command_pool}
     {
 
+    }
+
+    VkDevice device() const noexcept
+    {
+        return m_device;
     }
 
     operator VkCommandPool() const noexcept
@@ -569,6 +629,16 @@ public:
 
     }
 
+    VkDevice device() const noexcept
+    {
+        return m_device;
+    }
+
+    VkCommandPool command_pool() const noexcept
+    {
+        return m_command_pool;
+    }
+
     operator VkCommandBuffer() const noexcept
     {
         return m_command_buffer;
@@ -598,6 +668,11 @@ public:
     ,m_descriptor_set_layout{descriptor_set_layout}
     {
 
+    }
+
+    VkDevice device() const noexcept
+    {
+        return m_device;
     }
 
     operator VkDescriptorSetLayout() const noexcept
@@ -630,6 +705,11 @@ public:
 
     }
 
+    VkDevice device() const noexcept
+    {
+        return m_device;
+    }
+
     operator VkDescriptorPool() const noexcept
     {
         return m_descriptor_pool;
@@ -658,6 +738,11 @@ public:
     ,m_descriptor_set{descriptor_set}
     {
 
+    }
+
+    VkDevice device() const noexcept
+    {
+        return m_device;
     }
 
     operator VkDescriptorSet() const noexcept
@@ -690,6 +775,11 @@ public:
 
     }
 
+    VkDevice device() const noexcept
+    {
+        return m_device;
+    }
+
     operator VkRenderPass() const noexcept
     {
         return m_render_pass;
@@ -718,6 +808,11 @@ public:
     ,m_pipeline_layout{pipeline_layout}
     {
 
+    }
+
+    VkDevice device() const noexcept
+    {
+        return m_device;
     }
 
     operator VkPipelineLayout() const noexcept
@@ -751,6 +846,11 @@ public:
 
     }
 
+    VkDevice device() const noexcept
+    {
+        return m_device;
+    }
+
     operator VkPipeline() const noexcept
     {
         return m_pipeline;
@@ -781,6 +881,11 @@ public:
 
     }
 
+    VkDevice device() const noexcept
+    {
+        return m_device;
+    }
+
     operator VkPipelineCache() const noexcept
     {
         return m_pipeline_cache;
@@ -789,6 +894,41 @@ public:
 private:
     VkDevice m_device{};
     VkPipelineCache m_pipeline_cache{};
+};
+
+class TEPHRA_API query_pool
+{
+public:
+    constexpr query_pool() = default;
+    query_pool(VkDevice device, VkQueryType type, std::uint32_t count, VkQueryPipelineStatisticFlags statistics);
+    ~query_pool();
+
+    query_pool(const query_pool&) = delete;
+    query_pool& operator=(const query_pool&) = delete;
+
+    query_pool(query_pool&& other) noexcept;
+    query_pool& operator=(query_pool&& other) noexcept;
+
+    explicit query_pool(VkDevice device, VkQueryPool query_pool) noexcept
+    :m_device{device}
+    ,m_query_pool{query_pool}
+    {
+
+    }
+
+    VkDevice device() const noexcept
+    {
+        return m_device;
+    }
+
+    operator VkQueryPool() const noexcept
+    {
+        return m_query_pool;
+    }
+
+private:
+    VkDevice m_device{};
+    VkQueryPool m_query_pool{};
 };
 
 class TEPHRA_API debug_messenger
@@ -809,6 +949,11 @@ public:
     ,m_debug_messenger{debug_messenger}
     {
 
+    }
+
+    VkInstance instance() const noexcept
+    {
+        return m_instance;
     }
 
     operator VkDebugUtilsMessengerEXT() const noexcept
@@ -869,6 +1014,11 @@ public:
 
     }
 
+    VkInstance instance() const noexcept
+    {
+        return m_instance;
+    }
+
     operator VkSurfaceKHR() const noexcept
     {
         return m_surface;
@@ -897,6 +1047,11 @@ public:
     ,m_swapchain{swapchain}
     {
 
+    }
+
+    VkDevice device() const noexcept
+    {
+        return m_device;
     }
 
     operator VkSwapchainKHR() const noexcept

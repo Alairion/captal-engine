@@ -23,15 +23,14 @@ command_pool::command_pool(renderer& renderer)
 }
 
 command_pool::command_pool(renderer& renderer, queue queue)
-:m_device{underlying_cast<VkDevice>(renderer)}
-,m_pool{m_device, renderer.queue_family_index(queue), 0}
+:m_pool{underlying_cast<VkDevice>(renderer), renderer.queue_family_index(queue), 0}
 {
 
 }
 
 void command_pool::reset()
 {
-    if(auto result{vkResetCommandPool(m_device, m_pool, 0)}; result != VK_SUCCESS)
+    if(auto result{vkResetCommandPool(m_pool.device(), m_pool, 0)}; result != VK_SUCCESS)
         throw vulkan::error{result};
 }
 

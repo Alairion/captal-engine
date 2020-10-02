@@ -223,6 +223,7 @@ public:
     memory_heap_chunk allocate_bound(VkImage image, memory_resource_type resource_type, VkMemoryPropertyFlags minimal, VkMemoryPropertyFlags optimal = 0);
 
     void clean();
+    void clean_dedicated();
 
     heap_sizes heap_count();
     heap_sizes used_memory();

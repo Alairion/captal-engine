@@ -11,8 +11,7 @@ namespace tph
 using namespace vulkan::functions;
 
 swapchain::swapchain(renderer& renderer, surface& surface, const swapchain_info& info, optional_ref<swapchain> old_swapchain)
-:m_device{underlying_cast<VkDevice>(renderer)}
-,m_queue{underlying_cast<VkQueue>(renderer, queue::present)}
+:m_queue{underlying_cast<VkQueue>(renderer, queue::present)}
 ,m_info{info}
 {
     VkSwapchainKHR old{};
@@ -23,7 +22,7 @@ swapchain::swapchain(renderer& renderer, surface& surface, const swapchain_info&
 
     m_swapchain = vulkan::swapchain
     {
-        m_device,
+        underlying_cast<VkDevice>(renderer),
         underlying_cast<VkSurfaceKHR>(surface),
         VkExtent2D{info.width, info.height},
         info.image_count,
@@ -37,12 +36,12 @@ swapchain::swapchain(renderer& renderer, surface& surface, const swapchain_info&
         old
     };
 
-    if(auto result{vkGetSwapchainImagesKHR(m_device, m_swapchain, &m_info.image_count, nullptr)}; result != VK_SUCCESS)
+    if(auto result{vkGetSwapchainImagesKHR(underlying_cast<VkDevice>(renderer), m_swapchain, &m_info.image_count, nullptr)}; result != VK_SUCCESS)
         throw vulkan::error{result};
 
     std::vector<VkImage> images{};
     images.resize(static_cast<std::size_t>(m_info.image_count));
-    if(auto result{vkGetSwapchainImagesKHR(m_device, m_swapchain, &m_info.image_count, std::data(images))}; result != VK_SUCCESS)
+    if(auto result{vkGetSwapchainImagesKHR(underlying_cast<VkDevice>(renderer), m_swapchain, &m_info.image_count, std::data(images))}; result != VK_SUCCESS)
         throw vulkan::error{result};
 
     m_textures.reserve(m_info.image_count);
@@ -51,7 +50,15 @@ swapchain::swapchain(renderer& renderer, surface& surface, const swapchain_info&
         auto& texture{m_textures.emplace_back()};
 
         texture.m_image = vulkan::image{image};
-        texture.m_image_view = vulkan::image_view{m_device, image, VK_IMAGE_VIEW_TYPE_2D, static_cast<VkFormat>(info.format), VkComponentMapping{}, static_cast<VkImageAspectFlags>(aspect_from_format(info.format))};
+        texture.m_image_view = vulkan::image_view
+        {
+                underlying_cast<VkDevice>(renderer),
+                image,
+                VK_IMAGE_VIEW_TYPE_2D,
+                static_cast<VkFormat>(info.format),
+                VkComponentMapping{},
+                static_cast<VkImageAspectFlags>(aspect_from_format(info.format))
+        };
         texture.m_format = info.format;
         texture.m_aspect = aspect_from_format(info.format);
         texture.m_width = info.width;
@@ -65,7 +72,7 @@ swapchain_status swapchain::acquire(optional_ref<semaphore> semaphore, optional_
     VkSemaphore native_semaphore{semaphore.has_value() ? underlying_cast<VkSemaphore>(*semaphore) : VkSemaphore{}};
     VkFence native_fence{fence.has_value() ? underlying_cast<VkFence>(*fence) : VkFence{}};
 
-    const auto result{vkAcquireNextImageKHR(m_device, m_swapchain, std::numeric_limits<std::uint64_t>::max(), native_semaphore, native_fence, &m_image_index)};
+    const auto result{vkAcquireNextImageKHR(m_swapchain.device(), m_swapchain, std::numeric_limits<std::uint64_t>::max(), native_semaphore, native_fence, &m_image_index)};
 
     if(result == VK_SUBOPTIMAL_KHR)
     {

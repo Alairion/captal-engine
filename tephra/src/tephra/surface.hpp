@@ -112,6 +112,12 @@ private:
 };
 
 template<>
+inline VkInstance underlying_cast(const surface& surface) noexcept
+{
+    return surface.m_surface.instance();
+}
+
+template<>
 inline VkSurfaceKHR underlying_cast(const surface& surf) noexcept
 {
     return surf.m_surface;

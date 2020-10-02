@@ -47,6 +47,12 @@ private:
 };
 
 template<>
+inline VkDevice underlying_cast(const pipeline_layout& pipeline_layout) noexcept
+{
+    return pipeline_layout.m_pipeline_layout.device();
+}
+
+template<>
 inline VkPipelineLayout underlying_cast(const pipeline_layout& pipeline_layout) noexcept
 {
    return pipeline_layout.m_pipeline_layout;

@@ -225,6 +225,12 @@ private:
 };
 
 template<>
+inline VkDevice underlying_cast(const image& image) noexcept
+{
+    return image.m_buffer.device();
+}
+
+template<>
 inline VkBuffer underlying_cast(const image& image) noexcept
 {
      return image.m_buffer;

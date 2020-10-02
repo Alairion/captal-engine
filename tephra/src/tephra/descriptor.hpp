@@ -45,6 +45,12 @@ private:
 };
 
 template<>
+inline VkDevice underlying_cast(const descriptor_set_layout& layout) noexcept
+{
+    return layout.m_layout.device();
+}
+
+template<>
 inline VkDescriptorSetLayout underlying_cast(const descriptor_set_layout& layout) noexcept
 {
    return layout.m_layout;
@@ -76,6 +82,12 @@ private:
 };
 
 template<>
+inline VkDevice underlying_cast(const descriptor_pool& descriptor_pool) noexcept
+{
+    return descriptor_pool.m_descriptor_pool.device();
+}
+
+template<>
 inline VkDescriptorPool underlying_cast(const descriptor_pool& descriptor_pool) noexcept
 {
    return descriptor_pool.m_descriptor_pool;
@@ -99,6 +111,12 @@ public:
 private:
     vulkan::descriptor_set m_descriptor_set{};
 };
+
+template<>
+inline VkDevice underlying_cast(const descriptor_set& descriptor_set) noexcept
+{
+    return descriptor_set.m_descriptor_set.device();
+}
 
 template<>
 inline VkDescriptorSet underlying_cast(const descriptor_set& descriptor_set) noexcept

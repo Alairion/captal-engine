@@ -955,6 +955,42 @@ pipeline_cache& pipeline_cache::operator=(pipeline_cache&& other) noexcept
 
 /////////////////////////////////////////////////////////////////////
 
+query_pool::query_pool(VkDevice device, VkQueryType type, std::uint32_t count, VkQueryPipelineStatisticFlags statistics)
+:m_device{device}
+{
+    VkQueryPoolCreateInfo create_info{};
+    create_info.sType = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
+    create_info.queryType = type;
+    create_info.queryCount = count;
+    create_info.pipelineStatistics = statistics;
+
+    if(auto result{vkCreateQueryPool(m_device, &create_info, nullptr, &m_query_pool)}; result != VK_SUCCESS)
+        throw error{result};
+}
+
+query_pool::~query_pool()
+{
+    if(m_query_pool)
+        vkDestroyQueryPool(m_device, m_query_pool, nullptr);
+}
+
+query_pool::query_pool(query_pool&& other) noexcept
+:m_device{other.m_device}
+,m_query_pool{std::exchange(other.m_query_pool, nullptr)}
+{
+
+}
+
+query_pool& query_pool::operator=(query_pool&& other) noexcept
+{
+    m_device = std::exchange(other.m_device, m_device);
+    m_query_pool = std::exchange(other.m_query_pool, m_query_pool);
+
+    return *this;
+}
+
+/////////////////////////////////////////////////////////////////////
+
 debug_messenger::debug_messenger(VkInstance instance, PFN_vkDebugUtilsMessengerCallbackEXT callback, VkDebugUtilsMessageSeverityFlagBitsEXT severity, VkDebugUtilsMessageTypeFlagBitsEXT type)
 :m_instance{instance}
 {

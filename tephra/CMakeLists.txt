@@ -42,6 +42,8 @@ set(TEPHRA_SOURCES
     src/tephra/image.hpp
     src/tephra/texture.hpp
     src/tephra/commands.hpp
+    src/tephra/query.hpp
+
 
     src/tephra/vulkan/vulkan.hpp
     src/tephra/vulkan/vulkan_functions.hpp
@@ -63,6 +65,7 @@ set(TEPHRA_SOURCES
     src/tephra/image.cpp
     src/tephra/texture.cpp
     src/tephra/commands.cpp
+    src/tephra/query.cpp
 
     src/tephra/vulkan/vulkan.cpp
     src/tephra/vulkan/vulkan_functions.cpp

@@ -43,14 +43,13 @@ public:
     void reset();
 
 private:
-    VkDevice m_device{};
     vulkan::command_pool m_pool{};
 };
 
 template<>
 inline VkDevice underlying_cast(const command_pool& pool) noexcept
 {
-    return pool.m_device;
+    return pool.m_pool.device();
 }
 
 template<>
@@ -81,6 +80,18 @@ public:
 private:
     vulkan::command_buffer m_buffer{};
 };
+
+template<>
+inline VkDevice underlying_cast(const command_buffer& buffer) noexcept
+{
+    return buffer.m_buffer.device();
+}
+
+template<>
+inline VkCommandPool underlying_cast(const command_buffer& buffer) noexcept
+{
+    return buffer.m_buffer.command_pool();
+}
 
 template<>
 inline VkCommandBuffer underlying_cast(const command_buffer& buffer) noexcept

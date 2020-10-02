@@ -5,8 +5,8 @@
 #include <captal_foundation/stack_allocator.hpp>
 
 #include "vulkan/vulkan_functions.hpp"
-
 #include "vulkan/helper.hpp"
+
 #include "renderer.hpp"
 #include "commands.hpp"
 #include "synchronization.hpp"
@@ -18,7 +18,7 @@ namespace tph
 
 static vulkan::framebuffer make_framebuffer(renderer& renderer, const render_pass& render_pass, std::span<const std::reference_wrapper<texture>> attachments, std::uint32_t width, std::uint32_t height, std::uint32_t layers)
 {
-    stack_memory_pool<1024 / 2> pool{};
+    stack_memory_pool<512> pool{};
 
     auto native_attachments{make_stack_vector<VkImageView>(pool)};
     native_attachments.reserve(std::size(attachments));
@@ -211,7 +211,6 @@ static stack_vector_t<VkSubpassDependency> make_dependencies(memory_pool_t& pool
 }
 
 render_pass::render_pass(renderer& renderer, const render_pass_info& info)
-:m_device{underlying_cast<VkDevice>(renderer)}
 {
     memory_pool_t pool{};
 

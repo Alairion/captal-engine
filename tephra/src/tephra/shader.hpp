@@ -47,6 +47,12 @@ private:
 };
 
 template<>
+inline VkDevice underlying_cast(const shader& shader) noexcept
+{
+    return shader.m_shader.device();
+}
+
+template<>
 inline VkShaderModule underlying_cast(const shader& shader) noexcept
 {
     return shader.m_shader;

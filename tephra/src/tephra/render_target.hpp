@@ -156,6 +156,12 @@ private:
 };
 
 template<>
+inline VkDevice underlying_cast(const framebuffer& framebuffer) noexcept
+{
+    return framebuffer.m_framebuffer.device();
+}
+
+template<>
 inline VkFramebuffer underlying_cast(const framebuffer& framebuffer) noexcept
 {
     return framebuffer.m_framebuffer;
@@ -178,9 +184,14 @@ public:
     render_pass& operator=(render_pass&& other) noexcept = default;
 
 private:
-    VkDevice m_device{};
     vulkan::render_pass m_render_pass{};
 };
+
+template<>
+inline VkDevice underlying_cast(const render_pass& render_pass) noexcept
+{
+    return render_pass.m_render_pass.device();
+}
 
 template<>
 inline VkRenderPass underlying_cast(const render_pass& render_pass) noexcept

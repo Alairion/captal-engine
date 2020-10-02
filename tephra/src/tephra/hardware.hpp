@@ -130,7 +130,11 @@ private:
     physical_device_memory_properties m_memory_properties{};
 };
 
-template<> inline VkPhysicalDevice underlying_cast(const physical_device& physical_device) noexcept {return physical_device.m_physical_device;}
+template<>
+inline VkPhysicalDevice underlying_cast(const physical_device& physical_device) noexcept
+{
+    return physical_device.m_physical_device;
+}
 
 TEPHRA_API bool default_physical_device_comparator(const physical_device& left, const physical_device& right) noexcept;
 

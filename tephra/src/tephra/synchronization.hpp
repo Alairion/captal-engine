@@ -32,6 +32,12 @@ private:
 };
 
 template<>
+inline VkDevice underlying_cast(const semaphore& semaphore) noexcept
+{
+    return semaphore.m_semaphore.device();
+}
+
+template<>
 inline VkSemaphore underlying_cast(const semaphore& semaphore) noexcept
 {
     return semaphore.m_semaphore;
@@ -86,9 +92,14 @@ private:
     bool wait_impl(std::uint64_t nanoseconds) const;
 
 private:
-    VkDevice m_device{};
     vulkan::fence m_fence{};
 };
+
+template<>
+inline VkDevice underlying_cast(const fence& fence) noexcept
+{
+    return fence.m_fence.device();
+}
 
 template<>
 inline VkFence underlying_cast(const fence& fence) noexcept
@@ -115,9 +126,14 @@ public:
     void reset();
 
 private:
-    VkDevice m_device{};
     vulkan::event m_event{};
 };
+
+template<>
+inline VkDevice underlying_cast(const event& event) noexcept
+{
+    return event.m_event.device();
+}
 
 template<>
 inline VkEvent underlying_cast(const event& event) noexcept

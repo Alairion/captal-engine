@@ -153,6 +153,12 @@ private:
 };
 
 template<>
+inline VkDevice underlying_cast(const texture& texture) noexcept
+{
+    return texture.m_image.device();
+}
+
+template<>
 inline VkImage underlying_cast(const texture& texture) noexcept
 {
      return texture.m_image;
