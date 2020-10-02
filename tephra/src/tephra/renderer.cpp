@@ -428,15 +428,16 @@ static renderer::transfer_granularity compute_transfer_granularity(VkPhysicalDev
     return output;
 }
 
-renderer::renderer(const physical_device& physical_device, vulkan::device device, const queue_families_t& queue_families, const queues_t& queues, const vulkan::memory_allocator::heap_sizes& sizes) noexcept
+renderer::renderer(const physical_device& physical_device, vulkan::device device, const queue_families_t& queue_families, const queues_t& queues, const vulkan::memory_allocator::heap_sizes& sizes)
 :m_physical_device{underlying_cast<VkPhysicalDevice>(physical_device)}
 ,m_device{std::move(device)}
 ,m_queue_families{queue_families}
 ,m_queues{queues}
 ,m_transfer_queue_granularity{compute_transfer_granularity(m_physical_device, queue_family_index(queue::transfer))}
-,m_allocator{std::make_unique<vulkan::memory_allocator>(m_physical_device, m_device, sizes)}
 {
+    tph::vulkan::functions::load_device_level_functions(m_device);
 
+    m_allocator = std::make_unique<vulkan::memory_allocator>(m_physical_device, m_device, sizes);
 }
 
 void renderer::wait()

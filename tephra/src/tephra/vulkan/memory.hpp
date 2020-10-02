@@ -27,15 +27,13 @@ class TEPHRA_API memory_heap_chunk
     friend class memory_heap;
 
 private:
-    memory_heap_chunk(memory_heap* parent, std::uint64_t offset, std::uint64_t size) noexcept;
+    explicit memory_heap_chunk(memory_heap* parent, std::uint64_t offset, std::uint64_t size) noexcept;
 
 public:
     constexpr memory_heap_chunk() = default;
     ~memory_heap_chunk();
-
     memory_heap_chunk(const memory_heap_chunk&) = delete;
     memory_heap_chunk& operator=(const memory_heap_chunk&) = delete;
-
     memory_heap_chunk(memory_heap_chunk&& other) noexcept;
     memory_heap_chunk& operator=(memory_heap_chunk&& other) noexcept;
 
@@ -115,9 +113,9 @@ private:
     };
 
 public:
-    memory_heap(VkDevice device, std::uint32_t type, std::uint64_t size, std::uint64_t granularity, std::uint64_t non_coherent_atom_size, bool coherent);
-    memory_heap(VkDevice device, VkImage image, std::uint32_t type, std::uint64_t size);
-    memory_heap(VkDevice device, VkBuffer buffer, std::uint32_t type, std::uint64_t size);
+    explicit memory_heap(VkDevice device, std::uint32_t type, std::uint64_t size, std::uint64_t granularity, std::uint64_t non_coherent_atom_size, bool coherent);
+    explicit memory_heap(VkDevice device, VkImage image, std::uint32_t type, std::uint64_t size);
+    explicit memory_heap(VkDevice device, VkBuffer buffer, std::uint32_t type, std::uint64_t size);
 
     ~memory_heap();
     memory_heap(const memory_heap&) = delete;
@@ -206,7 +204,7 @@ public:
 
 public:
     constexpr memory_allocator() = default;
-    memory_allocator(VkPhysicalDevice physical_device, VkDevice device, const heap_sizes& sizes);
+    explicit memory_allocator(VkPhysicalDevice physical_device, VkDevice device, const heap_sizes& sizes);
     ~memory_allocator() = default;
 
     memory_allocator(const memory_allocator&) = delete;
@@ -216,6 +214,7 @@ public:
 
     memory_heap_chunk allocate(const VkMemoryRequirements& requirements, const VkMemoryDedicatedRequirements& dedicated, memory_resource_type resource_type, VkMemoryPropertyFlags minimal, VkMemoryPropertyFlags optimal = 0);
     memory_heap_chunk allocate(const VkMemoryRequirements& requirements, memory_resource_type resource_type, VkMemoryPropertyFlags minimal, VkMemoryPropertyFlags optimal = 0);
+
     memory_heap_chunk allocate(VkBuffer buffer, memory_resource_type resource_type, VkMemoryPropertyFlags minimal, VkMemoryPropertyFlags optimal = 0);
     memory_heap_chunk allocate(VkImage image, memory_resource_type resource_type, VkMemoryPropertyFlags minimal, VkMemoryPropertyFlags optimal = 0);
 

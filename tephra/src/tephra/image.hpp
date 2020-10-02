@@ -70,11 +70,11 @@ public:
 
 public:
     constexpr image() = default;
-    image(renderer& renderer, const std::filesystem::path& file, image_usage usage);
-    image(renderer& renderer, std::span<const std::uint8_t> data, image_usage usage);
-    image(renderer& renderer, std::istream& stream, image_usage usage);
-    image(renderer& renderer, size_type width, size_type height, const std::uint8_t* data, image_usage usage);
-    image(renderer& renderer, size_type width, size_type height, image_usage usage);
+    explicit image(renderer& renderer, const std::filesystem::path& file, image_usage usage);
+    explicit image(renderer& renderer, std::span<const std::uint8_t> data, image_usage usage);
+    explicit image(renderer& renderer, std::istream& stream, image_usage usage);
+    explicit image(renderer& renderer, size_type width, size_type height, const std::uint8_t* data, image_usage usage);
+    explicit image(renderer& renderer, size_type width, size_type height, image_usage usage);
 
     ~image() = default;
     image(const image&) = delete;

@@ -269,6 +269,10 @@ application::application(vulkan::instance instance, tph::version api_version, vu
 ,m_debug_messenger{std::move(debug_messenger)}
 ,m_version{api_version}
 {
+    tph::vulkan::functions::load_external_level_functions();
+    tph::vulkan::functions::load_global_level_functions();
+    tph::vulkan::functions::load_instance_level_functions(m_instance);
+
     m_physical_devices = make_physical_devices(m_instance);
 }
 

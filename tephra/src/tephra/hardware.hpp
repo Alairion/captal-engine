@@ -91,7 +91,6 @@ class TEPHRA_API physical_device
 public:
     constexpr physical_device() = default;
     ~physical_device() = default;
-
     physical_device(const physical_device&) = delete;
     physical_device& operator=(const physical_device&) = delete;
     physical_device(physical_device&&) noexcept = default;
