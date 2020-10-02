@@ -32,7 +32,13 @@ class TEPHRA_API descriptor_set_layout
 
 public:
     constexpr descriptor_set_layout() = default;
-    descriptor_set_layout(renderer& renderer, std::span<const descriptor_set_layout_binding> bindings);
+    explicit descriptor_set_layout(renderer& renderer, std::span<const descriptor_set_layout_binding> bindings);
+
+    explicit descriptor_set_layout(vulkan::descriptor_set_layout layout) noexcept
+    :m_layout{std::move(layout)}
+    {
+
+    }
 
     ~descriptor_set_layout() = default;
     descriptor_set_layout(const descriptor_set_layout&) = delete;
@@ -69,7 +75,13 @@ class TEPHRA_API descriptor_pool
 
 public:
     constexpr descriptor_pool() = default;
-    descriptor_pool(renderer& renderer, std::span<const descriptor_pool_size> sizes, std::optional<std::uint32_t> max_sets = std::nullopt);
+    explicit descriptor_pool(renderer& renderer, std::span<const descriptor_pool_size> sizes, std::optional<std::uint32_t> max_sets = std::nullopt);
+
+    explicit descriptor_pool(vulkan::descriptor_pool descriptor_pool) noexcept
+    :m_descriptor_pool{std::move(descriptor_pool)}
+    {
+
+    }
 
     ~descriptor_pool() = default;
     descriptor_pool(const descriptor_pool&) = delete;
@@ -100,7 +112,13 @@ class TEPHRA_API descriptor_set
 
 public:
     constexpr descriptor_set() = default;
-    descriptor_set(renderer& renderer, descriptor_pool& pool, descriptor_set_layout& layout);
+    explicit descriptor_set(renderer& renderer, descriptor_pool& pool, descriptor_set_layout& layout);
+
+    explicit descriptor_set(vulkan::descriptor_set descriptor_set) noexcept
+    :m_descriptor_set{std::move(descriptor_set)}
+    {
+
+    }
 
     ~descriptor_set() = default;
     descriptor_set(const descriptor_set&) = delete;

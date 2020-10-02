@@ -245,7 +245,7 @@ static std::uint32_t choose_compute_family(const std::vector<VkQueueFamilyProper
     return choose_generic_family(queue_families);
 }
 
-static std::array<std::uint32_t, static_cast<std::size_t>(queue::count)> choose_queue_families(VkPhysicalDevice physical_device, renderer_options options, renderer::transfer_granularity& granularity)
+static renderer::queue_families_t choose_queue_families(VkPhysicalDevice physical_device, renderer_options options, renderer::transfer_granularity& granularity)
 {
     std::uint32_t count{};
     vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &count, nullptr);
@@ -254,7 +254,7 @@ static std::array<std::uint32_t, static_cast<std::size_t>(queue::count)> choose_
     queue_family_properties.resize(count);
     vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &count, std::data(queue_family_properties));
 
-    std::array<std::uint32_t, static_cast<std::size_t>(queue::count)> output{};
+    renderer::queue_families_t output{};
     output[static_cast<std::size_t>(queue::graphics)] = choose_generic_family(queue_family_properties);
     output[static_cast<std::size_t>(queue::present)] = choose_present_family(physical_device, queue_family_properties);
 
@@ -284,7 +284,7 @@ static std::array<std::uint32_t, static_cast<std::size_t>(queue::count)> choose_
     return output;
 }
 
-static std::vector<VkDeviceQueueCreateInfo> make_queue_create_info(const std::array<std::uint32_t, static_cast<std::size_t>(queue::count)>& families, renderer_options options)
+static std::vector<VkDeviceQueueCreateInfo> make_queue_create_info(const renderer::queue_families_t& families, renderer_options options)
 {
     std::vector<std::uint32_t> unique_families{};
     unique_families.emplace_back(families[static_cast<std::size_t>(queue::graphics)]);
@@ -335,6 +335,53 @@ static std::uint64_t upper_power_of_two(std::uint64_t value) noexcept
     return value;
 }
 
+static vulkan::memory_allocator::heap_sizes compute_heap_sizes(const physical_device& physical_device, renderer_options options)
+{
+    vulkan::memory_allocator::heap_sizes output{};
+
+    if(physical_device.memory_properties().device_shared > physical_device.memory_properties().device_local)
+    {
+        //If we have more device shared memory than "pure" device local memory, it means that the device is probably the host.
+        //In that case device shared memory will be a part of the system memory, so we reduce the heap size to prevent overallocation.
+        output.device_shared = upper_power_of_two(physical_device.memory_properties().device_shared / 128);
+    }
+    else
+    {
+        //Otherwise, it is probably a small part of the device memory that is accessible from the host, so we use a bigger heap size.
+        output.device_shared = upper_power_of_two(physical_device.memory_properties().device_shared / 16);
+    }
+
+    output.device_local = upper_power_of_two(physical_device.memory_properties().device_local / 64);
+    output.host_shared = upper_power_of_two(physical_device.memory_properties().host_shared / 256);
+
+    if(static_cast<bool>(options & renderer_options::tiny_memory_heaps))
+    {
+        output.device_shared /= 4;
+        output.device_local /= 4;
+        output.host_shared /= 4;
+    }
+    else if(static_cast<bool>(options & renderer_options::small_memory_heaps))
+    {
+        output.device_shared /= 2;
+        output.device_local /= 2;
+        output.host_shared /= 2;
+    }
+    else if(static_cast<bool>(options & renderer_options::large_memory_heaps))
+    {
+        output.device_shared *= 2;
+        output.device_local *= 2;
+        output.host_shared *= 2;
+    }
+    else if(static_cast<bool>(options & renderer_options::giant_memory_heaps))
+    {
+        output.device_shared *= 4;
+        output.device_local *= 4;
+        output.host_shared *= 4;
+    }
+
+    return output;
+}
+
 renderer::renderer(application& app, const physical_device& physical_device, renderer_options options, const physical_device_features& enabled_features)
 {
     m_physical_device = underlying_cast<VkPhysicalDevice>(physical_device);
@@ -359,60 +406,43 @@ renderer::renderer(application& app, const physical_device& physical_device, ren
         vkGetDeviceQueue(m_device, m_queue_families[i], 0, &m_queues[i]);
     }
 
-    vulkan::memory_allocator::heap_sizes sizes{};
+    m_allocator = std::make_unique<vulkan::memory_allocator>(m_physical_device, m_device, compute_heap_sizes(physical_device, options));
+}
 
-    if(physical_device.memory_properties().device_shared > physical_device.memory_properties().device_local)
-    {
-        //If we have more device shared memory than "pure" device local memory, it means that the device is probably the host.
-        //In that case device shared memory will be a part of the system memory, so we reduce the heap size to prevent overallocation.
-        sizes.device_shared = upper_power_of_two(physical_device.memory_properties().device_shared / 128);
-    }
-    else
-    {
-        //Otherwise, it is probably a small part of the device memory that is accessible from the host, so we use a bigger heap size.
-        sizes.device_shared = upper_power_of_two(physical_device.memory_properties().device_shared / 16);
-    }
+static renderer::transfer_granularity compute_transfer_granularity(VkPhysicalDevice physical_device, std::uint32_t family)
+{
+    std::uint32_t count{};
+    vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &count, nullptr);
 
-    sizes.device_local = upper_power_of_two(physical_device.memory_properties().device_local / 64);
-    sizes.host_shared = upper_power_of_two(physical_device.memory_properties().host_shared / 256);
+    std::vector<VkQueueFamilyProperties> queue_family_properties{};
+    queue_family_properties.resize(count);
+    vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &count, std::data(queue_family_properties));
 
-    if(static_cast<bool>(options & renderer_options::tiny_memory_heaps))
-    {
-        sizes.device_shared /= 4;
-        sizes.device_local /= 4;
-        sizes.host_shared /= 4;
-    }
-    else if(static_cast<bool>(options & renderer_options::small_memory_heaps))
-    {
-        sizes.device_shared /= 2;
-        sizes.device_local /= 2;
-        sizes.host_shared /= 2;
-    }
-    else if(static_cast<bool>(options & renderer_options::large_memory_heaps))
-    {
-        sizes.device_shared *= 2;
-        sizes.device_local *= 2;
-        sizes.host_shared *= 2;
-    }
-    else if(static_cast<bool>(options & renderer_options::giant_memory_heaps))
-    {
-        sizes.device_shared *= 4;
-        sizes.device_local *= 4;
-        sizes.host_shared *= 4;
-    }
+    const VkExtent3D native_granularity{queue_family_properties[family].minImageTransferGranularity};
 
-    m_allocator = std::make_unique<vulkan::memory_allocator>(m_physical_device, m_device, sizes);
+    renderer::transfer_granularity output{};
+    output.width = native_granularity.width;
+    output.height = native_granularity.height;
+    output.depth = native_granularity.depth;
+
+    return output;
+}
+
+renderer::renderer(const physical_device& physical_device, vulkan::device device, const queue_families_t& queue_families, const queues_t& queues, const vulkan::memory_allocator::heap_sizes& sizes) noexcept
+:m_physical_device{underlying_cast<VkPhysicalDevice>(physical_device)}
+,m_device{std::move(device)}
+,m_queue_families{queue_families}
+,m_queues{queues}
+,m_transfer_queue_granularity{compute_transfer_granularity(m_physical_device, queue_family_index(queue::transfer))}
+,m_allocator{std::make_unique<vulkan::memory_allocator>(m_physical_device, m_device, sizes)}
+{
+
 }
 
 void renderer::wait()
 {
     if(auto result{vkDeviceWaitIdle(m_device)}; result != VK_SUCCESS)
         throw vulkan::error{result};
-}
-
-void renderer::free_memory()
-{
-    m_allocator->clean();
 }
 
 }

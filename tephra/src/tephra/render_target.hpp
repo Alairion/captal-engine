@@ -114,8 +114,17 @@ class TEPHRA_API framebuffer
 
 public:
     constexpr framebuffer() = default;
+    explicit framebuffer(renderer& renderer, const render_pass& render_pass, std::span<const std::reference_wrapper<texture>> attachments, std::uint32_t width, std::uint32_t height, std::uint32_t layers);
 
-    framebuffer(renderer& renderer, const render_pass& render_pass, std::span<const std::reference_wrapper<texture>> attachments, std::uint32_t width, std::uint32_t height, std::uint32_t layers);
+    explicit framebuffer(vulkan::framebuffer framebuffer, std::vector<clear_value_t> clear_values, std::uint32_t width, std::uint32_t height, std::uint32_t layers) noexcept
+    :m_framebuffer{std::move(framebuffer)}
+    ,m_clear_values{std::move(clear_values)}
+    ,m_width{width}
+    ,m_height{height}
+    ,m_layers{layers}
+    {
+
+    }
 
     ~framebuffer() = default;
     framebuffer(const framebuffer&) = delete;
@@ -174,8 +183,13 @@ class TEPHRA_API render_pass
 
 public:
     constexpr render_pass() = default;
+    explicit render_pass(renderer& renderer, const render_pass_info& info);
 
-    render_pass(renderer& renderer, const render_pass_info& info);
+    explicit render_pass(vulkan::render_pass render_pass) noexcept
+    :m_render_pass{std::move(render_pass)}
+    {
+
+    }
 
     ~render_pass() = default;
     render_pass(const render_pass&) = delete;
@@ -200,7 +214,5 @@ inline VkRenderPass underlying_cast(const render_pass& render_pass) noexcept
 }
 
 }
-
-//template<> struct tph::enable_enum_operations<tph::render_target_options> {static constexpr bool value{true};};
 
 #endif

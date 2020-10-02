@@ -97,15 +97,27 @@ class TEPHRA_API texture
 
 public:
     constexpr texture() = default;
+    explicit texture(renderer& renderer, std::uint32_t width, const texture_info& info);
+    explicit texture(renderer& renderer, std::uint32_t width, const texture_info& info, const sampling_options& options);
+    explicit texture(renderer& renderer, std::uint32_t width, std::uint32_t height, const texture_info& info);
+    explicit texture(renderer& renderer, std::uint32_t width, std::uint32_t height, const texture_info& info, const sampling_options& options);
+    explicit texture(renderer& renderer, std::uint32_t width, std::uint32_t height, std::uint32_t depth, const texture_info& info);
+    explicit texture(renderer& renderer, std::uint32_t width, std::uint32_t height, std::uint32_t depth, const texture_info& info, const sampling_options& options);
 
-    texture(renderer& renderer, std::uint32_t width, const texture_info& info);
-    texture(renderer& renderer, std::uint32_t width, const texture_info& info, const sampling_options& options);
+    explicit texture(vulkan::image image, vulkan::memory_heap_chunk memory, vulkan::image_view image_view, vulkan::sampler sampler,
+                     texture_format format, std::uint32_t width, std::uint32_t height, std::uint32_t depth) noexcept
+    :m_image{std::move(image)}
+    ,m_memory{std::move(memory)}
+    ,m_image_view{std::move(image_view)}
+    ,m_sampler{std::move(sampler)}
+    ,m_format{format}
+    ,m_aspect{aspect_from_format(format)}
+    ,m_width{width}
+    ,m_height{height}
+    ,m_depth{depth}
+    {
 
-    texture(renderer& renderer, std::uint32_t width, std::uint32_t height, const texture_info& info);
-    texture(renderer& renderer, std::uint32_t width, std::uint32_t height, const texture_info& info, const sampling_options& options);
-
-    texture(renderer& renderer, std::uint32_t width, std::uint32_t height, std::uint32_t depth, const texture_info& info);
-    texture(renderer& renderer, std::uint32_t width, std::uint32_t height, std::uint32_t depth, const texture_info& info, const sampling_options& options);
+    }
 
     ~texture() = default;
     texture(const texture&) = delete;

@@ -41,14 +41,21 @@ class TEPHRA_API query_pool
 
 public:
     constexpr query_pool() = default;
-    query_pool(renderer& renderer, std::uint32_t count, query_type type, query_pipeline_statistic statistics = query_pipeline_statistic{});
+    explicit query_pool(renderer& renderer, std::uint32_t count, query_type type, query_pipeline_statistic statistics = query_pipeline_statistic{});
+
+    explicit query_pool(vulkan::query_pool query_pool) noexcept
+    :m_query_pool{std::move(query_pool)}
+    {
+
+    }
+
     ~query_pool() = default;
     query_pool(const query_pool&) = delete;
     query_pool& operator=(const query_pool&) = delete;
     query_pool(query_pool&& other) noexcept = default;
     query_pool& operator=(query_pool&& other) noexcept = default;
 
-    void reset(renderer& renderer);
+    void reset(std::uint32_t first, std::uint32_t count);
 
 private:
     vulkan::query_pool m_query_pool{};

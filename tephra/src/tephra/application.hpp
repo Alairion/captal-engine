@@ -36,8 +36,9 @@ public:
 public:
     constexpr application() = default;
 
-    application(const std::string& application_name, version application_version, application_options options = application_options::none);
-    application(const std::string& application_name, version application_version, version api_version, application_options options = application_options::none);
+    explicit application(const std::string& application_name, version application_version, application_options options = application_options::none);
+    explicit application(const std::string& application_name, version application_version, version api_version, application_options options = application_options::none);
+    explicit application(vulkan::instance instance, tph::version api_version, vulkan::debug_messenger debug_messenger = vulkan::debug_messenger{});
 
     ~application() = default;
     application(const application&) = delete;

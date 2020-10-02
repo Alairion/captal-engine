@@ -19,7 +19,13 @@ class TEPHRA_API semaphore
 
 public:
     constexpr semaphore() = default;
-    semaphore(renderer& renderer);
+    explicit semaphore(renderer& renderer);
+
+    explicit semaphore(vulkan::semaphore semaphore) noexcept
+    :m_semaphore{std::move(semaphore)}
+    {
+
+    }
 
     ~semaphore() = default;
     semaphore(const semaphore&) = delete;
@@ -50,7 +56,13 @@ class TEPHRA_API fence
 
 public:
     constexpr fence() = default;
-    fence(renderer& renderer, bool signaled = false);
+    explicit fence(renderer& renderer, bool signaled = false);
+
+    explicit fence(vulkan::fence fence) noexcept
+    :m_fence{std::move(fence)}
+    {
+
+    }
 
     ~fence() = default;
     fence(const fence&) = delete;
@@ -114,7 +126,13 @@ class TEPHRA_API event
 
 public:
     constexpr event() = default;
-    event(renderer& renderer);
+    explicit event(renderer& renderer);
+
+    explicit event(vulkan::event event) noexcept
+    :m_event{std::move(event)}
+    {
+
+    }
 
     ~event() = default;
     event(const event&) = delete;

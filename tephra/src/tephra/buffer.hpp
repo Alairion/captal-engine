@@ -37,7 +37,15 @@ class TEPHRA_API buffer
 
 public:
     constexpr buffer() = default;
-    buffer(renderer& renderer, std::uint64_t size, buffer_usage usage);
+    explicit buffer(renderer& renderer, std::uint64_t size, buffer_usage usage);
+
+    explicit buffer(vulkan::buffer buffer, vulkan::memory_heap_chunk memory) noexcept
+    :m_buffer{std::move(buffer)}
+    ,m_memory{std::move(memory)}
+    {
+
+    }
+
     ~buffer() = default;
     buffer(const buffer&) = delete;
     buffer& operator=(const buffer&) = delete;
@@ -50,13 +58,12 @@ public:
 
     std::uint64_t size() const noexcept
     {
-        return m_size;
+        return m_memory.size();
     }
 
 private:
     vulkan::buffer m_buffer{};
     vulkan::memory_heap_chunk m_memory{};
-    std::uint64_t m_size{};
 };
 
 template<>

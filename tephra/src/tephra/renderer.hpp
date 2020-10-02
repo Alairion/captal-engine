@@ -42,6 +42,10 @@ class TEPHRA_API renderer
     friend VulkanObject underlying_cast(const Args&...) noexcept;
 
 public:
+    using queue_families_t = std::array<std::uint32_t, static_cast<std::size_t>(queue::count)>;
+    using queues_t = std::array<VkQueue, static_cast<std::size_t>(queue::count)>;
+
+public:
     struct transfer_granularity
     {
         std::uint32_t width{1};
@@ -51,17 +55,17 @@ public:
 
 public:
     constexpr renderer() = default;
-    renderer(application& app, const physical_device& physical_device, renderer_options options = renderer_options::none, const physical_device_features& enabled_features = physical_device_features{});
-    ~renderer() = default;
+    explicit renderer(application& app, const physical_device& physical_device, renderer_options options = renderer_options::none, const physical_device_features& enabled_features = physical_device_features{});
 
+    explicit renderer(const physical_device& physical_device, vulkan::device device, const queue_families_t& queue_families, const queues_t& queues, const vulkan::memory_allocator::heap_sizes& sizes);
+
+    ~renderer() = default;
     renderer(const renderer&) = delete;
     renderer& operator=(const renderer&) = delete;
-
     renderer(renderer&& other) noexcept = default;
     renderer& operator=(renderer&& other) noexcept = default;
 
     void wait();
-    void free_memory();
 
     vulkan::memory_allocator& allocator() noexcept
     {
@@ -91,8 +95,8 @@ public:
 private:
     VkPhysicalDevice m_physical_device{};
     vulkan::device m_device{};
-    std::array<std::uint32_t, static_cast<std::size_t>(queue::count)> m_queue_families{};
-    std::array<VkQueue, static_cast<std::size_t>(queue::count)> m_queues{};
+    queue_families_t m_queue_families{};
+    queues_t m_queues{};
     transfer_granularity m_transfer_queue_granularity{};
     std::unique_ptr<vulkan::memory_allocator> m_allocator{};
 };

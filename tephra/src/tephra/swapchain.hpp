@@ -46,8 +46,16 @@ class TEPHRA_API swapchain
 
 public:
     constexpr swapchain() = default;
+    explicit swapchain(renderer& renderer, surface& surface, const swapchain_info& info, optional_ref<swapchain> old_swapchain = nullref);
 
-    swapchain(renderer& renderer, surface& surface, const swapchain_info& info, optional_ref<swapchain> old_swapchain = nullref);
+    explicit swapchain(vulkan::swapchain swapchain, VkQueue present_queue, const swapchain_info info, std::vector<tph::texture> textures) noexcept
+    :m_swapchain{std::move(swapchain)}
+    ,m_queue{present_queue}
+    ,m_info{info}
+    ,m_textures{std::move(textures)}
+    {
+
+    }
 
     ~swapchain() = default;
     swapchain(const swapchain&) = delete;
@@ -80,8 +88,8 @@ public:
     }
 
 private:
-    VkQueue m_queue{};
     vulkan::swapchain m_swapchain{};
+    VkQueue m_queue{};
     swapchain_info m_info{};
     std::vector<tph::texture> m_textures{};
     std::uint32_t m_image_index{};

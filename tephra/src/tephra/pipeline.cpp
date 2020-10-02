@@ -44,15 +44,13 @@ pipeline_layout::pipeline_layout(renderer& renderer, std::span<const std::refere
 }
 
 pipeline_cache::pipeline_cache(renderer& renderer)
-:m_device{underlying_cast<VkDevice>(renderer)}
-,m_pipeline_cache{m_device}
+:m_pipeline_cache{underlying_cast<VkDevice>(renderer)}
 {
 
 }
 
 pipeline_cache::pipeline_cache(renderer& renderer, std::span<const uint8_t> data)
-:m_device{underlying_cast<VkDevice>(renderer)}
-,m_pipeline_cache{m_device, std::data(data), std::size(data)}
+:m_pipeline_cache{underlying_cast<VkDevice>(renderer), std::data(data), std::size(data)}
 {
 
 }
@@ -64,19 +62,18 @@ pipeline_cache::pipeline_cache(renderer& renderer, const std::filesystem::path& 
 }
 
 pipeline_cache::pipeline_cache(renderer& renderer, std::istream& stream)
-:m_device{underlying_cast<VkDevice>(renderer)}
 {
     assert(stream && "Invalid stream.");
 
     const std::string initial_data{std::istreambuf_iterator<char>{stream}, std::istreambuf_iterator<char>{}};
-    m_pipeline_cache = vulkan::pipeline_cache{m_device, std::data(initial_data), std::size(initial_data)};
+    m_pipeline_cache = vulkan::pipeline_cache{underlying_cast<VkDevice>(renderer), std::data(initial_data), std::size(initial_data)};
 }
 
 pipeline_cache& pipeline_cache::merge_with(pipeline_cache& other)
 {
     VkPipelineCache native_pipeline_cache{other.m_pipeline_cache};
 
-    if(auto result{vkMergePipelineCaches(m_device, m_pipeline_cache, 1, &native_pipeline_cache)}; result != VK_SUCCESS)
+    if(auto result{vkMergePipelineCaches(m_pipeline_cache.device(), m_pipeline_cache, 1, &native_pipeline_cache)}; result != VK_SUCCESS)
         throw vulkan::error{result};
 
     return *this;
@@ -91,7 +88,7 @@ pipeline_cache& pipeline_cache::merge_with(const std::vector<std::reference_wrap
         native_pipeline_caches.emplace_back(other.m_pipeline_cache);
     }
 
-    if(auto result{vkMergePipelineCaches(m_device, m_pipeline_cache, static_cast<std::uint32_t>(std::size(native_pipeline_caches)), std::data(native_pipeline_caches))}; result != VK_SUCCESS)
+    if(auto result{vkMergePipelineCaches(m_pipeline_cache.device(), m_pipeline_cache, static_cast<std::uint32_t>(std::size(native_pipeline_caches)), std::data(native_pipeline_caches))}; result != VK_SUCCESS)
         throw vulkan::error{result};
 
     return *this;
@@ -100,13 +97,13 @@ pipeline_cache& pipeline_cache::merge_with(const std::vector<std::reference_wrap
 std::string pipeline_cache::data() const
 {
     std::size_t size{};
-    if(auto result{vkGetPipelineCacheData(m_device, m_pipeline_cache, &size, nullptr)}; result != VK_SUCCESS)
+    if(auto result{vkGetPipelineCacheData(m_pipeline_cache.device(), m_pipeline_cache, &size, nullptr)}; result != VK_SUCCESS)
         throw vulkan::error{result};
 
     std::string output{};
     output.resize(size);
 
-    if(auto result{vkGetPipelineCacheData(m_device, m_pipeline_cache, &size, std::data(output))}; result != VK_SUCCESS)
+    if(auto result{vkGetPipelineCacheData(m_pipeline_cache.device(), m_pipeline_cache, &size, std::data(output))}; result != VK_SUCCESS)
         throw vulkan::error{result};
 
     return output;

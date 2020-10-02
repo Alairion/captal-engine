@@ -34,7 +34,13 @@ class TEPHRA_API pipeline_layout
 
 public:
     constexpr pipeline_layout() = default;
-    pipeline_layout(renderer& renderer, std::span<const std::reference_wrapper<descriptor_set_layout>> layouts = {}, std::span<const push_constant_range> ranges = {});
+    explicit pipeline_layout(renderer& renderer, std::span<const std::reference_wrapper<descriptor_set_layout>> layouts = {}, std::span<const push_constant_range> ranges = {});
+
+    explicit pipeline_layout(vulkan::pipeline_layout pipeline_layout) noexcept
+    :m_pipeline_layout{std::move(pipeline_layout)}
+    {
+
+    }
 
     ~pipeline_layout() = default;
     pipeline_layout(const pipeline_layout&) = delete;
@@ -65,10 +71,16 @@ class TEPHRA_API pipeline_cache
 
 public:
     constexpr pipeline_cache() = default;
-    pipeline_cache(renderer& renderer);
-    pipeline_cache(renderer& renderer, const std::filesystem::path& file);
-    pipeline_cache(renderer& renderer, std::span<const std::uint8_t> data);
-    pipeline_cache(renderer& renderer, std::istream& stream);
+    explicit pipeline_cache(renderer& renderer);
+    explicit pipeline_cache(renderer& renderer, const std::filesystem::path& file);
+    explicit pipeline_cache(renderer& renderer, std::span<const std::uint8_t> data);
+    explicit pipeline_cache(renderer& renderer, std::istream& stream);
+
+    explicit pipeline_cache(vulkan::pipeline_cache pipeline_cache) noexcept
+    :m_pipeline_cache{std::move(pipeline_cache)}
+    {
+
+    }
 
     ~pipeline_cache() = default;
     pipeline_cache(const pipeline_cache&) = delete;
@@ -82,9 +94,14 @@ public:
     std::string data() const;
 
 private:
-    VkDevice m_device{};
     vulkan::pipeline_cache m_pipeline_cache{};
 };
+
+template<>
+inline VkDevice underlying_cast(const pipeline_cache& pipeline_cache) noexcept
+{
+    return pipeline_cache.m_pipeline_cache.device();
+}
 
 template<>
 inline VkPipelineCache underlying_cast(const pipeline_cache& pipeline_cache) noexcept
@@ -259,9 +276,15 @@ class TEPHRA_API pipeline
 
 public:
     constexpr pipeline() = default;
-    pipeline(renderer& renderer, render_pass& render_pass, const graphics_pipeline_info& info, const pipeline_layout& layout, optional_ref<pipeline_cache> cache = nullref, optional_ref<pipeline> parent = nullref);
-    pipeline(renderer& renderer, render_pass& render_pass, std::uint32_t subpass, const graphics_pipeline_info& info, const pipeline_layout& layout, optional_ref<pipeline_cache> cache = nullref, optional_ref<pipeline> parent = nullref);
-    pipeline(renderer& renderer, const compute_pipeline_info& info, const pipeline_layout& layout, optional_ref<pipeline_cache> cache = nullref, optional_ref<pipeline> parent = nullref);
+    explicit pipeline(renderer& renderer, render_pass& render_pass, const graphics_pipeline_info& info, const pipeline_layout& layout, optional_ref<pipeline_cache> cache = nullref, optional_ref<pipeline> parent = nullref);
+    explicit pipeline(renderer& renderer, render_pass& render_pass, std::uint32_t subpass, const graphics_pipeline_info& info, const pipeline_layout& layout, optional_ref<pipeline_cache> cache = nullref, optional_ref<pipeline> parent = nullref);
+    explicit pipeline(renderer& renderer, const compute_pipeline_info& info, const pipeline_layout& layout, optional_ref<pipeline_cache> cache = nullref, optional_ref<pipeline> parent = nullref);
+
+    explicit pipeline(vulkan::pipeline pipeline) noexcept
+    :m_pipeline{std::move(pipeline)}
+    {
+
+    }
 
     ~pipeline() = default;
     pipeline(const pipeline&) = delete;
@@ -278,6 +301,12 @@ private:
     vulkan::pipeline m_pipeline{};
     pipeline_type m_type{};
 };
+
+template<>
+inline VkDevice underlying_cast(const pipeline& pipeline) noexcept
+{
+    return pipeline.m_pipeline.device();
+}
 
 template<>
 inline VkPipeline underlying_cast(const pipeline& pipeline) noexcept

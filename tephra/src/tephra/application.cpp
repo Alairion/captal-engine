@@ -264,6 +264,14 @@ application::application(const std::string& application_name, version applicatio
     m_physical_devices = make_physical_devices(m_instance);
 }
 
+application::application(vulkan::instance instance, tph::version api_version, vulkan::debug_messenger debug_messenger)
+:m_instance{std::move(instance)}
+,m_debug_messenger{std::move(debug_messenger)}
+,m_version{api_version}
+{
+    m_physical_devices = make_physical_devices(m_instance);
+}
+
 const physical_device& application::select_physical_device(const filter_type& required, const comparator_type& comparator) const
 {
     std::vector<std::reference_wrapper<const physical_device>> suitable_devices{};

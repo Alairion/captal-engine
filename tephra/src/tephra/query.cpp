@@ -10,9 +10,9 @@ query_pool::query_pool(renderer& renderer, std::uint32_t count, query_type type,
 
 }
 
-void query_pool::reset(renderer& renderer)
+void query_pool::reset(std::uint32_t first, std::uint32_t count)
 {
-    vkResetQueryPool(underlying_cast<VkDevice>(renderer), underlying_cast<VkQueryPool>(m_query_pool), )
+    vkResetQueryPool(m_query_pool.device(), m_query_pool, first, count);
 }
 
 }

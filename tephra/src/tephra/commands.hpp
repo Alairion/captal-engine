@@ -31,8 +31,14 @@ class TEPHRA_API command_pool
 
 public:
     constexpr command_pool() = default;
-    command_pool(renderer& renderer);
-    command_pool(renderer& renderer, queue queue);
+    explicit command_pool(renderer& renderer);
+    explicit command_pool(renderer& renderer, queue queue);
+
+    explicit command_pool(vulkan::command_pool pool) noexcept
+    :m_pool{std::move(pool)}
+    {
+
+    }
 
     ~command_pool() = default;
     command_pool(const command_pool&) = delete;
@@ -65,17 +71,18 @@ class TEPHRA_API command_buffer
 
 public:
     constexpr command_buffer() = default;
-    ~command_buffer() = default;
-    command_buffer(const command_buffer&) = delete;
-    command_buffer& operator=(const command_buffer&) = delete;
-    command_buffer(command_buffer&& other) noexcept = default;
-    command_buffer& operator=(command_buffer&& other) noexcept = default;
 
     explicit command_buffer(vulkan::command_buffer buffer) noexcept
     :m_buffer{std::move(buffer)}
     {
 
     }
+
+    ~command_buffer() = default;
+    command_buffer(const command_buffer&) = delete;
+    command_buffer& operator=(const command_buffer&) = delete;
+    command_buffer(command_buffer&& other) noexcept = default;
+    command_buffer& operator=(command_buffer&& other) noexcept = default;
 
 private:
     vulkan::command_buffer m_buffer{};

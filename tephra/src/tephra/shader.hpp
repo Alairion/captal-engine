@@ -23,16 +23,21 @@ class TEPHRA_API shader
 
 public:
     constexpr shader() = default;
-    shader(renderer& renderer, shader_stage stage, const std::filesystem::path& file);
-    shader(renderer& renderer, shader_stage stage, std::span<const std::uint8_t> data);
-    shader(renderer& renderer, shader_stage stage, std::span<const std::uint32_t> spirv);
-    shader(renderer& renderer, shader_stage stage, std::istream& stream);
+    explicit shader(renderer& renderer, shader_stage stage, const std::filesystem::path& file);
+    explicit shader(renderer& renderer, shader_stage stage, std::span<const std::uint8_t> data);
+    explicit shader(renderer& renderer, shader_stage stage, std::span<const std::uint32_t> spirv);
+    explicit shader(renderer& renderer, shader_stage stage, std::istream& stream);
+
+    explicit shader(shader_stage stage, vulkan::shader shader) noexcept
+    :m_stage{stage}
+    ,m_shader{std::move(shader)}
+    {
+
+    }
 
     ~shader() = default;
-
     shader(const shader&) = delete;
     shader& operator=(const shader&) = delete;
-
     shader(shader&&) noexcept = default;
     shader& operator=(shader&&) noexcept = default;
 
