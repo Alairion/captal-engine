@@ -1,6 +1,10 @@
 #include "query.hpp"
 
+#include "vulkan/vulkan_functions.hpp"
+
 #include "renderer.hpp"
+
+using namespace tph::vulkan::functions;
 
 namespace tph
 {

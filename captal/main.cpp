@@ -199,7 +199,7 @@ static void add_logic(const cpt::render_window_ptr& window, entt::registry& worl
             return ss.str();
         };
 
-        cpt::engine::instance().renderer().free_memory();
+        cpt::engine::instance().renderer().allocator().clean();
 
         //Just some info displayed at the end of the demo.
         const auto memory_used{cpt::engine::instance().renderer().allocator().used_memory()};

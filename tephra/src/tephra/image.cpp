@@ -251,12 +251,7 @@ buffer image::to_buffer() noexcept
         m_map = nullptr;
     }
 
-    buffer output{};
-    output.m_buffer = std::move(m_buffer);
-    output.m_memory = std::move(m_memory);
-    output.m_size = m_width * m_height * 4;
-
-    return output;
+    return buffer{std::move(m_buffer), std::move(m_memory)};
 }
 
 }
