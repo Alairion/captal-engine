@@ -1209,7 +1209,7 @@ class TEPHRA_API debug_messenger
 {
 public:
     constexpr debug_messenger() = default;
-    explicit debug_messenger(VkInstance instance, PFN_vkDebugUtilsMessengerCallbackEXT callback, VkDebugUtilsMessageSeverityFlagBitsEXT severity, VkDebugUtilsMessageTypeFlagBitsEXT type);
+    explicit debug_messenger(VkInstance instance, PFN_vkDebugUtilsMessengerCallbackEXT callback, VkDebugUtilsMessageSeverityFlagBitsEXT severity, VkDebugUtilsMessageTypeFlagBitsEXT type, void* userdata);
 
     explicit debug_messenger(VkInstance instance, VkDebugUtilsMessengerEXT debug_messenger) noexcept
     :m_instance{instance}

@@ -459,9 +459,12 @@ static renderer::transfer_granularity compute_transfer_granularity(VkPhysicalDev
     return output;
 }
 
-renderer::renderer(const physical_device& physical_device, vulkan::device device, const queue_families_t& queue_families, const queues_t& queues, const vulkan::memory_allocator::heap_sizes& sizes)
+renderer::renderer(const physical_device& physical_device, vulkan::device device, renderer_layer layers, renderer_extension extensions,
+                   const queue_families_t& queue_families, const queues_t& queues, const vulkan::memory_allocator::heap_sizes& sizes)
 :m_physical_device{underlying_cast<VkPhysicalDevice>(physical_device)}
 ,m_device{std::move(device)}
+,m_layers{layers}
+,m_extensions{extensions}
 ,m_queue_families{queue_families}
 ,m_queues{queues}
 ,m_transfer_queue_granularity{compute_transfer_granularity(m_physical_device, queue_family_index(queue::transfer))}

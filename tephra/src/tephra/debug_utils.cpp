@@ -1,14 +1,15 @@
-#include "debug_messenger.hpp"
+#include "debug_utils.hpp"
 
 #include "vulkan/vulkan_functions.hpp"
 
+#include "application.hpp"
 #include "renderer.hpp"
 
 using namespace tph::vulkan::functions;
 
 namespace tph
 {
-
+/*
 static VKAPI_ATTR VkBool32 VKAPI_CALL debug_messenger_callback(VkDebugUtilsMessageSeverityFlagBitsEXT severity, VkDebugUtilsMessageTypeFlagsEXT type, const VkDebugUtilsMessengerCallbackDataEXT* callback_data, void*)
 {
     const auto format_type = [](VkDebugUtilsMessageTypeFlagsEXT type) -> std::string
@@ -59,6 +60,69 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debug_messenger_callback(VkDebugUtilsMessa
     }
 
     return VK_FALSE;
+}*/
+
+static VKAPI_ATTR VkBool32 VKAPI_CALL debug_messenger_callback(VkDebugUtilsMessageSeverityFlagBitsEXT severity, VkDebugUtilsMessageTypeFlagsEXT type, const VkDebugUtilsMessengerCallbackDataEXT* callback_data, void* userdata)
+{
+    const auto& user_callback{*reinterpret_cast<debug_messenger::callback_type*>(userdata)};
+
+    const auto convert_labels = [](std::uint32_t count, const VkDebugUtilsLabelEXT* labels)
+    {
+        std::vector<debug_label> output{};
+        output.reserve(static_cast<std::size_t>(count));
+
+        for(std::uint32_t i{}; i < count; ++i)
+        {
+            debug_label label{};
+            label.name = labels[i].pLabelName;
+            std::copy(std::begin(labels[i].color), std::end(labels[i].color), std::begin(label.color));
+
+            output.emplace_back(label);
+        }
+
+        return output;
+    };
+
+    const auto convert_objects = [](std::uint32_t count, const VkDebugUtilsObjectNameInfoEXT* objects)
+    {
+        std::vector<debug_object> output{};
+        output.reserve(static_cast<std::size_t>(count));
+
+        for(std::uint32_t i{}; i < count; ++i)
+        {
+            debug_object object{};
+            object.type = static_cast<object_type>(objects[i].objectType);
+            object.handle = objects[i].objectHandle;
+            object.name = objects[i].pObjectName;
+
+            output.emplace_back(object);
+        }
+
+        return output;
+    };
+
+    const auto queues{convert_labels(callback_data->queueLabelCount, callback_data->pQueueLabels)};
+    const auto command_buffer{convert_labels(callback_data->cmdBufLabelCount, callback_data->pCmdBufLabels)};
+    const auto objects{convert_objects(callback_data->objectCount, callback_data->pObjects)};
+
+    debug_message_data data{};
+    data.message_name = callback_data->pMessageIdName;
+    data.message_id = callback_data->messageIdNumber;
+    data.message = callback_data->pMessage;
+    data.queue_labels = std::span<const debug_label>{queues};
+    data.command_buffer_labels = std::span<const debug_label>{queues};
+    data.objects = std::span<const debug_object>{objects};
+
+    user_callback(static_cast<debug_message_severity>(severity), static_cast<debug_message_type>(type), data);
+
+    return VK_FALSE;
+}
+
+debug_messenger::debug_messenger(application& app, callback_type callback, debug_message_severity severities, debug_message_type types)
+:m_callback{std::make_unique<callback_type>(std::move(callback))}
+,m_debug_messenger{underlying_cast<VkInstance>(app), &debug_messenger_callback, static_cast<VkDebugUtilsMessageSeverityFlagBitsEXT>(severities), static_cast<VkDebugUtilsMessageTypeFlagBitsEXT>(types), m_callback.get()}
+{
+
 }
 
 }

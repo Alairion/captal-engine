@@ -240,9 +240,11 @@ application::application(const std::string& application_name, version applicatio
     m_physical_devices = make_physical_devices(m_instance);
 }
 
-application::application(vulkan::instance instance, tph::version api_version)
+application::application(vulkan::instance instance, tph::version api_version, application_layer layers, application_extension extensions)
 :m_instance{std::move(instance)}
 ,m_version{api_version}
+,m_layers{layers}
+,m_extensions{extensions}
 {
     tph::vulkan::functions::load_external_level_functions();
     tph::vulkan::functions::load_global_level_functions();

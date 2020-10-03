@@ -4,8 +4,10 @@
 #include "config.hpp"
 
 #include <functional>
+#include <string>
 #include <string_view>
 #include <span>
+#include <memory>
 
 #include "vulkan/vulkan.hpp"
 
@@ -14,6 +16,7 @@
 namespace tph
 {
 
+class application;
 class renderer;
 
 enum class debug_message_severity : std::uint32_t
@@ -84,9 +87,9 @@ struct debug_message_data
     std::string_view message_name{};
     std::int32_t message_id{};
     std::string_view message{};
-    std::span<debug_label> queue_labels{};
-    std::span<debug_label> command_buffer_labels{};
-    std::span<debug_object> objects{};
+    std::span<const debug_label> queue_labels{};
+    std::span<const debug_label> command_buffer_labels{};
+    std::span<const debug_object> objects{};
 };
 
 class TEPHRA_API debug_messenger
@@ -99,7 +102,7 @@ public:
 
 public:
     constexpr debug_messenger() = default;
-    explicit debug_messenger(renderer& renderer, callback_type callback);
+    explicit debug_messenger(application& app, callback_type callback, debug_message_severity severities, debug_message_type types);
 
     explicit debug_messenger(vulkan::debug_messenger debug_messenger) noexcept
     :m_debug_messenger{std::move(debug_messenger)}
@@ -114,11 +117,12 @@ public:
     debug_messenger& operator=(debug_messenger&& other) noexcept = default;
 
 private:
+    std::unique_ptr<callback_type> m_callback{};
     vulkan::debug_messenger m_debug_messenger{};
 };
 
 TEPHRA_API void set_object_name(renderer& renderer, const debug_messenger& messenger, const std::string& name);
-TEPHRA_API void set_object_tag(renderer& renderer, const debug_messenger& messenger, std::uint64_t id, std::span<std::uint8_t> tag);
+TEPHRA_API void set_object_tag(renderer& renderer, const debug_messenger& messenger, std::uint64_t id, std::span<const std::uint8_t> tag);
 
 template<>
 inline VkInstance underlying_cast(const debug_messenger& debug_messenger) noexcept

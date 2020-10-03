@@ -620,7 +620,7 @@ query_pool::~query_pool()
 
 /////////////////////////////////////////////////////////////////////
 
-debug_messenger::debug_messenger(VkInstance instance, PFN_vkDebugUtilsMessengerCallbackEXT callback, VkDebugUtilsMessageSeverityFlagBitsEXT severity, VkDebugUtilsMessageTypeFlagBitsEXT type)
+debug_messenger::debug_messenger(VkInstance instance, PFN_vkDebugUtilsMessengerCallbackEXT callback, VkDebugUtilsMessageSeverityFlagBitsEXT severity, VkDebugUtilsMessageTypeFlagBitsEXT type, void* userdata)
 :m_instance{instance}
 {
     VkDebugUtilsMessengerCreateInfoEXT create_info{};
@@ -628,6 +628,7 @@ debug_messenger::debug_messenger(VkInstance instance, PFN_vkDebugUtilsMessengerC
     create_info.messageSeverity = severity;
     create_info.messageType = type;
     create_info.pfnUserCallback = callback;
+    create_info.pUserData = userdata;
 
     if(auto result{vkCreateDebugUtilsMessengerEXT(instance, &create_info, nullptr, &m_debug_messenger)}; result != VK_SUCCESS)
         throw error{result};

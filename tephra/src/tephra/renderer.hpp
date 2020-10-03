@@ -69,7 +69,8 @@ public:
     constexpr renderer() = default;
     explicit renderer(const physical_device& physical_device, renderer_layer layers, renderer_extension extensions, const physical_device_features& enabled_features = physical_device_features{}, renderer_options options = renderer_options::none);
 
-    explicit renderer(const physical_device& physical_device, vulkan::device device, const queue_families_t& queue_families, const queues_t& queues, const vulkan::memory_allocator::heap_sizes& sizes);
+    explicit renderer(const physical_device& physical_device, vulkan::device device, renderer_layer layers, renderer_extension extensions,
+                      const queue_families_t& queue_families, const queues_t& queues, const vulkan::memory_allocator::heap_sizes& sizes);
 
     ~renderer() = default;
     renderer(const renderer&) = delete;

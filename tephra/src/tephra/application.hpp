@@ -44,7 +44,7 @@ public:
     explicit application(const std::string& application_name, version application_version, application_layer layers, application_extension extensions);
     explicit application(const std::string& application_name, version application_version, version api_version, application_layer layers, application_extension extensions);
 
-    explicit application(vulkan::instance instance, tph::version api_version);
+    explicit application(vulkan::instance instance, tph::version api_version, application_layer layers, application_extension extensions);
 
     ~application() = default;
     application(const application&) = delete;
