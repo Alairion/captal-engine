@@ -129,6 +129,8 @@ private:
     physical_device_memory_properties m_memory_properties{};
 };
 
+TEPHRA_API void set_object_name(renderer& renderer, const physical_device& object, const std::string& name);
+
 template<>
 inline VkPhysicalDevice underlying_cast(const physical_device& physical_device) noexcept
 {

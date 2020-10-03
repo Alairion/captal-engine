@@ -126,6 +126,8 @@ private:
     std::unique_ptr<vulkan::memory_allocator> m_allocator{};
 };
 
+TEPHRA_API void set_object_name(renderer& renderer, const std::string& name);
+
 template<>
 inline VkPhysicalDevice underlying_cast(const renderer& renderer) noexcept
 {

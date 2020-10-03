@@ -52,6 +52,8 @@ private:
     vulkan::pipeline_layout m_pipeline_layout{};
 };
 
+TEPHRA_API void set_object_name(renderer& renderer, const pipeline_layout& object, const std::string& name);
+
 template<>
 inline VkDevice underlying_cast(const pipeline_layout& pipeline_layout) noexcept
 {
@@ -96,6 +98,8 @@ public:
 private:
     vulkan::pipeline_cache m_pipeline_cache{};
 };
+
+TEPHRA_API void set_object_name(renderer& renderer, const pipeline_cache& object, const std::string& name);
 
 template<>
 inline VkDevice underlying_cast(const pipeline_cache& pipeline_cache) noexcept
@@ -301,6 +305,8 @@ private:
     vulkan::pipeline m_pipeline{};
     pipeline_type m_type{};
 };
+
+TEPHRA_API void set_object_name(renderer& renderer, const pipeline& object, const std::string& name);
 
 template<>
 inline VkDevice underlying_cast(const pipeline& pipeline) noexcept

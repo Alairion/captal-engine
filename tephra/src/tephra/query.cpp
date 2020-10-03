@@ -36,4 +36,16 @@ bool query_pool::results(std::uint32_t first, std::uint32_t count, std::size_t b
     return true;
 }
 
+void set_object_name(renderer& renderer, const query_pool& object, const std::string& name)
+{
+    VkDebugUtilsObjectNameInfoEXT info{};
+    info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+    info.objectType = VK_OBJECT_TYPE_QUERY_POOL;
+    info.objectHandle = reinterpret_cast<std::uint64_t>(underlying_cast<VkQueryPool>(object));
+    info.pObjectName = std::data(name);
+
+    if(auto result{vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(renderer), &info)}; result != VK_SUCCESS)
+        throw vulkan::error{result};
+}
+
 }

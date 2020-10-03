@@ -95,6 +95,8 @@ private:
     std::uint32_t m_image_index{};
 };
 
+TEPHRA_API void set_object_name(renderer& renderer, const swapchain& object, const std::string& name);
+
 template<>
 inline VkDevice underlying_cast(const swapchain& swapchain) noexcept
 {

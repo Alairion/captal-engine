@@ -135,4 +135,16 @@ std::vector<texture_format> surface::formats(const renderer& renderer) const
     return convert_formats(underlying_cast<VkPhysicalDevice>(renderer), m_surface);
 }
 
+void set_object_name(renderer& renderer, const surface& object, const std::string& name)
+{
+    VkDebugUtilsObjectNameInfoEXT info{};
+    info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+    info.objectType = VK_OBJECT_TYPE_SURFACE_KHR;
+    info.objectHandle = reinterpret_cast<std::uint64_t>(underlying_cast<VkSurfaceKHR>(object));
+    info.pObjectName = std::data(name);
+
+    if(auto result{vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(renderer), &info)}; result != VK_SUCCESS)
+        throw vulkan::error{result};
+}
+
 }

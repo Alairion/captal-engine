@@ -6,7 +6,11 @@
 
 #include <captal_foundation/utility.hpp>
 
+#include "vulkan/vulkan_functions.hpp"
+
 #include "renderer.hpp"
+
+using namespace tph::vulkan::functions;
 
 namespace tph
 {
@@ -48,6 +52,18 @@ shader::shader(renderer& renderer, shader_stage stage, std::istream& stream)
     stream.read(reinterpret_cast<char*>(std::data(code)), file_size);
 
     m_shader = vulkan::shader{underlying_cast<VkDevice>(renderer), std::size(code) * 4, std::data(code)};
+}
+
+void set_object_name(renderer& renderer, const shader& object, const std::string& name)
+{
+    VkDebugUtilsObjectNameInfoEXT info{};
+    info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+    info.objectType = VK_OBJECT_TYPE_SHADER_MODULE;
+    info.objectHandle = reinterpret_cast<std::uint64_t>(underlying_cast<VkShaderModule>(object));
+    info.pObjectName = std::data(name);
+
+    if(auto result{vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(renderer), &info)}; result != VK_SUCCESS)
+        throw vulkan::error{result};
 }
 
 }

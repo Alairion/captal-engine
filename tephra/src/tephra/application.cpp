@@ -288,4 +288,16 @@ const physical_device& application::default_physical_device() const
     return select_physical_device(requirements, default_physical_device_comparator);
 }
 
+void set_object_name(renderer& renderer, const application& object, const std::string& name)
+{
+    VkDebugUtilsObjectNameInfoEXT info{};
+    info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+    info.objectType = VK_OBJECT_TYPE_INSTANCE;
+    info.objectHandle = reinterpret_cast<std::uint64_t>(underlying_cast<VkInstance>(object));
+    info.pObjectName = std::data(name);
+
+    if(auto result{vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(renderer), &info)}; result != VK_SUCCESS)
+        throw vulkan::error{result};
+}
+
 }

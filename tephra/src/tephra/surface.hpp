@@ -109,6 +109,8 @@ private:
     vulkan::surface m_surface{};
 };
 
+TEPHRA_API void set_object_name(renderer& renderer, const surface& object, const std::string& name);
+
 template<>
 inline VkInstance underlying_cast(const surface& surface) noexcept
 {

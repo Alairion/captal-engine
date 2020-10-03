@@ -164,6 +164,8 @@ private:
     std::uint32_t m_layers{};
 };
 
+TEPHRA_API void set_object_name(renderer& renderer, const framebuffer& object, const std::string& name);
+
 template<>
 inline VkDevice underlying_cast(const framebuffer& framebuffer) noexcept
 {
@@ -200,6 +202,8 @@ public:
 private:
     vulkan::render_pass m_render_pass{};
 };
+
+TEPHRA_API void set_object_name(renderer& renderer, const render_pass& object, const std::string& name);
 
 template<>
 inline VkDevice underlying_cast(const render_pass& render_pass) noexcept

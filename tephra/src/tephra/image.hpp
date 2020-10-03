@@ -224,6 +224,8 @@ private:
     image_usage m_usage{};
 };
 
+TEPHRA_API void set_object_name(renderer& renderer, const image& object, const std::string& name);
+
 template<>
 inline VkDevice underlying_cast(const image& image) noexcept
 {

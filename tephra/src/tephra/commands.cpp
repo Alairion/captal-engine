@@ -34,6 +34,30 @@ void command_pool::reset()
         throw vulkan::error{result};
 }
 
+void set_object_name(renderer& renderer, const command_pool& object, const std::string& name)
+{
+    VkDebugUtilsObjectNameInfoEXT info{};
+    info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+    info.objectType = VK_OBJECT_TYPE_COMMAND_POOL;
+    info.objectHandle = reinterpret_cast<std::uint64_t>(underlying_cast<VkCommandPool>(object));
+    info.pObjectName = std::data(name);
+
+    if(auto result{vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(renderer), &info)}; result != VK_SUCCESS)
+        throw vulkan::error{result};
+}
+
+void set_object_name(renderer& renderer, const command_buffer& object, const std::string& name)
+{
+    VkDebugUtilsObjectNameInfoEXT info{};
+    info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+    info.objectType = VK_OBJECT_TYPE_COMMAND_BUFFER;
+    info.objectHandle = reinterpret_cast<std::uint64_t>(underlying_cast<VkCommandBuffer>(object));
+    info.pObjectName = std::data(name);
+
+    if(auto result{vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(renderer), &info)}; result != VK_SUCCESS)
+        throw vulkan::error{result};
+}
+
 namespace cmd
 {
 

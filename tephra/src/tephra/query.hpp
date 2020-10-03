@@ -51,6 +51,8 @@ private:
     vulkan::query_pool m_query_pool{};
 };
 
+TEPHRA_API void set_object_name(renderer& renderer, const query_pool& object, const std::string& name);
+
 template<>
 inline VkDevice underlying_cast(const query_pool& query_pool) noexcept
 {

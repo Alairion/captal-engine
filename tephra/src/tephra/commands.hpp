@@ -53,6 +53,8 @@ private:
     vulkan::command_pool m_pool{};
 };
 
+TEPHRA_API void set_object_name(renderer& renderer, const command_pool& object, const std::string& name);
+
 template<>
 inline VkDevice underlying_cast(const command_pool& pool) noexcept
 {
@@ -88,6 +90,8 @@ public:
 private:
     vulkan::command_buffer m_buffer{};
 };
+
+TEPHRA_API void set_object_name(renderer& renderer, const command_buffer& object, const std::string& name);
 
 template<>
 inline VkDevice underlying_cast(const command_buffer& buffer) noexcept

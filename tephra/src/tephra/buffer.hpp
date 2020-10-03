@@ -66,6 +66,8 @@ private:
     vulkan::memory_heap_chunk m_memory{};
 };
 
+TEPHRA_API void set_object_name(renderer& renderer, const buffer& object, const std::string& name);
+
 template<>
 inline VkDevice underlying_cast(const buffer& buffer) noexcept
 {

@@ -79,6 +79,19 @@ void framebuffer::set_clear_values(std::vector<clear_value_t> clear_values)
     m_clear_values = std::move(clear_values);
 }
 
+void set_object_name(renderer& renderer, const framebuffer& object, const std::string& name)
+{
+    VkDebugUtilsObjectNameInfoEXT info{};
+    info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+    info.objectType = VK_OBJECT_TYPE_FRAMEBUFFER;
+    info.objectHandle = reinterpret_cast<std::uint64_t>(underlying_cast<VkFramebuffer>(object));
+    info.pObjectName = std::data(name);
+
+    if(auto result{vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(renderer), &info)}; result != VK_SUCCESS)
+        throw vulkan::error{result};
+}
+
+
 //Don't know if I should keep this lul
 static constexpr std::size_t stack_size{1024 * 4};
 using memory_pool_t = stack_memory_pool<stack_size>;
@@ -220,6 +233,18 @@ render_pass::render_pass(renderer& renderer, const render_pass_info& info)
     const auto dependencies{make_dependencies(pool, info.dependencies)};
 
     m_render_pass = vulkan::render_pass{underlying_cast<VkDevice>(renderer), attachments, subpass, dependencies};
+}
+
+void set_object_name(renderer& renderer, const render_pass& object, const std::string& name)
+{
+    VkDebugUtilsObjectNameInfoEXT info{};
+    info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+    info.objectType = VK_OBJECT_TYPE_RENDER_PASS;
+    info.objectHandle = reinterpret_cast<std::uint64_t>(underlying_cast<VkRenderPass>(object));
+    info.pObjectName = std::data(name);
+
+    if(auto result{vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(renderer), &info)}; result != VK_SUCCESS)
+        throw vulkan::error{result};
 }
 
 }

@@ -164,6 +164,8 @@ private:
     std::uint32_t m_depth{};
 };
 
+TEPHRA_API void set_object_name(renderer& renderer, const texture& object, const std::string& name);
+
 template<>
 inline VkDevice underlying_cast(const texture& texture) noexcept
 {

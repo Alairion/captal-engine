@@ -50,6 +50,8 @@ private:
     vulkan::descriptor_set_layout m_layout{};
 };
 
+TEPHRA_API void set_object_name(renderer& renderer, const descriptor_set_layout& object, const std::string& name);
+
 template<>
 inline VkDevice underlying_cast(const descriptor_set_layout& layout) noexcept
 {
@@ -93,6 +95,8 @@ private:
     vulkan::descriptor_pool m_descriptor_pool{};
 };
 
+TEPHRA_API void set_object_name(renderer& renderer, const descriptor_pool& object, const std::string& name);
+
 template<>
 inline VkDevice underlying_cast(const descriptor_pool& descriptor_pool) noexcept
 {
@@ -129,6 +133,8 @@ public:
 private:
     vulkan::descriptor_set m_descriptor_set{};
 };
+
+TEPHRA_API void set_object_name(renderer& renderer, const descriptor_set& object, const std::string& name);
 
 template<>
 inline VkDevice underlying_cast(const descriptor_set& descriptor_set) noexcept

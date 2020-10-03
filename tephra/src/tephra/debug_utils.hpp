@@ -128,8 +128,7 @@ private:
     vulkan::debug_messenger m_debug_messenger{};
 };
 
-TEPHRA_API void set_object_name(renderer& renderer, const debug_messenger& messenger, const std::string& name);
-TEPHRA_API void set_object_tag(renderer& renderer, const debug_messenger& messenger, std::uint64_t id, std::span<const std::uint8_t> tag);
+TEPHRA_API void set_object_name(renderer& renderer, const debug_messenger& object, const std::string& name);
 
 template<>
 inline VkInstance underlying_cast(const debug_messenger& debug_messenger) noexcept

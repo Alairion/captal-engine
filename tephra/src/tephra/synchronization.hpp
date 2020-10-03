@@ -37,6 +37,8 @@ private:
     vulkan::semaphore m_semaphore{};
 };
 
+TEPHRA_API void set_object_name(renderer& renderer, const semaphore& object, const std::string& name);
+
 template<>
 inline VkDevice underlying_cast(const semaphore& semaphore) noexcept
 {
@@ -107,6 +109,8 @@ private:
     vulkan::fence m_fence{};
 };
 
+TEPHRA_API void set_object_name(renderer& renderer, const fence& object, const std::string& name);
+
 template<>
 inline VkDevice underlying_cast(const fence& fence) noexcept
 {
@@ -146,6 +150,8 @@ public:
 private:
     vulkan::event m_event{};
 };
+
+TEPHRA_API void set_object_name(renderer& renderer, const event& object, const std::string& name);
 
 template<>
 inline VkDevice underlying_cast(const event& event) noexcept

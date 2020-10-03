@@ -51,6 +51,8 @@ private:
     vulkan::shader m_shader{};
 };
 
+TEPHRA_API void set_object_name(renderer& renderer, const shader& object, const std::string& name);
+
 template<>
 inline VkDevice underlying_cast(const shader& shader) noexcept
 {

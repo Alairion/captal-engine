@@ -43,6 +43,18 @@ pipeline_layout::pipeline_layout(renderer& renderer, std::span<const std::refere
     m_pipeline_layout = vulkan::pipeline_layout{underlying_cast<VkDevice>(renderer), native_layouts, native_ranges};
 }
 
+void set_object_name(renderer& renderer, const pipeline_layout& object, const std::string& name)
+{
+    VkDebugUtilsObjectNameInfoEXT info{};
+    info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+    info.objectType = VK_OBJECT_TYPE_PIPELINE_LAYOUT;
+    info.objectHandle = reinterpret_cast<std::uint64_t>(underlying_cast<VkPipelineLayout>(object));
+    info.pObjectName = std::data(name);
+
+    if(auto result{vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(renderer), &info)}; result != VK_SUCCESS)
+        throw vulkan::error{result};
+}
+
 pipeline_cache::pipeline_cache(renderer& renderer)
 :m_pipeline_cache{underlying_cast<VkDevice>(renderer)}
 {
@@ -107,6 +119,18 @@ std::string pipeline_cache::data() const
         throw vulkan::error{result};
 
     return output;
+}
+
+void set_object_name(renderer& renderer, const pipeline_cache& object, const std::string& name)
+{
+    VkDebugUtilsObjectNameInfoEXT info{};
+    info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+    info.objectType = VK_OBJECT_TYPE_PIPELINE_CACHE;
+    info.objectHandle = reinterpret_cast<std::uint64_t>(underlying_cast<VkPipelineCache>(object));
+    info.pObjectName = std::data(name);
+
+    if(auto result{vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(renderer), &info)}; result != VK_SUCCESS)
+        throw vulkan::error{result};
 }
 
 pipeline::pipeline(renderer& renderer, render_pass& render_pass, const graphics_pipeline_info& info, const pipeline_layout& layout, optional_ref<pipeline_cache> cache, optional_ref<pipeline> parent)
@@ -318,6 +342,18 @@ pipeline::pipeline(renderer& renderer, const compute_pipeline_info& info, const 
     VkPipelineCache native_cache{cache.has_value() ? underlying_cast<VkPipelineCache>(cache.value()) : VkPipelineCache{}};
 
     m_pipeline = vulkan::pipeline{underlying_cast<VkDevice>(renderer), create_info, native_cache};
+}
+
+void set_object_name(renderer& renderer, const pipeline& object, const std::string& name)
+{
+    VkDebugUtilsObjectNameInfoEXT info{};
+    info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+    info.objectType = VK_OBJECT_TYPE_PIPELINE;
+    info.objectHandle = reinterpret_cast<std::uint64_t>(underlying_cast<VkPipeline>(object));
+    info.pObjectName = std::data(name);
+
+    if(auto result{vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(renderer), &info)}; result != VK_SUCCESS)
+        throw vulkan::error{result};
 }
 
 }

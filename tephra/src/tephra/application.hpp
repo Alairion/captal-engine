@@ -96,6 +96,8 @@ private:
     std::vector<physical_device> m_physical_devices{};
 };
 
+TEPHRA_API void set_object_name(renderer& renderer, const application& object, const std::string& name);
+
 template<>
 inline VkInstance underlying_cast(const application& initializer) noexcept
 {

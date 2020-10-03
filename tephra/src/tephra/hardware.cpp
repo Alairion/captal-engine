@@ -180,6 +180,18 @@ bool physical_device::support_texture_format(texture_format format, format_featu
     return (static_cast<format_feature>(properties.optimalTilingFeatures) & features) == features;
 }
 
+void set_object_name(renderer& renderer, const physical_device& object, const std::string& name)
+{
+    VkDebugUtilsObjectNameInfoEXT info{};
+    info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+    info.objectType = VK_OBJECT_TYPE_PHYSICAL_DEVICE;
+    info.objectHandle = reinterpret_cast<std::uint64_t>(underlying_cast<VkPhysicalDevice>(object));
+    info.pObjectName = std::data(name);
+
+    if(auto result{vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(renderer), &info)}; result != VK_SUCCESS)
+        throw vulkan::error{result};
+}
+
 bool default_physical_device_comparator(const physical_device& left, const physical_device& right) noexcept
 {
     const auto physical_device_score = [](const physical_device& device) noexcept -> std::int64_t

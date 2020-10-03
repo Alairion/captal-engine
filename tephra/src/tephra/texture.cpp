@@ -301,4 +301,44 @@ void texture::transition(command_buffer& command_buffer, resource_access source_
                          0, 0, nullptr, 0, nullptr, 1, &barrier);
 }
 
+void set_object_name(renderer& renderer, const texture& object, const std::string& name)
+{
+    VkDebugUtilsObjectNameInfoEXT info{};
+    info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+    info.objectType = VK_OBJECT_TYPE_IMAGE;
+    info.objectHandle = reinterpret_cast<std::uint64_t>(underlying_cast<VkImage>(object));
+    info.pObjectName = std::data(name);
+
+    if(auto result{vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(renderer), &info)}; result != VK_SUCCESS)
+        throw vulkan::error{result};
+
+    if(auto view{underlying_cast<VkImageView>(object)}; view)
+    {
+        const std::string real_name{name + " image view"};
+
+        VkDebugUtilsObjectNameInfoEXT info{};
+        info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+        info.objectType = VK_OBJECT_TYPE_IMAGE_VIEW;
+        info.objectHandle = reinterpret_cast<std::uint64_t>(view);
+        info.pObjectName = std::data(real_name);
+
+        if(auto result{vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(renderer), &info)}; result != VK_SUCCESS)
+            throw vulkan::error{result};
+    }
+
+    if(auto sampler{underlying_cast<VkSampler>(object)}; sampler)
+    {
+        const std::string real_name{name + " sampler"};
+
+        VkDebugUtilsObjectNameInfoEXT info{};
+        info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+        info.objectType = VK_OBJECT_TYPE_SAMPLER;
+        info.objectHandle = reinterpret_cast<std::uint64_t>(sampler);
+        info.pObjectName = std::data(real_name);
+
+        if(auto result{vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(renderer), &info)}; result != VK_SUCCESS)
+            throw vulkan::error{result};
+    }
+}
+
 }

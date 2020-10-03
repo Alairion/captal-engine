@@ -1,6 +1,10 @@
 #include "buffer.hpp"
 
+#include "vulkan/vulkan_functions.hpp"
+
 #include "renderer.hpp"
+
+using namespace tph::vulkan::functions;
 
 namespace tph
 {
@@ -40,6 +44,18 @@ const std::uint8_t* buffer::map() const
 void buffer::unmap()
 {
     m_memory.unmap();
+}
+
+void set_object_name(renderer& renderer, const buffer& object, const std::string& name)
+{
+    VkDebugUtilsObjectNameInfoEXT info{};
+    info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+    info.objectType = VK_OBJECT_TYPE_BUFFER;
+    info.objectHandle = reinterpret_cast<std::uint64_t>(underlying_cast<VkBuffer>(object));
+    info.pObjectName = std::data(name);
+
+    if(auto result{vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(renderer), &info)}; result != VK_SUCCESS)
+        throw vulkan::error{result};
 }
 
 }

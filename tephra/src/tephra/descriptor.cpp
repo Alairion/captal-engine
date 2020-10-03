@@ -36,6 +36,18 @@ descriptor_set_layout::descriptor_set_layout(renderer& renderer, std::span<const
     m_layout = vulkan::descriptor_set_layout{underlying_cast<VkDevice>(renderer), native_bindings};
 }
 
+void set_object_name(renderer& renderer, const descriptor_set_layout& object, const std::string& name)
+{
+    VkDebugUtilsObjectNameInfoEXT info{};
+    info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+    info.objectType = VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT;
+    info.objectHandle = reinterpret_cast<std::uint64_t>(underlying_cast<VkDescriptorSetLayout>(object));
+    info.pObjectName = std::data(name);
+
+    if(auto result{vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(renderer), &info)}; result != VK_SUCCESS)
+        throw vulkan::error{result};
+}
+
 descriptor_pool::descriptor_pool(renderer& renderer, std::span<const descriptor_pool_size> sizes, std::optional<std::uint32_t> max_sets)
 {
     stack_memory_pool<1024> pool{};
@@ -64,10 +76,34 @@ descriptor_pool::descriptor_pool(renderer& renderer, std::span<const descriptor_
     m_descriptor_pool = vulkan::descriptor_pool{underlying_cast<VkDevice>(renderer), native_sizes, max_sets.value()};
 }
 
+void set_object_name(renderer& renderer, const descriptor_pool& object, const std::string& name)
+{
+    VkDebugUtilsObjectNameInfoEXT info{};
+    info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+    info.objectType = VK_OBJECT_TYPE_DESCRIPTOR_POOL;
+    info.objectHandle = reinterpret_cast<std::uint64_t>(underlying_cast<VkDescriptorPool>(object));
+    info.pObjectName = std::data(name);
+
+    if(auto result{vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(renderer), &info)}; result != VK_SUCCESS)
+        throw vulkan::error{result};
+}
+
 descriptor_set::descriptor_set(renderer& renderer, descriptor_pool& pool, descriptor_set_layout& layout)
 :m_descriptor_set{underlying_cast<VkDevice>(renderer), underlying_cast<VkDescriptorPool>(pool), underlying_cast<VkDescriptorSetLayout>(layout)}
 {
 
+}
+
+void set_object_name(renderer& renderer, const descriptor_set& object, const std::string& name)
+{
+    VkDebugUtilsObjectNameInfoEXT info{};
+    info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+    info.objectType = VK_OBJECT_TYPE_DESCRIPTOR_SET;
+    info.objectHandle = reinterpret_cast<std::uint64_t>(underlying_cast<VkDescriptorSet>(object));
+    info.pObjectName = std::data(name);
+
+    if(auto result{vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(renderer), &info)}; result != VK_SUCCESS)
+        throw vulkan::error{result};
 }
 
 void write_descriptor(renderer& renderer, descriptor_set& descriptor_set, std::uint32_t binding, std::uint32_t array_index, descriptor_type type, buffer& buffer, std::uint64_t offset, std::uint64_t size)
