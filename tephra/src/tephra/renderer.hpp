@@ -16,7 +16,7 @@ namespace tph
 class application;
 class command_buffer;
 
-enum class renderer_options
+enum class renderer_options : std::uint32_t
 {
     none = 0x00,
     tiny_memory_heaps = 0x01,
@@ -34,6 +34,18 @@ enum class queue : std::size_t
     transfer = 2,
     compute = 3,
     count = 4
+};
+
+enum class renderer_layer : std::uint32_t
+{
+    none = 0x00,
+    validation = 0x01
+};
+
+enum class renderer_extension : std::uint32_t
+{
+    none = 0x00,
+    swapchain = 0x01
 };
 
 class TEPHRA_API renderer
@@ -55,7 +67,7 @@ public:
 
 public:
     constexpr renderer() = default;
-    explicit renderer(application& app, const physical_device& physical_device, renderer_options options = renderer_options::none, const physical_device_features& enabled_features = physical_device_features{});
+    explicit renderer(const physical_device& physical_device, renderer_layer layers, renderer_extension extensions, const physical_device_features& enabled_features = physical_device_features{}, renderer_options options = renderer_options::none);
 
     explicit renderer(const physical_device& physical_device, vulkan::device device, const queue_families_t& queue_families, const queues_t& queues, const vulkan::memory_allocator::heap_sizes& sizes);
 
@@ -67,14 +79,14 @@ public:
 
     void wait();
 
-    vulkan::memory_allocator& allocator() noexcept
+    renderer_layer enabled_layers() const noexcept
     {
-        return *m_allocator;
+        return m_layers;
     }
 
-    const vulkan::memory_allocator& allocator() const noexcept
+    renderer_extension enabled_extensions() const noexcept
     {
-        return *m_allocator;
+        return m_extensions;
     }
 
     std::uint32_t queue_family_index(queue queue) const noexcept
@@ -92,9 +104,21 @@ public:
         return m_transfer_queue_granularity;
     }
 
+    vulkan::memory_allocator& allocator() noexcept
+    {
+        return *m_allocator;
+    }
+
+    const vulkan::memory_allocator& allocator() const noexcept
+    {
+        return *m_allocator;
+    }
+
 private:
     VkPhysicalDevice m_physical_device{};
     vulkan::device m_device{};
+    renderer_layer m_layers{};
+    renderer_extension m_extensions{};
     queue_families_t m_queue_families{};
     queues_t m_queues{};
     transfer_granularity m_transfer_queue_granularity{};
@@ -122,5 +146,7 @@ inline VkQueue underlying_cast(const renderer& renderer, const queue& index) noe
 }
 
 template<> struct tph::enable_enum_operations<tph::renderer_options> {static constexpr bool value{true};};
+template<> struct tph::enable_enum_operations<tph::renderer_layer> {static constexpr bool value{true};};
+template<> struct tph::enable_enum_operations<tph::renderer_extension> {static constexpr bool value{true};};
 
 #endif

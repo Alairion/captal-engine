@@ -168,7 +168,7 @@ class TEPHRA_API device
 {
 public:
     constexpr device() = default;
-    explicit device(VkPhysicalDevice physical_device, std::span<const char* const> extensions, std::span<const char* const> layers, std::span<const VkDeviceQueueCreateInfo> queues, const VkPhysicalDeviceFeatures& features);
+    explicit device(VkPhysicalDevice physical_device, std::span<const char* const> layers, std::span<const char* const> extensions, std::span<const VkDeviceQueueCreateInfo> queues, const VkPhysicalDeviceFeatures& features);
 
     explicit device(VkDevice device) noexcept
     :m_device{device}

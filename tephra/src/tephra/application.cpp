@@ -45,7 +45,7 @@ static application_layer layer_from_name(std::string_view name) noexcept
 {
     if(name == "VK_LAYER_LUNARG_standard_validation")
     {
-        return application_layer ::validation;
+        return application_layer::validation;
     }
 
     return application_layer::none;

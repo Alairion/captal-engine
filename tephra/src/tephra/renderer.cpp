@@ -12,6 +12,65 @@ using namespace tph::vulkan::functions;
 namespace tph
 {
 
+static std::vector<VkLayerProperties> available_device_layers(VkPhysicalDevice physical_device)
+{
+    std::vector<VkLayerProperties> extensions{};
+
+    std::uint32_t count{};
+    vkEnumerateDeviceLayerProperties(physical_device, &count, nullptr);
+    extensions.resize(count);
+    vkEnumerateDeviceLayerProperties(physical_device, &count, std::data(extensions));
+
+    return extensions;
+}
+
+static renderer_layer layer_from_name(std::string_view name) noexcept
+{
+    if(name == "VK_LAYER_LUNARG_standard_validation")
+    {
+        return renderer_layer::validation;
+    }
+
+    return renderer_layer::none;
+}
+
+static std::vector<const char*> filter_device_layers(VkPhysicalDevice physical_device, std::vector<const char*> layers, renderer_layer& layer_bits)
+{
+    const std::vector<VkLayerProperties> available{available_device_layers(physical_device)};
+
+    for(auto it{std::cbegin(layers)}; it != std::cend(layers); ++it)
+    {
+        const auto pred = [it](const VkLayerProperties& layer)
+        {
+            return std::string_view{layer.layerName} == *it;
+        };
+
+        if(std::find_if(std::begin(available), std::end(available), pred) == std::end(available))
+        {
+            #ifndef NDEBUG
+            std::cerr << "Layer \"" << *it << "\" is not available." << std::endl;
+            #endif
+
+            layer_bits &= ~layer_from_name(*it);
+            it = layers.erase(it);
+        }
+    }
+
+    return layers;
+}
+
+static std::vector<const char*> required_device_layers(VkPhysicalDevice physical_device, renderer_layer& layers)
+{
+    std::vector<const char*> output{};
+
+    if(static_cast<bool>(layers & renderer_layer::validation))
+    {
+        output.emplace_back("VK_LAYER_LUNARG_standard_validation");
+    }
+
+    return filter_device_layers(physical_device, std::move(output), layers);
+}
+
 static std::vector<VkExtensionProperties> available_device_extensions(VkPhysicalDevice physical_device, const std::vector<const char*>& layers)
 {
     std::vector<VkExtensionProperties> extensions{};
@@ -35,7 +94,17 @@ static std::vector<VkExtensionProperties> available_device_extensions(VkPhysical
     return extensions;
 }
 
-static std::vector<const char*> filter_device_extensions(VkPhysicalDevice physical_device, std::vector<const char*> extensions, const std::vector<const char*>& layers)
+static renderer_extension extension_from_name(std::string_view name) noexcept
+{
+    if(name == "VK_KHR_swapchain")
+    {
+        return renderer_extension::swapchain;
+    }
+
+    return renderer_extension::none;
+}
+
+static std::vector<const char*> filter_device_extensions(VkPhysicalDevice physical_device, const std::vector<const char*>& layers, std::vector<const char*> extensions, renderer_extension& extension_bits)
 {
     const std::vector<VkExtensionProperties> available{available_device_extensions(physical_device, layers)};
 
@@ -48,7 +117,11 @@ static std::vector<const char*> filter_device_extensions(VkPhysicalDevice physic
 
         if(std::find_if(std::begin(available), std::end(available), pred) == std::end(available))
         {
+            #ifndef NDEBUG
             std::cerr << "Extension \"" << *it << "\" is not available." << std::endl;
+            #endif
+
+            extension_bits &= ~extension_from_name(*it);
             it = extensions.erase(it);
         }
     }
@@ -56,56 +129,11 @@ static std::vector<const char*> filter_device_extensions(VkPhysicalDevice physic
     return extensions;
 }
 
-static std::vector<const char*> required_device_extensions(VkPhysicalDevice physical_device, application_options options [[maybe_unused]], const std::vector<const char*>& layers)
+static std::vector<const char*> required_device_extensions(VkPhysicalDevice physical_device, const std::vector<const char*>& layers, renderer_extension& extensions)
 {
-    std::vector<const char*> extensions{"VK_KHR_swapchain"};
+    std::vector<const char*> output{"VK_KHR_swapchain"};
 
-    return filter_device_extensions(physical_device, std::move(extensions), layers);
-}
-
-static std::vector<VkLayerProperties> available_device_layers(VkPhysicalDevice physical_device)
-{
-    std::vector<VkLayerProperties> extensions{};
-
-    std::uint32_t count{};
-    vkEnumerateDeviceLayerProperties(physical_device, &count, nullptr);
-    extensions.resize(count);
-    vkEnumerateDeviceLayerProperties(physical_device, &count, std::data(extensions));
-
-    return extensions;
-}
-
-static std::vector<const char*> filter_device_layers(VkPhysicalDevice physical_device, std::vector<const char*> layers)
-{
-    const std::vector<VkLayerProperties> available{available_device_layers(physical_device)};
-
-    for(auto it{std::cbegin(layers)}; it != std::cend(layers); ++it)
-    {
-        const auto pred = [it](const VkLayerProperties& layer)
-        {
-            return std::string_view{layer.layerName} == *it;
-        };
-
-        if(std::find_if(std::begin(available), std::end(available), pred) == std::end(available))
-        {
-            std::cerr << "Layer \"" << *it << "\" is not available." << std::endl;
-            it = layers.erase(it);
-        }
-    }
-
-    return layers;
-}
-
-static std::vector<const char*> required_device_layers(VkPhysicalDevice physical_device, application_options options)
-{
-    std::vector<const char*> layers{};
-
-    if(static_cast<bool>(options & application_options::enable_validation))
-    {
-        layers.emplace_back("VK_LAYER_LUNARG_standard_validation");
-    }
-
-    return filter_device_layers(physical_device, std::move(layers));
+    return filter_device_extensions(physical_device, layers, std::move(output), extensions);
 }
 
 static VkPhysicalDeviceFeatures parse_enabled_features(const physical_device_features& features)
@@ -382,13 +410,13 @@ static vulkan::memory_allocator::heap_sizes compute_heap_sizes(const physical_de
     return output;
 }
 
-renderer::renderer(application& app, const physical_device& physical_device, renderer_options options, const physical_device_features& enabled_features)
+renderer::renderer(const physical_device& physical_device, renderer_layer layers, renderer_extension extensions, const physical_device_features& enabled_features, renderer_options options)
 {
     m_physical_device = underlying_cast<VkPhysicalDevice>(physical_device);
     m_queue_families = choose_queue_families(m_physical_device, options, m_transfer_queue_granularity);
 
-    const std::vector<const char*> layers{required_device_layers(m_physical_device, app.options())};
-    const std::vector<const char*> extensions{required_device_extensions(m_physical_device, app.options(), layers)};
+    const std::vector<const char*> layer_names{required_device_layers(m_physical_device, layers)};
+    const std::vector<const char*> extension_names{required_device_extensions(m_physical_device, layer_names, extensions)};
     const VkPhysicalDeviceFeatures features{parse_enabled_features(enabled_features)};
 
     std::vector<VkDeviceQueueCreateInfo> queues{make_queue_create_info(m_queue_families, options)};
@@ -398,7 +426,10 @@ renderer::renderer(application& app, const physical_device& physical_device, ren
         queue.pQueuePriorities = &priority;
     }
 
-    m_device = vulkan::device{m_physical_device, extensions, layers, queues, features};
+    m_device = vulkan::device{m_physical_device, layer_names, extension_names, queues, features};
+    m_layers = layers;
+    m_extensions = extensions;
+
     tph::vulkan::functions::load_device_level_functions(m_device);
 
     for(std::uint32_t i{}; i < std::size(m_queue_families); ++i)

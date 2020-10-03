@@ -139,14 +139,14 @@ instance::~instance()
 
 /////////////////////////////////////////////////////////////////////
 
-device::device(VkPhysicalDevice physical_device, std::span<const char* const> extensions, std::span<const char* const> layers, std::span<const VkDeviceQueueCreateInfo> queues, const VkPhysicalDeviceFeatures& features)
+device::device(VkPhysicalDevice physical_device, std::span<const char* const> layers, std::span<const char* const> extensions, std::span<const VkDeviceQueueCreateInfo> queues, const VkPhysicalDeviceFeatures& features)
 {
     VkDeviceCreateInfo create_info{};
     create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-    create_info.enabledExtensionCount = static_cast<std::uint32_t>(std::size(extensions));
-    create_info.ppEnabledExtensionNames = std::data(extensions);
     create_info.enabledLayerCount = static_cast<std::uint32_t>(std::size(layers));
     create_info.ppEnabledLayerNames = std::data(layers);
+    create_info.enabledExtensionCount = static_cast<std::uint32_t>(std::size(extensions));
+    create_info.ppEnabledExtensionNames = std::data(extensions);
     create_info.queueCreateInfoCount = static_cast<std::uint32_t>(std::size(queues));
     create_info.pQueueCreateInfos = std::data(queues);
     create_info.pEnabledFeatures = &features;
