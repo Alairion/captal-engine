@@ -31,7 +31,7 @@ enum class debug_message_type : std::uint32_t
 {
     general = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT,
     validation = VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT,
-    performace = VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
+    performance = VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
 };
 
 enum class object_type : std::uint32_t
@@ -91,6 +91,8 @@ struct debug_message_data
     std::span<const debug_label> command_buffer_labels{};
     std::span<const debug_object> objects{};
 };
+
+TEPHRA_API void debug_messenger_default_callback(debug_message_severity severity, debug_message_type type, const debug_message_data& data);
 
 class TEPHRA_API debug_messenger
 {
