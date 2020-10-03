@@ -196,21 +196,21 @@ static std::vector<const char*> required_instance_extensions(const std::vector<c
     return filter_instance_extensions(layers, std::move(output), extensions);
 }
 
-static std::vector<physical_device> make_physical_devices(VkInstance instance)
+static std::vector<physical_device> make_physical_devices(VkInstance instance, tph::version version)
 {
-    std::vector<VkPhysicalDevice> vulkan_devices{};
+    std::vector<VkPhysicalDevice> native_devices{};
 
     std::uint32_t count{};
     vkEnumeratePhysicalDevices(instance, &count, nullptr);
-    vulkan_devices.resize(count);
-    vkEnumeratePhysicalDevices(instance, &count, std::data(vulkan_devices));
+    native_devices.resize(count);
+    vkEnumeratePhysicalDevices(instance, &count, std::data(native_devices));
 
     std::vector<physical_device> devices{};
     devices.reserve(count);
 
-    for(auto&& vulkan_device : vulkan_devices)
+    for(auto&& native_device : native_devices)
     {
-        devices.emplace_back(vulkan::make_physical_device(vulkan_device));
+        devices.emplace_back(vulkan::make_physical_device(native_device, version));
     }
 
     return devices;
@@ -237,7 +237,7 @@ application::application(const std::string& application_name, version applicatio
 
     tph::vulkan::functions::load_instance_level_functions(m_instance);
 
-    m_physical_devices = make_physical_devices(m_instance);
+    m_physical_devices = make_physical_devices(m_instance, m_version);
 }
 
 application::application(vulkan::instance instance, tph::version api_version, application_layer layers, application_extension extensions)
@@ -250,7 +250,7 @@ application::application(vulkan::instance instance, tph::version api_version, ap
     tph::vulkan::functions::load_global_level_functions();
     tph::vulkan::functions::load_instance_level_functions(m_instance);
 
-    m_physical_devices = make_physical_devices(m_instance);
+    m_physical_devices = make_physical_devices(m_instance, m_version);
 }
 
 const physical_device& application::select_physical_device(const filter_type& required, const comparator_type& comparator) const

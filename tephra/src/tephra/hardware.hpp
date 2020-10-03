@@ -200,12 +200,38 @@ struct physical_device_format_properties
     format_feature buffer{};
 };
 
+enum class driver_id : std::uint32_t
+{
+    unknown = 0,
+    amd_proprietary = VK_DRIVER_ID_AMD_PROPRIETARY,
+    amd_open_source = VK_DRIVER_ID_AMD_OPEN_SOURCE,
+    mesa_radv = VK_DRIVER_ID_MESA_RADV,
+    nvidia_proprietary = VK_DRIVER_ID_NVIDIA_PROPRIETARY,
+    intel_proprietary_windows = VK_DRIVER_ID_INTEL_PROPRIETARY_WINDOWS,
+    intel_open_source_mesa = VK_DRIVER_ID_INTEL_OPEN_SOURCE_MESA,
+    imagination_proprietary = VK_DRIVER_ID_IMAGINATION_PROPRIETARY,
+    qualcomm_proprietary = VK_DRIVER_ID_QUALCOMM_PROPRIETARY,
+    arm_proprietary = VK_DRIVER_ID_ARM_PROPRIETARY,
+    google_swift_shader = VK_DRIVER_ID_GOOGLE_SWIFTSHADER,
+    ggp_proprietary = VK_DRIVER_ID_GGP_PROPRIETARY,
+    broadcom_proprietary = VK_DRIVER_ID_BROADCOM_PROPRIETARY,
+    mesa_llvmpipe = VK_DRIVER_ID_MESA_LLVMPIPE,
+    moltenvk = VK_DRIVER_ID_MOLTENVK,
+};
+
+struct physical_device_driver
+{
+    driver_id id{};
+    std::string name{};
+    std::string info{};
+};
+
 class physical_device;
 
 namespace vulkan
 {
 
-physical_device make_physical_device(VkPhysicalDevice device) noexcept;
+physical_device make_physical_device(VkPhysicalDevice device, tph::version instance_version) noexcept;
 
 }
 
@@ -214,7 +240,7 @@ class TEPHRA_API physical_device
     template<typename VulkanObject, typename... Args>
     friend VulkanObject underlying_cast(const Args&...) noexcept;
 
-    friend physical_device vulkan::make_physical_device(VkPhysicalDevice device) noexcept;
+    friend physical_device vulkan::make_physical_device(VkPhysicalDevice device, tph::version instance_version) noexcept;
 
 public:
     constexpr physical_device() = default;
@@ -249,12 +275,18 @@ public:
         return m_memory_properties;
     }
 
+    const std::optional<physical_device_driver>& driver() const noexcept
+    {
+        return m_driver;
+    }
+
 private:
     VkPhysicalDevice m_physical_device{};
     physical_device_properties m_properties{};
     physical_device_features m_features{};
     physical_device_limits m_limits{};
     physical_device_memory_properties m_memory_properties{};
+    std::optional<physical_device_driver> m_driver{};
 };
 
 TEPHRA_API void set_object_name(renderer& renderer, const physical_device& object, const std::string& name);

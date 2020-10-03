@@ -216,23 +216,61 @@ static physical_device_memory_properties make_memory_properties(VkPhysicalDevice
     return output;
 }
 
-physical_device make_physical_device(VkPhysicalDevice vk_physical_device) noexcept
+static physical_device_driver make_driver(const VkPhysicalDeviceDriverProperties& driver)
 {
-    VkPhysicalDeviceProperties properties{};
-    vkGetPhysicalDeviceProperties(vk_physical_device, &properties);
+    physical_device_driver output{};
 
-    VkPhysicalDeviceFeatures features{};
-    vkGetPhysicalDeviceFeatures(vk_physical_device, &features);
-
-    physical_device output{};
-
-    output.m_physical_device = vk_physical_device;
-    output.m_properties = make_properties(properties);
-    output.m_features = make_features(features);
-    output.m_limits = make_limits(properties.limits);
-    output.m_memory_properties = make_memory_properties(vk_physical_device);
+    output.id = static_cast<driver_id>(driver.driverID);
+    output.name = driver.driverName;
+    output.info = driver.driverInfo;
 
     return output;
+}
+
+physical_device make_physical_device(VkPhysicalDevice device, tph::version instance_version) noexcept
+{
+    if(instance_version >= tph::version{1, 2})
+    {
+        VkPhysicalDeviceDriverProperties driver{};
+        driver.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES;
+
+        VkPhysicalDeviceProperties2 properties{};
+        properties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+        properties.pNext = &driver;
+
+        vkGetPhysicalDeviceProperties2(device, &properties);
+
+        VkPhysicalDeviceFeatures features{};
+        vkGetPhysicalDeviceFeatures(device, &features);
+
+        physical_device output{};
+
+        output.m_physical_device = device;
+        output.m_properties = make_properties(properties.properties);
+        output.m_features = make_features(features);
+        output.m_limits = make_limits(properties.properties.limits);
+        output.m_memory_properties = make_memory_properties(device);
+
+        return output;
+    }
+    else
+    {
+        VkPhysicalDeviceProperties properties{};
+        vkGetPhysicalDeviceProperties(device, &properties);
+
+        VkPhysicalDeviceFeatures features{};
+        vkGetPhysicalDeviceFeatures(device, &features);
+
+        physical_device output{};
+
+        output.m_physical_device = device;
+        output.m_properties = make_properties(properties);
+        output.m_features = make_features(features);
+        output.m_limits = make_limits(properties.limits);
+        output.m_memory_properties = make_memory_properties(device);
+
+        return output;
+    }
 }
 
 }
