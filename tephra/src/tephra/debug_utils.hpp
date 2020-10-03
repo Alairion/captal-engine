@@ -118,6 +118,11 @@ public:
     debug_messenger(debug_messenger&& other) noexcept = default;
     debug_messenger& operator=(debug_messenger&& other) noexcept = default;
 
+    const callback_type& callback() const noexcept
+    {
+        return *m_callback;
+    }
+
 private:
     std::unique_ptr<callback_type> m_callback{};
     vulkan::debug_messenger m_debug_messenger{};
