@@ -95,7 +95,7 @@ command_buffer begin(command_pool& pool, render_pass& render_pass, optional_ref<
     return command_buffer{std::move(buffer)};
 }
 
-void copy(command_buffer& command_buffer, buffer& source, buffer& destination, const buffer_copy& region)
+void copy(command_buffer& command_buffer, buffer& source, buffer& destination, const buffer_copy& region) noexcept
 {
     VkBufferCopy native_region{};
     native_region.srcOffset = region.source_offset;
@@ -128,7 +128,7 @@ void copy(command_buffer& command_buffer, buffer& source, buffer& destination, s
                     static_cast<std::uint32_t>(std::size(native_regions)), std::data(native_regions));
 }
 
-void copy(command_buffer& command_buffer, buffer& source, image& destination, const buffer_image_copy& region)
+void copy(command_buffer& command_buffer, buffer& source, image& destination, const buffer_image_copy& region) noexcept
 {
     assert((source.size() - region.buffer_offset) >= destination.byte_size() && "tph::cmd::copy called with too small buffer.");
 
@@ -143,7 +143,7 @@ void copy(command_buffer& command_buffer, buffer& source, image& destination, co
 
 }
 
-void copy(command_buffer& command_buffer, buffer& source, texture& destination, const buffer_texture_copy& region)
+void copy(command_buffer& command_buffer, buffer& source, texture& destination, const buffer_texture_copy& region) noexcept
 {
     VkBufferImageCopy native_region{};
     native_region.bufferOffset = region.buffer_offset;
@@ -196,7 +196,7 @@ void copy(command_buffer& command_buffer, buffer& source, texture& destination, 
                            static_cast<std::uint32_t>(std::size(native_regions)), std::data(native_regions));
 }
 
-void copy(command_buffer& command_buffer, image& source, buffer& destination, const buffer_image_copy& region)
+void copy(command_buffer& command_buffer, image& source, buffer& destination, const buffer_image_copy& region) noexcept
 {
     assert((destination.size() - region.buffer_offset) >= source.byte_size() && "tph::cmd::copy called with too small buffer.");
 
@@ -210,7 +210,7 @@ void copy(command_buffer& command_buffer, image& source, buffer& destination, co
                     1, &native_region);
 }
 
-void copy(command_buffer& command_buffer, image& source, texture& destination, const image_texture_copy& region)
+void copy(command_buffer& command_buffer, image& source, texture& destination, const image_texture_copy& region) noexcept
 {
     VkBufferImageCopy native_region{};
     native_region.bufferRowLength = static_cast<std::uint32_t>(source.width());
@@ -261,7 +261,7 @@ void copy(command_buffer& command_buffer, image& source, texture& destination, s
                            static_cast<std::uint32_t>(std::size(native_regions)), std::data(native_regions));
 }
 
-void copy(command_buffer& command_buffer, texture& source, buffer& destination, const buffer_texture_copy& region)
+void copy(command_buffer& command_buffer, texture& source, buffer& destination, const buffer_texture_copy& region) noexcept
 {
     VkBufferImageCopy native_region{};
     native_region.bufferOffset = region.buffer_offset;
@@ -314,7 +314,7 @@ void copy(command_buffer& command_buffer, texture& source, buffer& destination, 
                            static_cast<std::uint32_t>(std::size(native_regions)), std::data(native_regions));
 }
 
-void copy(command_buffer& command_buffer, texture& source, image& destination, const image_texture_copy& region)
+void copy(command_buffer& command_buffer, texture& source, image& destination, const image_texture_copy& region) noexcept
 {
     VkBufferImageCopy native_region{};
     native_region.bufferRowLength = static_cast<std::uint32_t>(destination.width());
@@ -365,7 +365,7 @@ void copy(command_buffer& command_buffer, texture& source, image& destination, s
                            static_cast<std::uint32_t>(std::size(native_regions)), std::data(native_regions));
 }
 
-void copy(command_buffer& command_buffer, texture& source, texture& destination, const texture_copy& region)
+void copy(command_buffer& command_buffer, texture& source, texture& destination, const texture_copy& region) noexcept
 {
     VkImageCopy native_region{};
     native_region.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -426,7 +426,7 @@ void copy(command_buffer& command_buffer, texture& source, texture& destination,
                    static_cast<std::uint32_t>(std::size(native_regions)), std::data(native_regions));
 }
 
-void copy(command_buffer& command_buffer, buffer& source, buffer& destination)
+void copy(command_buffer& command_buffer, buffer& source, buffer& destination) noexcept
 {
     assert(source.size() <= destination.size() && "tph::cmd::copy called with too small destination buffer.");
 
@@ -439,7 +439,7 @@ void copy(command_buffer& command_buffer, buffer& source, buffer& destination)
                     1, &native_region);
 }
 
-void copy(command_buffer& command_buffer, image& source, image& destination)
+void copy(command_buffer& command_buffer, image& source, image& destination) noexcept
 {
     assert((source.width() == destination.width() && source.height() <= destination.height()) && "tph::cmd::copy called with images of different size.");
 
@@ -452,7 +452,7 @@ void copy(command_buffer& command_buffer, image& source, image& destination)
                     1, &native_region);
 }
 
-void copy(command_buffer& command_buffer, image& source, texture& destination)
+void copy(command_buffer& command_buffer, image& source, texture& destination) noexcept
 {
     VkBufferImageCopy native_region{};
     native_region.bufferRowLength = static_cast<std::uint32_t>(source.width());
@@ -471,7 +471,7 @@ void copy(command_buffer& command_buffer, image& source, texture& destination)
                            1, &native_region);
 }
 
-void copy(command_buffer& command_buffer, texture& source, image& destination)
+void copy(command_buffer& command_buffer, texture& source, image& destination) noexcept
 {
     VkBufferImageCopy native_region{};
     native_region.bufferRowLength = static_cast<std::uint32_t>(destination.width());
@@ -490,7 +490,7 @@ void copy(command_buffer& command_buffer, texture& source, image& destination)
                            1, &native_region);
 }
 
-void copy(command_buffer& command_buffer, texture& source, texture& destination)
+void copy(command_buffer& command_buffer, texture& source, texture& destination) noexcept
 {
     assert((source.width() <= destination.width() && source.height() <= destination.height() && source.depth() <= destination.depth()) && "tph::cmd::copy called with too small destination texture");
 
@@ -513,7 +513,7 @@ void copy(command_buffer& command_buffer, texture& source, texture& destination)
                    1, &native_region);
 }
 
-void blit(command_buffer& command_buffer, texture& source, texture& destination, filter filter, const texture_blit& region)
+void blit(command_buffer& command_buffer, texture& source, texture& destination, filter filter, const texture_blit& region) noexcept
 {
     VkImageBlit native_region{};
     native_region.srcOffsets[0].x = region.source_offset.x;
@@ -580,7 +580,7 @@ void blit(command_buffer& command_buffer, texture& source, texture& destination,
                    static_cast<std::uint32_t>(std::size(native_regions)), std::data(native_regions), static_cast<VkFilter>(filter));
 }
 
-void blit(command_buffer& command_buffer, texture& source, texture& destination, filter filter)
+void blit(command_buffer& command_buffer, texture& source, texture& destination, filter filter) noexcept
 {
     VkImageBlit native_region{};
     native_region.srcOffsets[0].x = 0;
@@ -610,19 +610,19 @@ void blit(command_buffer& command_buffer, texture& source, texture& destination,
                    1, &native_region, static_cast<VkFilter>(filter));
 }
 
-void transition(command_buffer& command_buffer, texture& texture, resource_access source_access, resource_access destination_access, pipeline_stage source_stage, pipeline_stage destination_stage, texture_layout current_layout, texture_layout next_layout)
+void transition(command_buffer& command_buffer, texture& texture, resource_access source_access, resource_access destination_access, pipeline_stage source_stage, pipeline_stage destination_stage, texture_layout current_layout, texture_layout next_layout) noexcept
 {
     texture.transition(command_buffer, source_access, destination_access, source_stage, destination_stage, current_layout, next_layout);
 }
 
-void pipeline_barrier(command_buffer& command_buffer, pipeline_stage source_stage, pipeline_stage destination_stage)
+void pipeline_barrier(command_buffer& command_buffer, pipeline_stage source_stage, pipeline_stage destination_stage) noexcept
 {
     vkCmdPipelineBarrier(underlying_cast<VkCommandBuffer>(command_buffer),
                          static_cast<VkPipelineStageFlags>(source_stage), static_cast<VkPipelineStageFlags>(destination_stage), 0,
                          0, nullptr, 0, nullptr, 0, nullptr);
 }
 
-void pipeline_barrier(command_buffer& command_buffer, resource_access source_access, resource_access destination_access, pipeline_stage source_stage, pipeline_stage destination_stage)
+void pipeline_barrier(command_buffer& command_buffer, resource_access source_access, resource_access destination_access, pipeline_stage source_stage, pipeline_stage destination_stage) noexcept
 {
     VkMemoryBarrier barrier{};
     barrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
@@ -634,27 +634,27 @@ void pipeline_barrier(command_buffer& command_buffer, resource_access source_acc
                          1, &barrier, 0, nullptr, 0, nullptr);
 }
 
-void update_buffer(command_buffer& command_buffer, tph::buffer& buffer, std::uint64_t offset, std::uint64_t size, const void* data)
+void update_buffer(command_buffer& command_buffer, tph::buffer& buffer, std::uint64_t offset, std::uint64_t size, const void* data) noexcept
 {
     vkCmdUpdateBuffer(underlying_cast<VkCommandBuffer>(command_buffer), underlying_cast<VkBuffer>(buffer), offset, size, data);
 }
 
-void fill_buffer(command_buffer& command_buffer, tph::buffer& buffer, std::uint64_t offset, std::uint64_t size, std::uint32_t value)
+void fill_buffer(command_buffer& command_buffer, tph::buffer& buffer, std::uint64_t offset, std::uint64_t size, std::uint32_t value) noexcept
 {
     vkCmdFillBuffer(underlying_cast<VkCommandBuffer>(command_buffer), underlying_cast<VkBuffer>(buffer), offset, size, value);
 }
 
-void push_constants(command_buffer& command_buffer, pipeline_layout& layout, shader_stage stages, std::uint32_t offset, std::uint32_t size, const void* data)
+void push_constants(command_buffer& command_buffer, pipeline_layout& layout, shader_stage stages, std::uint32_t offset, std::uint32_t size, const void* data) noexcept
 {
     vkCmdPushConstants(underlying_cast<VkCommandBuffer>(command_buffer), underlying_cast<VkPipelineLayout>(layout), static_cast<VkShaderStageFlags>(stages), offset, size, data);
 }
 
-void begin_render_pass(command_buffer& command_buffer, const render_pass& render_pass, const framebuffer& framebuffer, render_pass_content content)
+void begin_render_pass(command_buffer& command_buffer, const render_pass& render_pass, const framebuffer& framebuffer, render_pass_content content) noexcept
 {
     begin_render_pass(command_buffer, render_pass, framebuffer, scissor{0, 0, framebuffer.width(), framebuffer.height()}, content);
 }
 
-void begin_render_pass(command_buffer& command_buffer, const render_pass& render_pass, const framebuffer& framebuffer, const scissor& area, render_pass_content content)
+void begin_render_pass(command_buffer& command_buffer, const render_pass& render_pass, const framebuffer& framebuffer, const scissor& area, render_pass_content content) noexcept
 {
     stack_memory_pool<1024 * 2> pool{};
     auto clear_values{make_stack_vector<VkClearValue>(pool)};
@@ -688,94 +688,94 @@ void begin_render_pass(command_buffer& command_buffer, const render_pass& render
     vkCmdBeginRenderPass(underlying_cast<VkCommandBuffer>(command_buffer), &render_pass_info, static_cast<VkSubpassContents>(content));
 }
 
-void next_subpass(command_buffer& command_buffer, render_pass_content content)
+void next_subpass(command_buffer& command_buffer, render_pass_content content) noexcept
 {
     vkCmdNextSubpass(underlying_cast<VkCommandBuffer>(command_buffer), static_cast<VkSubpassContents>(content));
 }
 
-void end_render_pass(command_buffer& command_buffer)
+void end_render_pass(command_buffer& command_buffer) noexcept
 {
     vkCmdEndRenderPass(underlying_cast<VkCommandBuffer>(command_buffer));
 }
 
-void bind_pipeline(command_buffer& command_buffer, pipeline& pipeline)
+void bind_pipeline(command_buffer& command_buffer, pipeline& pipeline) noexcept
 {
     vkCmdBindPipeline(underlying_cast<VkCommandBuffer>(command_buffer), static_cast<VkPipelineBindPoint>(pipeline.type()), underlying_cast<VkPipeline>(pipeline));
 }
 
-void bind_vertex_buffer(command_buffer& command_buffer, buffer& buffer, std::uint64_t offset)
+void bind_vertex_buffer(command_buffer& command_buffer, buffer& buffer, std::uint64_t offset) noexcept
 {
     VkBuffer native_buffer{underlying_cast<VkBuffer>(buffer)};
     vkCmdBindVertexBuffers(underlying_cast<VkCommandBuffer>(command_buffer), 0, 1, &native_buffer, &offset);
 }
 
-void bind_index_buffer(command_buffer& command_buffer, buffer& buffer, std::uint64_t offset, index_type type)
+void bind_index_buffer(command_buffer& command_buffer, buffer& buffer, std::uint64_t offset, index_type type) noexcept
 {
     vkCmdBindIndexBuffer(underlying_cast<VkCommandBuffer>(command_buffer), underlying_cast<VkBuffer>(buffer), offset, static_cast<VkIndexType>(type));
 }
 
-void bind_descriptor_set(command_buffer& command_buffer, descriptor_set& descriptor_set, pipeline_layout& layout, pipeline_type bind_point)
+void bind_descriptor_set(command_buffer& command_buffer, descriptor_set& descriptor_set, pipeline_layout& layout, pipeline_type bind_point) noexcept
 {
     VkDescriptorSet native_descriptor_set{underlying_cast<VkDescriptorSet>(descriptor_set)};
     vkCmdBindDescriptorSets(underlying_cast<VkCommandBuffer>(command_buffer), static_cast<VkPipelineBindPoint>(bind_point), underlying_cast<VkPipelineLayout>(layout), 0, 1, &native_descriptor_set, 0, nullptr);
 }
 
-void set_viewport(command_buffer& command_buffer, const viewport& viewport, std::uint32_t index)
+void set_viewport(command_buffer& command_buffer, const viewport& viewport, std::uint32_t index) noexcept
 {
     vkCmdSetViewport(underlying_cast<VkCommandBuffer>(command_buffer), index, 1, reinterpret_cast<const VkViewport*>(&viewport));
 }
 
-void set_scissor(command_buffer& command_buffer, const scissor& scissor, std::uint32_t index)
+void set_scissor(command_buffer& command_buffer, const scissor& scissor, std::uint32_t index) noexcept
 {
     vkCmdSetScissor(underlying_cast<VkCommandBuffer>(command_buffer), index, 1, reinterpret_cast<const VkRect2D*>(&scissor));
 }
 
-void draw(command_buffer& command_buffer, std::uint32_t vertex_count, std::uint32_t instance_count, std::uint32_t first_vertex, std::uint32_t first_instance)
+void draw(command_buffer& command_buffer, std::uint32_t vertex_count, std::uint32_t instance_count, std::uint32_t first_vertex, std::uint32_t first_instance) noexcept
 {
     vkCmdDraw(underlying_cast<VkCommandBuffer>(command_buffer), vertex_count, instance_count, first_vertex, first_instance);
 }
 
-void draw_indexed(command_buffer& command_buffer, std::uint32_t index_count, std::uint32_t instance_count, std::uint32_t first_index, std::uint32_t first_vertex, std::uint32_t first_instance)
+void draw_indexed(command_buffer& command_buffer, std::uint32_t index_count, std::uint32_t instance_count, std::uint32_t first_index, std::uint32_t first_vertex, std::uint32_t first_instance) noexcept
 {
     vkCmdDrawIndexed(underlying_cast<VkCommandBuffer>(command_buffer), index_count, instance_count, first_index, first_vertex, first_instance);
 }
 
-void draw_indirect(command_buffer& command_buffer, buffer& buffer, std::uint64_t offset, std::uint32_t draw_count, std::uint32_t stride)
+void draw_indirect(command_buffer& command_buffer, buffer& buffer, std::uint64_t offset, std::uint32_t draw_count, std::uint32_t stride) noexcept
 {
     vkCmdDrawIndirect(underlying_cast<VkCommandBuffer>(command_buffer), underlying_cast<VkBuffer>(buffer), offset, draw_count, stride);
 }
 
-void draw_indexed_indirect(command_buffer& command_buffer, buffer& buffer, std::uint64_t offset, std::uint32_t draw_count, std::uint32_t stride)
+void draw_indexed_indirect(command_buffer& command_buffer, buffer& buffer, std::uint64_t offset, std::uint32_t draw_count, std::uint32_t stride) noexcept
 {
     vkCmdDrawIndexedIndirect(underlying_cast<VkCommandBuffer>(command_buffer), underlying_cast<VkBuffer>(buffer), offset, draw_count, stride);
 }
 
-void dispatch(command_buffer& command_buffer, std::uint32_t group_count_x, std::uint32_t group_count_y, std::uint32_t group_count_z)
+void dispatch(command_buffer& command_buffer, std::uint32_t group_count_x, std::uint32_t group_count_y, std::uint32_t group_count_z) noexcept
 {
     vkCmdDispatch(underlying_cast<VkCommandBuffer>(command_buffer), group_count_x, group_count_y, group_count_z);
 }
 
-void dispatch_indirect(command_buffer& command_buffer, buffer& buffer, std::uint64_t offset)
+void dispatch_indirect(command_buffer& command_buffer, buffer& buffer, std::uint64_t offset) noexcept
 {
     vkCmdDispatchIndirect(underlying_cast<VkCommandBuffer>(command_buffer), underlying_cast<VkBuffer>(buffer), offset);
 }
 
-void reset_query_pool(command_buffer& command_buffer, query_pool& pool, std::uint32_t first, std::uint32_t count)
+void reset_query_pool(command_buffer& command_buffer, query_pool& pool, std::uint32_t first, std::uint32_t count) noexcept
 {
     vkCmdResetQueryPool(underlying_cast<VkCommandBuffer>(command_buffer), underlying_cast<VkQueryPool>(pool), first, count);
 }
 
-void begin_query(command_buffer& command_buffer, query_pool& pool, std::uint32_t query, query_control flags)
+void begin_query(command_buffer& command_buffer, query_pool& pool, std::uint32_t query, query_control flags) noexcept
 {
     vkCmdBeginQuery(underlying_cast<VkCommandBuffer>(command_buffer), underlying_cast<VkQueryPool>(pool), query, static_cast<VkQueryControlFlags>(flags));
 }
 
-void end_query(command_buffer& command_buffer, query_pool& pool, std::uint32_t query)
+void end_query(command_buffer& command_buffer, query_pool& pool, std::uint32_t query) noexcept
 {
     vkCmdEndQuery(underlying_cast<VkCommandBuffer>(command_buffer), underlying_cast<VkQueryPool>(pool), query);
 }
 
-void copy_query_pool_results(command_buffer& command_buffer, query_pool& pool, std::uint32_t first, std::uint32_t count, buffer& destination, std::uint64_t offset, std::uint64_t stride, query_results flags)
+void copy_query_pool_results(command_buffer& command_buffer, query_pool& pool, std::uint32_t first, std::uint32_t count, buffer& destination, std::uint64_t offset, std::uint64_t stride, query_results flags) noexcept
 {
     vkCmdCopyQueryPoolResults(underlying_cast<VkCommandBuffer>(command_buffer), underlying_cast<VkQueryPool>(pool), first, count, underlying_cast<VkBuffer>(destination), offset, stride, static_cast<VkQueryResultFlags>(flags));
 }
@@ -817,7 +817,7 @@ void end(command_buffer& command_buffer)
         throw vulkan::error{result};
 }
 
-void execute(command_buffer& buffer, command_buffer& secondary_buffer)
+void execute(command_buffer& buffer, command_buffer& secondary_buffer) noexcept
 {
     VkCommandBuffer native_secondary_buffer{underlying_cast<VkCommandBuffer>(secondary_buffer)};
 
