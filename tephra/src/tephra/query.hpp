@@ -1,5 +1,5 @@
-#ifndef TEPHRA_BUFFER_HPP_INCLUDED
-#define TEPHRA_BUFFER_HPP_INCLUDED
+#ifndef TEPHRA_QUERY_HPP_INCLUDED
+#define TEPHRA_QUERY_HPP_INCLUDED
 
 #include "config.hpp"
 
@@ -12,27 +12,16 @@ namespace tph
 
 class renderer;
 
-enum class query_type : std::uint32_t
-{
-    occlusion = VK_QUERY_TYPE_OCCLUSION,
-    pipeline_statistics = VK_QUERY_TYPE_PIPELINE_STATISTICS,
-    timestamp = VK_QUERY_TYPE_TIMESTAMP,
-};
-
-enum class query_pipeline_statistic : std::uint32_t
-{
-    input_assembly_vertices = VK_QUERY_PIPELINE_STATISTIC_INPUT_ASSEMBLY_VERTICES_BIT,
-    input_assembly_primitives = VK_QUERY_PIPELINE_STATISTIC_INPUT_ASSEMBLY_PRIMITIVES_BIT,
-    vertex_shader_invocations = VK_QUERY_PIPELINE_STATISTIC_VERTEX_SHADER_INVOCATIONS_BIT,
-    geometry_shader_invocations = VK_QUERY_PIPELINE_STATISTIC_GEOMETRY_SHADER_INVOCATIONS_BIT,
-    geometry_shader_primitives = VK_QUERY_PIPELINE_STATISTIC_GEOMETRY_SHADER_PRIMITIVES_BIT,
-    clipping_invocations = VK_QUERY_PIPELINE_STATISTIC_CLIPPING_INVOCATIONS_BIT,
-    clipping_primitives = VK_QUERY_PIPELINE_STATISTIC_CLIPPING_PRIMITIVES_BIT,
-    fragment_shader_invocations = VK_QUERY_PIPELINE_STATISTIC_FRAGMENT_SHADER_INVOCATIONS_BIT,
-    tessellation_control_shader_patches = VK_QUERY_PIPELINE_STATISTIC_TESSELLATION_CONTROL_SHADER_PATCHES_BIT,
-    tessellation_evaluation_shader_invocations = VK_QUERY_PIPELINE_STATISTIC_TESSELLATION_EVALUATION_SHADER_INVOCATIONS_BIT,
-    compute_shader_invocation = VK_QUERY_PIPELINE_STATISTIC_COMPUTE_SHADER_INVOCATIONS_BIT,
-};
+// From https://www.khronos.org/registry/vulkan/specs/1.2-extensions/html/chap18.html#vkGetQueryPoolResults
+// Occlusion queries write one integer value - the number of samples passed.
+// Pipeline statistics queries write one integer value for each bit that is enabled in the pipelineStatistics when the pool is created,
+//   and the statistics values are written in bit order starting from the least significant bit.
+// Timestamp queries write one integer value.
+// Transform feedback queries write two integers; the first integer is the number of primitives successfully written to the corresponding
+//   transform feedback buffer and the second is the number of primitives output to the vertex stream, regardless of whether they were
+//   successfully captured or not. In other words, if the transform feedback buffer was sized too small for the number of primitives
+//   output by the vertex stream, the first integer represents the number of primitives actually written and the second is the number
+//   that would have been written if all the transform feedback buffers associated with that vertex stream were large enough.
 
 class TEPHRA_API query_pool
 {
@@ -55,7 +44,8 @@ public:
     query_pool(query_pool&& other) noexcept = default;
     query_pool& operator=(query_pool&& other) noexcept = default;
 
-    void reset(std::uint32_t first, std::uint32_t count);
+    void reset(std::uint32_t first, std::uint32_t count) noexcept;
+    bool results(std::uint32_t first, std::uint32_t count, std::size_t buffer_size, void* buffer, std::uint64_t stride, query_results flags);
 
 private:
     vulkan::query_pool m_query_pool{};
@@ -74,7 +64,5 @@ inline VkQueryPool underlying_cast(const query_pool& query_pool) noexcept
 }
 
 }
-
-template<> struct tph::enable_enum_operations<tph::query_pipeline_statistic> {static constexpr bool value{true};};
 
 #endif

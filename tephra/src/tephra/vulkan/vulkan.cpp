@@ -109,7 +109,7 @@ const char* error::what() const noexcept
     return "VK_SUCCESS: No error";
 }
 
-instance::instance(const std::string& application_name, version application_version, version api_version, std::span<const char* const> extensions, std::span<const char* const> layers)
+instance::instance(const std::string& application_name, version application_version, version api_version, std::span<const char* const> layers, std::span<const char* const> extensions)
 {
     VkApplicationInfo application_info{};
     application_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -122,10 +122,10 @@ instance::instance(const std::string& application_name, version application_vers
     VkInstanceCreateInfo create_info = {};
     create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     create_info.pApplicationInfo = &application_info;
-    create_info.enabledExtensionCount = static_cast<std::uint32_t>(std::size(extensions));
-    create_info.ppEnabledExtensionNames = std::data(extensions);
     create_info.enabledLayerCount = static_cast<std::uint32_t>(std::size(layers));
     create_info.ppEnabledLayerNames = std::data(layers);
+    create_info.enabledExtensionCount = static_cast<std::uint32_t>(std::size(extensions));
+    create_info.ppEnabledExtensionNames = std::data(extensions);
 
     if(auto result{vkCreateInstance(&create_info, nullptr, &m_instance)}; result != VK_SUCCESS)
         throw error{result};

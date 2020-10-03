@@ -736,6 +736,26 @@ void dispatch_indirect(command_buffer& command_buffer, buffer& buffer, std::uint
     vkCmdDispatchIndirect(underlying_cast<VkCommandBuffer>(command_buffer), underlying_cast<VkBuffer>(buffer), offset);
 }
 
+void reset_query_pool(command_buffer& command_buffer, query_pool& pool, std::uint32_t first, std::uint32_t count)
+{
+    vkCmdResetQueryPool(underlying_cast<VkCommandBuffer>(command_buffer), underlying_cast<VkQueryPool>(pool), first, count);
+}
+
+void begin_query(command_buffer& command_buffer, query_pool& pool, std::uint32_t query, query_control flags)
+{
+    vkCmdBeginQuery(underlying_cast<VkCommandBuffer>(command_buffer), underlying_cast<VkQueryPool>(pool), query, static_cast<VkQueryControlFlags>(flags));
+}
+
+void end_query(command_buffer& command_buffer, query_pool& pool, std::uint32_t query)
+{
+    vkCmdEndQuery(underlying_cast<VkCommandBuffer>(command_buffer), underlying_cast<VkQueryPool>(pool), query);
+}
+
+void copy_query_pool_results(command_buffer& command_buffer, query_pool& pool, std::uint32_t first, std::uint32_t count, buffer& destination, std::uint64_t offset, std::uint64_t stride, query_results flags)
+{
+    vkCmdCopyQueryPoolResults(underlying_cast<VkCommandBuffer>(command_buffer), underlying_cast<VkQueryPool>(pool), first, count, underlying_cast<VkBuffer>(destination), offset, stride, static_cast<VkQueryResultFlags>(flags));
+}
+
 void end(command_buffer& command_buffer)
 {
     if(auto result{vkEndCommandBuffer(underlying_cast<VkCommandBuffer>(command_buffer))}; result != VK_SUCCESS)

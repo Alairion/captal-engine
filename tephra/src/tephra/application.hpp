@@ -17,11 +17,17 @@ namespace tph
 
 TEPHRA_API tph::version enumerate_instance_version();
 
-enum class application_options : std::uint32_t
+enum class application_layer : std::uint32_t
 {
     none = 0x00,
-    enable_validation = 0x01,
-    enable_verbose_validation = 0x02,
+    validation = 0x01
+};
+
+enum class application_extension : std::uint32_t
+{
+    none = 0x00,
+    surface = 0x01,
+    debug_utils = 0x02
 };
 
 class TEPHRA_API application
@@ -35,10 +41,10 @@ public:
 
 public:
     constexpr application() = default;
+    explicit application(const std::string& application_name, version application_version, application_layer layers, application_extension extensions);
+    explicit application(const std::string& application_name, version application_version, version api_version, application_layer layers, application_extension extensions);
 
-    explicit application(const std::string& application_name, version application_version, application_options options = application_options::none);
-    explicit application(const std::string& application_name, version application_version, version api_version, application_options options = application_options::none);
-    explicit application(vulkan::instance instance, tph::version api_version, vulkan::debug_messenger debug_messenger = vulkan::debug_messenger{});
+    explicit application(vulkan::instance instance, tph::version api_version);
 
     ~application() = default;
     application(const application&) = delete;
@@ -62,14 +68,19 @@ public:
         return select_physical_device(requirements, default_physical_device_comparator);
     }
 
-    application_options options() const noexcept
-    {
-        return m_options;
-    }
-
     tph::version api_version() const noexcept
     {
         return m_version;
+    }
+
+    application_layer enabled_layers() const noexcept
+    {
+        return m_layers;
+    }
+
+    application_extension enabled_extensions() const noexcept
+    {
+        return m_extensions;
     }
 
     std::span<const physical_device> enumerate_physical_devices() const noexcept
@@ -78,10 +89,10 @@ public:
     }
 
 private:
-    application_options m_options{};
     vulkan::instance m_instance{};
-    vulkan::debug_messenger m_debug_messenger{};
     tph::version m_version{};
+    application_layer m_layers{};
+    application_extension m_extensions{};
     std::vector<physical_device> m_physical_devices{};
 };
 
@@ -93,7 +104,7 @@ inline VkInstance underlying_cast(const application& initializer) noexcept
 
 }
 
-template<> struct tph::enable_enum_operations<tph::application_options> {static constexpr bool value{true};};
-
+template<> struct tph::enable_enum_operations<tph::application_extension> {static constexpr bool value{true};};
+template<> struct tph::enable_enum_operations<tph::application_layer> {static constexpr bool value{true};};
 
 #endif

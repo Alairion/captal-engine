@@ -29,56 +29,64 @@ tph::version enumerate_instance_version()
     return output;
 }
 
-static VKAPI_ATTR VkBool32 VKAPI_CALL debug_messenger_callback(VkDebugUtilsMessageSeverityFlagBitsEXT severity, VkDebugUtilsMessageTypeFlagsEXT type, const VkDebugUtilsMessengerCallbackDataEXT* callback_data, void*)
+static std::vector<VkLayerProperties> available_instance_layers()
 {
-    const auto format_type = [](VkDebugUtilsMessageTypeFlagsEXT type) -> std::string
+    std::vector<VkLayerProperties> layers{};
+
+    std::uint32_t count{};
+    vkEnumerateInstanceLayerProperties(&count, nullptr);
+    layers.resize(count);
+    vkEnumerateInstanceLayerProperties(&count, std::data(layers));
+
+    return layers;
+}
+
+static application_layer layer_from_name(std::string_view name) noexcept
+{
+    if(name == "VK_LAYER_LUNARG_standard_validation")
     {
-        switch(type)
-        {
-            case VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT: return "  Category: generic\n";
-            case VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT: return "  Category: validation\n";
-            case VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT: return "  Category: performance\n";
-            default: return "  Category: generic\n";
-        }
-    };
-
-    const auto format_severity = [](VkDebugUtilsMessageSeverityFlagBitsEXT severity) -> std::string
-    {
-        switch(severity)
-        {
-            case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT: return "  Type: diagnostic\n";
-            case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT: return "  Type: information\n";
-            case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT: return "  Type: warning\n";
-            case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT: return "  Type: error\n";
-            default: return "  Type: unknown\n";
-        }
-    };
-
-    const auto format_message = [](const VkDebugUtilsMessengerCallbackDataEXT& data) -> std::string
-    {
-        std::string message{};
-
-        message += "  Message: " + std::string{data.pMessage} + "\n";
-
-        return message;
-    };
-
-    std::string message{"Debug messenger message:\n"};
-    message += format_type(type);
-    message += format_severity(severity);
-    message += format_message(*callback_data);
-
-    if(severity == VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
-    {
-        std::cerr << message << std::endl;
-        assert(false && "Validation error.");
-    }
-    else
-    {
-        std::cout << message << std::endl;
+        return application_layer ::validation;
     }
 
-    return VK_FALSE;
+    return application_layer::none;
+}
+
+static std::vector<const char*> filter_instance_layers(std::vector<const char*> layers, application_layer& layer_bits)
+{
+    const std::vector<VkLayerProperties> available{available_instance_layers()};
+
+    for(auto it{std::cbegin(layers)}; it != std::cend(layers); ++it)
+    {
+        const auto pred = [it](const VkLayerProperties& layer)
+        {
+            return std::string_view{layer.layerName} == *it;
+        };
+
+        if(std::find_if(std::begin(available), std::end(available), pred) == std::end(available))
+        {
+            #ifndef NDEBUG
+            std::cerr << "Layer \"" << *it << "\" is not available." << std::endl;
+            #endif
+
+            layer_bits &= ~layer_from_name(*it);
+            it = layers.erase(it);
+        }
+    }
+
+    return layers;
+}
+
+static std::vector<const char*> required_instance_layers(application_layer& layers)
+{
+    std::vector<const char*> output{};
+
+    //output indices must correspond to application_layer bit indices
+    if(static_cast<bool>(layers & application_layer::validation))
+    {
+        output.emplace_back("VK_LAYER_LUNARG_standard_validation");
+    }
+
+    return filter_instance_layers(std::move(output), layers);
 }
 
 static std::vector<VkExtensionProperties> available_instance_extensions(const std::vector<const char*>& layers)
@@ -104,7 +112,21 @@ static std::vector<VkExtensionProperties> available_instance_extensions(const st
     return extensions;
 }
 
-static std::vector<const char*> filter_instance_extensions(std::vector<const char*> extensions, const std::vector<const char*>& layers)
+static application_extension extension_from_name(std::string_view name) noexcept
+{
+    if(name == "VK_KHR_surface")
+    {
+        return application_extension::surface;
+    }
+    else if(name == "VK_EXT_debug_utils")
+    {
+        return application_extension::debug_utils;
+    }
+
+    return application_extension::none;
+}
+
+static std::vector<const char*> filter_instance_extensions(const std::vector<const char*>& layers, std::vector<const char*> extensions, application_extension& extension_bits)
 {
     const std::vector<VkExtensionProperties> available{available_instance_extensions(layers)};
 
@@ -117,7 +139,11 @@ static std::vector<const char*> filter_instance_extensions(std::vector<const cha
 
         if(std::find_if(std::begin(available), std::end(available), pred) == std::end(available))
         {
+            #ifndef NDEBUG
             std::cerr << "Extension \"" << *it << "\" is not available." << std::endl;
+            #endif
+
+            extension_bits &= ~extension_from_name(*it);
             it = extensions.erase(it);
         }
     }
@@ -125,83 +151,49 @@ static std::vector<const char*> filter_instance_extensions(std::vector<const cha
     return extensions;
 }
 
-static std::vector<const char*> required_instance_extensions(application_options options, const std::vector<const char*>& layers)
+static std::vector<const char*> required_instance_extensions(const std::vector<const char*>& layers, application_extension& extensions)
 {
-    std::vector<const char*> extensions{"VK_KHR_surface"};
+    std::vector<const char*> output{};
 
-    if(static_cast<bool>(options & application_options::enable_validation))
+    if(static_cast<bool>(extensions & application_extension::debug_utils))
     {
-        extensions.emplace_back("VK_EXT_debug_utils");
+        output.emplace_back("VK_EXT_debug_utils");
     }
 
-#ifdef TPH_PLATFORM_ANDROID
-    extensions.emplace_back("VK_KHR_android_surface");
-#endif
-#ifdef TPH_PLATFORM_IOS
-    extensions.emplace_back("VK_MVK_ios_surface");
-#endif
-#ifdef TPH_PLATFORM_WIN32
-    extensions.emplace_back("VK_KHR_win32_surface");
-#endif
-#ifdef TPH_PLATFORM_MACOS
-    extensions.emplace_back("VK_MVK_macos_surface");
-#endif
-#ifdef TPH_PLATFORM_XLIB
-    extensions.emplace_back("VK_KHR_xlib_surface");
-#endif
-#ifdef TPH_PLATFORM_XCB
-    extensions.emplace_back("VK_KHR_xcb_surface");
-#endif
-#ifdef TPH_PLATFORM_WAYLAND
-    extensions.emplace_back("VK_KHR_wayland_surface");
-#endif
-
-    return filter_instance_extensions(std::move(extensions), layers);
-}
-
-static std::vector<VkLayerProperties> available_instance_layers()
-{
-    std::vector<VkLayerProperties> extensions{};
-
-    std::uint32_t count{};
-    vkEnumerateInstanceLayerProperties(&count, nullptr);
-    extensions.resize(count);
-    vkEnumerateInstanceLayerProperties(&count, std::data(extensions));
-
-    return extensions;
-}
-
-static std::vector<const char*> filter_instance_layers(std::vector<const char*> layers)
-{
-    const std::vector<VkLayerProperties> available{available_instance_layers()};
-
-    for(auto it{std::cbegin(layers)}; it != std::cend(layers); ++it)
+    if(static_cast<bool>(extensions & application_extension::surface))
     {
-        const auto pred = [it](const VkLayerProperties& layer)
-        {
-            return std::string_view{layer.layerName} == *it;
-        };
+        output.emplace_back("VK_KHR_surface");
 
-        if(std::find_if(std::begin(available), std::end(available), pred) == std::end(available))
-        {
-            std::cerr << "Layer \"" << *it << "\" is not available." << std::endl;
-            it = layers.erase(it);
-        }
+        #ifdef TPH_PLATFORM_ANDROID
+        output.emplace_back("VK_KHR_android_surface");
+        #endif
+
+        #ifdef TPH_PLATFORM_IOS
+        output.emplace_back("VK_MVK_ios_surface");
+        #endif
+
+        #ifdef TPH_PLATFORM_WIN32
+        output.emplace_back("VK_KHR_win32_surface");
+        #endif
+
+        #ifdef TPH_PLATFORM_MACOS
+        output.emplace_back("VK_MVK_macos_surface");
+        #endif
+
+        #ifdef TPH_PLATFORM_XLIB
+        output.emplace_back("VK_KHR_xlib_surface");
+        #endif
+
+        #ifdef TPH_PLATFORM_XCB
+        output.emplace_back("VK_KHR_xcb_surface");
+        #endif
+
+        #ifdef TPH_PLATFORM_WAYLAND
+        output.emplace_back("VK_KHR_wayland_surface");
+        #endif
     }
 
-    return layers;
-}
-
-static std::vector<const char*> required_instance_layers(application_options options)
-{
-    std::vector<const char*> layers{};
-
-    if(static_cast<bool>(options & application_options::enable_validation))
-    {
-       layers.emplace_back("VK_LAYER_LUNARG_standard_validation");
-    }
-
-    return filter_instance_layers(std::move(layers));
+    return filter_instance_extensions(layers, std::move(output), extensions);
 }
 
 static std::vector<physical_device> make_physical_devices(VkInstance instance)
@@ -224,49 +216,32 @@ static std::vector<physical_device> make_physical_devices(VkInstance instance)
     return devices;
 }
 
-application::application(const std::string& application_name, version application_version, application_options options)
-:application{application_name, application_version, enumerate_instance_version(), options}
+application::application(const std::string& application_name, version application_version, application_layer layers, application_extension extensions)
+:application{application_name, application_version, enumerate_instance_version(), layers, extensions}
 {
 
 }
 
-application::application(const std::string& application_name, version application_version, version api_version, application_options options)
-:m_options{options}
-,m_version{api_version}
+application::application(const std::string& application_name, version application_version, version api_version, application_layer layers, application_extension extensions)
+:m_version{api_version}
 {
     tph::vulkan::functions::load_external_level_functions();
     tph::vulkan::functions::load_global_level_functions();
 
-    const std::vector<const char*> layers{required_instance_layers(m_options)};
-    const std::vector<const char*> extensions{required_instance_extensions(m_options, layers)};
+    const std::vector<const char*> layer_names{required_instance_layers(layers)};
+    const std::vector<const char*> extension_names{required_instance_extensions(layer_names, extensions)};
 
-    m_instance = vulkan::instance{application_name, application_version, api_version, extensions, layers};
+    m_instance = vulkan::instance{application_name, application_version, api_version, layer_names, extension_names};
+    m_layers = layers;
+    m_extensions = extensions;
 
     tph::vulkan::functions::load_instance_level_functions(m_instance);
-
-    if(static_cast<bool>(m_options & application_options::enable_validation) || static_cast<bool>(m_options & application_options::enable_verbose_validation))
-    {
-        constexpr auto severities{VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT};
-        constexpr auto verbose_severities{VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT};
-        constexpr auto types{VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT};
-        constexpr auto verbose_types{VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT};
-
-        if(static_cast<bool>(m_options & application_options::enable_verbose_validation))
-        {
-            m_debug_messenger = vulkan::debug_messenger{m_instance, debug_messenger_callback, static_cast<VkDebugUtilsMessageSeverityFlagBitsEXT>(severities | verbose_severities), static_cast<VkDebugUtilsMessageTypeFlagBitsEXT>(types | verbose_types)};
-        }
-        else
-        {
-            m_debug_messenger = vulkan::debug_messenger{m_instance, debug_messenger_callback, static_cast<VkDebugUtilsMessageSeverityFlagBitsEXT>(severities), static_cast<VkDebugUtilsMessageTypeFlagBitsEXT>(types)};
-        }
-    }
 
     m_physical_devices = make_physical_devices(m_instance);
 }
 
-application::application(vulkan::instance instance, tph::version api_version, vulkan::debug_messenger debug_messenger)
+application::application(vulkan::instance instance, tph::version api_version)
 :m_instance{std::move(instance)}
-,m_debug_messenger{std::move(debug_messenger)}
 ,m_version{api_version}
 {
     tph::vulkan::functions::load_external_level_functions();

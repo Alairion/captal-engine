@@ -130,7 +130,7 @@ class TEPHRA_API instance
 {
 public:
     constexpr instance() = default;
-    explicit instance(const std::string& application_name, tph::version application_version, tph::version api_version, std::span<const char* const> extensions, std::span<const char* const> layers);
+    explicit instance(const std::string& application_name, tph::version application_version, tph::version api_version, std::span<const char* const> layers, std::span<const char* const> extensions);
 
     explicit instance(VkInstance instance) noexcept
     :m_instance{instance}

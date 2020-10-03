@@ -32,6 +32,7 @@ set(TEPHRA_SOURCES
     src/tephra/surface.hpp
     src/tephra/swapchain.hpp
     src/tephra/application.hpp
+    src/tephra/debug_utils.hpp
     src/tephra/renderer.hpp
     src/tephra/shader.hpp
     src/tephra/render_target.hpp
@@ -44,7 +45,6 @@ set(TEPHRA_SOURCES
     src/tephra/commands.hpp
     src/tephra/query.hpp
 
-
     src/tephra/vulkan/vulkan.hpp
     src/tephra/vulkan/vulkan_functions.hpp
     src/tephra/vulkan/memory.hpp
@@ -55,6 +55,7 @@ set(TEPHRA_SOURCES
     src/tephra/surface.cpp
     src/tephra/swapchain.cpp
     src/tephra/application.cpp
+    src/tephra/debug_utils.cpp
     src/tephra/renderer.cpp
     src/tephra/shader.cpp
     src/tephra/render_target.cpp

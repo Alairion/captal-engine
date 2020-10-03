@@ -168,6 +168,7 @@ enum class shader_stage : std::uint32_t
 
 enum class pipeline_stage : std::uint32_t
 {
+    none = 0,
     top_of_pipe = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
     draw_indirect = VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT,
     vertex_input = VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
@@ -408,6 +409,7 @@ enum class texture_aspect : std::uint32_t
 
 enum class format_feature : std::uint32_t
 {
+    none = 0,
     sampled_image = VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT,
     storage_image = VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT,
     storage_image_atomic = VK_FORMAT_FEATURE_STORAGE_IMAGE_ATOMIC_BIT,
@@ -427,6 +429,7 @@ enum class format_feature : std::uint32_t
 
 enum class dependency_flags : std::uint32_t
 {
+    none = 0,
     by_region = VK_DEPENDENCY_BY_REGION_BIT,
     device_group = VK_DEPENDENCY_DEVICE_GROUP_BIT,
     view_local = VK_DEPENDENCY_VIEW_LOCAL_BIT,
@@ -444,6 +447,44 @@ enum class index_type : std::uint32_t
     uint32 = VK_INDEX_TYPE_UINT32,
 };
 
+enum class query_type : std::uint32_t
+{
+    occlusion = VK_QUERY_TYPE_OCCLUSION,
+    pipeline_statistics = VK_QUERY_TYPE_PIPELINE_STATISTICS,
+    timestamp = VK_QUERY_TYPE_TIMESTAMP,
+};
+
+enum class query_pipeline_statistic : std::uint32_t
+{
+    none = 0,
+    input_assembly_vertices = VK_QUERY_PIPELINE_STATISTIC_INPUT_ASSEMBLY_VERTICES_BIT,
+    input_assembly_primitives = VK_QUERY_PIPELINE_STATISTIC_INPUT_ASSEMBLY_PRIMITIVES_BIT,
+    vertex_shader_invocations = VK_QUERY_PIPELINE_STATISTIC_VERTEX_SHADER_INVOCATIONS_BIT,
+    geometry_shader_invocations = VK_QUERY_PIPELINE_STATISTIC_GEOMETRY_SHADER_INVOCATIONS_BIT,
+    geometry_shader_primitives = VK_QUERY_PIPELINE_STATISTIC_GEOMETRY_SHADER_PRIMITIVES_BIT,
+    clipping_invocations = VK_QUERY_PIPELINE_STATISTIC_CLIPPING_INVOCATIONS_BIT,
+    clipping_primitives = VK_QUERY_PIPELINE_STATISTIC_CLIPPING_PRIMITIVES_BIT,
+    fragment_shader_invocations = VK_QUERY_PIPELINE_STATISTIC_FRAGMENT_SHADER_INVOCATIONS_BIT,
+    tessellation_control_shader_patches = VK_QUERY_PIPELINE_STATISTIC_TESSELLATION_CONTROL_SHADER_PATCHES_BIT,
+    tessellation_evaluation_shader_invocations = VK_QUERY_PIPELINE_STATISTIC_TESSELLATION_EVALUATION_SHADER_INVOCATIONS_BIT,
+    compute_shader_invocation = VK_QUERY_PIPELINE_STATISTIC_COMPUTE_SHADER_INVOCATIONS_BIT,
+};
+
+enum class query_control : std::uint32_t
+{
+    none = 0,
+    precise = VK_QUERY_CONTROL_PRECISE_BIT
+};
+
+enum class query_results : std::uint32_t
+{
+    none = 0,
+    uint64 = VK_QUERY_RESULT_64_BIT,
+    wait = VK_QUERY_RESULT_WAIT_BIT,
+    with_availability = VK_QUERY_RESULT_WITH_AVAILABILITY_BIT,
+    partial = VK_QUERY_RESULT_PARTIAL_BIT,
+};
+
 }
 
 template<> struct tph::enable_enum_operations<tph::color_component> {static constexpr bool value{true};};
@@ -453,5 +494,8 @@ template<> struct tph::enable_enum_operations<tph::resource_access> {static cons
 template<> struct tph::enable_enum_operations<tph::texture_aspect> {static constexpr bool value{true};};
 template<> struct tph::enable_enum_operations<tph::format_feature> {static constexpr bool value{true};};
 template<> struct tph::enable_enum_operations<tph::dependency_flags> {static constexpr bool value{true};};
+template<> struct tph::enable_enum_operations<tph::query_pipeline_statistic> {static constexpr bool value{true};};
+template<> struct tph::enable_enum_operations<tph::query_control> {static constexpr bool value{true};};
+template<> struct tph::enable_enum_operations<tph::query_results> {static constexpr bool value{true};};
 
 #endif

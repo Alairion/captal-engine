@@ -23,6 +23,7 @@ class buffer;
 class image;
 class texture;
 class descriptor_set;
+class query_pool;
 
 class TEPHRA_API command_pool
 {
@@ -242,6 +243,12 @@ TEPHRA_API void draw_indexed_indirect(command_buffer& command_buffer, buffer& bu
 
 TEPHRA_API void dispatch(command_buffer& command_buffer, std::uint32_t group_count_x, std::uint32_t group_count_y, std::uint32_t group_count_z);
 TEPHRA_API void dispatch_indirect(command_buffer& command_buffer, buffer& buffer, std::uint64_t offset);
+
+TEPHRA_API void reset_query_pool(command_buffer& command_buffer, query_pool& pool, std::uint32_t first, std::uint32_t count);
+TEPHRA_API void write_timestamp(command_buffer& command_buffer, query_pool& pool, std::uint32_t query, pipeline_stage stage);
+TEPHRA_API void begin_query(command_buffer& command_buffer, query_pool& pool, std::uint32_t query, query_control flags);
+TEPHRA_API void end_query(command_buffer& command_buffer, query_pool& pool, std::uint32_t query);
+TEPHRA_API void copy_query_pool_results(command_buffer& command_buffer, query_pool& pool, std::uint32_t first, std::uint32_t count, buffer& destination, std::uint64_t offset, std::uint64_t stride, query_results flags);
 
 TEPHRA_API void end(command_buffer& command_buffer);
 
