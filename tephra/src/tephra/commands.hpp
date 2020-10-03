@@ -254,6 +254,10 @@ TEPHRA_API void begin_query(command_buffer& command_buffer, query_pool& pool, st
 TEPHRA_API void end_query(command_buffer& command_buffer, query_pool& pool, std::uint32_t query);
 TEPHRA_API void copy_query_pool_results(command_buffer& command_buffer, query_pool& pool, std::uint32_t first, std::uint32_t count, buffer& destination, std::uint64_t offset, std::uint64_t stride, query_results flags);
 
+TEPHRA_API void begin_label(command_buffer& command_buffer, const std::string& name, float red = 0.0f, float green = 0.0f, float blue = 0.0f, float alpha = 0.0f) noexcept;
+TEPHRA_API void end_label(command_buffer& command_buffer) noexcept;
+TEPHRA_API void insert_label(command_buffer& command_buffer, const std::string& name, float red = 0.0f, float green = 0.0f, float blue = 0.0f, float alpha = 0.0f) noexcept;
+
 TEPHRA_API void end(command_buffer& command_buffer);
 
 TEPHRA_API void execute(command_buffer& buffer, command_buffer& secondary_buffer);

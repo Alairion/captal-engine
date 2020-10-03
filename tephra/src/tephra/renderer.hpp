@@ -127,6 +127,9 @@ private:
 };
 
 TEPHRA_API void set_object_name(renderer& renderer, const std::string& name);
+TEPHRA_API void begin_queue_label(renderer& renderer, queue queue, const std::string& name, float red = 0.0f, float green = 0.0f, float blue = 0.0f, float alpha = 0.0f) noexcept;
+TEPHRA_API void end_queue_label(renderer& renderer, queue queue) noexcept;
+TEPHRA_API void insert_queue_label(renderer& renderer, queue queue, const std::string& name, float red = 0.0f, float green = 0.0f, float blue = 0.0f, float alpha = 0.0f) noexcept;
 
 template<>
 inline VkPhysicalDevice underlying_cast(const renderer& renderer) noexcept

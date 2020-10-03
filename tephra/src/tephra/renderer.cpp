@@ -492,4 +492,35 @@ void set_object_name(renderer& renderer, const std::string& name)
         throw vulkan::error{result};
 }
 
+void set_queue_label(renderer& renderer, queue queue, const std::string& name, float red, float green, float blue, float alpha) noexcept
+{
+    VkDebugUtilsLabelEXT label{};
+    label.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
+    label.pLabelName = std::data(name);
+    label.color[0] = red;
+    label.color[1] = green;
+    label.color[2] = blue;
+    label.color[3] = alpha;
+
+    vkQueueBeginDebugUtilsLabelEXT(underlying_cast<VkQueue>(renderer, queue), &label);
+}
+
+void end_queue_label(renderer& renderer, queue queue) noexcept
+{
+    vkQueueEndDebugUtilsLabelEXT(underlying_cast<VkQueue>(renderer, queue));
+}
+
+void insert_queue_label(renderer& renderer, queue queue, const std::string& name, float red, float green, float blue, float alpha) noexcept
+{
+    VkDebugUtilsLabelEXT label{};
+    label.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
+    label.pLabelName = std::data(name);
+    label.color[0] = red;
+    label.color[1] = green;
+    label.color[2] = blue;
+    label.color[3] = alpha;
+
+    vkQueueInsertDebugUtilsLabelEXT(underlying_cast<VkQueue>(renderer, queue), &label);
+}
+
 }
