@@ -140,10 +140,49 @@ static VkPhysicalDeviceFeatures parse_enabled_features(const physical_device_fea
 {
     VkPhysicalDeviceFeatures output{};
 
-    output.wideLines = static_cast<VkBool32>(features.wide_lines);
-    output.largePoints = static_cast<VkBool32>(features.large_points);
-    output.sampleRateShading = static_cast<VkBool32>(features.sample_shading);
-    output.fragmentStoresAndAtomics = static_cast<VkBool32>(features.fragment_stores_and_atomics);
+    output.robustBufferAccess                      = static_cast<VkBool32>(features.robust_buffer_access);
+    output.fullDrawIndexUint32                     = static_cast<VkBool32>(features.full_draw_index_uint32);
+    output.imageCubeArray                          = static_cast<VkBool32>(features.image_cube_array);
+    output.independentBlend                        = static_cast<VkBool32>(features.independent_blend);
+    output.geometryShader                          = static_cast<VkBool32>(features.geometry_shader);
+    output.tessellationShader                      = static_cast<VkBool32>(features.tessellation_shader);
+    output.sampleRateShading                       = static_cast<VkBool32>(features.sample_shading);
+    output.dualSrcBlend                            = static_cast<VkBool32>(features.dual_source_blend);
+    output.logicOp                                 = static_cast<VkBool32>(features.logic_op);
+    output.multiDrawIndirect                       = static_cast<VkBool32>(features.multi_draw_indirect);
+    output.drawIndirectFirstInstance               = static_cast<VkBool32>(features.draw_indirect_first_instance);
+    output.depthClamp                              = static_cast<VkBool32>(features.depth_clamp);
+    output.depthBiasClamp                          = static_cast<VkBool32>(features.depth_bias_clamp);
+    output.fillModeNonSolid                        = static_cast<VkBool32>(features.fill_mode_non_solid);
+    output.depthBounds                             = static_cast<VkBool32>(features.depth_bounds);
+    output.wideLines                               = static_cast<VkBool32>(features.wide_lines);
+    output.largePoints                             = static_cast<VkBool32>(features.large_points);
+    output.alphaToOne                              = static_cast<VkBool32>(features.alpha_to_one);
+    output.multiViewport                           = static_cast<VkBool32>(features.multi_viewport);
+    output.samplerAnisotropy                       = static_cast<VkBool32>(features.sampler_anisotropy);
+    output.occlusionQueryPrecise                   = static_cast<VkBool32>(features.occlusion_query_precise);
+    output.pipelineStatisticsQuery                 = static_cast<VkBool32>(features.pipeline_statistics_query);
+    output.vertexPipelineStoresAndAtomics          = static_cast<VkBool32>(features.vertex_pipeline_stores_and_atomics);
+    output.fragmentStoresAndAtomics                = static_cast<VkBool32>(features.fragment_stores_and_atomics);
+    output.shaderTessellationAndGeometryPointSize  = static_cast<VkBool32>(features.shader_tessellation_and_geometry_point_size);
+    output.shaderImageGatherExtended               = static_cast<VkBool32>(features.shader_image_gather_extended);
+    output.shaderStorageImageExtendedFormats       = static_cast<VkBool32>(features.shader_storage_image_extended_formats);
+    output.shaderStorageImageMultisample           = static_cast<VkBool32>(features.shader_storage_image_multisample);
+    output.shaderStorageImageReadWithoutFormat     = static_cast<VkBool32>(features.shader_storage_image_read_without_format);
+    output.shaderStorageImageWriteWithoutFormat    = static_cast<VkBool32>(features.shader_storage_image_write_without_format);
+    output.shaderUniformBufferArrayDynamicIndexing = static_cast<VkBool32>(features.shader_uniform_buffer_array_dynamic_indexing);
+    output.shaderSampledImageArrayDynamicIndexing  = static_cast<VkBool32>(features.shader_sampled_image_array_dynamic_indexing);
+    output.shaderStorageBufferArrayDynamicIndexing = static_cast<VkBool32>(features.shader_storage_buffer_array_dynamic_indexing);
+    output.shaderStorageImageArrayDynamicIndexing  = static_cast<VkBool32>(features.shader_storage_image_array_dynamic_indexing);
+    output.shaderClipDistance                      = static_cast<VkBool32>(features.shader_clip_distance);
+    output.shaderCullDistance                      = static_cast<VkBool32>(features.shader_cull_distance);
+    output.shaderFloat64                           = static_cast<VkBool32>(features.shader_float64);
+    output.shaderInt64                             = static_cast<VkBool32>(features.shader_int64);
+    output.shaderInt16                             = static_cast<VkBool32>(features.shader_int16);
+    output.shaderResourceResidency                 = static_cast<VkBool32>(features.shader_resource_residency);
+    output.shaderResourceMinLod                    = static_cast<VkBool32>(features.shader_resource_min_lod);
+    output.variableMultisampleRate                 = static_cast<VkBool32>(features.variable_multisample_rate);
+    output.inheritedQueries                        = static_cast<VkBool32>(features.inherited_queries);
 
     return output;
 }
