@@ -3,6 +3,7 @@
 #include <cassert>
 #include <iostream>
 #include <mutex>
+#include <charconv>
 
 #include "vulkan/vulkan_functions.hpp"
 
@@ -72,7 +73,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debug_messenger_callback(VkDebugUtilsMessa
 
 void debug_messenger_default_callback(debug_message_severity severity, debug_message_type type, const debug_message_data& data)
 {
-    const auto format_severity = [](debug_message_severity severity) -> std::string
+    const auto format_severity = [](debug_message_severity severity) -> std::string_view
     {
         switch(severity)
         {
@@ -84,7 +85,7 @@ void debug_messenger_default_callback(debug_message_severity severity, debug_mes
         }
     };
 
-    const auto format_type = [](debug_message_type type) -> std::string
+    const auto format_type = [](debug_message_type type) -> std::string_view
     {
         switch(type)
         {
@@ -101,13 +102,30 @@ void debug_messenger_default_callback(debug_message_severity severity, debug_mes
 
         for(auto value : color)
         {
-            output += std::to_string(static_cast<std::uint32_t>(value * 255.0f));
+            const auto ivalue{static_cast<std::uint32_t>(value * 255.0f)};
+
+            std::array<char, 2> hex{};
+            auto [ptr, error] = std::to_chars(std::data(hex), std::data(hex) + std::size(hex), ivalue, 16);
+
+            if(error == std::errc{})
+            {
+                if(ivalue < 10)
+                {
+                    output.push_back('0');
+                    output.push_back(hex[0]);
+                }
+                else
+                {
+                    output.push_back(hex[0]);
+                    output.push_back(hex[1]);
+                }
+            }
         }
 
         return output;
     };
 
-    const auto format_object_type = [](object_type type) -> std::string
+    const auto format_object_type = [](object_type type) -> std::string_view
     {
         switch(type)
         {
@@ -151,27 +169,48 @@ void debug_messenger_default_callback(debug_message_severity severity, debug_mes
         std::string message{};
         message.reserve(1024 * 8);
 
-        message += "  Message name: " + std::string{data.message_name} + "\n";
-        message += "  Message ID: " + std::to_string(data.message_id) + "\n";
-        message += "  Message: " + std::string{data.message} + "\n";
+        message += "  Message name: ";
+        message += data.message_name;
+        message += '\n';
+        message += "  Message ID: ";
+        message += std::to_string(data.message_id);
+        message += '\n';
+        message += "  Message: ";
+        message += data.message;
+        message += '\n';
 
         message += "  Active queues:\n";
         for(auto&& queue : data.queue_labels)
         {
-            message += "    " + std::string{queue.name} + " (#" + format_color(queue.color) + ")\n";
+            message += "    ";
+            message += queue.name;
+            message += " (#";
+            message += format_color(queue.color);
+            message += ")\n";
         }
 
         message += "  Active command buffers:\n";
         for(auto&& command_buffer : data.command_buffer_labels)
         {
-            message += "    " + std::string{command_buffer.name} + " (#" + format_color(command_buffer.color) + ")\n";
+            message += "    ";
+            message += command_buffer.name;
+            message += " (#";
+            message += format_color(command_buffer.color);
+            message += ")\n";
         }
 
         message += "  Related object (from more important to less important)\n";
         for(auto&& object : data.objects)
         {
-            message += "    " + format_object_type(object.type) + " (" + std::to_string(static_cast<std::uint32_t>(object.type)) + ") ";
-            message += "\"" + std::string{object.name} + "\" (" + std::to_string(object.handle) + ")\n";
+            message += "    ";
+            message += format_object_type(object.type);
+            message += " (";
+            message += std::to_string(static_cast<std::uint32_t>(object.type));
+            message += ") \"";
+            message += object.name;
+            message += "\" (";
+            message += std::to_string(object.handle);
+            message += ")\n";
         }
 
         return message;
