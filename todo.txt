@@ -11,7 +11,7 @@ Tephra:
 A: Complete commands list (WIP)
 A: Queue family ownership transfer support (tph::texture::transition and tph::buffer::???, and free functions)
 A: Complete physical devices properties structures (WIP)
-L: Queries support (WIP)
+A: Texture with array layers et mip levels support
 L: Multiple applications/renderer support
 I: Multiple queue support ?
 
