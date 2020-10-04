@@ -189,11 +189,7 @@ render_technique_ptr make_render_technique(Args&&... args)
     return std::make_shared<render_technique>(std::forward<Args>(args)...);
 }
 
-#ifdef CAPTAL_DEBUG
-
-#else
-
-#endif
+//CAPTAL_API void set_object_name(const render_technique_ptr& object, const std::string& name);
 
 }
 

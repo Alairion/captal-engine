@@ -133,5 +133,15 @@ descriptor_set_ptr render_technique::make_set()
 
     return m_pools.back()->allocate();
 }
-
+/*
+void set_object_name(const render_technique_ptr& object, const std::string& name)
+{
+    if constexpr(debug_enabled)
+    {
+        tph::set_object_name(engine::instance().renderer(), object->descriptor_set_layout(), name + " descriptor set layout");
+        tph::set_object_name(engine::instance().renderer(), object->pipeline_layout(), name + " pipeline layout");
+        tph::set_object_name(engine::instance().renderer(), object->pipeline(), name + " pipeline");
+    }
+}
+*/
 }
