@@ -7,4 +7,15 @@
 
 #define CAPTAL_API CAPTAL_FOUNDATION_API
 
+namespace cpt
+{
+
+#ifdef CAPTAL_DEBUG
+inline constexpr bool debug_enabled{true};
+#else
+inline constexpr bool debug_enabled{false};
+#endif
+
+}
+
 #endif

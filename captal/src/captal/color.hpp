@@ -38,7 +38,8 @@ struct color
 
     }
 
-    constexpr explicit color(const vec4f& value) noexcept
+    template<arithmetic T>
+    constexpr explicit color(const vec4<T>& value) noexcept
     :color{value.x(), value.y(), value.z(), value.w()}
     {
 

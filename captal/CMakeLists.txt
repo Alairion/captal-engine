@@ -92,9 +92,8 @@ if(WIN32)
 endif()
 
 target_compile_definitions(captal
-    PRIVATE
-        $<$<CONFIG:Debug>:CAPTAL_DEBUG>
     PUBLIC
+        $<$<CONFIG:Debug>:CAPTAL_DEBUG>
         CAPTAL_MAJOR_VERSION=${PROJECT_VERSION_MAJOR}
         CAPTAL_MINOR_VERSION=${PROJECT_VERSION_MINOR}
         CAPTAL_PATCH_VERSION=${PROJECT_VERSION_PATCH}

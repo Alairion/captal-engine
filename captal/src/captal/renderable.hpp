@@ -51,8 +51,8 @@ public:
 
 public:
     renderable() = default;
-    renderable(std::uint32_t vertex_count);
-    renderable(std::uint32_t index_count, std::uint32_t vertex_count);
+    explicit renderable(std::uint32_t vertex_count);
+    explicit renderable(std::uint32_t index_count, std::uint32_t vertex_count);
 
     virtual ~renderable() = default;
     renderable(const renderable&) = delete;
@@ -240,9 +240,10 @@ class CAPTAL_API sprite final : public renderable
 {
 public:
     sprite() = default;
-    sprite(std::uint32_t width, std::uint32_t height, const color& color = colors::white);
-    sprite(texture_ptr texture);
-    sprite(std::uint32_t width, std::uint32_t height, texture_ptr texture);
+    explicit sprite(std::uint32_t width, std::uint32_t height, const color& color = colors::white);
+    explicit sprite(texture_ptr texture);
+    explicit sprite(std::uint32_t width, std::uint32_t height, texture_ptr texture);
+
     ~sprite() = default;
     sprite(const sprite&) = delete;
     sprite& operator=(const sprite&) = delete;
@@ -290,7 +291,7 @@ class CAPTAL_API polygon final : public renderable
 {
 public:
     polygon() = default;
-    polygon(std::vector<vec2f> points, const color& color = colors::white);
+    explicit polygon(std::vector<vec2f> points, const color& color = colors::white);
 
     ~polygon() = default;
     polygon(const polygon&) = delete;
@@ -325,8 +326,8 @@ class CAPTAL_API tilemap final : public renderable
 {
 public:
     tilemap() = default;
-    tilemap(std::uint32_t width, std::uint32_t height, std::uint32_t tile_width, std::uint32_t tile_height);
-    tilemap(std::uint32_t width, std::uint32_t height, const tileset& tileset);
+    explicit tilemap(std::uint32_t width, std::uint32_t height, std::uint32_t tile_width, std::uint32_t tile_height);
+    explicit tilemap(std::uint32_t width, std::uint32_t height, const tileset& tileset);
 
     ~tilemap() = default;
     tilemap(const tilemap&) = delete;

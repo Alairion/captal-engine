@@ -37,8 +37,8 @@ class CAPTAL_API render_window : apr::window, tph::surface, public render_target
 {
 public:
     render_window() = default;
-    render_window(const std::string& title, const cpt::video_mode& mode, apr::window_options options = apr::window_options::none);
-    render_window(const apr::monitor& monitor, const std::string& title, const cpt::video_mode& mode, apr::window_options options = apr::window_options::none);
+    explicit render_window(const std::string& title, const cpt::video_mode& mode, apr::window_options options = apr::window_options::none);
+    explicit render_window(const apr::monitor& monitor, const std::string& title, const cpt::video_mode& mode, apr::window_options options = apr::window_options::none);
 
     ~render_window();
     render_window(const render_window&) = delete;

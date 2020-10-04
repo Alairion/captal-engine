@@ -610,9 +610,10 @@ public:
 
 public:
     constexpr translation_parser() = default;
-    translation_parser(const std::filesystem::path& path);
-    translation_parser(std::span<const std::uint8_t> data);
-    translation_parser(std::istream& stream);
+
+    explicit translation_parser(const std::filesystem::path& path);
+    explicit translation_parser(std::span<const std::uint8_t> data);
+    explicit translation_parser(std::istream& stream);
 
     ~translation_parser() = default;
     translation_parser(const translation_parser&) = delete;
@@ -701,9 +702,10 @@ class CAPTAL_API translator
 
 public:
     translator() = default;
-    translator(const std::filesystem::path& path, translator_options options = translator_options::none);
-    translator(std::span<const std::uint8_t> data, translator_options options = translator_options::none);
-    translator(std::istream& stream, translator_options options = translator_options::none);
+
+    explicit translator(const std::filesystem::path& path, translator_options options = translator_options::none);
+    explicit translator(std::span<const std::uint8_t> data, translator_options options = translator_options::none);
+    explicit translator(std::istream& stream, translator_options options = translator_options::none);
 
     ~translator() = default;
     translator(const translator&) = delete;
@@ -780,10 +782,11 @@ public:
     using section_type = std::unordered_map<translation_context_t, translation_set_type, context_hash>;
 
 public:
-    translation_editor(cpt::language source_language, cpt::country source_country, cpt::language target_language, cpt::country target_country);
-    translation_editor(const std::filesystem::path& path);
-    translation_editor(std::span<const std::uint8_t> data);
-    translation_editor(std::istream& stream);
+    translation_editor() = default;
+    explicit translation_editor(cpt::language source_language, cpt::country source_country, cpt::language target_language, cpt::country target_country);
+    explicit translation_editor(const std::filesystem::path& path);
+    explicit translation_editor(std::span<const std::uint8_t> data);
+    explicit translation_editor(std::istream& stream);
 
     ~translation_editor() = default;
     translation_editor(const translation_editor&) = delete;

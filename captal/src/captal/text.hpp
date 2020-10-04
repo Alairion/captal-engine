@@ -63,9 +63,9 @@ class CAPTAL_API font
 
 public:
     font() = default;
-    font(const std::filesystem::path& file, std::uint32_t initial_size = 16);
-    font(std::span<const std::uint8_t> data, std::uint32_t initial_size = 16);
-    font(std::istream& stream, std::uint32_t initial_size = 16);
+    explicit font(const std::filesystem::path& file, std::uint32_t initial_size = 16);
+    explicit font(std::span<const std::uint8_t> data, std::uint32_t initial_size = 16);
+    explicit font(std::istream& stream, std::uint32_t initial_size = 16);
 
     ~font() = default;
     font(const font&) = delete;
@@ -97,7 +97,7 @@ class CAPTAL_API text final : public renderable
 {
 public:
     text() = default;
-    text(std::span<const std::uint32_t> indices, std::span<const vertex> vertices, texture_ptr texture, std::uint32_t width, std::uint32_t height, std::size_t count);
+    explicit text(std::span<const std::uint32_t> indices, std::span<const vertex> vertices, texture_ptr texture, std::uint32_t width, std::uint32_t height, std::size_t count);
 
     ~text() = default;
     text(const text&) = delete;
@@ -151,7 +151,8 @@ class CAPTAL_API text_drawer
 {
 public:
     text_drawer() = default;
-    text_drawer(cpt::font font, text_drawer_options options = text_drawer_options::kerning);
+    explicit text_drawer(cpt::font font, text_drawer_options options = text_drawer_options::kerning);
+
     ~text_drawer() = default;
     text_drawer(const text_drawer&) = delete;
     text_drawer& operator=(const text_drawer&) = delete;

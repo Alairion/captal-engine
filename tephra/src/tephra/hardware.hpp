@@ -289,8 +289,6 @@ private:
     std::optional<physical_device_driver> m_driver{};
 };
 
-TEPHRA_API void set_object_name(renderer& renderer, const physical_device& object, const std::string& name);
-
 template<>
 inline VkPhysicalDevice underlying_cast(const physical_device& physical_device) noexcept
 {

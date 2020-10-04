@@ -56,8 +56,9 @@ public:
 
 public:
     view();
-    view(const render_target_ptr& target, const render_technique_info& info = render_technique_info{});
-    view(const render_target_ptr& target, render_technique_ptr technique);
+
+    explicit view(const render_target_ptr& target, const render_technique_info& info = render_technique_info{});
+    explicit view(const render_target_ptr& target, render_technique_ptr technique);
 
     ~view() = default;
     view(const view&) = delete;

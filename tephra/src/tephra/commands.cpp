@@ -781,7 +781,7 @@ void copy_query_pool_results(command_buffer& command_buffer, query_pool& pool, s
     vkCmdCopyQueryPoolResults(underlying_cast<VkCommandBuffer>(command_buffer), underlying_cast<VkQueryPool>(pool), first, count, underlying_cast<VkBuffer>(destination), offset, stride, static_cast<VkQueryResultFlags>(flags));
 }
 
-void set_label(command_buffer& command_buffer, const std::string& name, float red, float green, float blue, float alpha) noexcept
+void begin_label(command_buffer& command_buffer, const std::string& name, float red, float green, float blue, float alpha) noexcept
 {
     VkDebugUtilsLabelEXT label{};
     label.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;

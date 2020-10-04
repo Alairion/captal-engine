@@ -56,16 +56,16 @@ void memory_heap_chunk::bind(VkBuffer buffer)
 {
     assert(m_parent && "tph::vulkan::memory_heap_chunk::bind called with an invalid memory_heap_chunk.");
 
-    if(vkBindBufferMemory(*m_parent, buffer, *m_parent, m_offset) != VK_SUCCESS)
-        throw std::runtime_error{"Can not bind buffer memory."};
+    if(auto result{vkBindBufferMemory(*m_parent, buffer, *m_parent, m_offset)}; result != VK_SUCCESS)
+        throw vulkan::error{result};
 }
 
 void memory_heap_chunk::bind(VkImage image)
 {
     assert(m_parent && "tph::vulkan::memory_heap_chunk::bind called with an invalid memory_heap_chunk.");
 
-    if(vkBindImageMemory(*m_parent, image, *m_parent, m_offset) != VK_SUCCESS)
-        throw std::runtime_error{"Can not bind image memory."};
+    if(auto result{vkBindImageMemory(*m_parent, image, *m_parent, m_offset)}; result != VK_SUCCESS)
+        throw vulkan::error{result};
 }
 
 void* memory_heap_chunk::map()
@@ -200,7 +200,23 @@ memory_heap_chunk memory_heap::allocate_dedicated(std::uint64_t size)
     assert(!std::get<dedicated_heap>(m_heap).range.has_value() && "tph::vulkan::memory_heap::allocate_dedicated called more than once");
 
     std::get<dedicated_heap>(m_heap).range = range{0, size, memory_resource_type{}};
+
+    m_free_space = 0;
+    m_allocation_count = 1;
+
+    return memory_heap_chunk{this, 0, size};
+}
+
+memory_heap_chunk memory_heap::allocate_pseudo_dedicated(memory_resource_type resource_type, std::uint64_t size)
+{
+    assert(!dedicated() && "tph::vulkan::memory_heap::allocate_pseudo_dedicated called on a dedicated memory heap");
+
+    auto& heap{std::get<non_dedicated_heap>(m_heap)};
+
+    heap.ranges.emplace_back(range{0, size, resource_type});
+
     m_free_space -= size;
+    m_allocation_count = 1;
 
     return memory_heap_chunk{this, 0, size};
 }
@@ -219,7 +235,10 @@ std::optional<memory_heap_chunk> memory_heap::try_allocate(memory_resource_type 
     if(std::empty(heap.ranges) && size <= m_size)
     {
         heap.ranges.emplace_back(range{0, size, resource_type});
+
         m_free_space -= size;
+        m_allocation_count = 1;
+
         return std::make_optional(memory_heap_chunk{this, 0, size});
     }
 
@@ -235,6 +254,7 @@ std::optional<memory_heap_chunk> memory_heap::try_allocate(memory_resource_type 
             if(m_size - end >= size)
             {
                 heap.ranges.emplace_back(range{end, size, resource_type});
+
                 return std::cend(heap.ranges) - 1;
             }
         }
@@ -246,6 +266,7 @@ std::optional<memory_heap_chunk> memory_heap::try_allocate(memory_resource_type 
             if(m_size - end >= size)
             {
                 heap.ranges.emplace_back(range{end, size, resource_type});
+
                 return std::cend(heap.ranges) - 1;
             }
         }
@@ -256,6 +277,8 @@ std::optional<memory_heap_chunk> memory_heap::try_allocate(memory_resource_type 
     if(const auto it{try_push()}; it != std::cend(heap.ranges))
     {
         m_free_space -= it->size;
+        m_allocation_count += 1;
+
         return std::make_optional(memory_heap_chunk{this, it->offset, it->size});
     }
 
@@ -310,6 +333,8 @@ std::optional<memory_heap_chunk> memory_heap::try_allocate(memory_resource_type 
     if(const auto it{try_insert()}; it != std::cend(heap.ranges))
     {
         m_free_space -= it->size;
+        m_allocation_count += 1;
+
         return std::make_optional(memory_heap_chunk{this, it->offset, it->size});
     }
 
@@ -354,8 +379,8 @@ void memory_heap::flush(std::uint64_t offset, std::uint64_t size)
         range.offset = 0;
         range.size = VK_WHOLE_SIZE;
 
-        if(vkFlushMappedMemoryRanges(m_device, 1, &range) != VK_SUCCESS)
-            throw std::runtime_error{"Can not flush memory."};
+        if(auto result{vkFlushMappedMemoryRanges(m_device, 1, &range)}; result != VK_SUCCESS)
+            throw vulkan::error{result};
     }
     else
     {
@@ -372,8 +397,8 @@ void memory_heap::flush(std::uint64_t offset, std::uint64_t size)
         range.offset = aligned_offset;
         range.size = aligned_size;
 
-        if(vkFlushMappedMemoryRanges(m_device, 1, &range) != VK_SUCCESS)
-            throw std::runtime_error{"Can not flush memory."};
+        if(auto result{vkFlushMappedMemoryRanges(m_device, 1, &range)}; result != VK_SUCCESS)
+            throw vulkan::error{result};
     }
 
 }
@@ -388,8 +413,8 @@ void memory_heap::invalidate(std::uint64_t offset, std::uint64_t size)
         range.offset = 0;
         range.size = VK_WHOLE_SIZE;
 
-        if(vkInvalidateMappedMemoryRanges(m_device, 1, &range) != VK_SUCCESS)
-            throw std::runtime_error{"Can not flush memory."};
+        if(auto result{vkInvalidateMappedMemoryRanges(m_device, 1, &range)}; result != VK_SUCCESS)
+            throw vulkan::error{result};
     }
     else
     {
@@ -406,8 +431,8 @@ void memory_heap::invalidate(std::uint64_t offset, std::uint64_t size)
         range.offset = aligned_offset;
         range.size = aligned_size;
 
-        if(vkInvalidateMappedMemoryRanges(m_device, 1, &range) != VK_SUCCESS)
-            throw std::runtime_error{"Can not flush memory."};
+        if(auto result{vkInvalidateMappedMemoryRanges(m_device, 1, &range)}; result != VK_SUCCESS)
+            throw vulkan::error{result};
     }
 }
 
@@ -441,6 +466,8 @@ void memory_heap::unregister_chunk(const memory_heap_chunk& chunk) noexcept
         auto& heap{std::get<dedicated_heap>(m_heap)};
 
         m_free_space = m_size;
+        m_allocation_count = 0;
+
         heap.range.reset();
     }
     else
@@ -458,6 +485,8 @@ void memory_heap::unregister_chunk(const memory_heap_chunk& chunk) noexcept
         assert(it != std::cend(heap.ranges) && "Bad memory heap chunk.");
 
         m_free_space += it->size;
+        m_allocation_count -= 1;
+
         heap.ranges.erase(it);
     }
 }
@@ -486,18 +515,22 @@ memory_allocator::memory_allocator(VkPhysicalDevice physical_device, VkDevice de
 
 memory_heap_chunk memory_allocator::allocate(const VkMemoryRequirements& requirements, memory_resource_type resource_type, VkMemoryPropertyFlags minimal, VkMemoryPropertyFlags optimal)
 {
-    std::lock_guard lock{m_mutex};
-
     const std::uint32_t memory_type{find_memory_type(m_memory_properties, requirements.memoryTypeBits, minimal, optimal)};
     const std::uint64_t default_size{default_heap_size(memory_type)};
     const bool coherent{(m_memory_properties.memoryTypes[memory_type].propertyFlags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) != 0};
 
-    if(requirements.size > default_size)
+    if(requirements.size > default_size) //Pseudo-dedicated allocation (because it is reusable unlike real dedicated allocations)
     {
-        auto& heap{m_heaps.emplace_back(std::make_unique<memory_heap>(m_device, memory_type, requirements.size, m_granularity, m_non_coherent_atom_size, coherent))};
+        auto heap{std::make_unique<memory_heap>(m_device, memory_type, requirements.size, m_granularity, m_non_coherent_atom_size, coherent)};
+        auto chunk{heap->allocate_pseudo_dedicated(resource_type, requirements.size)};
 
-        return heap->allocate(resource_type, requirements.size, requirements.alignment);
+        std::lock_guard lock{m_mutex};
+        m_heaps.emplace_back(std::move(heap));
+
+        return chunk;
     }
+
+    std::lock_guard lock{m_mutex};
 
     if(!std::empty(m_heaps))
     {
@@ -558,7 +591,13 @@ memory_heap_chunk memory_allocator::allocate(VkBuffer buffer, memory_resource_ty
             const std::uint32_t memory_type{find_memory_type(m_memory_properties, requirements.memoryRequirements.memoryTypeBits, minimal, optimal)};
             const std::uint64_t size{requirements.memoryRequirements.size};
 
-            return m_heaps.emplace_back(std::make_unique<memory_heap>(m_device, buffer, memory_type, size))->allocate_dedicated(size);
+            auto heap{std::make_unique<memory_heap>(m_device, buffer, memory_type, size)};
+            auto chunk{heap->allocate_dedicated(size)};
+
+            std::lock_guard lock{m_mutex};
+            m_heaps.emplace_back(std::move(heap));
+
+            return chunk;
         }
         else
         {
@@ -596,7 +635,13 @@ memory_heap_chunk memory_allocator::allocate(VkImage image, memory_resource_type
             const std::uint32_t memory_type{find_memory_type(m_memory_properties, requirements.memoryRequirements.memoryTypeBits, minimal, optimal)};
             const std::uint64_t size{requirements.memoryRequirements.size};
 
-            return m_heaps.emplace_back(std::make_unique<memory_heap>(m_device, image, memory_type, size))->allocate_dedicated(size);
+            auto heap{std::make_unique<memory_heap>(m_device, image, memory_type, size)};
+            auto chunk{heap->allocate_dedicated(size)};
+
+            std::lock_guard lock{m_mutex};
+            m_heaps.emplace_back(std::move(heap));
+
+            return chunk;
         }
         else
         {
@@ -652,7 +697,7 @@ void memory_allocator::clean_dedicated()
     m_heaps.erase(std::remove_if(std::begin(m_heaps), std::end(m_heaps), predicate), std::end(m_heaps));
 }
 
-memory_allocator::heap_sizes memory_allocator::heap_count()
+memory_allocator::heap_sizes memory_allocator::heap_count() const
 {
     std::lock_guard lock{m_mutex};
 
@@ -679,7 +724,34 @@ memory_allocator::heap_sizes memory_allocator::heap_count()
     return output;
 }
 
-memory_allocator::heap_sizes memory_allocator::used_memory()
+memory_allocator::heap_sizes memory_allocator::allocation_count() const
+{
+    std::lock_guard lock{m_mutex};
+
+    heap_sizes output{};
+
+    for(const auto& heap : m_heaps)
+    {
+        const auto flags{m_heaps_flags[m_memory_properties.memoryTypes[heap->type()].heapIndex]};
+
+        if((flags & (VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)) == (VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
+        {
+            output.device_shared += heap->allocation_count();
+        }
+        else if(flags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
+        {
+            output.device_local += heap->allocation_count();
+        }
+        else if(flags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
+        {
+            output.host_shared += heap->allocation_count();
+        }
+    }
+
+    return output;
+}
+
+memory_allocator::heap_sizes memory_allocator::used_memory() const
 {
     std::lock_guard lock{m_mutex};
 
@@ -706,7 +778,7 @@ memory_allocator::heap_sizes memory_allocator::used_memory()
     return output;
 }
 
-memory_allocator::heap_sizes memory_allocator::allocated_memory()
+memory_allocator::heap_sizes memory_allocator::allocated_memory() const
 {
     std::lock_guard lock{m_mutex};
 
@@ -733,7 +805,67 @@ memory_allocator::heap_sizes memory_allocator::allocated_memory()
     return output;
 }
 
-memory_allocator::heap_sizes memory_allocator::available_memory()
+memory_allocator::heap_sizes memory_allocator::dedicated_heap_count() const
+{
+    std::lock_guard lock{m_mutex};
+
+    heap_sizes output{};
+
+    for(const auto& heap : m_heaps)
+    {
+        if(heap->dedicated())
+        {
+            const auto flags{m_heaps_flags[m_memory_properties.memoryTypes[heap->type()].heapIndex]};
+
+            if((flags & (VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)) == (VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
+            {
+                ++output.device_shared;
+            }
+            else if(flags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
+            {
+                ++output.device_local;
+            }
+            else if(flags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
+            {
+                ++output.host_shared;
+            }
+        }
+    }
+
+    return output;
+}
+
+memory_allocator::heap_sizes memory_allocator::dedicated_allocation_count() const
+{
+    std::lock_guard lock{m_mutex};
+
+    heap_sizes output{};
+
+    for(const auto& heap : m_heaps)
+    {
+        if(heap->dedicated())
+        {
+            const auto flags{m_heaps_flags[m_memory_properties.memoryTypes[heap->type()].heapIndex]};
+
+            if((flags & (VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)) == (VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
+            {
+                output.device_shared += heap->allocation_count();
+            }
+            else if(flags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
+            {
+                output.device_local += heap->allocation_count();
+            }
+            else if(flags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
+            {
+                output.host_shared += heap->allocation_count();
+            }
+        }
+    }
+
+    return output;
+}
+
+memory_allocator::heap_sizes memory_allocator::dedicated_used_memory() const
 {
     std::lock_guard lock{m_mutex};
 
@@ -741,19 +873,52 @@ memory_allocator::heap_sizes memory_allocator::available_memory()
 
     for(auto& heap : m_heaps)
     {
-        const auto flags{m_heaps_flags[m_memory_properties.memoryTypes[heap->type()].heapIndex]};
+        if(heap->dedicated())
+        {
+            const auto flags{m_heaps_flags[m_memory_properties.memoryTypes[heap->type()].heapIndex]};
 
-        if((flags & (VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)) == (VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
-        {
-            output.device_shared += heap->free_space();
+            if((flags & (VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)) == (VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
+            {
+                output.device_shared += (heap->size() - heap->free_space());
+            }
+            else if(flags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
+            {
+                output.device_local += (heap->size() - heap->free_space());
+            }
+            else if(flags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
+            {
+                output.host_shared += (heap->size() - heap->free_space());
+            }
         }
-        else if(flags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
+    }
+
+    return output;
+}
+
+memory_allocator::heap_sizes memory_allocator::dedicated_allocated_memory() const
+{
+    std::lock_guard lock{m_mutex};
+
+    heap_sizes output{};
+
+    for(auto& heap : m_heaps)
+    {
+        if(heap->dedicated())
         {
-            output.device_local += heap->free_space();
-        }
-        else if(flags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
-        {
-            output.host_shared += heap->free_space();
+            const auto flags{m_heaps_flags[m_memory_properties.memoryTypes[heap->type()].heapIndex]};
+
+            if((flags & (VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)) == (VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
+            {
+                output.device_shared += heap->size();
+            }
+            else if(flags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
+            {
+                output.device_local += heap->size();
+            }
+            else if(flags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
+            {
+                output.host_shared += heap->size();
+            }
         }
     }
 

@@ -14,7 +14,8 @@ class CAPTAL_API storage_buffer
 {
 public:
     storage_buffer() = default;
-    storage_buffer(std::uint64_t size, tph::buffer_usage usage = tph::buffer_usage{});
+    explicit storage_buffer(std::uint64_t size, tph::buffer_usage usage = tph::buffer_usage{});
+
     ~storage_buffer() = default;
     storage_buffer(const storage_buffer&) = delete;
     storage_buffer& operator=(const storage_buffer&) = delete;

@@ -31,10 +31,11 @@ class CAPTAL_API uniform_buffer
 {
 public:
     uniform_buffer() = default;
-    uniform_buffer(std::vector<buffer_part> parts);
+
+    explicit uniform_buffer(std::vector<buffer_part> parts);
 
     template<typename T>
-    uniform_buffer(T&& data)
+    explicit uniform_buffer(T&& data)
     :uniform_buffer{{buffer_part{buffer_part_type::uniform, sizeof(T)}}}
     {
         get<T>(0) = std::forward<T>(data);

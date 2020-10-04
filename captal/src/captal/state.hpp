@@ -75,7 +75,7 @@ public:
 public:
     state_stack() = default;
 
-    state_stack(handle initial_state)
+    explicit state_stack(handle initial_state)
     {
         push(std::move(initial_state));
     }

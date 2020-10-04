@@ -29,14 +29,14 @@ class CAPTAL_API texture : public asynchronous_resource
 public:
     texture() = default;
 
-    texture(const std::filesystem::path& file, const tph::sampling_options& sampling = tph::sampling_options{}, color_space space = color_space::srgb);
-    texture(std::span<const std::uint8_t> data, const tph::sampling_options& sampling = tph::sampling_options{}, color_space space = color_space::srgb);
-    texture(std::istream& stream, const tph::sampling_options& sampling = tph::sampling_options{}, color_space space = color_space::srgb);
-    texture(std::uint32_t width, std::uint32_t height, const std::uint8_t* rgba, const tph::sampling_options& sampling = tph::sampling_options{}, color_space space = color_space::srgb);
-    texture(tph::image image, const tph::sampling_options& sampling = tph::sampling_options{}, color_space space = color_space::srgb);
+    explicit texture(const std::filesystem::path& file, const tph::sampling_options& sampling = tph::sampling_options{}, color_space space = color_space::srgb);
+    explicit texture(std::span<const std::uint8_t> data, const tph::sampling_options& sampling = tph::sampling_options{}, color_space space = color_space::srgb);
+    explicit texture(std::istream& stream, const tph::sampling_options& sampling = tph::sampling_options{}, color_space space = color_space::srgb);
+    explicit texture(std::uint32_t width, std::uint32_t height, const std::uint8_t* rgba, const tph::sampling_options& sampling = tph::sampling_options{}, color_space space = color_space::srgb);
+    explicit texture(tph::image image, const tph::sampling_options& sampling = tph::sampling_options{}, color_space space = color_space::srgb);
 
     template<typename... Args, typename = std::enable_if_t<std::is_constructible_v<tph::texture, tph::renderer&, Args...>>>
-    texture(Args&&... args)
+    explicit texture(Args&&... args)
     :m_texture{get_renderer(), std::forward<Args>(args)...}
     {
 
@@ -118,6 +118,7 @@ public:
 public:
     texture_pool();
     explicit texture_pool(load_callback_t load_callback);
+
     ~texture_pool() = default;
     texture_pool(const texture_pool&) = delete;
     texture_pool& operator=(const texture_pool&) = default;
@@ -178,7 +179,7 @@ public:
 public:
     tileset() = default;
 
-    tileset(texture_ptr texture, std::uint32_t tile_width, std::uint32_t tile_height)
+    explicit tileset(texture_ptr texture, std::uint32_t tile_width, std::uint32_t tile_height)
     :m_texture{std::move(texture)}
     ,m_tile_width{tile_width}
     ,m_tile_height{tile_height}

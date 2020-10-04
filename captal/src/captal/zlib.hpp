@@ -28,6 +28,7 @@ public:
 
 public:
     deflate_base(std::uint32_t compression_level, std::int32_t window_bits);
+
     ~deflate_base();
     deflate_base(const deflate_base&) = delete;
     deflate_base& operator=(const deflate_base&) = delete;
@@ -131,6 +132,7 @@ public:
 
 public:
     explicit inflate_base(std::int32_t window_bits);
+
     ~inflate_base();
     inflate_base(const inflate_base&) = delete;
     inflate_base& operator=(const inflate_base&) = delete;

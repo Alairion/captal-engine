@@ -36,7 +36,7 @@ static constexpr collision_id_t all_collision_ids{std::numeric_limits<collision_
 class CAPTAL_API physical_collision_arbiter
 {
 public:
-    physical_collision_arbiter(cpArbiter* arbiter) noexcept
+    explicit physical_collision_arbiter(cpArbiter* arbiter) noexcept
     :m_arbiter{arbiter}
     {
 
@@ -215,10 +215,10 @@ class CAPTAL_API physical_shape
 {
 public:
     physical_shape() = default;
-    physical_shape(physical_body& body, float radius, vec2f offset = vec2f{});
-    physical_shape(physical_body& body, vec2f first, vec2f second, float thickness = 0.0f);
-    physical_shape(physical_body& body, std::span<const vec2f> points, float radius = 0.0f);
-    physical_shape(physical_body& body, float width, float height, float radius = 0.0f);
+    explicit physical_shape(physical_body& body, float radius, vec2f offset = vec2f{});
+    explicit physical_shape(physical_body& body, vec2f first, vec2f second, float thickness = 0.0f);
+    explicit physical_shape(physical_body& body, std::span<const vec2f> points, float radius = 0.0f);
+    explicit physical_shape(physical_body& body, float width, float height, float radius = 0.0f);
 
     ~physical_shape();
     physical_shape(const physical_shape&) = delete;
@@ -298,7 +298,7 @@ class CAPTAL_API physical_body
 
 public:
     physical_body() = default;
-    physical_body(physical_world& world, physical_body_type type, float mass = 1.0f, float moment = no_rotation);
+    explicit physical_body(physical_world& world, physical_body_type type, float mass = 1.0f, float moment = no_rotation);
 
     ~physical_body();
     physical_body(const physical_body&) = delete;
@@ -405,17 +405,17 @@ class CAPTAL_API physical_constraint
 {
 public:
     physical_constraint() = default;
-    physical_constraint(pin_joint_t, physical_body& first, physical_body& second, vec2f first_anchor, vec2f second_anchor);
-    physical_constraint(slide_joint_t, physical_body& first, physical_body& second, vec2f first_anchor, vec2f second_anchor, float min, float max);
-    physical_constraint(pivot_joint_t, physical_body& first, physical_body& second, vec2f pivot);
-    physical_constraint(pivot_joint_t, physical_body& first, physical_body& second, vec2f first_anchor, vec2f second_anchor);
-    physical_constraint(groove_joint_t, physical_body& first, physical_body& second, vec2f first_groove, vec2f second_groove, vec2f anchor);
-    physical_constraint(damped_spring_t, physical_body& first, physical_body& second, vec2f first_anchor, vec2f second_anchor, float rest_length, float stiffness, float damping);
-    physical_constraint(damped_rotary_spring_t, physical_body& first, physical_body& second, float rest_angle, float stiffness, float damping);
-    physical_constraint(rotary_limit_joint_t, physical_body& first, physical_body& second, float min, float max);
-    physical_constraint(ratchet_joint_t, physical_body& first, physical_body& second, float phase, float ratchet);
-    physical_constraint(gear_joint_t, physical_body& first, physical_body& second, float phase, float ratio);
-    physical_constraint(motor_joint_t, physical_body& first, physical_body& second, float rate);
+    explicit physical_constraint(pin_joint_t, physical_body& first, physical_body& second, vec2f first_anchor, vec2f second_anchor);
+    explicit physical_constraint(slide_joint_t, physical_body& first, physical_body& second, vec2f first_anchor, vec2f second_anchor, float min, float max);
+    explicit physical_constraint(pivot_joint_t, physical_body& first, physical_body& second, vec2f pivot);
+    explicit physical_constraint(pivot_joint_t, physical_body& first, physical_body& second, vec2f first_anchor, vec2f second_anchor);
+    explicit physical_constraint(groove_joint_t, physical_body& first, physical_body& second, vec2f first_groove, vec2f second_groove, vec2f anchor);
+    explicit physical_constraint(damped_spring_t, physical_body& first, physical_body& second, vec2f first_anchor, vec2f second_anchor, float rest_length, float stiffness, float damping);
+    explicit physical_constraint(damped_rotary_spring_t, physical_body& first, physical_body& second, float rest_angle, float stiffness, float damping);
+    explicit physical_constraint(rotary_limit_joint_t, physical_body& first, physical_body& second, float min, float max);
+    explicit physical_constraint(ratchet_joint_t, physical_body& first, physical_body& second, float phase, float ratchet);
+    explicit physical_constraint(gear_joint_t, physical_body& first, physical_body& second, float phase, float ratio);
+    explicit physical_constraint(motor_joint_t, physical_body& first, physical_body& second, float rate);
 
     ~physical_constraint();
     physical_constraint(const physical_constraint&) = delete;
