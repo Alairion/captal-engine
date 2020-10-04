@@ -504,7 +504,7 @@ memory_heap_chunk memory_allocator::allocate(const VkMemoryRequirements& require
         std::vector<std::reference_wrapper<memory_heap>> candidates{};
         for(auto& heap : m_heaps)
         {
-            if(heap->type() == memory_type && heap->free_space() > align_up(requirements.size, m_granularity))
+            if(!heap->dedicated() && heap->type() == memory_type && heap->free_space() > align_up(requirements.size, m_granularity))
             {
                 candidates.emplace_back(std::ref(*heap));
             }

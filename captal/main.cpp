@@ -209,7 +209,7 @@ static void add_logic(const cpt::render_window_ptr& window, entt::registry& worl
         info += "Host shared (" + std::to_string(memory_heaps.host_shared) + "): " + format_data(memory_used.host_shared) + " / " + format_data(memory_alloc.host_shared) + "\n";
         info += std::to_string(frame_per_second) + " FPS";
 
-        //cpt::engine::instance().renderer().allocator().clean();
+        cpt::engine::instance().renderer().allocator().clean_dedicated();
 
         world.get<cpt::components::drawable>(text).attach(drawer.draw(info, cpt::colors::black));
         world.get<cpt::components::node>(text).update();
