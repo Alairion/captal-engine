@@ -494,19 +494,19 @@ memory_heap_chunk memory_allocator::allocate(const VkMemoryRequirements& require
 
     if(requirements.size > default_size)
     {
-        auto& heap{m_heaps.emplace_front(m_device, memory_type, requirements.size, m_granularity, m_non_coherent_atom_size, coherent)};
+        auto& heap{m_heaps.emplace_back(std::make_unique<memory_heap>(m_device, memory_type, requirements.size, m_granularity, m_non_coherent_atom_size, coherent))};
 
-        return heap.allocate(resource_type, requirements.size, requirements.alignment);
+        return heap->allocate(resource_type, requirements.size, requirements.alignment);
     }
 
     if(!std::empty(m_heaps))
     {
         std::vector<std::reference_wrapper<memory_heap>> candidates{};
-        for(memory_heap& heap : m_heaps)
+        for(auto& heap : m_heaps)
         {
-            if(heap.type() == memory_type && heap.free_space() > align_up(requirements.size, m_granularity))
+            if(heap->type() == memory_type && heap->free_space() > align_up(requirements.size, m_granularity))
             {
-                candidates.emplace_back(std::ref(heap));
+                candidates.emplace_back(std::ref(*heap));
             }
         }
 
@@ -531,9 +531,9 @@ memory_heap_chunk memory_allocator::allocate(const VkMemoryRequirements& require
         }
     }
 
-    auto& heap{m_heaps.emplace_front(m_device, memory_type, default_size, m_granularity, m_non_coherent_atom_size, coherent)};
+    auto& heap{m_heaps.emplace_back(std::make_unique<memory_heap>(m_device, memory_type, default_size, m_granularity, m_non_coherent_atom_size, coherent))};
 
-    return heap.allocate(resource_type, requirements.size, requirements.alignment);
+    return heap->allocate(resource_type, requirements.size, requirements.alignment);
 }
 
 memory_heap_chunk memory_allocator::allocate(VkBuffer buffer, memory_resource_type resource_type, VkMemoryPropertyFlags minimal, VkMemoryPropertyFlags optimal)
@@ -558,7 +558,7 @@ memory_heap_chunk memory_allocator::allocate(VkBuffer buffer, memory_resource_ty
             const std::uint32_t memory_type{find_memory_type(m_memory_properties, requirements.memoryRequirements.memoryTypeBits, minimal, optimal)};
             const std::uint64_t size{requirements.memoryRequirements.size};
 
-            return m_heaps.emplace_front(m_device, buffer, memory_type, size).allocate_dedicated(size);
+            return m_heaps.emplace_back(std::make_unique<memory_heap>(m_device, buffer, memory_type, size))->allocate_dedicated(size);
         }
         else
         {
@@ -579,7 +579,7 @@ memory_heap_chunk memory_allocator::allocate(VkImage image, memory_resource_type
     if(m_version >= tph::version{1, 1})
     {
         VkImageMemoryRequirementsInfo2 info{};
-        info.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_REQUIREMENTS_INFO_2;
+        info.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_REQUIREMENTS_INFO_2;
         info.image = image;
 
         VkMemoryDedicatedRequirements dedicated_requirements{};
@@ -596,7 +596,7 @@ memory_heap_chunk memory_allocator::allocate(VkImage image, memory_resource_type
             const std::uint32_t memory_type{find_memory_type(m_memory_properties, requirements.memoryRequirements.memoryTypeBits, minimal, optimal)};
             const std::uint64_t size{requirements.memoryRequirements.size};
 
-            return m_heaps.emplace_front(m_device, image, memory_type, size).allocate_dedicated(size);
+            return m_heaps.emplace_back(std::make_unique<memory_heap>(m_device, image, memory_type, size))->allocate_dedicated(size);
         }
         else
         {
@@ -632,20 +632,24 @@ void memory_allocator::clean()
 {
     std::lock_guard lock{m_mutex};
 
-    m_heaps.remove_if([](const memory_heap& heap)
+    const auto predicate = [](const std::unique_ptr<memory_heap>& heap)
     {
-        return heap.allocation_count() == 0;
-    });
+         return heap->allocation_count() == 0;
+    };
+
+    m_heaps.erase(std::remove_if(std::begin(m_heaps), std::end(m_heaps), predicate), std::end(m_heaps));
 }
 
 void memory_allocator::clean_dedicated()
 {
     std::lock_guard lock{m_mutex};
 
-    m_heaps.remove_if([](const memory_heap& heap)
+    const auto predicate = [](const std::unique_ptr<memory_heap>& heap)
     {
-        return heap.dedicated() && heap.allocation_count() == 0;
-    });
+         return heap->dedicated() && heap->allocation_count() == 0;
+    };
+
+    m_heaps.erase(std::remove_if(std::begin(m_heaps), std::end(m_heaps), predicate), std::end(m_heaps));
 }
 
 memory_allocator::heap_sizes memory_allocator::heap_count()
@@ -656,7 +660,7 @@ memory_allocator::heap_sizes memory_allocator::heap_count()
 
     for(const auto& heap : m_heaps)
     {
-        const auto flags{m_heaps_flags[m_memory_properties.memoryTypes[heap.type()].heapIndex]};
+        const auto flags{m_heaps_flags[m_memory_properties.memoryTypes[heap->type()].heapIndex]};
 
         if((flags & (VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)) == (VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
         {
@@ -683,19 +687,19 @@ memory_allocator::heap_sizes memory_allocator::used_memory()
 
     for(auto& heap : m_heaps)
     {
-        const auto flags{m_heaps_flags[m_memory_properties.memoryTypes[heap.type()].heapIndex]};
+        const auto flags{m_heaps_flags[m_memory_properties.memoryTypes[heap->type()].heapIndex]};
 
         if((flags & (VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)) == (VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
         {
-            output.device_shared += (heap.size() - heap.free_space());
+            output.device_shared += (heap->size() - heap->free_space());
         }
         else if(flags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
         {
-            output.device_local += (heap.size() - heap.free_space());
+            output.device_local += (heap->size() - heap->free_space());
         }
         else if(flags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
         {
-            output.host_shared += (heap.size() - heap.free_space());
+            output.host_shared += (heap->size() - heap->free_space());
         }
     }
 
@@ -710,19 +714,19 @@ memory_allocator::heap_sizes memory_allocator::allocated_memory()
 
     for(auto& heap : m_heaps)
     {
-        const auto flags{m_heaps_flags[m_memory_properties.memoryTypes[heap.type()].heapIndex]};
+        const auto flags{m_heaps_flags[m_memory_properties.memoryTypes[heap->type()].heapIndex]};
 
         if((flags & (VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)) == (VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
         {
-            output.device_shared += heap.size();
+            output.device_shared += heap->size();
         }
         else if(flags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
         {
-            output.device_local += heap.size();
+            output.device_local += heap->size();
         }
         else if(flags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
         {
-            output.host_shared += heap.size();
+            output.host_shared += heap->size();
         }
     }
 
@@ -737,19 +741,19 @@ memory_allocator::heap_sizes memory_allocator::available_memory()
 
     for(auto& heap : m_heaps)
     {
-        const auto flags{m_heaps_flags[m_memory_properties.memoryTypes[heap.type()].heapIndex]};
+        const auto flags{m_heaps_flags[m_memory_properties.memoryTypes[heap->type()].heapIndex]};
 
         if((flags & (VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)) == (VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
         {
-            output.device_shared += heap.free_space();
+            output.device_shared += heap->free_space();
         }
         else if(flags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
         {
-            output.device_local += heap.free_space();
+            output.device_local += heap->free_space();
         }
         else if(flags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
         {
-            output.host_shared += heap.free_space();
+            output.host_shared += heap->free_space();
         }
     }
 

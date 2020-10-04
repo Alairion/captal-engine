@@ -6,6 +6,8 @@
 
 #include "vulkan/vulkan_functions.hpp"
 
+#include "renderer.hpp"
+
 using namespace tph::vulkan::functions;
 
 namespace tph
@@ -43,7 +45,7 @@ static std::vector<VkLayerProperties> available_instance_layers()
 
 static application_layer layer_from_name(std::string_view name) noexcept
 {
-    if(name == "VK_LAYER_LUNARG_standard_validation")
+    if(name == "VK_LAYER_KHRONOS_validation")
     {
         return application_layer::validation;
     }
@@ -55,7 +57,7 @@ static std::vector<const char*> filter_instance_layers(std::vector<const char*> 
 {
     const std::vector<VkLayerProperties> available{available_instance_layers()};
 
-    for(auto it{std::cbegin(layers)}; it != std::cend(layers); ++it)
+    for(auto it{std::cbegin(layers)}; it != std::cend(layers);)
     {
         const auto pred = [it](const VkLayerProperties& layer)
         {
@@ -65,11 +67,15 @@ static std::vector<const char*> filter_instance_layers(std::vector<const char*> 
         if(std::find_if(std::begin(available), std::end(available), pred) == std::end(available))
         {
             #ifndef NDEBUG
-            std::cerr << "Layer \"" << *it << "\" is not available." << std::endl;
+            std::cerr << "Instance layer \"" << *it << "\" is not available." << std::endl;
             #endif
 
             layer_bits &= ~layer_from_name(*it);
             it = layers.erase(it);
+        }
+        else
+        {
+            ++it;
         }
     }
 
@@ -83,7 +89,7 @@ static std::vector<const char*> required_instance_layers(application_layer& laye
     //output indices must correspond to application_layer bit indices
     if(static_cast<bool>(layers & application_layer::validation))
     {
-        output.emplace_back("VK_LAYER_LUNARG_standard_validation");
+        output.emplace_back("VK_LAYER_KHRONOS_validation");
     }
 
     return filter_instance_layers(std::move(output), layers);
@@ -130,7 +136,7 @@ static std::vector<const char*> filter_instance_extensions(const std::vector<con
 {
     const std::vector<VkExtensionProperties> available{available_instance_extensions(layers)};
 
-    for(auto it{std::cbegin(extensions)}; it != std::cend(extensions); ++it)
+    for(auto it{std::cbegin(extensions)}; it != std::cend(extensions);)
     {
         const auto pred = [it](const VkExtensionProperties& ext)
         {
@@ -140,11 +146,15 @@ static std::vector<const char*> filter_instance_extensions(const std::vector<con
         if(std::find_if(std::begin(available), std::end(available), pred) == std::end(available))
         {
             #ifndef NDEBUG
-            std::cerr << "Extension \"" << *it << "\" is not available." << std::endl;
+            std::cerr << "Instance extension \"" << *it << "\" is not available." << std::endl;
             #endif
 
             extension_bits &= ~extension_from_name(*it);
             it = extensions.erase(it);
+        }
+        else
+        {
+            ++it;
         }
     }
 

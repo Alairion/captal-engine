@@ -27,7 +27,12 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debug_messenger_callback(VkDebugUtilsMessa
         for(std::uint32_t i{}; i < count; ++i)
         {
             debug_label label{};
-            label.name = labels[i].pLabelName;
+
+            if(labels[i].pLabelName)
+            {
+                label.name = labels[i].pLabelName;
+            }
+
             std::copy(std::begin(labels[i].color), std::end(labels[i].color), std::begin(label.color));
 
             output.emplace_back(label);
@@ -46,7 +51,11 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debug_messenger_callback(VkDebugUtilsMessa
             debug_object object{};
             object.type = static_cast<object_type>(objects[i].objectType);
             object.handle = objects[i].objectHandle;
-            object.name = objects[i].pObjectName;
+
+            if(objects[i].pObjectName)
+            {
+                object.name = objects[i].pObjectName;
+            }
 
             output.emplace_back(object);
         }

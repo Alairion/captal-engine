@@ -144,4 +144,7 @@ inline VkDebugUtilsMessengerEXT underlying_cast(const debug_messenger& debug_mes
 
 }
 
+template<> struct tph::enable_enum_operations<tph::debug_message_severity> {static constexpr bool value{true};};
+template<> struct tph::enable_enum_operations<tph::debug_message_type> {static constexpr bool value{true};};
+
 #endif

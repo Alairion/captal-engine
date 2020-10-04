@@ -26,7 +26,7 @@ static std::vector<VkLayerProperties> available_device_layers(VkPhysicalDevice p
 
 static renderer_layer layer_from_name(std::string_view name) noexcept
 {
-    if(name == "VK_LAYER_LUNARG_standard_validation")
+    if(name == "VK_LAYER_KHRONOS_validation")
     {
         return renderer_layer::validation;
     }
@@ -38,7 +38,7 @@ static std::vector<const char*> filter_device_layers(VkPhysicalDevice physical_d
 {
     const std::vector<VkLayerProperties> available{available_device_layers(physical_device)};
 
-    for(auto it{std::cbegin(layers)}; it != std::cend(layers); ++it)
+    for(auto it{std::cbegin(layers)}; it != std::cend(layers);)
     {
         const auto pred = [it](const VkLayerProperties& layer)
         {
@@ -48,11 +48,15 @@ static std::vector<const char*> filter_device_layers(VkPhysicalDevice physical_d
         if(std::find_if(std::begin(available), std::end(available), pred) == std::end(available))
         {
             #ifndef NDEBUG
-            std::cerr << "Layer \"" << *it << "\" is not available." << std::endl;
+            std::cerr << "Device layer \"" << *it << "\" is not available." << std::endl;
             #endif
 
             layer_bits &= ~layer_from_name(*it);
             it = layers.erase(it);
+        }
+        else
+        {
+            ++it;
         }
     }
 
@@ -65,7 +69,7 @@ static std::vector<const char*> required_device_layers(VkPhysicalDevice physical
 
     if(static_cast<bool>(layers & renderer_layer::validation))
     {
-        output.emplace_back("VK_LAYER_LUNARG_standard_validation");
+        output.emplace_back("VK_LAYER_KHRONOS_validation");
     }
 
     return filter_device_layers(physical_device, std::move(output), layers);
@@ -108,7 +112,7 @@ static std::vector<const char*> filter_device_extensions(VkPhysicalDevice physic
 {
     const std::vector<VkExtensionProperties> available{available_device_extensions(physical_device, layers)};
 
-    for(auto it{std::cbegin(extensions)}; it != std::cend(extensions); ++it)
+    for(auto it{std::cbegin(extensions)}; it != std::cend(extensions);)
     {
         const auto pred = [it](const VkExtensionProperties& ext)
         {
@@ -118,11 +122,15 @@ static std::vector<const char*> filter_device_extensions(VkPhysicalDevice physic
         if(std::find_if(std::begin(available), std::end(available), pred) == std::end(available))
         {
             #ifndef NDEBUG
-            std::cerr << "Extension \"" << *it << "\" is not available." << std::endl;
+            std::cerr << "Device extension \"" << *it << "\" is not available." << std::endl;
             #endif
 
             extension_bits &= ~extension_from_name(*it);
             it = extensions.erase(it);
+        }
+        else
+        {
+            ++it;
         }
     }
 

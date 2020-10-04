@@ -12,14 +12,14 @@ set(APYRE_SOURCES
     src/apyre/window.hpp
     src/apyre/event.hpp
     src/apyre/messagebox.hpp
-    src/apyre/battery.hpp
+    src/apyre/power.hpp
 
     #Sources:
     src/apyre/application.cpp
     src/apyre/window.cpp
     src/apyre/event.cpp
     src/apyre/messagebox.cpp
-    src/apyre/battery.cpp
+    src/apyre/power.cpp
 )
 
 if(CAPTAL_BUILD_APYRE_STATIC)

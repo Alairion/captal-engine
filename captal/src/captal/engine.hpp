@@ -22,6 +22,11 @@
 namespace cpt
 {
 
+struct system_parameters
+{
+
+};
+
 struct audio_parameters
 {
     std::uint32_t channel_count{};
@@ -32,13 +37,14 @@ struct audio_parameters
 struct graphics_parameters
 {
     tph::renderer_options options{};
+    tph::renderer_layer layers{};
+    tph::renderer_extension extensions{};
     tph::physical_device_features features{};
     optional_ref<const tph::physical_device> physical_device{};
 };
 
 using update_signal = cpt::signal<float>;
 using transfer_ended_signal = cpt::signal<>;
-using render_ended_signal = cpt::signal<>;
 using frame_per_second_signal = cpt::signal<std::uint32_t>;
 
 class CAPTAL_API engine
@@ -49,9 +55,9 @@ public:
     static constexpr std::uint32_t no_frame_rate_limit{std::numeric_limits<std::uint32_t>::max()};
 
 public:
-    engine(const std::string& application_name, cpt::version version);
-    engine(const std::string& application_name, cpt::version version, const audio_parameters& audio, const graphics_parameters& graphics);
-    engine(cpt::application application, const audio_parameters& audio, const graphics_parameters& graphics);
+    explicit engine(const std::string& application_name, cpt::version version);
+    explicit engine(const std::string& application_name, cpt::version version, const system_parameters& system, const audio_parameters& audio, const graphics_parameters& graphics);
+    explicit engine(cpt::application application, const system_parameters& system, const audio_parameters& audio, const graphics_parameters& graphics);
 
     ~engine();
     engine(const engine&) = delete;

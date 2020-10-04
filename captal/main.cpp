@@ -169,7 +169,7 @@ static entt::entity fill_world(entt::registry& world, cpt::physical_world& physi
 
 static void add_logic(const cpt::render_window_ptr& window, entt::registry& world, cpt::physical_world& physical_world, entt::entity camera)
 {
-    cpt::text_drawer drawer{cpt::font{sansation_regular_font_data, 24}};
+    cpt::text_drawer drawer{cpt::font{sansation_regular_font_data, 16}};
 
     const auto text{world.create()};
     world.emplace<cpt::components::node>(text, cpt::vec3f{4.0f, 4.0f, 1.0f});
@@ -199,16 +199,17 @@ static void add_logic(const cpt::render_window_ptr& window, entt::registry& worl
             return ss.str();
         };
 
-        cpt::engine::instance().renderer().allocator().clean();
-
-        //Just some info displayed at the end of the demo.
+        const auto memory_heaps{cpt::engine::instance().renderer().allocator().heap_count()};
         const auto memory_used{cpt::engine::instance().renderer().allocator().used_memory()};
         const auto memory_alloc{cpt::engine::instance().renderer().allocator().allocated_memory()};
 
         std::string info{};
-        info += "Device local : " + format_data(memory_used.device_local) + " / " + format_data(memory_alloc.device_local) + "\n";
-        info += "Host shared : " + format_data(memory_used.host_shared) + " / " + format_data(memory_alloc.host_shared) + "\n";
+        info += "Device local (" + std::to_string(memory_heaps.device_local) + "): " + format_data(memory_used.device_local) + " / " + format_data(memory_alloc.device_local) + "\n";
+        info += "Device shared (" + std::to_string(memory_heaps.device_shared) + "): " + format_data(memory_used.device_shared) + " / " + format_data(memory_alloc.device_shared) + "\n";
+        info += "Host shared (" + std::to_string(memory_heaps.host_shared) + "): " + format_data(memory_used.host_shared) + " / " + format_data(memory_alloc.host_shared) + "\n";
         info += std::to_string(frame_per_second) + " FPS";
+
+        //cpt::engine::instance().renderer().allocator().clean();
 
         world.get<cpt::components::drawable>(text).attach(drawer.draw(info, cpt::colors::black));
         world.get<cpt::components::node>(text).update();
@@ -320,7 +321,7 @@ static void run()
     //    MSAA will smoother the edges of polygons rendered in the window.
     //    MSAAx4 and no MSAA (MSAAx1), are always available (cf. Vulkan Specification)
     //-The texture format is given to enable depth buffering.
-    //    Depth format "d32_sfloat" is widely available, so it is hardcoded. But in real world appliction you should check for it's availability.
+    //    Depth format "d32_sfloat" is widely available, so it is hardcoded. But in real appliction should check for it's availability.
     constexpr cpt::video_mode video_mode{640, 480, 2, tph::present_mode::fifo, tph::sample_count::msaa_x4, tph::texture_format::d32_sfloat};
 
     //Create the window
@@ -329,7 +330,7 @@ static void run()
     window->set_clear_color(cpt::colors::white);
 
     //Our physical world. See add_logic() function for more informations.
-    //You must destroy the physical world AFTER all objects which refer to so you should construct it before your entt::registry
+    //You must destroy the physical world AFTER all objects which refer to it so you should construct it before your entt::registry
     cpt::physical_world physical_world{};
     //Physical world's objects' velocity will be multiplied by the damping each second.
     //So more the damping is low, less physical world's objects will preserve their velocity.
@@ -402,6 +403,8 @@ int main()
 {
     try
     {
+        const cpt::system_parameters system{};
+
         const cpt::audio_parameters audio
         {
             //The number of channels, 2 is stereo.
@@ -414,7 +417,7 @@ int main()
         {
             //The renderer options (c.f. tph::renderer_options)
             .options = tph::renderer_options::tiny_memory_heaps,
-            //The physical device's features. In real world application we should check feature availability
+            //The physical device's features. Real application must check feature availability
             .features = tph::physical_device_features
             {
                 //Enable sample shading (i.e. MSAA inside textures)
@@ -425,7 +428,7 @@ int main()
         //The engine instance. It must be created before most call to captal functions.
         //The first value is your application name. It will be passed to Tephra's instance then to Vulkan's instance.
         //The second value is your application version. It will be passed to Tephra's instance then to Vulkan's instance.
-        cpt::engine engine{"captal_test", cpt::version{0, 1, 0}, audio, graphics};
+        cpt::engine engine{"captal_test", cpt::version{0, 1, 0}, system, audio, graphics};
 
         //The engine is reachable by its static address. We don't need to keep a reference on it.
         run();

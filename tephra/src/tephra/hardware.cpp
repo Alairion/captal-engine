@@ -6,6 +6,7 @@
 #include "vulkan/vulkan_functions.hpp"
 
 #include "application.hpp"
+#include "renderer.hpp"
 #include "surface.hpp"
 
 using namespace tph::vulkan::functions;
@@ -250,6 +251,7 @@ physical_device make_physical_device(VkPhysicalDevice device, tph::version insta
         output.m_features = make_features(features);
         output.m_limits = make_limits(properties.properties.limits);
         output.m_memory_properties = make_memory_properties(device);
+        output.m_driver = make_driver(driver);
 
         return output;
     }

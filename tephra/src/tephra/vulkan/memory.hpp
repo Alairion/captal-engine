@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <stdexcept>
 #include <vector>
-#include <forward_list>
+#include <memory>
 #include <optional>
 #include <mutex>
 #include <variant>
@@ -256,7 +256,7 @@ private:
     heap_sizes m_sizes{};
     std::uint64_t m_granularity{};
     std::uint64_t m_non_coherent_atom_size{};
-    std::forward_list<memory_heap> m_heaps{};
+    std::vector<std::unique_ptr<memory_heap>> m_heaps{};
     std::mutex m_mutex{};
 };
 

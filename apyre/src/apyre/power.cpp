@@ -1,4 +1,4 @@
-#include "battery.hpp"
+#include "power.hpp"
 
 #include <SDL_power.h>
 

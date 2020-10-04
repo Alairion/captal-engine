@@ -6,6 +6,7 @@
 #include <apyre/application.hpp>
 #include <swell/application.hpp>
 #include <tephra/application.hpp>
+#include <tephra/debug_utils.hpp>
 
 namespace cpt
 {
@@ -13,7 +14,7 @@ namespace cpt
 class CAPTAL_API application
 {
 public:
-    application(const std::string& application_name, cpt::version version);
+    explicit application(const std::string& application_name, cpt::version version, tph::application_layer layers = tph::application_layer::none, tph::application_extension extensions = tph::application_extension::none);
     ~application() = default;
     application(const application&) = delete;
     application& operator=(const application&) = delete;
@@ -50,10 +51,16 @@ public:
         return m_graphics_application;
     }
 
+    const tph::debug_messenger& debug_messenger() const noexcept
+    {
+        return m_debug_messenger;
+    }
+
 private:
     apr::application m_system_application{};
     swl::application m_audio_application{};
     tph::application m_graphics_application{};
+    tph::debug_messenger m_debug_messenger{};
 };
 
 }

@@ -20,7 +20,8 @@ VulkanObject underlying_cast(const Args&...) noexcept
     //    template<typename VulkanObject, typename... Args>
     //    friend VulkanObject underlying_cast(const Args&...) noexcept;
 
-    static_assert(!std::is_same<VulkanObject, VulkanObject>::value, "tph::underlying_cast called with incompatible arguments.");
+    static_assert(!std::is_same<VulkanObject, VulkanObject>::value,
+        "tph::underlying_cast called with incompatible arguments. (A common mistake is calling a valid underlying_cast, but without including the header where it is declared.)");
 }
 
 using bool32_t = std::uint32_t;

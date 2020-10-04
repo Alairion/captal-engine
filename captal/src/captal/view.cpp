@@ -15,7 +15,7 @@ static uniform_buffer make_uniform_buffer()
 view::view()
 :m_impl{std::make_shared<view_impl>(make_uniform_buffer())}
 {
-    m_push_constant_buffer.resize(static_cast<std::size_t>(engine::instance().graphics_device().limits().max_push_constant_size / 4u));
+    m_push_constant_buffer.resize(static_cast<std::size_t>(engine::instance().graphics_device().limits().max_push_constants_size / 4u));
 }
 
 view::view(const render_target_ptr& target, const render_technique_info& info)
@@ -23,7 +23,7 @@ view::view(const render_target_ptr& target, const render_technique_info& info)
 {
     set_target(target, info);
 
-    m_push_constant_buffer.resize(static_cast<std::size_t>(engine::instance().graphics_device().limits().max_push_constant_size / 4u));
+    m_push_constant_buffer.resize(static_cast<std::size_t>(engine::instance().graphics_device().limits().max_push_constants_size / 4u));
 }
 
 view::view(const render_target_ptr& target, render_technique_ptr technique)
@@ -31,7 +31,7 @@ view::view(const render_target_ptr& target, render_technique_ptr technique)
 {
     set_target(target, std::move(technique));
 
-    m_push_constant_buffer.resize(static_cast<std::size_t>(engine::instance().graphics_device().limits().max_push_constant_size / 4u));
+    m_push_constant_buffer.resize(static_cast<std::size_t>(engine::instance().graphics_device().limits().max_push_constants_size / 4u));
 }
 
 void view::set_target(const render_target_ptr& target, const render_technique_info& info)

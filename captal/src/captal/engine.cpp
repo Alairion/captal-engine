@@ -2,10 +2,20 @@
 
 #ifdef CAPTAL_DEBUG
     #include <iostream>
+
+    #include <apyre/power.hpp>
 #endif
 
 namespace cpt
 {
+
+#ifdef CAPTAL_DEBUG
+static constexpr auto graphics_layers{tph::renderer_layer::validation};
+static constexpr auto graphics_extensions{tph::renderer_extension::swapchain};
+#else
+static constexpr auto graphics_layers{tph::renderer_layer::none};
+static constexpr auto graphics_extensions{tph::renderer_extension::swapchain};
+#endif
 
 static constexpr auto default_vertex_shader_spv = std::to_array<std::uint32_t>(
 {
@@ -29,7 +39,7 @@ engine::engine(const std::string& application_name, cpt::version version)
 ,m_audio_mixer{m_audio_device.default_sample_rate(), std::min(m_audio_device.max_output_channel(), 2u)}
 ,m_audio_stream{m_application.audio_application(), m_audio_device, m_audio_mixer}
 ,m_graphics_device{m_application.graphics_application().default_physical_device()}
-,m_renderer{m_application.graphics_application(), m_graphics_device}
+,m_renderer{m_graphics_device, graphics_layers, graphics_extensions}
 {
     init();
 }
@@ -97,19 +107,19 @@ static const tph::physical_device& default_graphics_device(const tph::applicatio
     return application.select_physical_device(requirements);
 }
 
-engine::engine(const std::string& application_name, cpt::version version, const audio_parameters& audio, const graphics_parameters& graphics)
-:engine{cpt::application{application_name, version}, audio, graphics}
+engine::engine(const std::string& application_name, cpt::version version, const system_parameters& system, const audio_parameters& audio, const graphics_parameters& graphics)
+:engine{cpt::application{application_name, version}, system, audio, graphics}
 {
 
 }
 
-engine::engine(cpt::application application, const audio_parameters& audio, const graphics_parameters& graphics)
+engine::engine(cpt::application application, const system_parameters& system [[maybe_unused]], const audio_parameters& audio, const graphics_parameters& graphics)
 :m_application{std::move(application)}
 ,m_audio_device{default_audio_device(m_application.audio_application(), audio)}
 ,m_audio_mixer{audio.frequency, audio.channel_count}
 ,m_audio_stream{m_application.audio_application(), m_audio_device, m_audio_mixer}
 ,m_graphics_device{default_graphics_device(m_application.graphics_application(), graphics)}
-,m_renderer{m_application.graphics_application(), m_graphics_device, graphics.options, graphics.features}
+,m_renderer{m_graphics_device, graphics_layers | graphics.layers, graphics_extensions | graphics.extensions, graphics.features, graphics.options}
 {
     init();
 }
@@ -134,7 +144,9 @@ std::pair<tph::command_buffer&, transfer_ended_signal&> engine::begin_transfer()
 {
     if(!m_transfer_began)
     {
-        m_transfer_buffers.emplace_back(transfer_buffer{m_frame_id, tph::cmd::begin(m_transfer_pool, tph::command_buffer_level::primary, tph::command_buffer_flags::one_time_submit), tph::fence{m_renderer}});
+        auto buffer{tph::cmd::begin(m_transfer_pool, tph::command_buffer_level::primary, tph::command_buffer_flags::one_time_submit)};
+
+        m_transfer_buffers.emplace_back(transfer_buffer{m_frame_id, std::move(buffer), tph::fence{m_renderer}});
         m_transfer_began = true;
 
         tph::cmd::pipeline_barrier(m_transfer_buffers.back().buffer, tph::pipeline_stage::color_attachment_output, tph::pipeline_stage::transfer);
@@ -232,6 +244,18 @@ void engine::init()
     m_default_texture = texture{1, 1, std::data(default_texture_data), tph::sampling_options{tph::filter::nearest, tph::filter::nearest, tph::address_mode::repeat}};
 
 #ifdef CAPTAL_DEBUG
+    const auto format_power_state = [](apr::power_state state) -> std::string_view
+    {
+        switch(state)
+        {
+            case apr::power_state::on_battery: return "On battery";
+            case apr::power_state::no_battery: return "No battery";
+            case apr::power_state::charging: return "Charging";
+            case apr::power_state::charged: return "Charged";
+            default: return "Unknown";
+        };
+    };
+
     const auto format_uuid = [](const std::array<std::uint8_t, 16>& uuid)
     {
         std::stringstream ss{};
@@ -271,18 +295,63 @@ void engine::init()
         return ss.str();
     };
 
+    const auto format_driver = [](tph::driver_id driver) -> std::string_view
+    {
+        switch (driver)
+        {
+            case tph::driver_id::amd_proprietary: return "AMD Proprietary";
+            case tph::driver_id::amd_open_source: return "AMD Open Source";
+            case tph::driver_id::mesa_radv: return "Mesa RADV";
+            case tph::driver_id::nvidia_proprietary: return "Nvidia Proprietary";
+            case tph::driver_id::intel_proprietary_windows: return "Intel Proprietary";
+            case tph::driver_id::intel_open_source_mesa: return "Intel Open Source Mesa";
+            case tph::driver_id::imagination_proprietary: return "Imagination Proprietary";
+            case tph::driver_id::qualcomm_proprietary: return "Qualcomm Proprietary";
+            case tph::driver_id::arm_proprietary: return "ARM Proprietary";
+            case tph::driver_id::google_swift_shader: return "Google SwiftShader";
+            case tph::driver_id::ggp_proprietary: return "GGP Proprietary";
+            case tph::driver_id::broadcom_proprietary: return "Broadcom Proprietary";
+            case tph::driver_id::mesa_llvmpipe: return "Mesa LLVM Pipe";
+            case tph::driver_id::moltenvk: return "MoltenVK";
+            default: return "Unknown";
+        }
+    };
+
+    const auto power_status{apr::get_power_status(m_application.system_application())};
+
     std::cout << "Captal engine initialized.\n";
+
+    std::cout << "  System:\n";
+    std::cout << "  | Power status: " << format_power_state(power_status.state) << "\n";
+
+    if(power_status.battery)
+    {
+        std::cout << "  | Battery life: " << static_cast<std::uint32_t>(power_status.battery->remaining * 100.0) << "%\n";
+    }
 
     std::cout << "  Audio device: " << m_audio_device.name() << "\n";
     std::cout << "  | Channels: " << m_audio_mixer.channel_count() << "\n";
     std::cout << "  | Sample rate: " << m_audio_mixer.sample_rate() << "Hz\n";
     std::cout << "  | Output latency: " << m_audio_device.default_low_output_latency().count() << "s\n";
+
     std::cout << "  Graphics device: " << m_graphics_device.properties().name << "\n";
     std::cout << "  | Pipeline Cache UUID: " << format_uuid(m_graphics_device.properties().uuid) << "\n";
     std::cout << "  | Heap sizes:\n";
     std::cout << "    | Host shared: " << format_data(m_renderer.allocator().default_heap_sizes().host_shared) << "\n";
     std::cout << "    | Device shared: " << format_data(m_renderer.allocator().default_heap_sizes().device_shared) << "\n";
     std::cout << "    | Device local: " << format_data(m_renderer.allocator().default_heap_sizes().device_local) << "\n";
+
+    if(m_graphics_device.driver())
+    {
+        std::cout << "  | Driver: \n";
+        std::cout << "    | ID: " << format_driver(m_graphics_device.driver()->id) << "\n";
+        std::cout << "    | Name: " << m_graphics_device.driver()->name << "\n";
+        std::cout << "    | Info: " << m_graphics_device.driver()->info << "\n";
+    }
+    else
+    {
+        std::cout << "  | Driver: Can not be determined\n";
+    }
 
     std::cout << std::flush;
 #endif

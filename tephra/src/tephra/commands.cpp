@@ -10,6 +10,7 @@
 #include "image.hpp"
 #include "texture.hpp"
 #include "descriptor.hpp"
+#include "query.hpp"
 
 using namespace tph::vulkan::functions;
 
