@@ -82,7 +82,7 @@ if(CAPTAL_BUILD_CAPTAL_STATIC)
     add_library(captal STATIC ${CAPTAL_SOURCES})
 else()
     add_library(captal SHARED ${CAPTAL_SOURCES})
-    target_compile_definitions(captal PRIVATE CAPTAL_FOUNDATION_SHARED_BUILD)
+    target_compile_definitions(captal PUBLIC CAPTAL_FOUNDATION_SHARED_BUILD)
 endif()
 
 set_target_properties(captal PROPERTIES PREFIX "")

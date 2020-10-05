@@ -278,15 +278,6 @@ private:
     std::uint32_t m_height{};
 };
 
-using sprite_ptr = std::shared_ptr<sprite>;
-using sprite_weak_ptr = std::weak_ptr<sprite>;
-
-template<typename... Args>
-sprite_ptr make_sprite(Args&&... args)
-{
-    return std::make_shared<sprite>(std::forward<Args>(args)...);
-}
-
 class CAPTAL_API polygon final : public renderable
 {
 public:

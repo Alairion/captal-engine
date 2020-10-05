@@ -78,7 +78,7 @@ if(CAPTAL_BUILD_TEPHRA_STATIC)
     add_library(tephra STATIC ${TEPHRA_SOURCES})
 else()
     add_library(tephra SHARED ${TEPHRA_SOURCES})
-    target_compile_definitions(tephra PRIVATE CAPTAL_FOUNDATION_SHARED_BUILD)
+    target_compile_definitions(tephra PUBLIC CAPTAL_FOUNDATION_SHARED_BUILD)
 endif()
 
 set_target_properties(tephra PROPERTIES PREFIX "")

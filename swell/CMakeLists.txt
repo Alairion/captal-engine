@@ -31,7 +31,7 @@ if(CAPTAL_BUILD_SWELL_STATIC)
     add_library(swell STATIC ${SWELL_SOURCES})
 else()
     add_library(swell SHARED ${SWELL_SOURCES})
-    target_compile_definitions(swell PRIVATE CAPTAL_FOUNDATION_SHARED_BUILD)
+    target_compile_definitions(swell PUBLIC CAPTAL_FOUNDATION_SHARED_BUILD)
 endif()
 
 set_target_properties(swell PROPERTIES PREFIX "")

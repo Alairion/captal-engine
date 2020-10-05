@@ -26,7 +26,7 @@ if(CAPTAL_BUILD_APYRE_STATIC)
     add_library(apyre STATIC ${APYRE_SOURCES})
 else()
     add_library(apyre SHARED ${APYRE_SOURCES})
-    target_compile_definitions(apyre PRIVATE CAPTAL_FOUNDATION_SHARED_BUILD)
+    target_compile_definitions(apyre PUBLIC CAPTAL_FOUNDATION_SHARED_BUILD)
 endif()
 
 set_target_properties(apyre PROPERTIES PREFIX "")

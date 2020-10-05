@@ -253,8 +253,6 @@ public:
     template<typename T>
     T& get_push_constant(std::size_t index) noexcept
     {
-        static_assert(alignof(T) <= 4, "Alignment of T is too big.");
-
         const auto range{m_impl->render_technique->ranges()[index]};
         assert(range.size == sizeof(T) && "Size of T does not match range size.");
 
@@ -264,8 +262,6 @@ public:
     template<typename T>
     const T& get_push_constant(std::size_t index) const noexcept
     {
-        static_assert(alignof(T) <= 4, "Alignment of T is too big.");
-
         const auto range{m_impl->render_technique->ranges()[index]};
         assert(range.size == sizeof(T) && "Size of T does not match range size.");
 
