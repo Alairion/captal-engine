@@ -39,9 +39,10 @@ public:
     constexpr buffer() = default;
     explicit buffer(renderer& renderer, std::uint64_t size, buffer_usage usage);
 
-    explicit buffer(vulkan::buffer buffer, vulkan::memory_heap_chunk memory) noexcept
+    explicit buffer(vulkan::buffer buffer, vulkan::memory_heap_chunk memory, std::uint64_t size) noexcept
     :m_buffer{std::move(buffer)}
     ,m_memory{std::move(memory)}
+    ,m_size{size}
     {
 
     }
@@ -58,12 +59,13 @@ public:
 
     std::uint64_t size() const noexcept
     {
-        return m_memory.size();
+        return m_size;
     }
 
 private:
     vulkan::buffer m_buffer{};
     vulkan::memory_heap_chunk m_memory{};
+    std::uint64_t m_size{};
 };
 
 TEPHRA_API void set_object_name(renderer& renderer, const buffer& object, const std::string& name);

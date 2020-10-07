@@ -64,7 +64,10 @@ constexpr std::size_t unique_count(InputIt first, InputIt last, Predicate pred)
 template<arithmetic T>
 constexpr bool bounding_box_query(const vec2<T>& point, const vec2<T>& box_position, const vec2<T>& box_size) noexcept
 {
-    return point.x >= box_position.x && point.x < box_position.x + box_size.x && point.y >= box_position.y && point.y < box_position.y + box_size.y;
+    return point.x() >= box_position.x()
+        && point.x() < box_position.x() + box_size.x()
+        && point.y() >= box_position.y()
+        && point.y() < box_position.y() + box_size.y();
 }
 
 template<typename CharT, typename Traits>

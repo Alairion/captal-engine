@@ -13,6 +13,7 @@ static constexpr buffer_usage not_extension{~(buffer_usage::device_only | buffer
 
 buffer::buffer(renderer& renderer, std::uint64_t size, buffer_usage usage)
 :m_buffer{underlying_cast<VkDevice>(renderer), size, static_cast<VkBufferUsageFlags>(usage & not_extension)}
+,m_size{size}
 {
     if(static_cast<bool>(usage & buffer_usage::device_only))
     {

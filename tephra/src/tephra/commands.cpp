@@ -829,6 +829,11 @@ void reset_query_pool(command_buffer& command_buffer, query_pool& pool, std::uin
     vkCmdResetQueryPool(underlying_cast<VkCommandBuffer>(command_buffer), underlying_cast<VkQueryPool>(pool), first, count);
 }
 
+void write_timestamp(command_buffer& command_buffer, query_pool& pool, std::uint32_t query, pipeline_stage stage) noexcept
+{
+    vkCmdWriteTimestamp(underlying_cast<VkCommandBuffer>(command_buffer), static_cast<VkPipelineStageFlagBits>(stage), underlying_cast<VkQueryPool>(pool), query);
+}
+
 void begin_query(command_buffer& command_buffer, query_pool& pool, std::uint32_t query, query_control flags) noexcept
 {
     vkCmdBeginQuery(underlying_cast<VkCommandBuffer>(command_buffer), underlying_cast<VkQueryPool>(pool), query, static_cast<VkQueryControlFlags>(flags));

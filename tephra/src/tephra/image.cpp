@@ -235,7 +235,9 @@ void image::write(const std::filesystem::path& file, image_format format, std::i
 void image::map()
 {
     if(!static_cast<bool>(m_usage & image_usage::persistant_mapping))
+    {
         m_map = m_memory.map();
+    }
 }
 
 void image::unmap() noexcept
@@ -255,7 +257,7 @@ buffer image::to_buffer() noexcept
         m_map = nullptr;
     }
 
-    return buffer{std::move(m_buffer), std::move(m_memory)};
+    return buffer{std::move(m_buffer), std::move(m_memory), m_width * m_height * 4};
 }
 
 void set_object_name(renderer& renderer, const image& object, const std::string& name)
