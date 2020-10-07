@@ -12,6 +12,7 @@ A: Complete commands list (WIP)
 A: Queue family ownership transfer support (tph::texture::transition and tph::buffer::???, and free functions)
 A: Texture with array layers et mip levels support
 I: Multiple applications/renderer support ?
+I: Is tph::image a good idea ? Should it be extended to more than r8g8b8a8 ?
 
 Swell:
 A: Rework mixer (already a bit reworked, but not the definitive one) (WIP)
