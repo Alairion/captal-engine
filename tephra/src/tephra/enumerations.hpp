@@ -151,7 +151,7 @@ enum class dynamic_state : std::uint32_t
     depth_bias = VK_DYNAMIC_STATE_DEPTH_BIAS,
     blend_constants = VK_DYNAMIC_STATE_BLEND_CONSTANTS,
     depth_bounds = VK_DYNAMIC_STATE_DEPTH_BOUNDS,
-    compare_mask = VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK,
+    stencil_compare_mask = VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK,
     stencil_write_mask = VK_DYNAMIC_STATE_STENCIL_WRITE_MASK,
     stencil_reference = VK_DYNAMIC_STATE_STENCIL_REFERENCE,
 };
@@ -485,6 +485,13 @@ enum class query_results : std::uint32_t
     partial = VK_QUERY_RESULT_PARTIAL_BIT,
 };
 
+enum class stencil_face : std::uint32_t
+{
+    front = VK_STENCIL_FACE_FRONT_BIT,
+    back = VK_STENCIL_FACE_BACK_BIT,
+    front_and_back = VK_STENCIL_FACE_FRONT_AND_BACK,
+};
+
 }
 
 template<> struct tph::enable_enum_operations<tph::color_component> {static constexpr bool value{true};};
@@ -497,5 +504,6 @@ template<> struct tph::enable_enum_operations<tph::dependency_flags> {static con
 template<> struct tph::enable_enum_operations<tph::query_pipeline_statistic> {static constexpr bool value{true};};
 template<> struct tph::enable_enum_operations<tph::query_control> {static constexpr bool value{true};};
 template<> struct tph::enable_enum_operations<tph::query_results> {static constexpr bool value{true};};
+template<> struct tph::enable_enum_operations<tph::stencil_face> {static constexpr bool value{true};};
 
 #endif

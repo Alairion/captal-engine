@@ -715,6 +715,16 @@ void bind_index_buffer(command_buffer& command_buffer, buffer& buffer, std::uint
     vkCmdBindIndexBuffer(underlying_cast<VkCommandBuffer>(command_buffer), underlying_cast<VkBuffer>(buffer), offset, static_cast<VkIndexType>(type));
 }
 
+void reset_event(command_buffer& command_buffer, event& event, pipeline_stage stage) noexcept
+{
+    vkCmdResetEvent(underlying_cast<VkCommandBuffer>(command_buffer), underlying_cast<VkEvent>(event), static_cast<VkPipelineStageFlags>(stage));
+}
+
+void set_event(command_buffer& command_buffer, event& event, pipeline_stage stage) noexcept
+{
+    vkCmdSetEvent(underlying_cast<VkCommandBuffer>(command_buffer), underlying_cast<VkEvent>(event), static_cast<VkPipelineStageFlags>(stage));
+}
+
 void bind_descriptor_set(command_buffer& command_buffer, descriptor_set& descriptor_set, pipeline_layout& layout, pipeline_type bind_point) noexcept
 {
     VkDescriptorSet native_descriptor_set{underlying_cast<VkDescriptorSet>(descriptor_set)};
@@ -723,12 +733,63 @@ void bind_descriptor_set(command_buffer& command_buffer, descriptor_set& descrip
 
 void set_viewport(command_buffer& command_buffer, const viewport& viewport, std::uint32_t index) noexcept
 {
-    vkCmdSetViewport(underlying_cast<VkCommandBuffer>(command_buffer), index, 1, reinterpret_cast<const VkViewport*>(&viewport));
+    VkViewport native_viewport{};
+    native_viewport.x = viewport.x;
+    native_viewport.y = viewport.y;
+    native_viewport.width = viewport.width;
+    native_viewport.height = viewport.height;
+    native_viewport.minDepth = viewport.min_depth;
+    native_viewport.maxDepth = viewport.max_depth;
+
+    vkCmdSetViewport(underlying_cast<VkCommandBuffer>(command_buffer), index, 1, &native_viewport);
 }
 
 void set_scissor(command_buffer& command_buffer, const scissor& scissor, std::uint32_t index) noexcept
 {
-    vkCmdSetScissor(underlying_cast<VkCommandBuffer>(command_buffer), index, 1, reinterpret_cast<const VkRect2D*>(&scissor));
+    VkRect2D native_scissor{};
+    native_scissor.offset.x = scissor.x;
+    native_scissor.offset.y = scissor.y;
+    native_scissor.extent.width = scissor.width;
+    native_scissor.extent.height = scissor.height;
+
+    vkCmdSetScissor(underlying_cast<VkCommandBuffer>(command_buffer), index, 1, &native_scissor);
+}
+
+void set_line_width(command_buffer& command_buffer, float width) noexcept
+{
+    vkCmdSetLineWidth(underlying_cast<VkCommandBuffer>(command_buffer), width);
+}
+
+void set_depth_bias(command_buffer& command_buffer, float constant_factor, float clamp, float slope_factor) noexcept
+{
+    vkCmdSetDepthBias(underlying_cast<VkCommandBuffer>(command_buffer), constant_factor, clamp, slope_factor);
+}
+
+void set_blend_constants(command_buffer& command_buffer, float red, float green, float blue, float alpha) noexcept
+{
+    const std::array color{red, green, blue, alpha};
+
+    vkCmdSetBlendConstants(underlying_cast<VkCommandBuffer>(command_buffer), std::data(color));
+}
+
+void set_depth_bounds(command_buffer& command_buffer, float min, float max) noexcept
+{
+    vkCmdSetDepthBounds(underlying_cast<VkCommandBuffer>(command_buffer), min, max);
+}
+
+void set_stencil_compare_mask(command_buffer& command_buffer, stencil_face face, std::uint32_t compare_mask) noexcept
+{
+    vkCmdSetStencilCompareMask(underlying_cast<VkCommandBuffer>(command_buffer), static_cast<VkStencilFaceFlagBits>(face), compare_mask);
+}
+
+void set_stencil_reference(command_buffer& command_buffer, stencil_face face, std::uint32_t reference) noexcept
+{
+    vkCmdSetStencilReference(underlying_cast<VkCommandBuffer>(command_buffer), static_cast<VkStencilFaceFlagBits>(face), reference);
+}
+
+void set_stencil_write_mask(command_buffer& command_buffer, stencil_face face, std::uint32_t write_mask) noexcept
+{
+    vkCmdSetStencilWriteMask(underlying_cast<VkCommandBuffer>(command_buffer), static_cast<VkStencilFaceFlagBits>(face), write_mask);
 }
 
 void draw(command_buffer& command_buffer, std::uint32_t vertex_count, std::uint32_t instance_count, std::uint32_t first_vertex, std::uint32_t first_instance) noexcept

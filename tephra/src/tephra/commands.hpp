@@ -179,6 +179,13 @@ struct texture_blit
     copy_offset destination_offset{};
     copy_extent destination_size{};
 };
+/*
+struct clear_attachment
+{
+    texture_aspect aspect{};
+    std::uint32_t attachment{};
+    clear_value_t value{};
+};*/
 
 struct submit_info
 {
@@ -237,8 +244,24 @@ TEPHRA_API void bind_vertex_buffer(command_buffer& command_buffer, buffer& buffe
 TEPHRA_API void bind_index_buffer(command_buffer& command_buffer, buffer& buffer, std::uint64_t offset, index_type type) noexcept;
 TEPHRA_API void bind_descriptor_set(command_buffer& command_buffer, descriptor_set& descriptor_set, pipeline_layout& layout, pipeline_type bind_point = pipeline_type::graphics) noexcept;
 
+TEPHRA_API void reset_event(command_buffer& command_buffer, event& event, pipeline_stage stage) noexcept;
+TEPHRA_API void set_event(command_buffer& command_buffer, event& event, pipeline_stage stage) noexcept;
+
+/*
+TEPHRA_DEVICE_LEVEL_FUNCTION(vkCmdResolveImage)
+TEPHRA_API void clear_attachments(command_buffer& command_buffer, );
+TEPHRA_API void clear_color_image();
+TEPHRA_API void clear_depth_stencil_image();*/
+
 TEPHRA_API void set_viewport(command_buffer& command_buffer, const viewport& viewport, std::uint32_t index = 0) noexcept;
 TEPHRA_API void set_scissor(command_buffer& command_buffer, const scissor& scissor, std::uint32_t index = 0) noexcept;
+TEPHRA_API void set_line_width(command_buffer& command_buffer, float width) noexcept;
+TEPHRA_API void set_depth_bias(command_buffer& command_buffer, float constant_factor, float clamp, float slope_factor) noexcept;
+TEPHRA_API void set_blend_constants(command_buffer& command_buffer, float red, float green, float blue, float alpha) noexcept;
+TEPHRA_API void set_depth_bounds(command_buffer& command_buffer, float min, float max) noexcept;
+TEPHRA_API void set_stencil_compare_mask(command_buffer& command_buffer, stencil_face face, std::uint32_t compare_mask) noexcept;
+TEPHRA_API void set_stencil_reference(command_buffer& command_buffer, stencil_face face, std::uint32_t reference) noexcept;
+TEPHRA_API void set_stencil_write_mask(command_buffer& command_buffer, stencil_face face, std::uint32_t write_mask) noexcept;
 
 TEPHRA_API void draw(command_buffer& command_buffer, std::uint32_t vertex_count, std::uint32_t instance_count, std::uint32_t first_vertex, std::uint32_t first_instance) noexcept;
 TEPHRA_API void draw_indexed(command_buffer& command_buffer, std::uint32_t index_count, std::uint32_t instance_count, std::uint32_t first_index, std::uint32_t first_vertex, std::uint32_t first_instance) noexcept;
