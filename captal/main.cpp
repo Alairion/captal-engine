@@ -428,6 +428,8 @@ int main()
         //The engine instance. It must be created before most call to captal functions.
         //The first value is your application name. It will be passed to Tephra's instance then to Vulkan's instance.
         //The second value is your application version. It will be passed to Tephra's instance then to Vulkan's instance.
+        //Then give the underlying system, audio and graphics parameters.
+        //If you don't need anything special, there is a constructor without these additionnal parameters
         cpt::engine engine{"captal_test", cpt::version{0, 1, 0}, system, audio, graphics};
 
         //The engine is reachable by its static address. We don't need to keep a reference on it.

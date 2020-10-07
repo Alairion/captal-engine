@@ -45,21 +45,6 @@ static bool need_image_view(texture_usage usage) noexcept
         || static_cast<bool>(usage & texture_usage::input_attachment);
 }
 
-texture_aspect aspect_from_format(texture_format format) noexcept
-{
-    switch(format)
-    {
-        case texture_format::d16_unorm:          [[fallthrough]];
-        case texture_format::x8_d24_unorm_pack:  [[fallthrough]];
-        case texture_format::d32_sfloat:         return texture_aspect::depth;
-        case texture_format::s8_uint:            return texture_aspect::stencil;
-        case texture_format::d16_unorm_s8_uint:  [[fallthrough]];
-        case texture_format::d24_unorm_s8_uint:  [[fallthrough]];
-        case texture_format::d32_sfloat_s8_uint: return texture_aspect::depth | texture_aspect::stencil;
-        default:                                 return texture_aspect::color;
-    }
-}
-
 texture::texture(renderer& renderer, std::uint32_t width, const texture_info& info)
 :m_format{info.format}
 ,m_aspect{aspect_from_format(m_format)}

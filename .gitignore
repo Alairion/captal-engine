@@ -5,3 +5,5 @@ bin
 test
 libs
 include
+captal_debug.cmake
+captal_release.cmake

@@ -100,14 +100,14 @@ target_compile_definitions(captal
 )
 
 target_include_directories(captal
+    SYSTEM PRIVATE
+        ${PROJECT_SOURCE_DIR}/external/chipmunk/include
     INTERFACE
         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src>
         $<INSTALL_INTERFACE:include>
     PUBLIC
         ${PROJECT_SOURCE_DIR}/external/entt/src
         ${PROJECT_SOURCE_DIR}/external/sigslots/include
-    SYSTEM PRIVATE
-        ${PROJECT_SOURCE_DIR}/external/chipmunk/include
 )
 
 target_link_libraries(captal

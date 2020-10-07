@@ -25,6 +25,9 @@ if(CAPTAL_BUILD_FOUNDATION_TESTS)
     target_link_libraries(captal_foundation_test captal_foundation)
 endif()
 
+install(TARGETS captal_foundation
+        INCLUDES DESTINATION ${PROJECT_SOURCE_DIR}/include)
+
 install(DIRECTORY ${PROJECT_SOURCE_DIR}/src/captal_foundation
         DESTINATION ${PROJECT_SOURCE_DIR}/include
         FILES_MATCHING PATTERN *.hpp)

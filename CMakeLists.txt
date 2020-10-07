@@ -65,4 +65,12 @@ if(CAPTAL_BUILD_CAPTAL)
     add_subdirectory(captal)
 endif()
 
-#export(TARGETS captal_foundation apyre tephra swell captal NAMESPACE Captal:: FILE CaptalTargets.cmake)
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    export(TARGETS captal_foundation apyre tephra swell captal
+           NAMESPACE captal::
+           FILE ${PROJECT_SOURCE_DIR}/captal_debug.cmake)
+else()
+    export(TARGETS captal_foundation apyre tephra swell captal
+           NAMESPACE captal::
+           FILE ${PROJECT_SOURCE_DIR}/captal_release.cmake)
+endif()
