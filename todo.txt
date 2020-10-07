@@ -10,10 +10,8 @@ L: Add swap overload for stack_allocator
 Tephra:
 A: Complete commands list (WIP)
 A: Queue family ownership transfer support (tph::texture::transition and tph::buffer::???, and free functions)
-A: Complete physical devices properties structures (WIP)
 A: Texture with array layers et mip levels support
-L: Multiple applications/renderer support
-I: Multiple queue support ?
+I: Multiple applications/renderer support ?
 
 Swell:
 A: Rework mixer (already a bit reworked, but not the definitive one) (WIP)

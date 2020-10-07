@@ -30,17 +30,6 @@ enum class texture_usage : std::uint32_t
     input_attachment = VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT,
 };
 
-enum class component_swizzle : std::uint32_t
-{
-    identity = VK_COMPONENT_SWIZZLE_IDENTITY,
-    zero = VK_COMPONENT_SWIZZLE_ZERO,
-    one = VK_COMPONENT_SWIZZLE_ONE,
-    r = VK_COMPONENT_SWIZZLE_R,
-    g = VK_COMPONENT_SWIZZLE_G,
-    b = VK_COMPONENT_SWIZZLE_B,
-    a = VK_COMPONENT_SWIZZLE_A
-};
-
 struct component_mapping
 {
     component_swizzle r{component_swizzle::identity};
@@ -85,7 +74,20 @@ struct texture_info
     tph::sample_count sample_count{tph::sample_count::msaa_x1};
 };
 
-TEPHRA_API texture_aspect aspect_from_format(texture_format format) noexcept;
+inline texture_aspect aspect_from_format(texture_format format) noexcept
+{
+    switch(format)
+    {
+        case texture_format::d16_unorm:          [[fallthrough]];
+        case texture_format::x8_d24_unorm_pack:  [[fallthrough]];
+        case texture_format::d32_sfloat:         return texture_aspect::depth;
+        case texture_format::s8_uint:            return texture_aspect::stencil;
+        case texture_format::d16_unorm_s8_uint:  [[fallthrough]];
+        case texture_format::d24_unorm_s8_uint:  [[fallthrough]];
+        case texture_format::d32_sfloat_s8_uint: return texture_aspect::depth | texture_aspect::stencil;
+        default:                                 return texture_aspect::color;
+    }
+}
 
 class TEPHRA_API texture
 {

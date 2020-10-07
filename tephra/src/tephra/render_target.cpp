@@ -8,7 +8,6 @@
 #include "vulkan/helper.hpp"
 
 #include "renderer.hpp"
-#include "commands.hpp"
 #include "synchronization.hpp"
 
 using namespace tph::vulkan::functions;

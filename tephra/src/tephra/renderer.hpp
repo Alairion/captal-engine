@@ -27,14 +27,6 @@ enum class renderer_options : std::uint32_t
     standalone_compute_queue = 0x20
 };
 
-enum class queue : std::size_t
-{
-    graphics = 0,
-    present = 1,
-    transfer = 2,
-    compute = 3,
-    count = 4
-};
 
 enum class renderer_layer : std::uint32_t
 {

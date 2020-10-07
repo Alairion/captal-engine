@@ -267,12 +267,6 @@ struct compute_pipeline_info
     pipeline_shader_stage stage;
 };
 
-enum class pipeline_type : std::uint32_t
-{
-    graphics = VK_PIPELINE_BIND_POINT_GRAPHICS,
-    compute = VK_PIPELINE_BIND_POINT_COMPUTE,
-};
-
 class TEPHRA_API pipeline
 {
     template<typename VulkanObject, typename... Args>

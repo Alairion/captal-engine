@@ -12,33 +12,12 @@
 #include "vulkan/memory.hpp"
 
 #include "enumerations.hpp"
-#include "synchronization.hpp"
-#include "surface.hpp"
 #include "texture.hpp"
 
 namespace tph
 {
 
 class renderer;
-
-enum class render_pass_content : std::uint32_t
-{
-    inlined = VK_SUBPASS_CONTENTS_INLINE,
-    recorded = VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS,
-};
-
-enum class attachment_load_op : std::uint32_t
-{
-    load = VK_ATTACHMENT_LOAD_OP_LOAD,
-    clear = VK_ATTACHMENT_LOAD_OP_CLEAR,
-    dont_care = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-};
-
-enum class attachment_store_op : std::uint32_t
-{
-    store = VK_ATTACHMENT_STORE_OP_STORE,
-    dont_care = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-};
 
 struct attachment_description
 {

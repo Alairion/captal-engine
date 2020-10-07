@@ -7,14 +7,12 @@
 
 #include "vulkan/vulkan.hpp"
 
-#include "renderer.hpp"
-#include "render_target.hpp"
 #include "enumerations.hpp"
-#include "pipeline.hpp"
 
 namespace tph
 {
 
+class renderer;
 class render_pass;
 class command_buffer;
 class semaphore;
@@ -24,6 +22,11 @@ class image;
 class texture;
 class descriptor_set;
 class query_pool;
+class event;
+class render_pass;
+class framebuffer;
+class pipeline;
+class pipeline_layout;
 
 class TEPHRA_API command_pool
 {

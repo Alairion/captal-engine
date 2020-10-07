@@ -8,6 +8,15 @@
 namespace tph
 {
 
+enum class queue : std::size_t
+{
+    graphics = 0,
+    present = 1,
+    transfer = 2,
+    compute = 3,
+    count = 4
+};
+
 enum class present_mode : std::uint32_t
 {
     immediate = VK_PRESENT_MODE_IMMEDIATE_KHR,
@@ -186,6 +195,12 @@ enum class pipeline_stage : std::uint32_t
     host = VK_PIPELINE_STAGE_HOST_BIT,
     all_graphics = VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT,
     all_commands = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+};
+
+enum class pipeline_type : std::uint32_t
+{
+    graphics = VK_PIPELINE_BIND_POINT_GRAPHICS,
+    compute = VK_PIPELINE_BIND_POINT_COMPUTE,
 };
 
 enum class resource_access
@@ -427,6 +442,17 @@ enum class format_feature : std::uint32_t
     transfer_destination = VK_FORMAT_FEATURE_TRANSFER_DST_BIT,
 };
 
+enum class component_swizzle : std::uint32_t
+{
+    identity = VK_COMPONENT_SWIZZLE_IDENTITY,
+    zero = VK_COMPONENT_SWIZZLE_ZERO,
+    one = VK_COMPONENT_SWIZZLE_ONE,
+    r = VK_COMPONENT_SWIZZLE_R,
+    g = VK_COMPONENT_SWIZZLE_G,
+    b = VK_COMPONENT_SWIZZLE_B,
+    a = VK_COMPONENT_SWIZZLE_A
+};
+
 enum class dependency_flags : std::uint32_t
 {
     none = 0,
@@ -445,6 +471,25 @@ enum class index_type : std::uint32_t
 {
     uint16 = VK_INDEX_TYPE_UINT16,
     uint32 = VK_INDEX_TYPE_UINT32,
+};
+
+enum class render_pass_content : std::uint32_t
+{
+    inlined = VK_SUBPASS_CONTENTS_INLINE,
+    recorded = VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS,
+};
+
+enum class attachment_load_op : std::uint32_t
+{
+    load = VK_ATTACHMENT_LOAD_OP_LOAD,
+    clear = VK_ATTACHMENT_LOAD_OP_CLEAR,
+    dont_care = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+};
+
+enum class attachment_store_op : std::uint32_t
+{
+    store = VK_ATTACHMENT_STORE_OP_STORE,
+    dont_care = VK_ATTACHMENT_STORE_OP_DONT_CARE,
 };
 
 enum class query_type : std::uint32_t
