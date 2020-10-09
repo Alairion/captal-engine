@@ -53,6 +53,36 @@ public:
         return m_framebuffer;
     }
 
+    texture& attachement(std::size_t index) noexcept
+    {
+        return std::visit([this](auto&& attachement) -> texture&
+        {
+            if constexpr(std::is_same_v<std::decay_t<decltype(attachement)>, current_target_t>)
+            {
+                return *this;
+            }
+            else
+            {
+                return *attachement;
+            }
+        }, m_attachments[index]);
+    }
+
+    const texture& attachement(std::size_t index) const noexcept
+    {
+        return std::visit([this](auto&& attachement) -> const texture&
+        {
+            if constexpr(std::is_same_v<std::decay_t<decltype(attachement)>, current_target_t>)
+            {
+                return *this;
+            }
+            else
+            {
+                return *attachement;
+            }
+        }, m_attachments[index]);
+    }
+
     std::span<const render_texture_attachment> attachements() const noexcept
     {
         return m_attachments;
