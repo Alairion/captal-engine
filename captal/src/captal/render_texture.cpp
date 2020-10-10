@@ -269,6 +269,7 @@ void render_texture::present()
     tph::submit(engine::instance().renderer(), submit_info, data.fence);
     lock.unlock();
 
+    data.submited = true;
     data.begin = false;
 }
 
@@ -312,6 +313,9 @@ render_texture::frame_data& render_texture::add_frame_data()
 
 void render_texture::reset(frame_data& data)
 {
+    data.begin = false;
+    data.submited = false;
+
     if(data.timed)
     {
         time_results(data);
@@ -330,18 +334,25 @@ void render_texture::time_results(frame_data& data)
     const auto period{static_cast<double>(cpt::engine::instance().graphics_device().limits().timestamp_period)};
     const frame_time_t time{static_cast<std::uint64_t>((results[1] - results[0]) * period)};
 
+    data.timed = false;
+
     data.time_signal(time);
     data.time_signal.disconnect_all();
-    data.timed = false;
 }
 
 void render_texture::wait_all()
 {
     for(frame_data& data : m_frames_data)
     {
-        if(!data.begin)
+        if(data.submited)
         {
             data.fence.wait();
+
+            if(data.timed)
+            {
+                time_results(data);
+            }
+
             data.signal();
             data.signal.disconnect_all();
         }
