@@ -5,6 +5,7 @@
 
 #include <tephra/commands.hpp>
 #include <tephra/synchronization.hpp>
+#include <tephra/query.hpp>
 
 #include "texture.hpp"
 #include "render_target.hpp"
@@ -40,8 +41,9 @@ public:
     render_texture(render_texture&&) = delete;
     render_texture& operator=(render_texture&&) = delete;
 
-    std::pair<tph::command_buffer&, frame_presented_signal&> begin_render();
-    void present();
+    frame_time_signal& register_frame_time() override;
+    std::pair<tph::command_buffer&, frame_presented_signal&> begin_render() override;
+    void present() override;
 
     tph::framebuffer& framebuffer() noexcept
     {
@@ -94,12 +96,18 @@ private:
         tph::command_pool pool{};
         tph::command_buffer buffer{};
         tph::fence fence{};
+        tph::query_pool query_pool{};
         frame_presented_signal signal{};
-        bool begin{};
+        frame_time_signal time_signal{};
+        bool begin{}; //true if register_frame_time or begin_render has been called, false after present
+        bool timed{}; //true if register_frame_time has been called, false after frame data reset
     };
 
 private:
+    frame_data& next_frame();
     frame_data& add_frame_data();
+    void reset(frame_data& data);
+    void time_results(frame_data& data);
     void wait_all();
 
 private:

@@ -11,7 +11,10 @@
 namespace cpt
 {
 
+using frame_time_t = std::chrono::duration<std::uint64_t, std::nano>;
+
 using frame_presented_signal = cpt::signal<>;
+using frame_time_signal = cpt::signal<frame_time_t>;
 
 class CAPTAL_API render_target
 {
@@ -25,6 +28,7 @@ public:
     render_target(render_target&&) noexcept = default;
     render_target& operator=(render_target&&) noexcept = default;
 
+    virtual frame_time_signal& register_frame_time() = 0;
     virtual std::pair<tph::command_buffer&, frame_presented_signal&> begin_render() = 0;
     virtual void present() = 0;
 

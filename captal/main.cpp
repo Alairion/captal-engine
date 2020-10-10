@@ -322,7 +322,7 @@ static void run()
     //    MSAAx4 and no MSAA (MSAAx1), are always available (cf. Vulkan Specification)
     //-The texture format is given to enable depth buffering.
     //    Depth format "d32_sfloat" is widely available, so it is hardcoded. But in real appliction should check for it's availability.
-    constexpr cpt::video_mode video_mode{640, 480, 2, tph::present_mode::fifo, tph::sample_count::msaa_x4, tph::texture_format::d32_sfloat};
+    constexpr cpt::video_mode video_mode{640, 480, 2, tph::present_mode::mailbox, tph::sample_count::msaa_x4, tph::texture_format::d32_sfloat};
 
     //Create the window
     cpt::render_window_ptr window{cpt::engine::instance().make_window("Captal test", video_mode, apr::window_options::resizable)};

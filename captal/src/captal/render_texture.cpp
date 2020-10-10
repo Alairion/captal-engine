@@ -186,6 +186,35 @@ render_texture::~render_texture()
     wait_all();
 }
 
+frame_time_signal& render_texture::register_frame_time()
+{
+    for(auto&& data : m_frames_data)
+    {
+        if(data.begin)
+        {
+            if(data.timed)
+            {
+                return data.time_signal;
+            }
+            else
+            {
+                throw std::runtime_error{"cpt::render_texture::register_frame_time first call is done after a call of cpt::render_texture::begin_render"};
+            }
+        }
+    }
+
+    auto& data{next_frame()};
+
+    data.timed = true;
+
+    tph::cmd::reset_query_pool(data.buffer, data.query_pool, 0, 2);
+    tph::cmd::write_timestamp(data.buffer, data.query_pool, 0, tph::pipeline_stage::top_of_pipe);
+
+    tph::cmd::begin_render_pass(data.buffer, get_render_pass(), m_framebuffer);
+
+    return data.time_signal;
+}
+
 std::pair<tph::command_buffer&, frame_presented_signal&> render_texture::begin_render()
 {
     for(auto&& data : m_frames_data)
@@ -196,27 +225,8 @@ std::pair<tph::command_buffer&, frame_presented_signal&> render_texture::begin_r
         }
     }
 
-    const auto find_data = [this]() -> frame_data&
-    {
-        for(auto& data : m_frames_data)
-        {
-            if(data.fence.try_wait())
-            {
-                return data;
-            }
-        }
+    auto& data{next_frame()};
 
-        return add_frame_data();
-    };
-
-    auto& data{find_data()};
-
-    data.signal();
-    data.signal.disconnect_all();
-    data.begin = true;
-    data.pool.reset();
-
-    data.buffer = tph::cmd::begin(data.pool, tph::command_buffer_level::primary, tph::command_buffer_flags::one_time_submit);
     tph::cmd::begin_render_pass(data.buffer, get_render_pass(), m_framebuffer);
 
     return {data.buffer, data.signal};
@@ -239,10 +249,16 @@ void render_texture::present()
 
     auto& data{find_data()};
 
-    engine::instance().flush_transfers();
-
     tph::cmd::end_render_pass(data.buffer);
+
+    if(data.timed)
+    {
+        tph::cmd::write_timestamp(data.buffer, data.query_pool, 1, tph::pipeline_stage::bottom_of_pipe);
+    }
+
     tph::cmd::end(data.buffer);
+
+    engine::instance().flush_transfers();
 
     data.fence.reset();
 
@@ -256,11 +272,67 @@ void render_texture::present()
     data.begin = false;
 }
 
+render_texture::frame_data& render_texture::next_frame()
+{
+    const auto find_data = [this]() -> frame_data&
+    {
+        for(auto& data : m_frames_data)
+        {
+            if(data.fence.try_wait())
+            {
+                reset(data);
+
+                return data;
+            }
+        }
+
+        return add_frame_data();
+    };
+
+    auto& data{find_data()};
+
+    data.buffer = tph::cmd::begin(data.pool, tph::command_buffer_level::primary, tph::command_buffer_flags::one_time_submit);
+    data.begin = true;
+
+    return data;
+}
+
 render_texture::frame_data& render_texture::add_frame_data()
 {
-    frame_data data{tph::command_pool{engine::instance().renderer()}, tph::command_buffer{}, tph::fence{engine::instance().renderer(), true}};
+    frame_data data
+    {
+        tph::command_pool{engine::instance().renderer()},
+        tph::command_buffer{},
+        tph::fence{engine::instance().renderer(), true},
+        tph::query_pool{engine::instance().renderer(), 2, tph::query_type::timestamp}
+    };
 
     return m_frames_data.emplace_back(std::move(data));
+}
+
+void render_texture::reset(frame_data& data)
+{
+    if(data.timed)
+    {
+        time_results(data);
+    }
+
+    data.signal();
+    data.signal.disconnect_all();
+    data.pool.reset();
+}
+
+void render_texture::time_results(frame_data& data)
+{
+    std::array<std::uint64_t, 2> results;
+    data.query_pool.results(0, 2, std::size(results) * sizeof(std::uint64_t), std::data(results), sizeof(std::uint64_t), tph::query_results::uint64 | tph::query_results::wait);
+
+    const auto period{static_cast<double>(cpt::engine::instance().graphics_device().limits().timestamp_period)};
+    const frame_time_t time{static_cast<std::uint64_t>((results[1] - results[0]) * period)};
+
+    data.time_signal(time);
+    data.time_signal.disconnect_all();
+    data.timed = false;
 }
 
 void render_texture::wait_all()
