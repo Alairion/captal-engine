@@ -438,10 +438,13 @@ void engine::wait_all()
         if(!m_transfer_began)
         {
             data.fence.wait();
+
             data.signal();
             data.signal.disconnect_all();
         }
     }
+
+    m_windows.clear();
 }
 
 }
