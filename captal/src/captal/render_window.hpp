@@ -10,6 +10,7 @@
 #include <tephra/swapchain.hpp>
 #include <tephra/render_target.hpp>
 #include <tephra/commands.hpp>
+#include <tephra/query.hpp>
 
 #include "render_target.hpp"
 #include "color.hpp"
@@ -82,8 +83,9 @@ public:
     void update();
     void close();
 
-    std::pair<tph::command_buffer&, frame_presented_signal&> begin_render();
-    void present();
+    frame_time_signal& register_frame_time() override;
+    std::pair<tph::command_buffer&, frame_presented_signal&> begin_render() override;
+    void present() override;
 
     void set_clear_color(const color& color) noexcept
     {
@@ -175,14 +177,22 @@ private:
         tph::semaphore image_available{};
         tph::semaphore image_presentable{};
         tph::fence fence{};
+        tph::query_pool query_pool{};
         frame_presented_signal signal{};
-        bool begin{};
+        frame_time_signal time_signal{};
+        bool begin{}; //true if register_frame_time or begin_render has been called, false after present
+        bool timed{}; //true if register_frame_time has been called, false after frame data reset
+        bool submited{}; //true after present, false after frame data reset
     };
 
 private:
     void setup_frame_data();
     void setup_signals();
     void update_clear_values(tph::framebuffer& framebuffer);
+
+    void begin_render_impl(frame_data& data);
+    void reset(frame_data& data);
+    void time_results(frame_data& data);
     void wait_all();
     void recreate(const tph::surface_capabilities& capabilities);
 

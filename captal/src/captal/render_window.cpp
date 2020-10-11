@@ -328,6 +328,34 @@ void render_window::close()
      disable_rendering();
 }
 
+frame_time_signal& render_window::register_frame_time()
+{
+    frame_data& data{m_frames_data[m_frame_index]};
+
+    if(data.begin)
+    {
+        if(data.timed)
+        {
+            return data.time_signal;
+        }
+        else
+        {
+            throw std::runtime_error{"cpt::render_window::register_frame_time first call is done after a call of cpt::render_window::begin_render"};
+        }
+    }
+
+    reset(data);
+
+    data.timed = true;
+
+    tph::cmd::reset_query_pool(data.buffer, data.query_pool, 0, 2);
+    tph::cmd::write_timestamp(data.buffer, data.query_pool, 0, tph::pipeline_stage::top_of_pipe);
+
+    begin_render_impl(data);
+
+    return data.time_signal;
+}
+
 std::pair<tph::command_buffer&, frame_presented_signal&> render_window::begin_render()
 {
     frame_data& data{m_frames_data[m_frame_index]};
@@ -337,55 +365,28 @@ std::pair<tph::command_buffer&, frame_presented_signal&> render_window::begin_re
         return {data.buffer, data.signal};
     }
 
-    data.fence.wait();
-    data.signal();
-    data.signal.disconnect_all();
-    data.begin = true;
-    data.pool.reset();
-    data.buffer = tph::cmd::begin(data.pool, tph::command_buffer_level::primary, tph::command_buffer_flags::one_time_submit);
-    update_clear_values(data.framebuffer);
-
-    tph::cmd::begin_render_pass(data.buffer, get_render_pass(), data.framebuffer);
-
-    auto status{m_swapchain.acquire(data.image_available, tph::nullref)};
-    while(status == tph::swapchain_status::out_of_date)
-    {
-        const auto capabilities{tph::surface::capabilities(engine::instance().renderer())};
-        if(capabilities.current_width == 0 && capabilities.current_height == 0)
-        {
-            disable_rendering();
-            return {data.buffer, data.signal};
-        }
-
-        wait_all();
-        recreate(capabilities);
-
-        data.pool.reset();
-        data.buffer = tph::cmd::begin(data.pool, tph::command_buffer_level::primary, tph::command_buffer_flags::one_time_submit);
-
-        tph::cmd::begin_render_pass(data.buffer, get_render_pass(), data.framebuffer);
-
-        status = m_swapchain.acquire(data.image_available, tph::nullref);
-    }
-
-    if(status == tph::swapchain_status::surface_lost) //may happens on window closure
-    {
-        disable_rendering();
-    }
+    reset(data);
+    begin_render_impl(data);
 
     return {data.buffer, data.signal};
 }
 
 void render_window::present()
 {
-    engine::instance().flush_transfers();
-
     frame_data& data{m_frames_data[m_frame_index]};
 
     m_frame_index = (m_frame_index + 1) % m_swapchain.info().image_count;
 
     tph::cmd::end_render_pass(data.buffer);
+
+    if(data.timed)
+    {
+        tph::cmd::write_timestamp(data.buffer, data.query_pool, 1, tph::pipeline_stage::bottom_of_pipe);
+    }
+
     tph::cmd::end(data.buffer);
+
+    engine::instance().flush_transfers();
 
     tph::submit_info submit_info{};
     submit_info.wait_semaphores.emplace_back(data.image_available);
@@ -410,7 +411,6 @@ void render_window::present()
             return;
         }
 
-        wait_all();
         recreate(capabilities);
     }
 }
@@ -427,6 +427,7 @@ void render_window::setup_frame_data()
         data.image_available = tph::semaphore{engine::instance().renderer()};
         data.image_presentable = tph::semaphore{engine::instance().renderer()};
         data.fence = tph::fence{engine::instance().renderer(), true};
+        data.query_pool = tph::query_pool{engine::instance().renderer(), 2, tph::query_type::timestamp};
 
         m_frames_data.emplace_back(std::move(data));
     }
@@ -467,6 +468,71 @@ void render_window::update_clear_values(tph::framebuffer& framebuffer)
     }
 }
 
+void render_window::begin_render_impl(frame_data& data)
+{
+    update_clear_values(data.framebuffer);
+    tph::cmd::begin_render_pass(data.buffer, get_render_pass(), data.framebuffer);
+
+    auto status{m_swapchain.acquire(data.image_available, tph::nullref)};
+
+    //We continue the normal path even if the swapchain is suboptimal
+    //The present function will recreate it after presentation (if possible)
+    while(status == tph::swapchain_status::out_of_date)
+    {
+        const auto capabilities{tph::surface::capabilities(engine::instance().renderer())};
+        if(capabilities.current_width == 0 && capabilities.current_height == 0)
+        {
+            disable_rendering();
+            return;
+        }
+
+        recreate(capabilities);
+
+        data.pool.reset();
+        data.buffer = tph::cmd::begin(data.pool, tph::command_buffer_level::primary, tph::command_buffer_flags::one_time_submit);
+
+        tph::cmd::begin_render_pass(data.buffer, get_render_pass(), data.framebuffer);
+
+        status = m_swapchain.acquire(data.image_available, tph::nullref);
+    }
+
+    if(status == tph::swapchain_status::surface_lost) //may happens on window closure
+    {
+        disable_rendering();
+    }
+}
+
+void render_window::time_results(frame_data& data)
+{
+    std::array<std::uint64_t, 2> results;
+    data.query_pool.results(0, 2, std::size(results) * sizeof(std::uint64_t), std::data(results), sizeof(std::uint64_t), tph::query_results::uint64 | tph::query_results::wait);
+
+    const auto period{static_cast<double>(cpt::engine::instance().graphics_device().limits().timestamp_period)};
+    const frame_time_t time{static_cast<std::uint64_t>((results[1] - results[0]) * period)};
+
+    data.timed = false;
+
+    data.time_signal(time);
+    data.time_signal.disconnect_all();
+}
+
+void render_window::reset(frame_data& data)
+{
+    data.fence.wait();
+
+    if(data.timed)
+    {
+        time_results(data);
+    }
+
+    data.signal();
+    data.signal.disconnect_all();
+    data.pool.reset();
+
+    data.buffer = tph::cmd::begin(data.pool, tph::command_buffer_level::primary, tph::command_buffer_flags::one_time_submit);
+    data.begin = true;
+}
+
 void render_window::wait_all()
 {
     for(frame_data& data : m_frames_data)
@@ -474,6 +540,12 @@ void render_window::wait_all()
         if(!data.begin)
         {
             data.fence.wait();
+
+            if(data.timed)
+            {
+                time_results(data);
+            }
+
             data.signal();
             data.signal.disconnect_all();
         }
@@ -484,6 +556,8 @@ void render_window::wait_all()
 
 void render_window::recreate(const tph::surface_capabilities& capabilities)
 {
+    wait_all();
+
     m_frame_index = 0;
     m_video_mode.width = capabilities.current_width;
     m_video_mode.height = capabilities.current_height;
@@ -491,12 +565,20 @@ void render_window::recreate(const tph::surface_capabilities& capabilities)
     m_multisampling_texture = make_multisampling_texture(m_video_mode, m_surface_format);
     m_depth_texture = make_depth_texture(m_video_mode);
 
-    for(std::uint32_t i{}; i < m_swapchain.info().image_count; ++i)
+    if(std::size(m_frames_data) != m_swapchain.info().image_count)
     {
-        const auto attachments{make_attachments(m_video_mode, m_swapchain.textures()[i], m_multisampling_texture, m_depth_texture)};
+        m_frames_data.clear();
+        setup_frame_data();
+    }
+    else
+    {
+        for(std::uint32_t i{}; i < m_swapchain.info().image_count; ++i)
+        {
+            const auto attachments{make_attachments(m_video_mode, m_swapchain.textures()[i], m_multisampling_texture, m_depth_texture)};
 
-        frame_data& data{m_frames_data[i]};
-        data.framebuffer = tph::framebuffer{engine::instance().renderer(), get_render_pass(), attachments, m_swapchain.info().width, m_swapchain.info().height, 1};
+            frame_data& data{m_frames_data[i]};
+            data.framebuffer = tph::framebuffer{engine::instance().renderer(), get_render_pass(), attachments, m_swapchain.info().width, m_swapchain.info().height, 1};
+        }
     }
 }
 

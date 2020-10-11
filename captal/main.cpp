@@ -1,4 +1,5 @@
 #include <iostream>
+#include <iomanip>
 
 #include <captal/engine.hpp>
 #include <captal/texture.hpp>
@@ -167,7 +168,7 @@ static entt::entity fill_world(entt::registry& world, cpt::physical_world& physi
     return add_player(world, physical_world);
 }
 
-static void add_logic(const cpt::render_window_ptr& window, entt::registry& world, cpt::physical_world& physical_world, entt::entity camera)
+static void add_logic(const cpt::render_window_ptr& window, entt::registry& world, cpt::physical_world& physical_world, entt::entity camera, const std::shared_ptr<cpt::frame_time_t>& time)
 {
     cpt::text_drawer drawer{cpt::font{sansation_regular_font_data, 16}};
 
@@ -176,7 +177,7 @@ static void add_logic(const cpt::render_window_ptr& window, entt::registry& worl
     world.emplace<cpt::components::drawable>(text, drawer.draw("Text", cpt::colors::black));
 
     //Display current FPS in window title, and GPU memory usage (only memory allocated using Tephra's renderer's allocator)
-    cpt::engine::instance().frame_per_second_update_signal().connect([&world, text, drawer = std::move(drawer)](std::uint32_t frame_per_second) mutable
+    cpt::engine::instance().frame_per_second_update_signal().connect([&world, text, drawer = std::move(drawer), time](std::uint32_t frame_per_second) mutable
     {
         const auto format_data = [](std::size_t amount)
         {
@@ -207,7 +208,8 @@ static void add_logic(const cpt::render_window_ptr& window, entt::registry& worl
         info += "Device local (" + std::to_string(memory_heaps.device_local) + "): " + format_data(memory_used.device_local) + " / " + format_data(memory_alloc.device_local) + "\n";
         info += "Device shared (" + std::to_string(memory_heaps.device_shared) + "): " + format_data(memory_used.device_shared) + " / " + format_data(memory_alloc.device_shared) + "\n";
         info += "Host shared (" + std::to_string(memory_heaps.host_shared) + "): " + format_data(memory_used.host_shared) + " / " + format_data(memory_alloc.host_shared) + "\n";
-        info += std::to_string(frame_per_second) + " FPS";
+        info += std::to_string(frame_per_second) + " FPS\n";
+        info += "Frame time: " + std::to_string(std::chrono::duration<double, std::milli>{*time}.count()) + "ms";
 
         cpt::engine::instance().renderer().allocator().clean_dedicated();
 
@@ -358,8 +360,10 @@ static void run()
     world.emplace<cpt::components::node>(camera, cpt::vec3f{320.0f, 240.0f, 1.0f}, cpt::vec3f{320.0f, 240.0f, 0.0f});
     world.emplace<cpt::components::camera>(camera, window, technique_info)->fit_to(window);
 
+    auto time_ptr{std::make_shared<cpt::frame_time_t>()};
+
     //See above.
-    add_logic(window, world, physical_world, camera);
+    add_logic(window, world, physical_world, camera, time_ptr);
 
     //The game engine will return true if there is at least one window opened.
     //Run function will update all windows created within the engine and process their events.
@@ -379,6 +383,13 @@ static void run()
         //Window rendering may be disabled when it is closed or minimized.
         if(window->is_rendering_enable())
         {
+            //We register the frame time
+            auto& signal{window->register_frame_time()};
+            signal.connect([time_ptr](cpt::frame_time_t time)
+            {
+                *time_ptr = time;
+            });
+
             //Render system will update all views within the world,
             //and draw all drawable items to all render targets associated to the views.
             cpt::systems::render(world);
