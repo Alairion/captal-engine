@@ -215,13 +215,13 @@ frame_time_signal& render_texture::register_frame_time()
     return data.time_signal;
 }
 
-std::pair<tph::command_buffer&, frame_presented_signal&> render_texture::begin_render()
+frame_render_info render_texture::begin_render()
 {
     for(auto&& data : m_frames_data)
     {
         if(data.begin)
         {
-            return {data.buffer, data.signal};
+            return frame_render_info{data.buffer, data.signal, data.keeper};
         }
     }
 
@@ -229,7 +229,7 @@ std::pair<tph::command_buffer&, frame_presented_signal&> render_texture::begin_r
 
     tph::cmd::begin_render_pass(data.buffer, get_render_pass(), m_framebuffer);
 
-    return {data.buffer, data.signal};
+    return frame_render_info{data.buffer, data.signal, data.keeper};
 }
 
 void render_texture::present()
@@ -257,6 +257,7 @@ void render_texture::present()
     }
 
     tph::cmd::end(data.buffer);
+    data.begin = false;
 
     engine::instance().flush_transfers();
 
@@ -270,7 +271,6 @@ void render_texture::present()
     lock.unlock();
 
     data.submited = true;
-    data.begin = false;
 }
 
 render_texture::frame_data& render_texture::next_frame()
@@ -323,6 +323,7 @@ void render_texture::reset(frame_data& data)
 
     data.signal();
     data.signal.disconnect_all();
+    data.keeper.clear();
     data.pool.reset();
 }
 

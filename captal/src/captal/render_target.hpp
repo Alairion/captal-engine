@@ -47,9 +47,11 @@ using frame_time_t = std::chrono::duration<std::uint64_t, std::nano>;
 using frame_presented_signal = cpt::signal<>;
 using frame_time_signal = cpt::signal<frame_time_t>;
 
-struct render_info
+struct frame_render_info
 {
-
+    tph::command_buffer& buffer;
+    frame_presented_signal& signal;
+    frame_resource_keeper& keeper;
 };
 
 class CAPTAL_API render_target
@@ -65,7 +67,7 @@ public:
     render_target& operator=(render_target&&) noexcept = default;
 
     virtual frame_time_signal& register_frame_time() = 0;
-    virtual std::pair<tph::command_buffer&, frame_presented_signal&> begin_render() = 0;
+    virtual frame_render_info begin_render() = 0;
     virtual void present() = 0;
 
     tph::render_pass& get_render_pass() noexcept

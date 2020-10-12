@@ -49,18 +49,26 @@ void render(entt::registry& world)
     {
         if(camera && camera->target().is_rendering_enable())
         {
-            auto&& [buffer, signal] = camera->target().begin_render();
+            auto&& [buffer, signal, keeper] = camera->target().begin_render();
 
             camera->bind(buffer);
             camera->upload();
 
-            std::vector<asynchronous_resource_ptr> to_keep_alive{};
-            to_keep_alive.reserve(world.size<Drawable>() * 2 + 2);
+            const std::size_t camera_binding_count{std::size(camera->bindings()) + 1}; //one more for view/projection matrices uniform
+            const std::size_t camera_resource_count{camera_binding_count + 1}; //one more for the render technique
+            const std::size_t drawable_binding_count{std::size(camera->render_technique()->bindings()) - camera_binding_count};
+            const std::size_t drawable_resource_count{world.size<Drawable>() * (drawable_binding_count + 2)};
 
-            to_keep_alive.emplace_back(camera->resource());
-            to_keep_alive.emplace_back(camera->render_technique());
+            keeper.reserve(camera_resource_count + drawable_resource_count);
 
-            world.view<Drawable>().each([&to_keep_alive, &camera, &buffer = buffer](Drawable& drawable)
+            keeper.keep(camera->render_technique());
+            keeper.keep(camera->resource());
+            for(const auto& [index, binding] : camera->bindings())
+            {
+                keeper.keep(get_binding_resource(binding));
+            }
+
+            world.view<Drawable>().each([&keeper = keeper, &camera, &buffer = buffer](Drawable& drawable)
             {
                 if(drawable)
                 {
@@ -72,15 +80,14 @@ void render(entt::registry& world)
                         renderable.upload();
                         renderable.draw(buffer);
 
-                        to_keep_alive.emplace_back(renderable.set());
-                        to_keep_alive.emplace_back(renderable.resource());
+                        keeper.keep(renderable.set());
+                        keeper.keep(renderable.resource());
+                        for(const auto& [index, binding] : renderable.bindings())
+                        {
+                            keeper.keep(get_binding_resource(binding));
+                        }
                     }
                 }
-            });
-
-            signal.connect([to_keep_alive = std::move(to_keep_alive)]()
-            {
-
             });
         }
     };

@@ -42,7 +42,7 @@ public:
     render_texture& operator=(render_texture&&) = delete;
 
     frame_time_signal& register_frame_time() override;
-    std::pair<tph::command_buffer&, frame_presented_signal&> begin_render() override;
+    frame_render_info begin_render() override;
     void present() override;
 
     tph::framebuffer& framebuffer() noexcept
@@ -97,6 +97,7 @@ private:
         tph::command_buffer buffer{};
         tph::fence fence{};
         tph::query_pool query_pool{};
+        frame_resource_keeper keeper{};
         frame_presented_signal signal{};
         frame_time_signal time_signal{};
         bool begin{}; //true if register_frame_time or begin_render has been called, false after present

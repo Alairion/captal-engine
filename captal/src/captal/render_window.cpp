@@ -362,19 +362,19 @@ frame_time_signal& render_window::register_frame_time()
     return data.time_signal;
 }
 
-std::pair<tph::command_buffer&, frame_presented_signal&> render_window::begin_render()
+frame_render_info render_window::begin_render()
 {
     frame_data& data{m_frames_data[m_frame_index]};
 
     if(data.begin)
     {
-        return {data.buffer, data.signal};
+        return frame_render_info{data.buffer, data.signal, data.keeper};
     }
 
     reset(data);
     begin_render_impl(data);
 
-    return {data.buffer, data.signal};
+    return frame_render_info{data.buffer, data.signal, data.keeper};
 }
 
 void render_window::present()
@@ -535,6 +535,7 @@ void render_window::reset(frame_data& data)
 
     data.signal();
     data.signal.disconnect_all();
+    data.keeper.clear();
     data.pool.reset();
 
     data.buffer = tph::cmd::begin(data.pool, tph::command_buffer_level::primary, tph::command_buffer_flags::one_time_submit);
@@ -556,6 +557,7 @@ void render_window::wait_all()
 
             data.signal();
             data.signal.disconnect_all();
+            data.keeper.clear();
         }
 
         data.begin = false;
