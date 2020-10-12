@@ -62,7 +62,7 @@ using descriptor_set_ptr = std::shared_ptr<descriptor_set>;
 class CAPTAL_API descriptor_pool
 {
 public:
-    static constexpr std::size_t pool_size{16};
+    static constexpr std::size_t pool_size{32};
 
 public:
     descriptor_pool() = default;

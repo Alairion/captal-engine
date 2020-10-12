@@ -20,29 +20,6 @@ namespace cpt
 
 class CAPTAL_API renderable
 {
-    struct renderable_impl final : public asynchronous_resource
-    {
-        renderable_impl() = default;
-
-        renderable_impl(uniform_buffer&& ubo)
-        :buffer{std::move(ubo)}
-        {
-
-        }
-
-        ~renderable_impl() = default;
-        renderable_impl(const renderable_impl&) = delete;
-        renderable_impl& operator=(const renderable_impl&) = delete;
-        renderable_impl(renderable_impl&& other) noexcept = default;
-        renderable_impl& operator=(renderable_impl&& other) noexcept = default;
-
-        uniform_buffer buffer{};
-        texture_ptr texture{};
-        std::unordered_map<std::uint32_t, cpt::binding> bindings{};
-        std::unordered_map<const asynchronous_resource*, descriptor_set_ptr> descriptor_sets{};
-        descriptor_set_ptr current_set{};
-    };
-
 public:
     struct uniform_data
     {
@@ -163,63 +140,67 @@ public:
     {
         assert(m_index_count > 0 && "cpt::renderable::get_indices called on renderable with no index buffer");
 
-        return std::span{&m_impl->buffer.get<std::uint32_t>(1), static_cast<std::size_t>(m_index_count)};
+        return std::span{&m_buffer->get<std::uint32_t>(1), static_cast<std::size_t>(m_index_count)};
     }
 
     std::span<const std::uint32_t> get_indices() const noexcept
     {
         assert(m_index_count > 0 && "cpt::renderable::get_indices called on renderable with no index buffer");
 
-        return std::span{&m_impl->buffer.get<std::uint32_t>(1), static_cast<std::size_t>(m_index_count)};
+        return std::span{&m_buffer->get<std::uint32_t>(1), static_cast<std::size_t>(m_index_count)};
     }
 
     std::span<vertex> get_vertices() noexcept
     {
-        return std::span{&m_impl->buffer.get<vertex>(m_index_count > 0 ? 2 : 1), static_cast<std::size_t>(m_vertex_count)};
+        return std::span{&m_buffer->get<vertex>(m_index_count > 0 ? 2 : 1), static_cast<std::size_t>(m_vertex_count)};
     }
 
     std::span<const vertex> get_vertices() const noexcept
     {
-        return std::span{&m_impl->buffer.get<vertex>(m_index_count > 0 ? 2 : 1), static_cast<std::size_t>(m_vertex_count)};
+        return std::span{&m_buffer->get<vertex>(m_index_count > 0 ? 2 : 1), static_cast<std::size_t>(m_vertex_count)};
     }
 
     const descriptor_set_ptr& set() const noexcept
     {
-        return m_impl->current_set;
+        return m_current_set;
     }
 
     const descriptor_set_ptr& set(const cpt::view& view) const noexcept
     {
-        return m_impl->descriptor_sets.at(view.resource().get());
+        return m_descriptor_sets.at(view.resource().get());
     }
 
     const texture_ptr& texture() const noexcept
     {
-        return m_impl->texture;
+        return m_texture;
     }
 
     const cpt::binding& binding(std::uint32_t index) const
     {
-        return m_impl->bindings.at(index);
+        return m_bindings.at(index);
     }
 
     bool has_binding(std::uint32_t index) const
     {
-        return m_impl->bindings.find(index) != std::end(m_impl->bindings);
+        return m_bindings.find(index) != std::end(m_bindings);
     }
 
     const std::unordered_map<std::uint32_t, cpt::binding>& bindings() const noexcept
     {
-        return m_impl->bindings;
+        return m_bindings;
     }
 
     asynchronous_resource_ptr resource() const noexcept
     {
-        return m_impl;
+        return m_buffer;
     }
 
 private:
-    std::shared_ptr<renderable_impl> m_impl{};
+    uniform_buffer_ptr m_buffer{};
+    texture_ptr m_texture{};
+    std::unordered_map<std::uint32_t, cpt::binding> m_bindings{};
+    std::unordered_map<const void*, descriptor_set_ptr> m_descriptor_sets{};
+    descriptor_set_ptr m_current_set{};
 
     std::uint32_t m_index_count{};
     std::uint32_t m_vertex_count{};

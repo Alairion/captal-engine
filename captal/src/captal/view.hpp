@@ -25,26 +25,7 @@ enum class view_type
 
 class CAPTAL_API view
 {
-    struct view_impl final : public asynchronous_resource
-    {
-        view_impl() = default;
-
-        view_impl(uniform_buffer&& ubo)
-        :buffer{std::move(ubo)}
-        {
-
-        }
-
-        ~view_impl() = default;
-        view_impl(const view_impl&) = delete;
-        view_impl& operator=(const view_impl&) = delete;
-        view_impl(view_impl&& other) noexcept = default;
-        view_impl& operator=(view_impl&& other) noexcept = default;
-
-        uniform_buffer buffer{};
-        std::unordered_map<std::uint32_t, cpt::binding> bindings{};
-        render_technique_ptr render_technique{};
-    };
+    friend class renderable;
 
 public:
     struct uniform_data
@@ -223,7 +204,7 @@ public:
 
     const render_technique_ptr& render_technique() const noexcept
     {
-        return m_impl->render_technique;
+        return m_render_technique;
     }
 
     render_target& target() const noexcept
@@ -233,18 +214,18 @@ public:
 
     tph::buffer& get_buffer() noexcept
     {
-        return m_impl->buffer.get_buffer();
+        return m_buffer->get_buffer();
     }
 
     const tph::buffer& get_buffer() const noexcept
     {
-        return m_impl->buffer.get_buffer();
+        return m_buffer->get_buffer();
     }
 
     template<typename T>
     T& get_push_constant(std::size_t index) noexcept
     {
-        const auto range{m_impl->render_technique->ranges()[index]};
+        const auto range{m_render_technique->ranges()[index]};
         assert(range.size == sizeof(T) && "Size of T does not match range size.");
 
         return *std::launder(reinterpret_cast<T*>(std::data(m_push_constant_buffer) + range.offset / 4u));
@@ -253,35 +234,25 @@ public:
     template<typename T>
     const T& get_push_constant(std::size_t index) const noexcept
     {
-        const auto range{m_impl->render_technique->ranges()[index]};
+        const auto range{m_render_technique->ranges()[index]};
         assert(range.size == sizeof(T) && "Size of T does not match range size.");
 
         return *std::launder(reinterpret_cast<const T*>(std::data(m_push_constant_buffer) + range.offset / 4u));
     }
 
-    cpt::binding& binding(std::uint32_t index)
-    {
-        return m_impl->bindings.at(index);
-    }
-
     const cpt::binding& binding(std::uint32_t index) const
     {
-        return m_impl->bindings.at(index);
+        return m_bindings.at(index);
     }
 
     bool has_binding(std::uint32_t index) const
     {
-        return m_impl->bindings.find(index) != std::end(m_impl->bindings);
-    }
-
-    std::unordered_map<std::uint32_t, cpt::binding>& bindings() noexcept
-    {
-        return m_impl->bindings;
+        return m_bindings.find(index) != std::end(m_bindings);
     }
 
     const std::unordered_map<std::uint32_t, cpt::binding>& bindings() const noexcept
     {
-        return m_impl->bindings;
+        return m_bindings;
     }
 
     bool need_descriptor_update(bool new_value = false) noexcept
@@ -296,7 +267,7 @@ public:
 
     asynchronous_resource_ptr resource() const noexcept
     {
-        return m_impl;
+        return m_buffer;
     }
 
 private:
@@ -317,7 +288,9 @@ private:
     bool m_need_descriptor_update{};
 
     std::vector<std::uint32_t> m_push_constant_buffer{};
-    std::shared_ptr<view_impl> m_impl{};
+    std::unordered_map<std::uint32_t, cpt::binding> m_bindings{};
+    render_technique_ptr m_render_technique{};
+    uniform_buffer_ptr m_buffer{};
 };
 
 }
