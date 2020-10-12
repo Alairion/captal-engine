@@ -55,8 +55,7 @@ public:
     };
 
 public:
-    view();
-
+    view() = default;
     explicit view(const render_target_ptr& target, const render_technique_info& info = render_technique_info{});
     explicit view(const render_target_ptr& target, render_technique_ptr technique);
 
@@ -142,14 +141,6 @@ public:
         update();
     }
 
-    void set_render_technique(render_technique_ptr technique) noexcept
-    {
-        m_impl->render_technique = std::move(technique);
-        update_uniforms();
-    }
-
-    void set_target(const render_target_ptr& target, const render_technique_info& info = render_technique_info{});
-    void set_target(const render_target_ptr& target, render_technique_ptr technique);
     void fit_to(const render_texture_ptr& window);
     void fit_to(const render_window_ptr& texture);
 

@@ -26,6 +26,14 @@ inline binding_type get_binding_type(const binding& binding) noexcept
     return static_cast<binding_type>(binding.index());
 }
 
+inline asynchronous_resource_ptr get_binding_resource(const binding& binding) noexcept
+{
+    return std::visit([](auto&& altenative) -> asynchronous_resource_ptr
+    {
+        return altenative;
+    }, binding);
+}
+
 }
 
 #endif

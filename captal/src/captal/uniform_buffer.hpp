@@ -9,6 +9,7 @@
 
 #include <tephra/buffer.hpp>
 
+#include "asynchronous_resource.hpp"
 #include "signal.hpp"
 
 namespace cpt
@@ -27,7 +28,7 @@ struct buffer_part
     std::uint64_t size{};
 };
 
-class CAPTAL_API uniform_buffer
+class CAPTAL_API uniform_buffer : public asynchronous_resource
 {
 public:
     uniform_buffer() = default;
@@ -41,7 +42,7 @@ public:
         get<T>(0) = std::forward<T>(data);
     }
 
-    ~uniform_buffer() = default;
+    ~uniform_buffer();
     uniform_buffer(const uniform_buffer&) = delete;
     uniform_buffer& operator=(const uniform_buffer&) = delete;
     uniform_buffer(uniform_buffer&&) noexcept = default;

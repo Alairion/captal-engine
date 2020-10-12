@@ -201,12 +201,13 @@ private:
     tph::swapchain m_swapchain{};
     tph::texture m_multisampling_texture{};
     tph::texture m_depth_texture{};
-    std::vector<frame_data> m_frames_data{};
     cpt::video_mode m_video_mode{};
     std::uint32_t m_frame_index{};
     tph::clear_color_value m_clear_color{};
     tph::clear_depth_stencil_value m_clear_depth_stencil{};
     bool m_closed{};
+
+    std::vector<frame_data> m_frames_data{};
 
     window_event_signal m_gained_focus{};
     window_event_signal m_lost_focus{};

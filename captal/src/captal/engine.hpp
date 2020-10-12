@@ -227,17 +227,10 @@ private:
     tph::renderer m_renderer;
 
     std::mutex m_queue_mutex{};
-
-    tph::command_pool m_transfer_pool{};
-    std::vector<transfer_buffer> m_transfer_buffers{};
-    bool m_transfer_began{};
-
     tph::shader m_default_vertex_shader{};
     tph::shader m_default_fragment_shader{};
     texture m_default_texture{};
-
     cpt::translator m_translator{};
-
     std::vector<render_window_ptr> m_windows{};
 
     std::chrono::steady_clock::time_point m_last_update{std::chrono::steady_clock::now()};
@@ -248,8 +241,11 @@ private:
     std::uint32_t m_frame_per_second{};
     std::uint64_t m_frame_id{};
     frame_per_second_signal m_frame_per_second_signal{};
-
     update_signal m_update_signal{};
+
+    tph::command_pool m_transfer_pool{};
+    bool m_transfer_began{};
+    std::vector<transfer_buffer> m_transfer_buffers{};
 };
 
 }

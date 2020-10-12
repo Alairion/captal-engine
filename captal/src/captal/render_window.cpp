@@ -221,7 +221,13 @@ render_window::render_window(const apr::monitor& monitor, const std::string& tit
 
 render_window::~render_window()
 {
-    wait_all();
+    for(frame_data& data : m_frames_data)
+    {
+        if(!data.begin)
+        {
+            data.fence.wait();
+        }
+    }
 }
 
 void render_window::update()

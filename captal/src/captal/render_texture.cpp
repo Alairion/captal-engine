@@ -347,14 +347,6 @@ void render_texture::wait_all()
         if(data.submited)
         {
             data.fence.wait();
-
-            if(data.timed)
-            {
-                time_results(data);
-            }
-
-            data.signal();
-            data.signal.disconnect_all();
         }
     }
 }

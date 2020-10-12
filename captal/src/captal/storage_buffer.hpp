@@ -7,10 +7,12 @@
 
 #include <tephra/buffer.hpp>
 
+#include "asynchronous_resource.hpp"
+
 namespace cpt
 {
 
-class CAPTAL_API storage_buffer
+class CAPTAL_API storage_buffer : public asynchronous_resource
 {
 public:
     storage_buffer() = default;

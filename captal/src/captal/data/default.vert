@@ -1,16 +1,15 @@
 #version 450
 
-layout(set = 0, binding = 0) uniform view_uniform
+layout(row_major, set = 0, binding = 0) uniform view_uniform
 {
 	vec4 position;
     mat4 view;
     mat4 proj;
 } view;
 
-layout(set = 0, binding = 1) uniform model_uniform
+layout(row_major, set = 0, binding = 1) uniform model_uniform
 {
     mat4 model;
-	float shininess;
 } model;
 
 layout(location = 0) in vec3 position;

@@ -63,6 +63,11 @@ uniform_buffer::uniform_buffer(std::vector<buffer_part> parts)
     m_data.resize(m_size);
 }
 
+uniform_buffer::~uniform_buffer()
+{
+    m_stagings.clear();
+}
+
 void uniform_buffer::upload()
 {
     std::size_t staging_index{std::numeric_limits<std::size_t>::max()};

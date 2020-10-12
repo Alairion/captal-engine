@@ -244,7 +244,6 @@ bool engine::run()
 
     if(std::all_of(std::begin(m_windows), std::end(m_windows), window_closed))
     {
-        m_renderer.wait();
         return false;
     }
 
@@ -432,18 +431,6 @@ void engine::update_frame()
 void engine::wait_all()
 {
     m_renderer.wait();
-
-    for(auto& data : m_transfer_buffers)
-    {
-        if(!m_transfer_began)
-        {
-            data.fence.wait();
-
-            data.signal();
-            data.signal.disconnect_all();
-        }
-    }
-
     m_windows.clear();
 }
 
