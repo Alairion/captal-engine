@@ -82,6 +82,7 @@ void render(entt::registry& world)
 
                         keeper.keep(renderable.set());
                         keeper.keep(renderable.resource());
+                        keeper.keep(renderable.texture());
                         for(const auto& [index, binding] : renderable.bindings())
                         {
                             keeper.keep(get_binding_resource(binding));
