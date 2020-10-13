@@ -102,7 +102,7 @@ private:
         frame_time_signal time_signal{};
         bool begin{}; //true if register_frame_time or begin_render has been called, false after present
         bool timed{}; //true if register_frame_time has been called, false after frame data reset
-        bool submited{}; //true after present, false after frame data reset
+        bool submitted{}; //true after present, false after frame data reset
     };
 
 private:

@@ -270,7 +270,7 @@ void render_texture::present()
     tph::submit(engine::instance().renderer(), submit_info, data.fence);
     lock.unlock();
 
-    data.submited = true;
+    data.submitted = true;
 }
 
 render_texture::frame_data& render_texture::next_frame()
@@ -314,7 +314,7 @@ render_texture::frame_data& render_texture::add_frame_data()
 void render_texture::reset(frame_data& data)
 {
     data.begin = false;
-    data.submited = false;
+    data.submitted = false;
 
     if(data.timed)
     {
@@ -345,7 +345,7 @@ void render_texture::wait_all()
 {
     for(frame_data& data : m_frames_data)
     {
-        if(data.submited)
+        if(data.submitted)
         {
             data.fence.wait();
         }

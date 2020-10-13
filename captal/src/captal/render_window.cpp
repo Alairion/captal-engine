@@ -223,7 +223,7 @@ render_window::~render_window()
 {
     for(frame_data& data : m_frames_data)
     {
-        if(data.submited)
+        if(data.submitted)
         {
             data.fence.wait();
         }
@@ -407,7 +407,7 @@ void render_window::present()
     lock.unlock();
 
     data.begin = false;
-    data.submited = true;
+    data.submitted = true;
 
     if(m_swapchain.present(data.image_presentable) != tph::swapchain_status::valid)
     {
@@ -526,7 +526,7 @@ void render_window::time_results(frame_data& data)
 void render_window::reset(frame_data& data)
 {
     data.fence.wait();
-    data.submited = false;
+    data.submitted = false;
 
     if(data.timed)
     {
@@ -546,7 +546,7 @@ void render_window::wait_all()
 {
     for(frame_data& data : m_frames_data)
     {
-        if(data.submited)
+        if(data.submitted)
         {
             data.fence.wait();
 
@@ -561,7 +561,7 @@ void render_window::wait_all()
         }
 
         data.begin = false;
-        data.submited = false;
+        data.submitted = false;
     }
 }
 

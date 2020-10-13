@@ -14,7 +14,7 @@ namespace cpt
 template<typename StateT>
 class state_stack;
 
-class state // A simple generic state type, usefull if nothing more is needed
+class CAPTAL_API state // A simple generic state type, usefull if nothing more is needed
 {
 public:
     state() noexcept = default;
