@@ -24,6 +24,11 @@ application::application()
 
         m_monitors.emplace_back(i, rect.x, rect.y, rect.w, rect.h, SDL_GetDisplayName(i));
     }
+
+    SDL_EventState(SDL_DROPBEGIN, SDL_IGNORE);
+    SDL_EventState(SDL_DROPFILE, SDL_IGNORE);
+    SDL_EventState(SDL_DROPTEXT, SDL_IGNORE);
+    SDL_EventState(SDL_DROPCOMPLETE, SDL_IGNORE);
 }
 
 application::~application()

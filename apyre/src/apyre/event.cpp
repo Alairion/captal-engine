@@ -308,27 +308,32 @@ std::optional<event> event_queue::next(window& window, event_mode mode)
         return event_window_id(event) == window.id();
     };
 
-    const auto find_event = [this, &predicate]()
+    const auto find_event = [this, predicate]
     {
         return std::find_if(std::cbegin(m_events), std::cend(m_events), predicate);
     };
 
-    if(find_event() == std::cend(m_events))
+    auto it{find_event()};
+    if(it != std::cend(m_events))
     {
-        flush(m_events, mode, window.id());
+        const event output{*it};
+        m_events.erase(it);
+
+        return std::make_optional(output);
     }
 
-    if(find_event() == std::cend(m_events))
+    flush(m_events, mode, window.id());
+
+    it = find_event();
+    if(it != std::cend(m_events))
     {
-        return std::nullopt;
+        const event output{*it};
+        m_events.erase(it);
+
+        return std::make_optional(output);
     }
 
-    const auto it{find_event()};
-
-    const event output{*it};
-    m_events.erase(it);
-
-    return std::make_optional(output);
+    return std::nullopt;
 }
 
 event_iterator::event_iterator(application& application, event_mode mode)

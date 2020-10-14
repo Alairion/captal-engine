@@ -81,7 +81,7 @@ public:
     }
 
     template<typename Clock, typename Duration>
-    swapchain_status until(const std::chrono::time_point<Clock, Duration>& time, optional_ref<semaphore> semaphore, optional_ref<fence> fence)
+    swapchain_status acquire_until(const std::chrono::time_point<Clock, Duration>& time, optional_ref<semaphore> semaphore, optional_ref<fence> fence)
     {
         const auto current_time{Clock::now()};
         if(time < current_time)

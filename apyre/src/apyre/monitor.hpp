@@ -13,7 +13,7 @@ class APYRE_API monitor
 public:
     constexpr monitor() = default;
 
-    monitor(std::int32_t id, std::int32_t x, std::int32_t y, std::uint32_t width, std::uint32_t height, std::string name) noexcept
+    explicit monitor(std::int32_t id, std::int32_t x, std::int32_t y, std::uint32_t width, std::uint32_t height, std::string name) noexcept
     :m_id{id}
     ,m_x{x}
     ,m_y{y}

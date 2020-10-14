@@ -45,8 +45,8 @@ public:
 
 public:
     constexpr window() = default;
-    window(application& application, const std::string& title, std::uint32_t width, std::uint32_t height, window_options options = window_options::none);
-    window(application& application, const monitor& monitor, const std::string& title, std::uint32_t width, std::uint32_t height, window_options options = window_options::none);
+    explicit window(application& application, const std::string& title, std::uint32_t width, std::uint32_t height, window_options options = window_options::none);
+    explicit window(application& application, const monitor& monitor, const std::string& title, std::uint32_t width, std::uint32_t height, window_options options = window_options::none);
 
     ~window();
     window(const window&) = delete;

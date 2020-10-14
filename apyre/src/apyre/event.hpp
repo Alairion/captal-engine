@@ -376,7 +376,7 @@ struct text_event
 
 using event = std::variant<window_event, mouse_event, keyboard_event, text_event>;
 
-std::uint32_t event_window_id(const event& event);
+APYRE_API std::uint32_t event_window_id(const event& event);
 
 enum class event_mode : std::uint32_t
 {
@@ -412,8 +412,8 @@ public:
 
 public:
     constexpr event_iterator() = default;
-    event_iterator(application& application, event_mode mode = event_mode::poll);
-    event_iterator(application& application, window& window, event_mode mode = event_mode::poll);
+    explicit event_iterator(application& application, event_mode mode = event_mode::poll);
+    explicit event_iterator(application& application, window& window, event_mode mode = event_mode::poll);
 
     ~event_iterator() = default;
     event_iterator(const event_iterator&) = default;
@@ -455,7 +455,7 @@ public:
         return event_iterator{};
     }
 
-    bool operator!=(const event_iterator& other)
+    bool operator!=(const event_iterator& other) const noexcept
     {
         return m_current_event.has_value() != other.m_current_event.has_value();
     }
