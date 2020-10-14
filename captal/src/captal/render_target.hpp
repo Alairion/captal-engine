@@ -13,36 +13,6 @@
 namespace cpt
 {
 
-class CAPTAL_API frame_resource_keeper
-{
-public:
-    frame_resource_keeper() = default;
-    ~frame_resource_keeper() = default;
-    frame_resource_keeper(const frame_resource_keeper&) = delete;
-    frame_resource_keeper& operator=(const frame_resource_keeper&) = delete;
-    frame_resource_keeper(frame_resource_keeper&&) noexcept = default;
-    frame_resource_keeper& operator=(frame_resource_keeper&&) noexcept = default;
-
-    template<typename T>
-    void keep(T&& resource)
-    {
-        m_resources.emplace_back(std::forward<T>(resource));
-    }
-
-    void reserve(std::size_t size)
-    {
-        m_resources.reserve(size);
-    }
-
-    void clear() noexcept
-    {
-        m_resources.clear();
-    }
-
-private:
-    std::vector<asynchronous_resource_ptr> m_resources{};
-};
-
 using frame_time_t = std::chrono::duration<std::uint64_t, std::nano>;
 using frame_presented_signal = cpt::signal<>;
 using frame_time_signal = cpt::signal<frame_time_t>;
@@ -51,7 +21,7 @@ struct frame_render_info
 {
     tph::command_buffer& buffer;
     frame_presented_signal& signal;
-    frame_resource_keeper& keeper;
+    asynchronous_resource_keeper& keeper;
 };
 
 class CAPTAL_API render_target

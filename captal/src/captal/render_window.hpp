@@ -178,7 +178,7 @@ private:
         tph::semaphore image_presentable{};
         tph::fence fence{};
         tph::query_pool query_pool{};
-        frame_resource_keeper keeper{};
+        asynchronous_resource_keeper keeper{};
         frame_presented_signal signal{};
         frame_time_signal time_signal{};
         bool begin{}; //true if register_frame_time or begin_render has been called, false after present

@@ -28,7 +28,7 @@ struct buffer_part
     std::uint64_t size{};
 };
 
-class CAPTAL_API uniform_buffer : public asynchronous_resource
+class CAPTAL_API uniform_buffer : public std::enable_shared_from_this<uniform_buffer>, public asynchronous_resource
 {
 public:
     uniform_buffer() = default;

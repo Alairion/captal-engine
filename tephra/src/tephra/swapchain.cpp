@@ -67,33 +67,6 @@ swapchain::swapchain(renderer& renderer, surface& surface, const swapchain_info&
     }
 }
 
-swapchain_status swapchain::acquire(optional_ref<semaphore> semaphore, optional_ref<fence> fence)
-{
-    VkSemaphore native_semaphore{semaphore.has_value() ? underlying_cast<VkSemaphore>(*semaphore) : VkSemaphore{}};
-    VkFence native_fence{fence.has_value() ? underlying_cast<VkFence>(*fence) : VkFence{}};
-
-    const auto result{vkAcquireNextImageKHR(m_swapchain.device(), m_swapchain, std::numeric_limits<std::uint64_t>::max(), native_semaphore, native_fence, &m_image_index)};
-
-    if(result == VK_SUBOPTIMAL_KHR)
-    {
-        return swapchain_status::suboptimal;
-    }
-    else if(result == VK_ERROR_OUT_OF_DATE_KHR)
-    {
-        return swapchain_status::out_of_date;
-    }
-    else if(result == VK_ERROR_SURFACE_LOST_KHR)
-    {
-        return swapchain_status::surface_lost;
-    }
-    else if(result != VK_SUCCESS)
-    {
-        throw vulkan::error{result};
-    }
-
-    return swapchain_status::valid;
-}
-
 swapchain_status swapchain::present(const std::vector<std::reference_wrapper<semaphore>>& wait_semaphores)
 {
     VkSwapchainKHR native_swapchain{m_swapchain};
@@ -116,24 +89,14 @@ swapchain_status swapchain::present(const std::vector<std::reference_wrapper<sem
 
     const auto result{vkQueuePresentKHR(m_queue, &present_info)};
 
-    if(result == VK_SUBOPTIMAL_KHR)
+    switch(result)
     {
-        return swapchain_status::suboptimal;
+        case VK_SUCCESS:                return swapchain_status::valid;
+        case VK_SUBOPTIMAL_KHR:         return swapchain_status::suboptimal;
+        case VK_ERROR_OUT_OF_DATE_KHR:  return swapchain_status::out_of_date;
+        case VK_ERROR_SURFACE_LOST_KHR: return swapchain_status::surface_lost;
+        default:                        throw vulkan::error{result};
     }
-    else if(result == VK_ERROR_OUT_OF_DATE_KHR)
-    {
-        return swapchain_status::out_of_date;
-    }
-    else if(result == VK_ERROR_SURFACE_LOST_KHR)
-    {
-        return swapchain_status::surface_lost;
-    }
-    else if(result != VK_SUCCESS)
-    {
-        throw vulkan::error{result};
-    }
-
-    return swapchain_status::valid;
 }
 
 swapchain_status swapchain::present(semaphore& wait_semaphore)
@@ -151,24 +114,33 @@ swapchain_status swapchain::present(semaphore& wait_semaphore)
 
     const auto result{vkQueuePresentKHR(m_queue, &present_info)};
 
-    if(result == VK_SUBOPTIMAL_KHR)
+    switch(result)
     {
-        return swapchain_status::suboptimal;
+        case VK_SUCCESS:                return swapchain_status::valid;
+        case VK_SUBOPTIMAL_KHR:         return swapchain_status::suboptimal;
+        case VK_ERROR_OUT_OF_DATE_KHR:  return swapchain_status::out_of_date;
+        case VK_ERROR_SURFACE_LOST_KHR: return swapchain_status::surface_lost;
+        default:                        throw vulkan::error{result};
     }
-    else if(result == VK_ERROR_OUT_OF_DATE_KHR)
-    {
-        return swapchain_status::out_of_date;
-    }
-    else if(result == VK_ERROR_SURFACE_LOST_KHR)
-    {
-        return swapchain_status::surface_lost;
-    }
-    else if(result != VK_SUCCESS)
-    {
-        throw vulkan::error{result};
-    }
+}
 
-    return swapchain_status::valid;
+swapchain_status swapchain::acquire_impl(std::uint64_t timeout, optional_ref<semaphore> semaphore, optional_ref<fence> fence)
+{
+    VkSemaphore native_semaphore{semaphore.has_value() ? underlying_cast<VkSemaphore>(*semaphore) : VkSemaphore{}};
+    VkFence native_fence{fence.has_value() ? underlying_cast<VkFence>(*fence) : VkFence{}};
+
+    const auto result{vkAcquireNextImageKHR(m_swapchain.device(), m_swapchain, timeout, native_semaphore, native_fence, &m_image_index)};
+
+    switch(result)
+    {
+        case VK_SUCCESS:                return swapchain_status::valid;
+        case VK_SUBOPTIMAL_KHR:         return swapchain_status::suboptimal;
+        case VK_ERROR_OUT_OF_DATE_KHR:  return swapchain_status::out_of_date;
+        case VK_ERROR_SURFACE_LOST_KHR: return swapchain_status::surface_lost;
+        case VK_TIMEOUT:                [[fallthrough]];
+        case VK_NOT_READY:              return swapchain_status::not_ready;
+        default:                        throw vulkan::error{result};
+    }
 }
 
 void set_object_name(renderer& renderer, const swapchain& object, const std::string& name)
@@ -182,5 +154,6 @@ void set_object_name(renderer& renderer, const swapchain& object, const std::str
     if(auto result{vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(renderer), &info)}; result != VK_SUCCESS)
         throw vulkan::error{result};
 }
+
 
 }

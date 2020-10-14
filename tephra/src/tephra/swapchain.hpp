@@ -37,6 +37,7 @@ enum class swapchain_status : std::uint32_t
     suboptimal = 1,
     out_of_date = 2,
     surface_lost = 3,
+    not_ready = 4
 };
 
 class TEPHRA_API swapchain
@@ -63,7 +64,34 @@ public:
     swapchain(swapchain&&) noexcept = default;
     swapchain& operator=(swapchain&&) noexcept = default;
 
-    swapchain_status acquire(optional_ref<semaphore> semaphore, optional_ref<fence> fence);
+    swapchain_status acquire(optional_ref<semaphore> semaphore, optional_ref<fence> fence)
+    {
+        return acquire_impl(std::numeric_limits<std::uint64_t>::max(), semaphore, fence);
+    }
+
+    swapchain_status try_acquire(optional_ref<semaphore> semaphore, optional_ref<fence> fence)
+    {
+        return acquire_impl(0, semaphore, fence);
+    }
+
+    template<typename Rep, typename Period>
+    swapchain_status acquire_for(const std::chrono::duration<Rep, Period>& timeout, optional_ref<semaphore> semaphore, optional_ref<fence> fence)
+    {
+        return acquire_impl(std::chrono::duration_cast<std::chrono::nanoseconds>(timeout).count(), semaphore, fence);
+    }
+
+    template<typename Clock, typename Duration>
+    swapchain_status until(const std::chrono::time_point<Clock, Duration>& time, optional_ref<semaphore> semaphore, optional_ref<fence> fence)
+    {
+        const auto current_time{Clock::now()};
+        if(time < current_time)
+        {
+            return try_acquire(semaphore, fence);
+        }
+
+        return acquire_impl(std::chrono::duration_cast<std::chrono::nanoseconds>(time - current_time).count(), semaphore, fence);
+    }
+
     swapchain_status present(const std::vector<std::reference_wrapper<semaphore>>& wait_semaphores);
     swapchain_status present(semaphore& wait_semaphore);
 
@@ -86,6 +114,9 @@ public:
     {
         return m_image_index;
     }
+
+private:
+    swapchain_status acquire_impl(std::uint64_t timeout, optional_ref<semaphore> semaphore, optional_ref<fence> fence);
 
 private:
     vulkan::swapchain m_swapchain{};
