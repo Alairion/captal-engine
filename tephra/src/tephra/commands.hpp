@@ -28,6 +28,20 @@ class framebuffer;
 class pipeline;
 class pipeline_layout;
 
+enum class command_pool_options : std::uint32_t
+{
+    none = 0,
+    transient = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
+    reset = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+    protected_buffer = VK_COMMAND_POOL_CREATE_PROTECTED_BIT
+};
+
+enum class command_pool_reset_options : std::uint32_t
+{
+    none = 0,
+    release = VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT
+};
+
 class TEPHRA_API command_pool
 {
     template<typename VulkanObject, typename... Args>
@@ -35,8 +49,8 @@ class TEPHRA_API command_pool
 
 public:
     constexpr command_pool() = default;
-    explicit command_pool(renderer& renderer);
-    explicit command_pool(renderer& renderer, queue queue);
+    explicit command_pool(renderer& renderer, command_pool_options options = command_pool_options::none);
+    explicit command_pool(renderer& renderer, queue queue, command_pool_options options = command_pool_options::none);
 
     explicit command_pool(vulkan::command_pool pool) noexcept
     :m_pool{std::move(pool)}
@@ -50,7 +64,8 @@ public:
     command_pool(command_pool&& other) noexcept = default;
     command_pool& operator=(command_pool&& other) noexcept = default;
 
-    void reset();
+    void reset(command_pool_reset_options options = command_pool_reset_options::none);
+    void trim() noexcept;
 
 private:
     vulkan::command_pool m_pool{};
@@ -125,6 +140,12 @@ enum class command_buffer_flags : std::uint32_t
     none = 0x00,
     one_time_submit = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
     simultaneous_use = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT,
+};
+
+enum class command_buffer_reset_flags : std::uint32_t
+{
+    none = 0x00,
+    release = VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT
 };
 
 struct copy_offset
@@ -203,6 +224,8 @@ namespace cmd
 
 TEPHRA_API command_buffer begin(command_pool& pool, command_buffer_level level = command_buffer_level::primary, command_buffer_flags flags = command_buffer_flags::none);
 TEPHRA_API command_buffer begin(command_pool& pool, render_pass& render_pass, optional_ref<framebuffer> framebuffer, command_buffer_flags flags = command_buffer_flags::none);
+TEPHRA_API void begin(command_buffer& buffer, command_buffer_reset_flags reset = command_buffer_reset_flags::none, command_buffer_flags flags = command_buffer_flags::none);
+TEPHRA_API void begin(command_buffer& buffer, render_pass& render_pass, optional_ref<framebuffer> framebuffer, command_buffer_reset_flags reset = command_buffer_reset_flags::none, command_buffer_flags flags = command_buffer_flags::none);
 
 TEPHRA_API void copy(command_buffer& command_buffer, buffer& source, buffer& destination, const buffer_copy& region) noexcept;
 TEPHRA_API void copy(command_buffer& command_buffer, buffer& source, buffer& destination, std::span<const buffer_copy> regions);
@@ -251,7 +274,7 @@ TEPHRA_API void reset_event(command_buffer& command_buffer, event& event, pipeli
 TEPHRA_API void set_event(command_buffer& command_buffer, event& event, pipeline_stage stage) noexcept;
 
 /*
-TEPHRA_DEVICE_LEVEL_FUNCTION(vkCmdResolveImage)
+TEPHRA_API void resolve_image
 TEPHRA_API void clear_attachments(command_buffer& command_buffer, );
 TEPHRA_API void clear_color_image();
 TEPHRA_API void clear_depth_stencil_image();*/

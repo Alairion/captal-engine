@@ -28,7 +28,7 @@ struct memory_transfer_info
 class memory_transfer_scheduler
 {
 public:
-    memory_transfer_scheduler();
+    explicit memory_transfer_scheduler(tph::renderer& renderer) noexcept;
     ~memory_transfer_scheduler();
     memory_transfer_scheduler(const memory_transfer_scheduler&) = delete;
     memory_transfer_scheduler& operator=(const memory_transfer_scheduler&) = delete;
@@ -48,17 +48,26 @@ private:
         tph::fence fence{};
         transfer_ended_signal signal{};
         asynchronous_resource_keeper keeper{};
+        bool begin{};
     };
 
     struct transfer_pool
     {
         tph::command_pool pool{};
-        std::promise<void> exit{};
-        bool begin{};
+        std::promise<void> exit_promise{};
+        std::future<void> exit_future{};
+        std::vector<transfer_buffer> buffers{};
     };
 
 private:
+    transfer_buffer& next_buffer(transfer_pool& pool, std::thread::id thread);
+    transfer_buffer& add_buffer(transfer_pool& pool);
+    void reset(transfer_buffer& data);
+
+private:
+    tph::renderer* m_renderer{};
     std::unordered_map<std::thread::id, transfer_pool> m_pools{};
+    std::mutex m_mutex{};
 };
 
 }

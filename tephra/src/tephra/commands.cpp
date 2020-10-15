@@ -19,22 +19,27 @@ using namespace tph::vulkan::functions;
 namespace tph
 {
 
-command_pool::command_pool(renderer& renderer)
-:command_pool{renderer, queue::graphics}
+command_pool::command_pool(renderer& renderer, command_pool_options options)
+:command_pool{renderer, queue::graphics, options}
 {
 
 }
 
-command_pool::command_pool(renderer& renderer, queue queue)
-:m_pool{underlying_cast<VkDevice>(renderer), renderer.queue_family_index(queue), 0}
+command_pool::command_pool(renderer& renderer, queue queue, command_pool_options options)
+:m_pool{underlying_cast<VkDevice>(renderer), renderer.queue_family_index(queue), static_cast<VkCommandPoolCreateFlags>(options)}
 {
 
 }
 
-void command_pool::reset()
+void command_pool::reset(command_pool_reset_options options)
 {
-    if(auto result{vkResetCommandPool(m_pool.device(), m_pool, 0)}; result != VK_SUCCESS)
+    if(auto result{vkResetCommandPool(m_pool.device(), m_pool, static_cast<VkCommandPoolResetFlags>(options))}; result != VK_SUCCESS)
         throw vulkan::error{result};
+}
+
+void command_pool::trim() noexcept
+{
+    vkTrimCommandPool(m_pool.device(), m_pool, 0);
 }
 
 void set_object_name(renderer& renderer, const command_pool& object, const std::string& name)
@@ -96,6 +101,38 @@ command_buffer begin(command_pool& pool, render_pass& render_pass, optional_ref<
         throw vulkan::error{result};
 
     return command_buffer{std::move(buffer)};
+}
+
+void begin(command_buffer& buffer, command_buffer_reset_flags reset, command_buffer_flags flags)
+{
+    if(auto result{vkResetCommandBuffer(underlying_cast<VkCommandBuffer>(buffer), static_cast<VkCommandBufferResetFlags>(reset))}; result != VK_SUCCESS)
+        throw vulkan::error{result};
+
+    VkCommandBufferBeginInfo begin_info{};
+    begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    begin_info.flags = static_cast<VkCommandBufferUsageFlags>(flags);
+
+    if(auto result{vkBeginCommandBuffer(underlying_cast<VkCommandBuffer>(buffer), &begin_info)}; result != VK_SUCCESS)
+        throw vulkan::error{result};
+}
+
+void begin(command_buffer& buffer, render_pass& render_pass, optional_ref<framebuffer> framebuffer, command_buffer_reset_flags reset, command_buffer_flags flags)
+{
+    if(auto result{vkResetCommandBuffer(underlying_cast<VkCommandBuffer>(buffer), static_cast<VkCommandBufferResetFlags>(reset))}; result != VK_SUCCESS)
+        throw vulkan::error{result};
+
+    VkCommandBufferInheritanceInfo inheritance_info{};
+    inheritance_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO;
+    inheritance_info.renderPass = underlying_cast<VkRenderPass>(render_pass);
+    inheritance_info.framebuffer = framebuffer.has_value() ? underlying_cast<VkFramebuffer>(*framebuffer) : VkFramebuffer{};
+
+    VkCommandBufferBeginInfo begin_info{};
+    begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    begin_info.flags = static_cast<VkCommandBufferUsageFlags>(flags);
+    begin_info.pInheritanceInfo = &inheritance_info;
+
+    if(auto result{vkBeginCommandBuffer(underlying_cast<VkCommandBuffer>(buffer), &begin_info)}; result != VK_SUCCESS)
+        throw vulkan::error{result};
 }
 
 void copy(command_buffer& command_buffer, buffer& source, buffer& destination, const buffer_copy& region) noexcept
