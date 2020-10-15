@@ -44,7 +44,6 @@ struct graphics_parameters
 };
 
 using update_signal = cpt::signal<float>;
-using transfer_ended_signal = cpt::signal<>;
 using frame_per_second_signal = cpt::signal<std::uint32_t>;
 
 class CAPTAL_API engine
@@ -64,9 +63,6 @@ public:
     engine& operator=(const engine&) = delete;
     engine(engine&& other) noexcept = delete;
     engine& operator=(engine&& other) noexcept = delete;
-
-    std::pair<tph::command_buffer&, transfer_ended_signal&> begin_transfer();
-    void flush_transfers();
 
     void set_framerate_limit(std::uint32_t frame_per_second) noexcept;
     void set_translator(cpt::translator new_translator);
@@ -195,13 +191,6 @@ private:
     void update_frame();
 
 private:
-    struct transfer_buffer
-    {
-        std::uint64_t frame_id{};
-        tph::command_buffer buffer{};
-        tph::fence fence{};
-        transfer_ended_signal signal{};
-    };
 
 private:
     cpt::application m_application;
@@ -226,10 +215,6 @@ private:
     std::uint64_t m_frame_id{};
     frame_per_second_signal m_frame_per_second_signal{};
     update_signal m_update_signal{};
-
-    tph::command_pool m_transfer_pool{};
-    bool m_transfer_began{};
-    std::vector<transfer_buffer> m_transfer_buffers{};
 };
 
 }
