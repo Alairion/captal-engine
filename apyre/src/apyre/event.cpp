@@ -36,7 +36,11 @@ std::string to_string(scancode scan)
 
 static std::optional<event> translate(const SDL_Event& sdl_event)
 {
-    if(sdl_event.type == SDL_WINDOWEVENT)
+    if(sdl_event.type == SDL_QUIT)
+    {
+        return std::make_optional(event{quit_event{}});
+    }
+    else if(sdl_event.type == SDL_WINDOWEVENT)
     {
         if(sdl_event.window.event == SDL_WINDOWEVENT_CLOSE)
         {
@@ -230,29 +234,7 @@ static std::optional<event> translate(const SDL_Event& sdl_event)
     return std::nullopt;
 }
 
-std::uint32_t event_window_id(const event& event)
-{
-    if(std::holds_alternative<window_event>(event))
-    {
-        return std::get<window_event>(event).window;
-    }
-    else if(std::holds_alternative<mouse_event>(event))
-    {
-        return std::get<mouse_event>(event).window;
-    }
-    else if(std::holds_alternative<keyboard_event>(event))
-    {
-        return std::get<keyboard_event>(event).window;
-    }
-    else if(std::holds_alternative<text_event>(event))
-    {
-        return std::get<text_event>(event).window;
-    }
-
-    return 0;
-}
-
-static void flush(std::vector<event>& events, event_mode mode, std::optional<std::uint32_t> window_id)
+static void flush(std::vector<event>& events, event_mode mode, std::uint32_t window_id)
 {
     if(mode == event_mode::poll)
     {
@@ -262,7 +244,7 @@ static void flush(std::vector<event>& events, event_mode mode, std::optional<std
             const std::optional<event> new_event{translate(sdl_event)};
             if(new_event)
             {
-                events.push_back(new_event.value());
+                events.emplace_back(new_event.value());
             }
         }
     }
@@ -270,7 +252,7 @@ static void flush(std::vector<event>& events, event_mode mode, std::optional<std
     {
         std::optional<event> new_event{};
 
-        while(!new_event || (window_id && window_id.value() != event_window_id(new_event.value())))
+        while(!new_event || window_id != event_window_id(new_event.value()))
         {
             SDL_Event sdl_event{};
             if(!SDL_WaitEvent(&sdl_event))
@@ -279,33 +261,25 @@ static void flush(std::vector<event>& events, event_mode mode, std::optional<std
             new_event = translate(sdl_event);
         }
 
-        events.push_back(new_event.value());
+        events.emplace_back(new_event.value());
     }
 }
 
 std::optional<event> event_queue::next(event_mode mode)
 {
-    if(std::empty(m_events))
-    {
-        flush(m_events, mode, std::nullopt);
-    }
-
-    if(std::empty(m_events))
-    {
-        return std::nullopt;
-    }
-
-    const event output{m_events[0]};
-    m_events.erase(std::begin(m_events));
-
-    return std::make_optional(output);
+    return next(mode, 0);
 }
 
 std::optional<event> event_queue::next(window& window, event_mode mode)
 {
-    const auto predicate = [&window](const event& event)
+    return next(mode, window.id());
+}
+
+std::optional<event> event_queue::next(event_mode mode, std::uint32_t id)
+{
+    const auto predicate = [id](const event& event)
     {
-        return event_window_id(event) == window.id();
+        return event_window_id(event) == id;
     };
 
     const auto find_event = [this, predicate]
@@ -322,7 +296,7 @@ std::optional<event> event_queue::next(window& window, event_mode mode)
         return std::make_optional(output);
     }
 
-    flush(m_events, mode, window.id());
+    flush(m_events, mode, id);
 
     it = find_event();
     if(it != std::cend(m_events))

@@ -232,6 +232,12 @@ private:
 using render_window_ptr = std::shared_ptr<render_window>;
 using render_window_weak_ptr = std::weak_ptr<render_window>;
 
+template<typename... Args>
+render_window_ptr make_render_window(Args&&... args)
+{
+    return std::make_shared<render_window>(std::forward<Args>(args)...);
+}
+
 }
 
 #endif

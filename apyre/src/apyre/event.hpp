@@ -15,6 +15,11 @@ namespace apr
 class application;
 class window;
 
+struct quit_event
+{
+
+};
+
 struct window_event
 {
     enum : std::uint32_t
@@ -374,9 +379,22 @@ struct text_event
     std::string text{};
 };
 
-using event = std::variant<window_event, mouse_event, keyboard_event, text_event>;
+using event = std::variant<quit_event, window_event, mouse_event, keyboard_event, text_event>;
 
-APYRE_API std::uint32_t event_window_id(const event& event);
+constexpr std::uint32_t event_window_id(const event& event) noexcept
+{
+    return std::visit([](auto&& alternative)
+    {
+        if constexpr(std::is_same_v<std::decay_t<decltype(alternative)>, quit_event>)
+        {
+            return 0u;
+        }
+        else
+        {
+            return alternative.window;
+        }
+    }, event);
+}
 
 enum class event_mode : std::uint32_t
 {
@@ -396,6 +414,9 @@ public:
 
     std::optional<event> next(event_mode mode = event_mode::poll);
     std::optional<event> next(window& window, event_mode mode = event_mode::poll);
+
+private:
+    std::optional<event> next(event_mode mode, std::uint32_t id);
 
 private:
     std::vector<event> m_events{};

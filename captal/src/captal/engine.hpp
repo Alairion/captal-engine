@@ -65,14 +65,6 @@ public:
     engine(engine&& other) noexcept = delete;
     engine& operator=(engine&& other) noexcept = delete;
 
-    template<typename... Args>
-    render_window_ptr make_window(Args&&... args)
-    {
-        return m_windows.emplace_back(std::make_shared<render_window>(std::forward<Args>(args)...));
-    }
-
-    void remove_window(render_window_ptr window);
-
     std::pair<tph::command_buffer&, transfer_ended_signal&> begin_transfer();
     void flush_transfers();
 
@@ -178,11 +170,6 @@ public:
         return m_translator;
     }
 
-    std::span<const render_window_ptr> windows() const noexcept
-    {
-        return m_windows;
-    }
-
     float frame_time() const noexcept
     {
         return m_frame_time;
@@ -205,9 +192,7 @@ public:
 
 private:
     void init();
-    void update_window();
     void update_frame();
-    void wait_all();
 
 private:
     struct transfer_buffer
@@ -231,7 +216,6 @@ private:
     tph::shader m_default_fragment_shader{};
     texture m_default_texture{};
     cpt::translator m_translator{};
-    std::vector<render_window_ptr> m_windows{};
 
     std::chrono::steady_clock::time_point m_last_update{std::chrono::steady_clock::now()};
     float m_frame_time{};

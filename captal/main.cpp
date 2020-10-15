@@ -327,7 +327,7 @@ static void run()
     constexpr cpt::video_mode video_mode{640, 480, 2, tph::present_mode::mailbox, tph::sample_count::msaa_x4, tph::texture_format::d32_sfloat};
 
     //Create the window
-    cpt::render_window_ptr window{cpt::engine::instance().make_window("Captal test", video_mode, apr::window_options::resizable)};
+    cpt::render_window_ptr window{cpt::make_render_window("Captal test", video_mode, apr::window_options::resizable)};
     //Clear color is a part of tph::render_target, returned by cpt::render_target::get_target()
     window->set_clear_color(cpt::colors::white);
 

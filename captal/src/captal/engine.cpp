@@ -124,18 +124,9 @@ engine::engine(cpt::application application, const system_parameters& system [[m
 
 engine::~engine()
 {
-    wait_all();
+    m_renderer.wait();
+
     m_instance = nullptr;
-}
-
-void engine::remove_window(render_window_ptr window)
-{
-    const auto it{std::find(std::begin(m_windows), std::end(m_windows), window)};
-
-    if(it != std::end(m_windows))
-    {
-        m_windows.erase(it);
-    }
 }
 
 std::pair<tph::command_buffer&, transfer_ended_signal&> engine::begin_transfer()
@@ -234,20 +225,16 @@ void engine::set_default_fragment_shader(tph::shader new_default_fragment_shader
 
 bool engine::run()
 {
-    update_window();
     update_frame();
-
-    const auto window_closed = [](auto&& window_ptr) -> bool
-    {
-        return window_ptr->is_closed();
-    };
-
-    if(std::all_of(std::begin(m_windows), std::end(m_windows), window_closed))
-    {
-        return false;
-    }
-
     m_update_signal(m_frame_time);
+
+    for(auto&& event : apr::event_iterator{m_application.system_application()})
+    {
+        if(std::holds_alternative<apr::quit_event>(event))
+        {
+            return false;
+        }
+    }
 
     return true;
 }
@@ -385,14 +372,6 @@ void engine::init()
     }
 }
 
-void engine::update_window()
-{
-    for(auto&& window_ptr : m_windows)
-    {
-        window_ptr->update();
-    }
-}
-
 void engine::update_frame()
 {
     ++m_frame_id;
@@ -426,12 +405,6 @@ void engine::update_frame()
             std::this_thread::sleep_for(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::duration<float>(frame_time_target - m_frame_time)));
         }
     }
-}
-
-void engine::wait_all()
-{
-    m_renderer.wait();
-    m_windows.clear();
 }
 
 }
