@@ -360,9 +360,8 @@ static void run()
     world.emplace<cpt::components::node>(camera, cpt::vec3f{320.0f, 240.0f, 1.0f}, cpt::vec3f{320.0f, 240.0f, 0.0f});
     world.emplace<cpt::components::camera>(camera, window, technique_info)->fit_to(window);
 
-    auto time_ptr{std::make_shared<cpt::frame_time_t>()};
-
     //See above.
+    auto time_ptr{std::make_shared<cpt::frame_time_t>()};
     add_logic(window, world, physical_world, camera, time_ptr);
 
     //The game engine will return true if there is at least one window opened.
@@ -372,6 +371,9 @@ static void run()
     //This function is usually be used as the main loop of your game.
     while(cpt::engine::instance().run())
     {
+        //Process window events
+        window->update();
+
         //Physics system will update objects' nodes based on value given by the physical world.
         //Will call this system first so other systems will have the newest positions data.
         cpt::systems::physics(world);
