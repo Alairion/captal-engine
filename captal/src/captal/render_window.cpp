@@ -392,8 +392,6 @@ void render_window::present()
 
     tph::cmd::end(data.buffer);
 
-    engine::instance().flush_transfers();
-
     tph::submit_info submit_info{};
     submit_info.wait_semaphores.emplace_back(data.image_available);
     submit_info.wait_stages.emplace_back(tph::pipeline_stage::color_attachment_output);
@@ -496,7 +494,7 @@ void render_window::begin_render_impl(frame_data& data)
         recreate(capabilities);
 
         data.pool.reset();
-        data.buffer = tph::cmd::begin(data.pool, tph::command_buffer_level::primary, tph::command_buffer_flags::one_time_submit);
+        data.buffer = tph::cmd::begin(data.pool, tph::command_buffer_level::primary, tph::command_buffer_options::one_time_submit);
 
         tph::cmd::begin_render_pass(data.buffer, get_render_pass(), data.framebuffer);
 
@@ -538,7 +536,7 @@ void render_window::reset(frame_data& data)
     data.keeper.clear();
     data.pool.reset();
 
-    data.buffer = tph::cmd::begin(data.pool, tph::command_buffer_level::primary, tph::command_buffer_flags::one_time_submit);
+    data.buffer = tph::cmd::begin(data.pool, tph::command_buffer_level::primary, tph::command_buffer_options::one_time_submit);
     data.begin = true;
 }
 

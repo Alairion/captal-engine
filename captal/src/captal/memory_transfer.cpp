@@ -12,7 +12,7 @@ std::pair<tph::command_buffer&, transfer_ended_signal&> engine::begin_transfer()
 {
     if(!m_transfer_began)
     {
-        auto buffer{tph::cmd::begin(m_thread_transfer_pool, tph::command_buffer_level::primary, tph::command_buffer_flags::one_time_submit)};
+        auto buffer{tph::cmd::begin(m_thread_transfer_pool, tph::command_buffer_level::primary, tph::command_buffer_options::one_time_submit)};
 
 
         m_thread_transfer_buffers.emplace_back(thread_transfer_buffer{m_frame_id, std::move(buffer), tph::fence{m_renderer}});
@@ -161,7 +161,6 @@ void memory_transfer_scheduler::submit_transfers()
     }*/
 }
 
-
 memory_transfer_scheduler::transfer_buffer& memory_transfer_scheduler::next_buffer()
 {
 
@@ -174,7 +173,7 @@ memory_transfer_scheduler::transfer_buffer& memory_transfer_scheduler::add_buffe
 
 void memory_transfer_scheduler::reset_buffer(transfer_buffer& buffer)
 {
-    tph::cmd::begin(buffer.buffer, tph::command_buffer_reset_flags::none, tph::command_buffer_flags::one_time_submit);
+    tph::cmd::begin(buffer.buffer, tph::command_buffer_reset_options::none, tph::command_buffer_options::one_time_submit);
 }
 
 memory_transfer_scheduler::thread_transfer_pool& memory_transfer_scheduler::get_transfer_pool(std::thread::id thread)
@@ -183,7 +182,7 @@ memory_transfer_scheduler::thread_transfer_pool& memory_transfer_scheduler::get_
     if(it == std::end(m_thread_pools))
     {
         thread_transfer_pool pool{};
-        pool.pool = tph::command_pool{*m_renderer, tph::command_pool_options::reset};
+        pool.pool = tph::command_pool{*m_renderer, tph::command_pool_options::reset | tph::command_pool_options::transient};
         pool.exit_promise = std::promise<void>{};
         pool.exit_promise.set_value_at_thread_exit();
         pool.exit_future = pool.exit_promise.get_future();
@@ -231,7 +230,7 @@ bool memory_transfer_scheduler::check_thread_buffer(thread_transfer_buffer& data
 memory_transfer_scheduler::thread_transfer_buffer& memory_transfer_scheduler::add_thread_buffer(thread_transfer_pool& pool, std::thread::id thread)
 {
     thread_transfer_buffer data{};
-    data.buffer = tph::command_buffer{tph::cmd::begin(pool.pool, tph::command_buffer_level::secondary, tph::command_buffer_flags::one_time_submit)};
+    data.buffer = tph::command_buffer{tph::cmd::begin(pool.pool, tph::command_buffer_level::secondary, tph::command_buffer_options::one_time_submit)};
 
     if constexpr(debug_enabled)
     {
@@ -254,7 +253,7 @@ void memory_transfer_scheduler::reset_thread_buffer(thread_transfer_buffer& data
     data.submitted = false;
     data.parent = no_parent;
 
-    tph::cmd::begin(data.buffer, tph::command_buffer_reset_flags::none, tph::command_buffer_flags::one_time_submit);
+    tph::cmd::begin(data.buffer, tph::command_buffer_reset_options::none, tph::command_buffer_options::one_time_submit);
 
     if constexpr(debug_enabled)
     {

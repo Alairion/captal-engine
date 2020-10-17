@@ -135,14 +135,14 @@ enum class command_buffer_level : std::uint32_t
     secondary = VK_COMMAND_BUFFER_LEVEL_SECONDARY,
 };
 
-enum class command_buffer_flags : std::uint32_t
+enum class command_buffer_options : std::uint32_t
 {
     none = 0x00,
     one_time_submit = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
     simultaneous_use = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT,
 };
 
-enum class command_buffer_reset_flags : std::uint32_t
+enum class command_buffer_reset_options : std::uint32_t
 {
     none = 0x00,
     release = VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT
@@ -222,10 +222,10 @@ struct submit_info
 namespace cmd
 {
 
-TEPHRA_API command_buffer begin(command_pool& pool, command_buffer_level level = command_buffer_level::primary, command_buffer_flags flags = command_buffer_flags::none);
-TEPHRA_API command_buffer begin(command_pool& pool, render_pass& render_pass, optional_ref<framebuffer> framebuffer, command_buffer_flags flags = command_buffer_flags::none);
-TEPHRA_API void begin(command_buffer& buffer, command_buffer_reset_flags reset = command_buffer_reset_flags::none, command_buffer_flags flags = command_buffer_flags::none);
-TEPHRA_API void begin(command_buffer& buffer, render_pass& render_pass, optional_ref<framebuffer> framebuffer, command_buffer_reset_flags reset = command_buffer_reset_flags::none, command_buffer_flags flags = command_buffer_flags::none);
+TEPHRA_API command_buffer begin(command_pool& pool, command_buffer_level level = command_buffer_level::primary, command_buffer_options options = command_buffer_options::none);
+TEPHRA_API command_buffer begin(command_pool& pool, render_pass& render_pass, optional_ref<framebuffer> framebuffer, command_buffer_options options = command_buffer_options::none);
+TEPHRA_API void begin(command_buffer& buffer, command_buffer_reset_options reset = command_buffer_reset_options::none, command_buffer_options options = command_buffer_options::none);
+TEPHRA_API void begin(command_buffer& buffer, render_pass& render_pass, optional_ref<framebuffer> framebuffer, command_buffer_reset_options reset = command_buffer_reset_options::none, command_buffer_options options = command_buffer_options::none);
 
 TEPHRA_API void copy(command_buffer& command_buffer, buffer& source, buffer& destination, const buffer_copy& region) noexcept;
 TEPHRA_API void copy(command_buffer& command_buffer, buffer& source, buffer& destination, std::span<const buffer_copy> regions);
@@ -299,9 +299,9 @@ TEPHRA_API void dispatch_indirect(command_buffer& command_buffer, buffer& buffer
 
 TEPHRA_API void reset_query_pool(command_buffer& command_buffer, query_pool& pool, std::uint32_t first, std::uint32_t count) noexcept;
 TEPHRA_API void write_timestamp(command_buffer& command_buffer, query_pool& pool, std::uint32_t query, pipeline_stage stage) noexcept;
-TEPHRA_API void begin_query(command_buffer& command_buffer, query_pool& pool, std::uint32_t query, query_control flags) noexcept;
+TEPHRA_API void begin_query(command_buffer& command_buffer, query_pool& pool, std::uint32_t query, query_control options) noexcept;
 TEPHRA_API void end_query(command_buffer& command_buffer, query_pool& pool, std::uint32_t query) noexcept;
-TEPHRA_API void copy_query_pool_results(command_buffer& command_buffer, query_pool& pool, std::uint32_t first, std::uint32_t count, buffer& destination, std::uint64_t offset, std::uint64_t stride, query_results flags) noexcept;
+TEPHRA_API void copy_query_pool_results(command_buffer& command_buffer, query_pool& pool, std::uint32_t first, std::uint32_t count, buffer& destination, std::uint64_t offset, std::uint64_t stride, query_results options) noexcept;
 
 TEPHRA_API void begin_label(command_buffer& command_buffer, const std::string& name, float red = 0.0f, float green = 0.0f, float blue = 0.0f, float alpha = 0.0f) noexcept;
 TEPHRA_API void end_label(command_buffer& command_buffer) noexcept;
@@ -322,6 +322,9 @@ TEPHRA_API void submit(renderer& renderer, queue queue, std::span<const submit_i
 
 }
 
-template<> struct tph::enable_enum_operations<tph::command_buffer_flags> {static constexpr bool value{true};};
+template<> struct tph::enable_enum_operations<tph::command_pool_options> {static constexpr bool value{true};};
+template<> struct tph::enable_enum_operations<tph::command_pool_reset_options> {static constexpr bool value{true};};
+template<> struct tph::enable_enum_operations<tph::command_buffer_options> {static constexpr bool value{true};};
+template<> struct tph::enable_enum_operations<tph::command_buffer_reset_options> {static constexpr bool value{true};};
 
 #endif

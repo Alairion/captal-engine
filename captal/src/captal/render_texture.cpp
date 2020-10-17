@@ -259,8 +259,6 @@ void render_texture::present()
     tph::cmd::end(data.buffer);
     data.begin = false;
 
-    engine::instance().flush_transfers();
-
     data.fence.reset();
 
     tph::submit_info submit_info{};
@@ -292,7 +290,7 @@ render_texture::frame_data& render_texture::next_frame()
 
     auto& data{find_data()};
 
-    data.buffer = tph::cmd::begin(data.pool, tph::command_buffer_level::primary, tph::command_buffer_flags::one_time_submit);
+    data.buffer = tph::cmd::begin(data.pool, tph::command_buffer_level::primary, tph::command_buffer_options::one_time_submit);
     data.begin = true;
 
     return data;

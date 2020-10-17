@@ -69,13 +69,13 @@ void set_object_name(renderer& renderer, const command_buffer& object, const std
 namespace cmd
 {
 
-command_buffer begin(command_pool& pool, command_buffer_level level, command_buffer_flags flags)
+command_buffer begin(command_pool& pool, command_buffer_level level, command_buffer_options options)
 {
     vulkan::command_buffer buffer{underlying_cast<VkDevice>(pool), underlying_cast<VkCommandPool>(pool), static_cast<VkCommandBufferLevel>(level)};
 
     VkCommandBufferBeginInfo begin_info{};
     begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    begin_info.flags = static_cast<VkCommandBufferUsageFlags>(flags);
+    begin_info.flags = static_cast<VkCommandBufferUsageFlags>(options);
 
     if(auto result{vkBeginCommandBuffer(buffer, &begin_info)}; result != VK_SUCCESS)
         throw vulkan::error{result};
@@ -83,7 +83,7 @@ command_buffer begin(command_pool& pool, command_buffer_level level, command_buf
     return command_buffer{std::move(buffer)};
 }
 
-command_buffer begin(command_pool& pool, render_pass& render_pass, optional_ref<framebuffer> framebuffer, command_buffer_flags flags)
+command_buffer begin(command_pool& pool, render_pass& render_pass, optional_ref<framebuffer> framebuffer, command_buffer_options options)
 {
     vulkan::command_buffer buffer{underlying_cast<VkDevice>(pool), underlying_cast<VkCommandPool>(pool), VK_COMMAND_BUFFER_LEVEL_SECONDARY};
 
@@ -94,7 +94,7 @@ command_buffer begin(command_pool& pool, render_pass& render_pass, optional_ref<
 
     VkCommandBufferBeginInfo begin_info{};
     begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    begin_info.flags = static_cast<VkCommandBufferUsageFlags>(flags);
+    begin_info.flags = static_cast<VkCommandBufferUsageFlags>(options);
     begin_info.pInheritanceInfo = &inheritance_info;
 
     if(auto result{vkBeginCommandBuffer(buffer, &begin_info)}; result != VK_SUCCESS)
@@ -103,20 +103,20 @@ command_buffer begin(command_pool& pool, render_pass& render_pass, optional_ref<
     return command_buffer{std::move(buffer)};
 }
 
-void begin(command_buffer& buffer, command_buffer_reset_flags reset, command_buffer_flags flags)
+void begin(command_buffer& buffer, command_buffer_reset_options reset, command_buffer_options options)
 {
     if(auto result{vkResetCommandBuffer(underlying_cast<VkCommandBuffer>(buffer), static_cast<VkCommandBufferResetFlags>(reset))}; result != VK_SUCCESS)
         throw vulkan::error{result};
 
     VkCommandBufferBeginInfo begin_info{};
     begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    begin_info.flags = static_cast<VkCommandBufferUsageFlags>(flags);
+    begin_info.flags = static_cast<VkCommandBufferUsageFlags>(options);
 
     if(auto result{vkBeginCommandBuffer(underlying_cast<VkCommandBuffer>(buffer), &begin_info)}; result != VK_SUCCESS)
         throw vulkan::error{result};
 }
 
-void begin(command_buffer& buffer, render_pass& render_pass, optional_ref<framebuffer> framebuffer, command_buffer_reset_flags reset, command_buffer_flags flags)
+void begin(command_buffer& buffer, render_pass& render_pass, optional_ref<framebuffer> framebuffer, command_buffer_reset_options reset, command_buffer_options options)
 {
     if(auto result{vkResetCommandBuffer(underlying_cast<VkCommandBuffer>(buffer), static_cast<VkCommandBufferResetFlags>(reset))}; result != VK_SUCCESS)
         throw vulkan::error{result};
@@ -128,7 +128,7 @@ void begin(command_buffer& buffer, render_pass& render_pass, optional_ref<frameb
 
     VkCommandBufferBeginInfo begin_info{};
     begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    begin_info.flags = static_cast<VkCommandBufferUsageFlags>(flags);
+    begin_info.flags = static_cast<VkCommandBufferUsageFlags>(options);
     begin_info.pInheritanceInfo = &inheritance_info;
 
     if(auto result{vkBeginCommandBuffer(underlying_cast<VkCommandBuffer>(buffer), &begin_info)}; result != VK_SUCCESS)
@@ -871,9 +871,9 @@ void write_timestamp(command_buffer& command_buffer, query_pool& pool, std::uint
     vkCmdWriteTimestamp(underlying_cast<VkCommandBuffer>(command_buffer), static_cast<VkPipelineStageFlagBits>(stage), underlying_cast<VkQueryPool>(pool), query);
 }
 
-void begin_query(command_buffer& command_buffer, query_pool& pool, std::uint32_t query, query_control flags) noexcept
+void begin_query(command_buffer& command_buffer, query_pool& pool, std::uint32_t query, query_control options) noexcept
 {
-    vkCmdBeginQuery(underlying_cast<VkCommandBuffer>(command_buffer), underlying_cast<VkQueryPool>(pool), query, static_cast<VkQueryControlFlags>(flags));
+    vkCmdBeginQuery(underlying_cast<VkCommandBuffer>(command_buffer), underlying_cast<VkQueryPool>(pool), query, static_cast<VkQueryControlFlags>(options));
 }
 
 void end_query(command_buffer& command_buffer, query_pool& pool, std::uint32_t query) noexcept
@@ -881,9 +881,9 @@ void end_query(command_buffer& command_buffer, query_pool& pool, std::uint32_t q
     vkCmdEndQuery(underlying_cast<VkCommandBuffer>(command_buffer), underlying_cast<VkQueryPool>(pool), query);
 }
 
-void copy_query_pool_results(command_buffer& command_buffer, query_pool& pool, std::uint32_t first, std::uint32_t count, buffer& destination, std::uint64_t offset, std::uint64_t stride, query_results flags) noexcept
+void copy_query_pool_results(command_buffer& command_buffer, query_pool& pool, std::uint32_t first, std::uint32_t count, buffer& destination, std::uint64_t offset, std::uint64_t stride, query_results options) noexcept
 {
-    vkCmdCopyQueryPoolResults(underlying_cast<VkCommandBuffer>(command_buffer), underlying_cast<VkQueryPool>(pool), first, count, underlying_cast<VkBuffer>(destination), offset, stride, static_cast<VkQueryResultFlags>(flags));
+    vkCmdCopyQueryPoolResults(underlying_cast<VkCommandBuffer>(command_buffer), underlying_cast<VkQueryPool>(pool), first, count, underlying_cast<VkBuffer>(destination), offset, stride, static_cast<VkQueryResultFlags>(options));
 }
 
 void begin_label(command_buffer& command_buffer, const std::string& name, float red, float green, float blue, float alpha) noexcept
