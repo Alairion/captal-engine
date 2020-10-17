@@ -88,17 +88,28 @@ memory_transfer_info memory_transfer_scheduler::begin_transfer(std::thread::id t
 {
     std::unique_lock lock{m_mutex};
 
-    auto& pool{get_pool(thread)};
+    auto& pool{get_transfer_pool(thread)};
     auto& buffer{next_thread_buffer(pool, thread)};
 
-/*
-    tph::cmd::pipeline_barrier(buffer.buffer, tph::pipeline_stage::color_attachment_output, tph::pipeline_stage::transfer);
-*/
+    m_begin = true;
+
     return memory_transfer_info{buffer.buffer, buffer.signal, buffer.keeper};
 }
 
 void memory_transfer_scheduler::submit_transfers()
-{/*
+{
+    std::unique_lock lock{m_mutex};
+
+    if(!m_begin)
+    {
+        return;
+    }
+
+    m_begin = false;
+
+
+
+    /*
     std::unique_lock lock{m_mutex};
 
     const auto find_data = [](thread_transfer_pool& pool) -> optional_ref<thread_transfer_buffer>
@@ -125,6 +136,9 @@ void memory_transfer_scheduler::submit_transfers()
                 tph::cmd::end_label(data->buffer);
             }
 
+
+            tph::cmd::pipeline_barrier(buffer.buffer, tph::pipeline_stage::color_attachment_output, tph::pipeline_stage::transfer);
+
             tph::cmd::end(data->buffer);
 
             data->begin = false;
@@ -147,7 +161,23 @@ void memory_transfer_scheduler::submit_transfers()
     }*/
 }
 
-memory_transfer_scheduler::thread_transfer_pool& memory_transfer_scheduler::get_pool(std::thread::id thread)
+
+memory_transfer_scheduler::transfer_buffer& memory_transfer_scheduler::next_buffer()
+{
+
+}
+
+memory_transfer_scheduler::transfer_buffer& memory_transfer_scheduler::add_buffer()
+{
+
+}
+
+void memory_transfer_scheduler::reset_buffer(transfer_buffer& buffer)
+{
+    tph::cmd::begin(buffer.buffer, tph::command_buffer_reset_flags::none, tph::command_buffer_flags::one_time_submit);
+}
+
+memory_transfer_scheduler::thread_transfer_pool& memory_transfer_scheduler::get_transfer_pool(std::thread::id thread)
 {
     auto it{m_thread_pools.find(thread)};
     if(it == std::end(m_thread_pools))
@@ -177,7 +207,12 @@ memory_transfer_scheduler::thread_transfer_buffer& memory_transfer_scheduler::ne
 {
     for(auto& buffer : pool.buffers)
     {
-        if(buffer.fence.try_wait())
+        if(buffer.parent != no_parent)
+        {
+            return buffer;
+        }
+
+        if(check_thread_buffer(buffer))
         {
             reset_thread_buffer(buffer, thread);
 
@@ -186,6 +221,11 @@ memory_transfer_scheduler::thread_transfer_buffer& memory_transfer_scheduler::ne
     }
 
     return add_thread_buffer(pool, thread);
+}
+
+bool memory_transfer_scheduler::check_thread_buffer(thread_transfer_buffer& data)
+{
+    return m_buffers[data.parent].fence.try_wait();
 }
 
 memory_transfer_scheduler::thread_transfer_buffer& memory_transfer_scheduler::add_thread_buffer(thread_transfer_pool& pool, std::thread::id thread)
@@ -204,11 +244,6 @@ memory_transfer_scheduler::thread_transfer_buffer& memory_transfer_scheduler::ad
     data.begin = true;
 
     return pool.buffers.emplace_back(std::move(data));
-}
-
-bool memory_transfer_scheduler::check_thread_buffer(thread_transfer_buffer& data)
-{
-
 }
 
 void memory_transfer_scheduler::reset_thread_buffer(thread_transfer_buffer& data, std::thread::id thread)

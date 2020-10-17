@@ -64,16 +64,17 @@ private:
     {
         tph::command_buffer buffer{};
         tph::fence fence{};
-        bool begin{};
-        bool submitted{};
     };
 
 private:
-    thread_transfer_pool& get_pool(std::thread::id thread);
+    transfer_buffer& next_buffer();
+    transfer_buffer& add_buffer();
+    void reset_buffer(transfer_buffer& buffer);
 
+    thread_transfer_pool& get_transfer_pool(std::thread::id thread);
     thread_transfer_buffer& next_thread_buffer(thread_transfer_pool& pool, std::thread::id thread);
-    thread_transfer_buffer& add_thread_buffer(thread_transfer_pool& pool, std::thread::id thread);
     bool check_thread_buffer(thread_transfer_buffer& data);
+    thread_transfer_buffer& add_thread_buffer(thread_transfer_pool& pool, std::thread::id thread);
     void reset_thread_buffer(thread_transfer_buffer& data, std::thread::id thread);
 
 private:
