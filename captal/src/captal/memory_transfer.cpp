@@ -73,7 +73,7 @@ static bool is_future_ready(const std::future<void>& future)
 
 memory_transfer_scheduler::memory_transfer_scheduler(tph::renderer& renderer) noexcept
 :m_renderer{&renderer}
-,m_pool{renderer, tph::command_pool_options::reset}
+,m_pool{renderer, tph::command_pool_options::reset | tph::command_pool_options::transient}
 {
     m_thread_pools.reserve(4);
     m_buffers.reserve(4);
@@ -163,12 +163,26 @@ void memory_transfer_scheduler::submit_transfers()
 
 memory_transfer_scheduler::transfer_buffer& memory_transfer_scheduler::next_buffer()
 {
+    for(auto& buffer : m_buffers)
+    {
+        if(buffer.fence.try_wait())
+        {
+            reset_buffer(buffer);
 
+            return buffer;
+        }
+    }
+
+    return add_buffer();
 }
 
 memory_transfer_scheduler::transfer_buffer& memory_transfer_scheduler::add_buffer()
 {
+    transfer_buffer data{};
+    data.buffer = tph::command_buffer{tph::cmd::begin(m_pool, tph::command_buffer_level::primary, tph::command_buffer_options::one_time_submit)};
+    data.fence = tph::fence{*m_renderer};
 
+    return m_buffers.emplace_back(std::move(data));
 }
 
 void memory_transfer_scheduler::reset_buffer(transfer_buffer& buffer)
@@ -206,11 +220,14 @@ memory_transfer_scheduler::thread_transfer_buffer& memory_transfer_scheduler::ne
 {
     for(auto& buffer : pool.buffers)
     {
-        if(buffer.parent != no_parent)
+        if(buffer.begin == true)
         {
             return buffer;
         }
+    }
 
+    for(auto& buffer : pool.buffers)
+    {
         if(check_thread_buffer(buffer))
         {
             reset_thread_buffer(buffer, thread);
