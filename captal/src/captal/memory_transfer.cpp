@@ -122,49 +122,8 @@ void memory_transfer_scheduler::submit_transfers()
 
     std::lock_guard queue_lock{engine::instance().submit_mutex()};
     tph::submit(*m_renderer, info, buffer.fence);
-    /*
-    std::unique_lock lock{m_mutex};
-
-    const auto find_data = [](thread_transfer_pool& pool) -> optional_ref<thread_transfer_buffer>
-    {
-        for(auto& buffer : pool.buffers)
-        {
-            if(buffer.begin)
-            {
-                return buffer;
-            }
-        }
-
-        return nullref;
-    };
-
-    for(auto&& pool : m_thread_pools)
-    {
-        const auto data{find_data(pool.second)};
-
-        if(data)
-        {
-            if constexpr(debug_enabled)
-            {
-                tph::cmd::end_label(data->buffer);
-            }
 
 
-            tph::cmd::pipeline_barrier(buffer.buffer, tph::pipeline_stage::color_attachment_output, tph::pipeline_stage::transfer);
-
-            tph::cmd::end(data->buffer);
-
-            data->begin = false;
-        }
-    }
-
-    for(auto&& pool : m_thread_pools)
-    {
-        if(pool.second.exit_future.wait_for(std::chrono::seconds{0}) == std::future_status::ready)
-        {
-
-        }
-    }*/
 }
 
 memory_transfer_scheduler::transfer_buffer& memory_transfer_scheduler::next_buffer()
@@ -187,6 +146,11 @@ memory_transfer_scheduler::transfer_buffer& memory_transfer_scheduler::add_buffe
     transfer_buffer data{};
     data.buffer = tph::command_buffer{tph::cmd::begin(m_pool, tph::command_buffer_level::primary, tph::command_buffer_options::one_time_submit)};
     data.fence = tph::fence{*m_renderer, true};
+
+    if constexpr(debug_enabled)
+    {
+        tph::set_object_name(*m_renderer, data.buffer, "cpt::engine's primary transfer buffer #" + std::to_string(std::size(m_buffers)));
+    }
 
     return m_buffers.emplace_back(std::move(data));
 }
@@ -233,6 +197,13 @@ std::vector<std::reference_wrapper<tph::command_buffer>> memory_transfer_schedul
         {
             if(thread_buffer.begin)
             {
+                if constexpr(debug_enabled)
+                {
+                    tph::cmd::end_label(thread_buffer.buffer);
+                }
+
+                tph::cmd::end(thread_buffer.buffer);
+
                 thread_buffer.begin = false;
                 thread_buffer.parent = parent;
 
@@ -242,6 +213,21 @@ std::vector<std::reference_wrapper<tph::command_buffer>> memory_transfer_schedul
     }
 
     return output;
+}
+
+void memory_transfer_scheduler::clean_threads()
+{
+    std::erase_if(m_thread_pools, [](auto&& item)
+    {
+        auto&& [thread, pool] = item;
+
+        for(auto&& buffer : pool.buffers)
+        {
+
+        }
+
+        return is_future_ready(pool.exit_future);
+    });
 }
 
 memory_transfer_scheduler::thread_transfer_pool& memory_transfer_scheduler::get_transfer_pool(std::thread::id thread)
@@ -311,7 +297,7 @@ memory_transfer_scheduler::thread_transfer_buffer& memory_transfer_scheduler::ad
     {
         const auto name{thread_name(thread)};
 
-        tph::set_object_name(*m_renderer, data.buffer, "cpt::engine's transfer buffer (thread: " + name + ")");
+        tph::set_object_name(*m_renderer, data.buffer, "cpt::engine's transfer buffer #" + std::to_string(std::size(pool.buffers)) + " (thread: " + name + ")");
         tph::cmd::begin_label(data.buffer, "cpt::engine's transfer (thread: " + name + ")", 1.0f, 0.843f, 0.0f, 1.0f);
     }
 
