@@ -49,7 +49,6 @@ private:
         asynchronous_resource_keeper keeper{};
         std::size_t parent{no_parent};
         bool begin{};
-        bool submitted{};
     };
 
     struct thread_transfer_pool
@@ -69,13 +68,13 @@ private:
 private:
     transfer_buffer& next_buffer();
     transfer_buffer& add_buffer();
+    std::size_t buffer_index(const transfer_buffer& buffer) const noexcept;
     void reset_buffer(transfer_buffer& buffer);
+    void reset_thread_buffer(thread_transfer_buffer& data);
 
     thread_transfer_pool& get_transfer_pool(std::thread::id thread);
     thread_transfer_buffer& next_thread_buffer(thread_transfer_pool& pool, std::thread::id thread);
-    bool check_thread_buffer(thread_transfer_buffer& data);
     thread_transfer_buffer& add_thread_buffer(thread_transfer_pool& pool, std::thread::id thread);
-    void reset_thread_buffer(thread_transfer_buffer& data, std::thread::id thread);
 
 private:
     tph::renderer* m_renderer{};

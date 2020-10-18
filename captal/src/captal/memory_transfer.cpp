@@ -107,7 +107,25 @@ void memory_transfer_scheduler::submit_transfers()
 
     m_begin = false;
 
+    auto& buffer{next_buffer()};
+    const auto index{buffer_index(buffer)};
 
+    std::vector<std::reference_wrapper<tph::command_buffer>> to_execute{};
+    to_execute.reserve(std::size(m_thread_pools));
+
+    for(auto&& pool : m_thread_pools)
+    {
+        for(auto&& thread_buffer : pool.second.buffers)
+        {
+            if(thread_buffer.begin)
+            {
+                thread_buffer.begin = false;
+                thread_buffer.parent = index;
+
+                to_execute.emplace_back(thread_buffer.buffer);
+            }
+        }
+    }
 
     /*
     std::unique_lock lock{m_mutex};
@@ -180,14 +198,40 @@ memory_transfer_scheduler::transfer_buffer& memory_transfer_scheduler::add_buffe
 {
     transfer_buffer data{};
     data.buffer = tph::command_buffer{tph::cmd::begin(m_pool, tph::command_buffer_level::primary, tph::command_buffer_options::one_time_submit)};
-    data.fence = tph::fence{*m_renderer};
+    data.fence = tph::fence{*m_renderer, true};
 
     return m_buffers.emplace_back(std::move(data));
 }
 
+std::size_t memory_transfer_scheduler::buffer_index(const transfer_buffer& buffer) const noexcept
+{
+    return static_cast<std::size_t>(std::distance(std::data(m_buffers), &buffer));
+}
+
 void memory_transfer_scheduler::reset_buffer(transfer_buffer& buffer)
 {
+    const std::size_t index{buffer_index(buffer)};
+
+    for(auto&& pool : m_thread_pools)
+    {
+        for(auto&& buffer : pool.second.buffers)
+        {
+            if(buffer.parent == index)
+            {
+                reset_thread_buffer(buffer);
+            }
+        }
+    }
+
     tph::cmd::begin(buffer.buffer, tph::command_buffer_reset_options::none, tph::command_buffer_options::one_time_submit);
+}
+
+void memory_transfer_scheduler::reset_thread_buffer(thread_transfer_buffer& data)
+{
+    data.signal();
+    data.signal.disconnect_all();
+    data.keeper.clear();
+    data.parent = no_parent;
 }
 
 memory_transfer_scheduler::thread_transfer_pool& memory_transfer_scheduler::get_transfer_pool(std::thread::id thread)
@@ -228,20 +272,24 @@ memory_transfer_scheduler::thread_transfer_buffer& memory_transfer_scheduler::ne
 
     for(auto& buffer : pool.buffers)
     {
-        if(check_thread_buffer(buffer))
+        if(buffer.parent == no_parent)
         {
-            reset_thread_buffer(buffer, thread);
+            tph::cmd::begin(buffer.buffer, tph::command_buffer_reset_options::none, tph::command_buffer_options::one_time_submit);
+
+            if constexpr(debug_enabled)
+            {
+                const auto name{thread_name(thread)};
+
+                tph::cmd::begin_label(buffer.buffer, "cpt::engine's transfer (thread: " + name + ")", 1.0f, 0.843f, 0.0f, 1.0f);
+            }
+
+            buffer.begin = true;
 
             return buffer;
         }
     }
 
     return add_thread_buffer(pool, thread);
-}
-
-bool memory_transfer_scheduler::check_thread_buffer(thread_transfer_buffer& data)
-{
-    return m_buffers[data.parent].fence.try_wait();
 }
 
 memory_transfer_scheduler::thread_transfer_buffer& memory_transfer_scheduler::add_thread_buffer(thread_transfer_pool& pool, std::thread::id thread)
@@ -261,26 +309,4 @@ memory_transfer_scheduler::thread_transfer_buffer& memory_transfer_scheduler::ad
 
     return pool.buffers.emplace_back(std::move(data));
 }
-
-void memory_transfer_scheduler::reset_thread_buffer(thread_transfer_buffer& data, std::thread::id thread)
-{
-    data.signal();
-    data.signal.disconnect_all();
-    data.keeper.clear();
-    data.submitted = false;
-    data.parent = no_parent;
-
-    tph::cmd::begin(data.buffer, tph::command_buffer_reset_options::none, tph::command_buffer_options::one_time_submit);
-
-    if constexpr(debug_enabled)
-    {
-        const auto name{thread_name(thread)};
-
-        tph::cmd::begin_label(data.buffer, "cpt::engine's transfer (thread: " + name + ")", 1.0f, 0.843f, 0.0f, 1.0f);
-    }
-
-    data.begin = true;
-}
-
-
 }
