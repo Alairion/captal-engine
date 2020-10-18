@@ -62,7 +62,7 @@ static std::string thread_name(std::thread::id thread)
     ss << thread;
 
     return ss.str();
-};
+}
 
 static bool is_future_ready(const std::future<void>& future)
 {
@@ -221,7 +221,7 @@ std::vector<std::reference_wrapper<tph::command_buffer>> memory_transfer_schedul
 
 void memory_transfer_scheduler::clean_threads()
 {
-    std::erase_if(m_thread_pools, [](const std::pair<std::thread::id, thread_transfer_pool>& item)
+    std::erase_if(m_thread_pools, [](const auto& item)
     {
         auto&& [thread, pool] = item;
 

@@ -25,13 +25,13 @@ struct memory_transfer_info
     asynchronous_resource_keeper& keeper;
 };
 
-class memory_transfer_scheduler
+class CAPTAL_API memory_transfer_scheduler
 {
     static constexpr std::size_t no_parent{std::numeric_limits<std::size_t>::max()};
 
 public:
     explicit memory_transfer_scheduler(tph::renderer& renderer) noexcept;
-    ~memory_transfer_scheduler();
+    ~memory_transfer_scheduler() = default;
     memory_transfer_scheduler(const memory_transfer_scheduler&) = delete;
     memory_transfer_scheduler& operator=(const memory_transfer_scheduler&) = delete;
     memory_transfer_scheduler(memory_transfer_scheduler&& other) noexcept = delete;

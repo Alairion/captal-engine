@@ -321,7 +321,7 @@ text_bounds text_drawer::bounds(std::string_view string)
 
 text text_drawer::draw(std::string_view string, const color& color)
 {
-    auto&& [command_buffer, signal] = cpt::engine::instance().begin_transfer();
+    auto&& [command_buffer, signal, keeper] = cpt::engine::instance().begin_transfer();
 
     std::unordered_map<codepoint_t, std::pair<std::shared_ptr<glyph>, vec2f>> cache{};
     texture_ptr texture{make_texture(string, cache, command_buffer)};
@@ -393,7 +393,8 @@ text text_drawer::draw(std::string_view string, const color& color)
        }
     }
 
-    signal.connect([cache = std::move(cache), texture](){});
+    signal.connect([cache = std::move(cache)](){});
+    keeper.keep(texture);
 
     std::vector<std::uint32_t> indices{};
     indices.reserve(codepoint_count * 6);
@@ -421,7 +422,7 @@ text text_drawer::draw(std::string_view string, const color& color)
 
 text text_drawer::draw(std::string_view string, std::uint32_t line_width, text_align align, const color& color)
 {
-    auto&& [command_buffer, signal] = cpt::engine::instance().begin_transfer();
+    auto&& [command_buffer, signal, keeper] = cpt::engine::instance().begin_transfer();
 
     std::unordered_map<codepoint_t, std::pair<std::shared_ptr<glyph>, vec2f>> cache{};
     texture_ptr texture{make_texture(string, cache, command_buffer)};
@@ -450,7 +451,8 @@ text text_drawer::draw(std::string_view string, std::uint32_t line_width, text_a
         vertices.emplace_back(vertex{});
     }
 
-    signal.connect([cache = std::move(cache), texture](){});
+    signal.connect([cache = std::move(cache)](){});
+    keeper.keep(texture);
 
     std::vector<std::uint32_t> indices{};
     indices.reserve(codepoint_count * 6);

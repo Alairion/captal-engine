@@ -4,6 +4,7 @@
 #include "config.hpp"
 
 #include <optional>
+#include <concepts>
 #include <filesystem>
 #include <istream>
 #include <memory>
@@ -29,13 +30,7 @@ class CAPTAL_API texture : public asynchronous_resource
 public:
     texture() = default;
 
-    explicit texture(const std::filesystem::path& file, const tph::sampling_options& sampling = tph::sampling_options{}, color_space space = color_space::srgb);
-    explicit texture(std::span<const std::uint8_t> data, const tph::sampling_options& sampling = tph::sampling_options{}, color_space space = color_space::srgb);
-    explicit texture(std::istream& stream, const tph::sampling_options& sampling = tph::sampling_options{}, color_space space = color_space::srgb);
-    explicit texture(std::uint32_t width, std::uint32_t height, const std::uint8_t* rgba, const tph::sampling_options& sampling = tph::sampling_options{}, color_space space = color_space::srgb);
-    explicit texture(tph::image image, const tph::sampling_options& sampling = tph::sampling_options{}, color_space space = color_space::srgb);
-
-    template<typename... Args, typename = std::enable_if_t<std::is_constructible_v<tph::texture, tph::renderer&, Args...>>>
+    template<typename... Args> requires std::constructible_from<tph::texture, tph::renderer&, Args...>
     explicit texture(Args&&... args)
     :m_texture{get_renderer(), std::forward<Args>(args)...}
     {
@@ -93,11 +88,17 @@ private:
 using texture_ptr = std::shared_ptr<texture>;
 using texture_weak_ptr = std::weak_ptr<texture>;
 
-template<typename... Args>
+template<typename... Args> requires std::constructible_from<tph::texture, tph::renderer&, Args...>
 texture_ptr make_texture(Args&&... args)
 {
     return std::make_shared<texture>(std::forward<Args>(args)...);
 }
+
+CAPTAL_API texture_ptr make_texture(const std::filesystem::path& file, const tph::sampling_options& sampling = tph::sampling_options{}, color_space space = color_space::srgb);
+CAPTAL_API texture_ptr make_texture(std::span<const std::uint8_t> data, const tph::sampling_options& sampling = tph::sampling_options{}, color_space space = color_space::srgb);
+CAPTAL_API texture_ptr make_texture(std::istream& stream, const tph::sampling_options& sampling = tph::sampling_options{}, color_space space = color_space::srgb);
+CAPTAL_API texture_ptr make_texture(std::uint32_t width, std::uint32_t height, const std::uint8_t* rgba, const tph::sampling_options& sampling = tph::sampling_options{}, color_space space = color_space::srgb);
+CAPTAL_API texture_ptr make_texture(tph::image image, const tph::sampling_options& sampling = tph::sampling_options{}, color_space space = color_space::srgb);
 
 class CAPTAL_API texture_pool
 {

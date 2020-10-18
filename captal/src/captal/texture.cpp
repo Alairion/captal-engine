@@ -15,59 +15,60 @@ static tph::texture_format format_from_color_space(color_space space) noexcept
     }
 }
 
-static tph::texture make_texture(const tph::sampling_options& sampling, tph::texture_format format, tph::image image)
+template<typename... Args>
+static tph::image make_image(Args&&... args)
 {
-    tph::texture texture{cpt::engine::instance().renderer(), static_cast<std::uint32_t>(image.width()), static_cast<std::uint32_t>(image.height()),
-                         tph::texture_info{format, tph::texture_usage::sampled | tph::texture_usage::transfer_destination}, sampling};
+    return tph::image{cpt::engine::instance().renderer(), std::forward<Args>(args)..., tph::image_usage::transfer_source};
+}
 
-    auto&& [command_buffer, signal] = cpt::engine::instance().begin_transfer();
+static texture_ptr make_texture_impl(const tph::sampling_options& sampling, tph::texture_format format, tph::image image)
+{
+    const tph::texture_info info{format, tph::texture_usage::sampled | tph::texture_usage::transfer_destination};
+    texture_ptr texture{make_texture(static_cast<std::uint32_t>(image.width()), static_cast<std::uint32_t>(image.height()), info, sampling)};
 
-    tph::cmd::transition(command_buffer, texture, tph::resource_access::none, tph::resource_access::transfer_write, tph::pipeline_stage::top_of_pipe, tph::pipeline_stage::transfer, tph::texture_layout::undefined, tph::texture_layout::transfer_destination_optimal);
-    tph::cmd::copy(command_buffer, image, texture);
-    tph::cmd::transition(command_buffer, texture, tph::resource_access::transfer_write, tph::resource_access::shader_read, tph::pipeline_stage::transfer, tph::pipeline_stage::fragment_shader, tph::texture_layout::transfer_destination_optimal, tph::texture_layout::shader_read_only_optimal);
+    auto&& [command_buffer, signal, keeper] = cpt::engine::instance().begin_transfer();
+
+    tph::cmd::transition(command_buffer, texture->get_texture(),
+                         tph::resource_access::none, tph::resource_access::transfer_write,
+                         tph::pipeline_stage::top_of_pipe, tph::pipeline_stage::transfer,
+                         tph::texture_layout::undefined, tph::texture_layout::transfer_destination_optimal);
+
+    tph::cmd::copy(command_buffer, image, texture->get_texture());
+
+    tph::cmd::transition(command_buffer, texture->get_texture(),
+                         tph::resource_access::transfer_write, tph::resource_access::shader_read,
+                         tph::pipeline_stage::transfer, tph::pipeline_stage::fragment_shader,
+                         tph::texture_layout::transfer_destination_optimal,  tph::texture_layout::shader_read_only_optimal);
 
     signal.connect([image = std::move(image)](){});
+    keeper.keep(texture);
 
     return texture;
 }
 
-template<typename... Args>
-static tph::texture make_texture(const tph::sampling_options& sampling, tph::texture_format format, Args&&... args)
+texture_ptr make_texture(const std::filesystem::path& file, const tph::sampling_options& sampling, color_space space)
 {
-    tph::image image{cpt::engine::instance().renderer(), std::forward<Args>(args)..., tph::image_usage::transfer_source};
-
-    return make_texture(sampling, format, std::move(image));
+    return make_texture_impl(sampling, format_from_color_space(space), make_image(file));
 }
 
-
-texture::texture(const std::filesystem::path& file, const tph::sampling_options& sampling, color_space space)
-:m_texture{make_texture(sampling, format_from_color_space(space), file)}
+texture_ptr make_texture(std::span<const std::uint8_t> data, const tph::sampling_options& sampling, color_space space)
 {
-
+    return make_texture_impl(sampling, format_from_color_space(space), make_image(data));
 }
 
-texture::texture(std::span<const std::uint8_t> data, const tph::sampling_options& sampling, color_space space)
-:m_texture{make_texture(sampling, format_from_color_space(space), data)}
+texture_ptr make_texture(std::istream& stream, const tph::sampling_options& sampling, color_space space)
 {
-
+    return make_texture_impl(sampling, format_from_color_space(space), make_image(stream));
 }
 
-texture::texture(std::istream& stream, const tph::sampling_options& sampling, color_space space)
-:m_texture{make_texture(sampling, format_from_color_space(space), stream)}
+texture_ptr make_texture(std::uint32_t width, std::uint32_t height, const std::uint8_t* rgba, const tph::sampling_options& sampling, color_space space)
 {
-
+    return make_texture_impl(sampling, format_from_color_space(space), make_image(width, height, rgba));
 }
 
-texture::texture(std::uint32_t width, std::uint32_t height, const std::uint8_t* rgba, const tph::sampling_options& sampling, color_space space)
-:m_texture{make_texture(sampling, format_from_color_space(space), width, height, rgba)}
+texture_ptr make_texture(tph::image image, const tph::sampling_options& sampling, color_space space)
 {
-
-}
-
-texture::texture(tph::image image, const tph::sampling_options& sampling, color_space space)
-:m_texture{make_texture(sampling, format_from_color_space(space), std::move(image))}
-{
-
+    return make_texture_impl(sampling, format_from_color_space(space), std::move(image));
 }
 
 tph::renderer& texture::get_renderer() noexcept

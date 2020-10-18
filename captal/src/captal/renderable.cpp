@@ -113,7 +113,7 @@ void renderable::set_view(cpt::view& view)
             }
         };
 
-        auto& texture{m_texture ? m_texture->get_texture() : engine::instance().default_texture().get_texture()};
+        auto& texture{m_texture ? m_texture->get_texture() : engine::instance().default_texture()->get_texture()};
 
         std::vector<tph::descriptor_write> writes{};
         writes.emplace_back(tph::descriptor_write{set->set(), 0, 0, tph::descriptor_type::uniform_buffer, tph::descriptor_buffer_info{view.get_buffer(), 0, sizeof(view::uniform_data)}});

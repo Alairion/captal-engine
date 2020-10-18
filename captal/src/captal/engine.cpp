@@ -142,12 +142,12 @@ void engine::set_translator(cpt::translator new_translator)
     m_translator = std::move(new_translator);
 }
 
-void engine::set_default_texture(cpt::texture new_default_texture) noexcept
+void engine::set_default_texture(texture_ptr new_default_texture) noexcept
 {
     m_default_texture = std::move(new_default_texture);
 
     #ifdef CAPTAL_DEBUG
-    tph::set_object_name(m_renderer, m_default_texture.get_texture(), "cpt::engine's default texture");
+    tph::set_object_name(m_renderer, m_default_texture->get_texture(), "cpt::engine's default texture");
     #endif
 }
 
@@ -207,7 +207,7 @@ void engine::init()
 
     set_default_vertex_shader(tph::shader{m_renderer, tph::shader_stage::vertex, default_vertex_shader_spv});
     set_default_fragment_shader(tph::shader{m_renderer, tph::shader_stage::fragment, default_fragment_shader_spv});
-    set_default_texture(texture{1, 1, std::data(default_texture_data), tph::sampling_options{tph::filter::nearest, tph::filter::nearest, tph::address_mode::repeat}});
+    set_default_texture(make_texture(1, 1, std::data(default_texture_data), tph::sampling_options{tph::filter::nearest, tph::filter::nearest, tph::address_mode::repeat}));
 
     if constexpr(debug_enabled)
     {
