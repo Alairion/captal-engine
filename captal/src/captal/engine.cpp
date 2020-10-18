@@ -38,6 +38,7 @@ engine::engine(const std::string& application_name, cpt::version version)
 ,m_audio_stream{m_application.audio_application(), m_audio_device, m_audio_mixer}
 ,m_graphics_device{m_application.graphics_application().default_physical_device()}
 ,m_renderer{m_graphics_device, graphics_layers, graphics_extensions}
+,m_transfer_scheduler{m_renderer}
 {
     init();
 }
@@ -118,6 +119,7 @@ engine::engine(cpt::application application, const system_parameters& system [[m
 ,m_audio_stream{m_application.audio_application(), m_audio_device, m_audio_mixer}
 ,m_graphics_device{default_graphics_device(m_application.graphics_application(), graphics)}
 ,m_renderer{m_graphics_device, graphics_layers | graphics.layers, graphics_extensions | graphics.extensions, graphics.features, graphics.options}
+,m_transfer_scheduler{m_renderer}
 {
     init();
 }
@@ -165,6 +167,16 @@ void engine::set_default_fragment_shader(tph::shader new_default_fragment_shader
     #ifdef CAPTAL_DEBUG
     tph::set_object_name(m_renderer, m_default_fragment_shader, "cpt::engine's default fragment shader");
     #endif
+}
+
+memory_transfer_info engine::begin_transfer()
+{
+    return m_transfer_scheduler.begin_transfer();
+}
+
+void engine::submit_transfers()
+{
+    m_transfer_scheduler.submit_transfers();
 }
 
 bool engine::run()

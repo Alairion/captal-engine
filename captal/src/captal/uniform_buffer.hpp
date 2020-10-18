@@ -11,6 +11,7 @@
 
 #include "asynchronous_resource.hpp"
 #include "signal.hpp"
+#include "memory_transfer.hpp"
 
 namespace cpt
 {
@@ -28,7 +29,7 @@ struct buffer_part
     std::uint64_t size{};
 };
 
-class CAPTAL_API uniform_buffer : public std::enable_shared_from_this<uniform_buffer>, public asynchronous_resource
+class CAPTAL_API uniform_buffer : public asynchronous_resource
 {
 public:
     uniform_buffer() = default;
@@ -42,13 +43,13 @@ public:
         get<T>(0) = std::forward<T>(data);
     }
 
-    ~uniform_buffer();
+    ~uniform_buffer() = default;
     uniform_buffer(const uniform_buffer&) = delete;
     uniform_buffer& operator=(const uniform_buffer&) = delete;
     uniform_buffer(uniform_buffer&&) noexcept = default;
     uniform_buffer& operator=(uniform_buffer&&) noexcept = default;
 
-    void upload();
+    void upload(tph::command_buffer& command_buffer, transfer_ended_signal& signal);
 
     template<typename T>
     T& get(std::size_t index) noexcept

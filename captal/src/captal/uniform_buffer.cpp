@@ -63,12 +63,7 @@ uniform_buffer::uniform_buffer(std::vector<buffer_part> parts)
     m_data.resize(m_size);
 }
 
-uniform_buffer::~uniform_buffer()
-{
-    m_stagings.clear();
-}
-
-void uniform_buffer::upload()
+void uniform_buffer::upload(tph::command_buffer& command_buffer, transfer_ended_signal& signal)
 {
     std::size_t staging_index{std::numeric_limits<std::size_t>::max()};
     for(std::size_t i{}; i < std::size(m_stagings); ++i)
@@ -92,12 +87,11 @@ void uniform_buffer::upload()
     std::memcpy(buffer.buffer.map(), std::data(m_data), m_size);
     buffer.buffer.unmap();
 
-    auto&& [command_buffer, signal] = engine::instance().begin_transfer();
     tph::cmd::copy(command_buffer, buffer.buffer, m_device_buffer);
 
-    buffer.connection = signal.connect([buffer = shared_from_this(), staging_index]()
+    buffer.connection = signal.connect([this, staging_index]()
     {
-        buffer->m_stagings[staging_index].available = true;
+        m_stagings[staging_index].available = true;
     });
 }
 

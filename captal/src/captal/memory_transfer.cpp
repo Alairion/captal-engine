@@ -130,24 +130,6 @@ void memory_transfer_scheduler::submit_transfers()
     clean_threads();
 }
 
-std::size_t memory_transfer_scheduler::clean_threads()
-{
-    return std::erase_if(m_thread_pools, [](const std::pair<std::thread::id, thread_transfer_pool>& item)
-    {
-        auto&& [thread, pool] = item;
-
-        for(auto&& buffer : pool.buffers)
-        {
-            if(buffer.begin || buffer.parent != no_parent) //buffer in use
-            {
-                return false;
-            }
-        }
-
-        return is_future_ready(pool.exit_future);
-    });
-}
-
 memory_transfer_scheduler::transfer_buffer& memory_transfer_scheduler::next_buffer()
 {
     for(auto& buffer : m_buffers)
@@ -166,7 +148,7 @@ memory_transfer_scheduler::transfer_buffer& memory_transfer_scheduler::next_buff
 memory_transfer_scheduler::transfer_buffer& memory_transfer_scheduler::add_buffer()
 {
     transfer_buffer data{};
-    data.buffer = tph::command_buffer{tph::cmd::begin(m_pool, tph::command_buffer_level::primary, tph::command_buffer_options::one_time_submit)};
+    data.buffer = tph::cmd::begin(m_pool, tph::command_buffer_level::primary, tph::command_buffer_options::one_time_submit);
     data.fence = tph::fence{*m_renderer, true};
 
     if constexpr(debug_enabled)
@@ -186,9 +168,9 @@ void memory_transfer_scheduler::reset_buffer(transfer_buffer& buffer)
 {
     const std::size_t index{buffer_index(buffer)};
 
-    for(auto&& pool : m_thread_pools)
+    for(auto&& [thread, pool] : m_thread_pools)
     {
-        for(auto&& buffer : pool.second.buffers)
+        for(auto&& buffer : pool.buffers)
         {
             if(buffer.parent == index)
             {
@@ -235,6 +217,24 @@ std::vector<std::reference_wrapper<tph::command_buffer>> memory_transfer_schedul
     }
 
     return output;
+}
+
+void memory_transfer_scheduler::clean_threads()
+{
+    std::erase_if(m_thread_pools, [](const std::pair<std::thread::id, thread_transfer_pool>& item)
+    {
+        auto&& [thread, pool] = item;
+
+        for(auto&& buffer : pool.buffers)
+        {
+            if(buffer.begin || buffer.parent != no_parent) //buffer in use
+            {
+                return false;
+            }
+        }
+
+        return is_future_ready(pool.exit_future);
+    });
 }
 
 memory_transfer_scheduler::thread_transfer_pool& memory_transfer_scheduler::get_transfer_pool(std::thread::id thread)
@@ -305,7 +305,7 @@ memory_transfer_scheduler::thread_transfer_buffer& memory_transfer_scheduler::ne
 memory_transfer_scheduler::thread_transfer_buffer& memory_transfer_scheduler::add_thread_buffer(thread_transfer_pool& pool, std::thread::id thread)
 {
     thread_transfer_buffer data{};
-    data.buffer = tph::command_buffer{tph::cmd::begin(pool.pool, tph::command_buffer_level::secondary, tph::command_buffer_options::one_time_submit)};
+    data.buffer = tph::cmd::begin(pool.pool, tph::command_buffer_level::secondary, tph::command_buffer_options::one_time_submit);
 
     if constexpr(debug_enabled)
     {
@@ -319,4 +319,5 @@ memory_transfer_scheduler::thread_transfer_buffer& memory_transfer_scheduler::ad
 
     return pool.buffers.emplace_back(std::move(data));
 }
+
 }

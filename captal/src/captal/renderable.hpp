@@ -105,7 +105,7 @@ public:
         m_need_upload = true;
     }
 
-    void upload();
+    void upload(memory_transfer_info& info);
     void draw(tph::command_buffer& buffer);
 
     cpt::binding& add_binding(std::uint32_t index, cpt::binding binding);

@@ -165,12 +165,14 @@ mat<T, 4, 4> rotate_and_scale(const vec<T, 3>& translation, T angle, const vec<T
     return translate(translation - origin) * (rotate(angle, axis) + translate(origin)) * scale(factor);
 }*/
 
-void renderable::upload()
+void renderable::upload(memory_transfer_info& info)
 {
     if(std::exchange(m_need_upload, false))
     {
         m_buffer->get<uniform_data>(0).model = cpt::model(m_position, m_rotation, vec3f{0.0f, 0.0f, 1.0f}, m_scale, m_origin);
-        m_buffer->upload();
+
+        m_buffer->upload(info.buffer, info.signal);
+        info.keeper.keep(m_buffer);
     }
 }
 

@@ -18,6 +18,7 @@
 #include "render_window.hpp"
 #include "texture.hpp"
 #include "translation.hpp"
+#include "memory_transfer.hpp"
 
 namespace cpt
 {
@@ -69,6 +70,9 @@ public:
     void set_default_texture(cpt::texture new_default_texture) noexcept;
     void set_default_vertex_shader(tph::shader new_default_vertex_shader) noexcept;
     void set_default_fragment_shader(tph::shader new_default_fragment_shader) noexcept;
+
+    memory_transfer_info begin_transfer();
+    void submit_transfers();
 
     bool run();
 
@@ -136,6 +140,16 @@ public:
         return m_renderer;
     }
 
+    memory_transfer_scheduler& transfer_scheduler() noexcept
+    {
+        return m_transfer_scheduler;
+    }
+
+    const memory_transfer_scheduler& transfer_scheduler() const noexcept
+    {
+        return m_transfer_scheduler;
+    }
+
     update_signal& on_update() noexcept
     {
         return m_update_signal;
@@ -199,6 +213,7 @@ private:
     swl::stream m_audio_stream;
     const tph::physical_device& m_graphics_device;
     tph::renderer m_renderer;
+    memory_transfer_scheduler m_transfer_scheduler;
 
     std::mutex m_queue_mutex{};
     tph::shader m_default_vertex_shader{};

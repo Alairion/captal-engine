@@ -396,6 +396,9 @@ static void run()
             //and draw all drawable items to all render targets associated to the views.
             cpt::systems::render(world);
 
+            //Before executing work on the GPU, we first need to execute memory transfers that occured during the frame
+            cpt::engine::instance().submit_transfers();
+
             //This will update window's swapchain.
             //Doing so will put the newly drawn image in the rendering queue of the system's presentation engine.
             //It will then display it on screen. It's accual behaviour will depends on window presention mode.

@@ -144,7 +144,7 @@ public:
         m_need_descriptor_update = true;
     }
 
-    void upload();
+    void upload(memory_transfer_info& info);
     void bind(tph::command_buffer& buffer);
 
     const tph::viewport& viewport() const noexcept

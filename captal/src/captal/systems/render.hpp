@@ -11,6 +11,7 @@
 #include "../components/drawable.hpp"
 #include "../components/camera.hpp"
 
+#include "../engine.hpp"
 #include "../view.hpp"
 #include "../render_window.hpp"
 #include "../renderable.hpp"
@@ -19,7 +20,7 @@ namespace cpt::systems
 {
 
 template<components::drawable_specialization Drawable = components::drawable>
-void render(entt::registry& world)
+void prepare_render(entt::registry& world)
 {
     const auto drawable_update = [](const components::node& node, Drawable& drawable)
     {
@@ -45,14 +46,24 @@ void render(entt::registry& world)
         }
     };
 
+    world.view<const components::node, Drawable>().each(drawable_update);
+    world.view<const components::node, components::camera>().each(camera_update);
+}
+
+template<components::drawable_specialization Drawable = components::drawable>
+void render(entt::registry& world)
+{
+    prepare_render<Drawable>(world);
+
     const auto draw = [&world](components::camera& camera)
     {
         if(camera && camera->target().is_rendering_enable())
         {
             auto&& [buffer, signal, keeper] = camera->target().begin_render();
+            auto transfer{engine::instance().begin_transfer()};
 
             camera->bind(buffer);
-            camera->upload();
+            camera->upload(transfer);
 
             const std::size_t camera_binding_count{std::size(camera->bindings()) + 1}; //one more for view/projection matrices uniform
             const std::size_t camera_resource_count{camera_binding_count + 1}; //one more for the render technique
@@ -68,7 +79,7 @@ void render(entt::registry& world)
                 keeper.keep(get_binding_resource(binding));
             }
 
-            world.view<Drawable>().each([&keeper = keeper, &camera, &buffer = buffer](Drawable& drawable)
+            world.view<Drawable>().each([&camera, &buffer = buffer, &keeper = keeper, &transfer](Drawable& drawable)
             {
                 if(drawable)
                 {
@@ -77,12 +88,13 @@ void render(entt::registry& world)
                     if(!renderable.hidden())
                     {
                         renderable.set_view(*camera);
-                        renderable.upload();
+                        renderable.upload(transfer);
                         renderable.draw(buffer);
 
                         keeper.keep(renderable.set());
                         keeper.keep(renderable.resource());
                         keeper.keep(renderable.texture());
+
                         for(const auto& [index, binding] : renderable.bindings())
                         {
                             keeper.keep(get_binding_resource(binding));
@@ -93,8 +105,6 @@ void render(entt::registry& world)
         }
     };
 
-    world.view<const components::node, Drawable>().each(drawable_update);
-    world.view<const components::node, components::camera>().each(camera_update);
     world.view<components::camera>().each(draw);
 }
 
