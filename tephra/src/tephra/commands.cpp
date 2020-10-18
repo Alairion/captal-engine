@@ -73,9 +73,13 @@ command_buffer begin(command_pool& pool, command_buffer_level level, command_buf
 {
     vulkan::command_buffer buffer{underlying_cast<VkDevice>(pool), underlying_cast<VkCommandPool>(pool), static_cast<VkCommandBufferLevel>(level)};
 
+    VkCommandBufferInheritanceInfo inheritance_info{};
+    inheritance_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO;
+
     VkCommandBufferBeginInfo begin_info{};
     begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     begin_info.flags = static_cast<VkCommandBufferUsageFlags>(options);
+    begin_info.pInheritanceInfo = &inheritance_info;
 
     if(auto result{vkBeginCommandBuffer(buffer, &begin_info)}; result != VK_SUCCESS)
         throw vulkan::error{result};
@@ -94,7 +98,7 @@ command_buffer begin(command_pool& pool, render_pass& render_pass, optional_ref<
 
     VkCommandBufferBeginInfo begin_info{};
     begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    begin_info.flags = static_cast<VkCommandBufferUsageFlags>(options);
+    begin_info.flags = static_cast<VkCommandBufferUsageFlags>(options) | VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
     begin_info.pInheritanceInfo = &inheritance_info;
 
     if(auto result{vkBeginCommandBuffer(buffer, &begin_info)}; result != VK_SUCCESS)
@@ -108,9 +112,13 @@ void begin(command_buffer& buffer, command_buffer_reset_options reset, command_b
     if(auto result{vkResetCommandBuffer(underlying_cast<VkCommandBuffer>(buffer), static_cast<VkCommandBufferResetFlags>(reset))}; result != VK_SUCCESS)
         throw vulkan::error{result};
 
+    VkCommandBufferInheritanceInfo inheritance_info{};
+    inheritance_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO;
+
     VkCommandBufferBeginInfo begin_info{};
     begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     begin_info.flags = static_cast<VkCommandBufferUsageFlags>(options);
+    begin_info.pInheritanceInfo = &inheritance_info;
 
     if(auto result{vkBeginCommandBuffer(underlying_cast<VkCommandBuffer>(buffer), &begin_info)}; result != VK_SUCCESS)
         throw vulkan::error{result};
@@ -128,7 +136,7 @@ void begin(command_buffer& buffer, render_pass& render_pass, optional_ref<frameb
 
     VkCommandBufferBeginInfo begin_info{};
     begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    begin_info.flags = static_cast<VkCommandBufferUsageFlags>(options);
+    begin_info.flags = static_cast<VkCommandBufferUsageFlags>(options) | VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
     begin_info.pInheritanceInfo = &inheritance_info;
 
     if(auto result{vkBeginCommandBuffer(underlying_cast<VkCommandBuffer>(buffer), &begin_info)}; result != VK_SUCCESS)
