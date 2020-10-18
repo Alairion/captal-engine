@@ -109,24 +109,19 @@ void memory_transfer_scheduler::submit_transfers()
 
     auto& buffer{next_buffer()};
     const auto index{buffer_index(buffer)};
+    const auto to_execute{secondary_buffers(index)};
 
-    std::vector<std::reference_wrapper<tph::command_buffer>> to_execute{};
-    to_execute.reserve(std::size(m_thread_pools));
+    tph::cmd::pipeline_barrier(buffer.buffer, tph::pipeline_stage::bottom_of_pipe, tph::pipeline_stage::transfer);
+    tph::cmd::execute(buffer.buffer, to_execute);
+    tph::cmd::end(buffer.buffer);
 
-    for(auto&& pool : m_thread_pools)
-    {
-        for(auto&& thread_buffer : pool.second.buffers)
-        {
-            if(thread_buffer.begin)
-            {
-                thread_buffer.begin = false;
-                thread_buffer.parent = index;
+    buffer.fence.reset();
 
-                to_execute.emplace_back(thread_buffer.buffer);
-            }
-        }
-    }
+    tph::submit_info info{};
+    info.command_buffers.emplace_back(buffer.buffer);
 
+    std::lock_guard queue_lock{engine::instance().submit_mutex()};
+    tph::submit(*m_renderer, info, buffer.fence);
     /*
     std::unique_lock lock{m_mutex};
 
@@ -160,13 +155,6 @@ void memory_transfer_scheduler::submit_transfers()
             tph::cmd::end(data->buffer);
 
             data->begin = false;
-            data->fence.reset();
-
-            tph::submit_info info{};
-            info.command_buffers.emplace_back(data->buffer);
-
-            std::lock_guard lock{engine::instance().submit_mutex()};
-            tph::submit(*m_renderer, info, data->fence);
         }
     }
 
@@ -232,6 +220,28 @@ void memory_transfer_scheduler::reset_thread_buffer(thread_transfer_buffer& data
     data.signal.disconnect_all();
     data.keeper.clear();
     data.parent = no_parent;
+}
+
+std::vector<std::reference_wrapper<tph::command_buffer>> memory_transfer_scheduler::secondary_buffers(std::size_t parent)
+{
+    std::vector<std::reference_wrapper<tph::command_buffer>> output{};
+    output.reserve(std::size(m_thread_pools));
+
+    for(auto&& pool : m_thread_pools)
+    {
+        for(auto&& thread_buffer : pool.second.buffers)
+        {
+            if(thread_buffer.begin)
+            {
+                thread_buffer.begin = false;
+                thread_buffer.parent = parent;
+
+                output.emplace_back(thread_buffer.buffer);
+            }
+        }
+    }
+
+    return output;
 }
 
 memory_transfer_scheduler::thread_transfer_pool& memory_transfer_scheduler::get_transfer_pool(std::thread::id thread)

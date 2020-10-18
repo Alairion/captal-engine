@@ -71,6 +71,7 @@ private:
     std::size_t buffer_index(const transfer_buffer& buffer) const noexcept;
     void reset_buffer(transfer_buffer& buffer);
     void reset_thread_buffer(thread_transfer_buffer& data);
+    std::vector<std::reference_wrapper<tph::command_buffer>> secondary_buffers(std::size_t parent);
 
     thread_transfer_pool& get_transfer_pool(std::thread::id thread);
     thread_transfer_buffer& next_thread_buffer(thread_transfer_pool& pool, std::thread::id thread);
