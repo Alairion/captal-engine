@@ -428,7 +428,7 @@ void render_window::setup_frame_data()
 
         frame_data data{};
         data.framebuffer = tph::framebuffer{engine::instance().renderer(), get_render_pass(), attachments, m_swapchain.info().width, m_swapchain.info().height, 1};
-        data.pool = tph::command_pool{engine::instance().renderer()};
+        data.pool = tph::command_pool{engine::instance().renderer(), tph::command_pool_options::transient};
         data.image_available = tph::semaphore{engine::instance().renderer()};
         data.image_presentable = tph::semaphore{engine::instance().renderer()};
         data.fence = tph::fence{engine::instance().renderer(), true};

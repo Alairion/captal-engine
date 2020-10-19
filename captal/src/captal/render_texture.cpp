@@ -150,6 +150,7 @@ render_texture::render_texture(const render_texture_info& info, const tph::rende
 ,render_target{render_pass}
 ,m_attachments{std::move(attachments)}
 ,m_framebuffer{engine::instance().renderer(), get_render_pass(), convert_framebuffer_attachments(m_attachments, get_texture()), info.width, info.height, 1}
+,m_pool{engine::instance().renderer(), tph::command_pool_options::reset | tph::command_pool_options::transient}
 {
     m_frames_data.reserve(4);
 }
@@ -159,6 +160,7 @@ render_texture::render_texture(const render_texture_info& info, const tph::sampl
 ,render_target{render_pass}
 ,m_attachments{std::move(attachments)}
 ,m_framebuffer{engine::instance().renderer(), get_render_pass(), convert_framebuffer_attachments(m_attachments, get_texture()), info.width, info.height, 1}
+,m_pool{engine::instance().renderer(), tph::command_pool_options::reset | tph::command_pool_options::transient}
 {
     m_frames_data.reserve(4);
 }
@@ -168,6 +170,7 @@ render_texture::render_texture(const render_texture_info& info, tph::sample_coun
 ,render_target{make_render_pass_info(info.format, false, sample_count, depth_format)}
 ,m_attachments{make_attachments(info, sample_count, depth_format)}
 ,m_framebuffer{engine::instance().renderer(), get_render_pass(), convert_framebuffer_attachments(m_attachments, get_texture()), info.width, info.height, 1}
+,m_pool{engine::instance().renderer(), tph::command_pool_options::reset | tph::command_pool_options::transient}
 {
     m_frames_data.reserve(4);
 }
@@ -177,6 +180,7 @@ render_texture::render_texture(const render_texture_info& info, const tph::sampl
 ,render_target{make_render_pass_info(info.format, true, sample_count, depth_format)}
 ,m_attachments{make_attachments(info, sample_count, depth_format)}
 ,m_framebuffer{engine::instance().renderer(), get_render_pass(), convert_framebuffer_attachments(m_attachments, get_texture()), info.width, info.height, 1}
+,m_pool{engine::instance().renderer(), tph::command_pool_options::reset | tph::command_pool_options::transient}
 {
     m_frames_data.reserve(4);
 }
@@ -271,6 +275,30 @@ void render_texture::present()
     data.submitted = true;
 }
 
+#ifdef CAPTAL_DEBUG
+void render_texture::set_name(std::string_view name)
+{
+    m_name = name;
+
+    tph::set_object_name(engine::instance().renderer(), get_texture(), m_name);
+    tph::set_object_name(engine::instance().renderer(), get_render_pass(), m_name + " render pass");
+    tph::set_object_name(engine::instance().renderer(), m_pool, m_name + " command pool");
+    tph::set_object_name(engine::instance().renderer(), m_framebuffer, m_name + " framebuffer");
+
+    for(std::size_t i{}; i < std::size(m_attachments); ++i)
+    {
+        tph::set_object_name(engine::instance().renderer(), attachement(i).get_texture(), m_name + " attachment #" + std::to_string(i));
+    }
+
+    for(std::size_t i{}; i < std::size(m_frames_data); ++i)
+    {
+        tph::set_object_name(engine::instance().renderer(), m_frames_data[i].buffer,     m_name + " frame #" + std::to_string(i) + " command buffer");
+        tph::set_object_name(engine::instance().renderer(), m_frames_data[i].fence,      m_name + " frame #" + std::to_string(i) + " fence");
+        tph::set_object_name(engine::instance().renderer(), m_frames_data[i].query_pool, m_name + " frame #" + std::to_string(i) + " query_pool");
+    }
+}
+#endif
+
 render_texture::frame_data& render_texture::next_frame()
 {
     const auto find_data = [this]() -> frame_data&
@@ -288,23 +316,23 @@ render_texture::frame_data& render_texture::next_frame()
         return add_frame_data();
     };
 
-    auto& data{find_data()};
-
-    data.buffer = tph::cmd::begin(data.pool, tph::command_buffer_level::primary, tph::command_buffer_options::one_time_submit);
-    data.begin = true;
-
-    return data;
+    return find_data();
 }
 
 render_texture::frame_data& render_texture::add_frame_data()
 {
-    frame_data data
-    {
-        tph::command_pool{engine::instance().renderer()},
-        tph::command_buffer{},
-        tph::fence{engine::instance().renderer(), true},
-        tph::query_pool{engine::instance().renderer(), 2, tph::query_type::timestamp}
-    };
+    frame_data data{};
+    data.buffer = tph::cmd::begin(m_pool, tph::command_buffer_level::primary, tph::command_buffer_options::one_time_submit);
+    data.fence = tph::fence{engine::instance().renderer(), true};
+    data.query_pool = tph::query_pool{engine::instance().renderer(), 2, tph::query_type::timestamp};
+    data.begin = true;
+
+#ifdef CAPTAL_DEBUG
+    const std::size_t i{std::size(m_frames_data)};
+    tph::set_object_name(engine::instance().renderer(), m_frames_data[i].buffer,     m_name + " frame #" + std::to_string(i) + " command buffer");
+    tph::set_object_name(engine::instance().renderer(), m_frames_data[i].fence,      m_name + " frame #" + std::to_string(i) + " fence");
+    tph::set_object_name(engine::instance().renderer(), m_frames_data[i].query_pool, m_name + " frame #" + std::to_string(i) + " query_pool");
+#endif
 
     return m_frames_data.emplace_back(std::move(data));
 }
@@ -322,7 +350,9 @@ void render_texture::reset(frame_data& data)
     data.signal();
     data.signal.disconnect_all();
     data.keeper.clear();
-    data.pool.reset();
+
+    tph::cmd::begin(data.buffer, tph::command_buffer_reset_options::none, tph::command_buffer_options::one_time_submit);
+    data.begin = true;
 }
 
 void render_texture::time_results(frame_data& data)

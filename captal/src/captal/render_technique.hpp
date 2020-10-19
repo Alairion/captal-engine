@@ -169,6 +169,15 @@ public:
         return m_pipeline;
     }
 
+#ifdef CAPTAL_DEBUG
+    void set_name(std::string_view name);
+#else
+    void set_name(std::string_view name [[maybe_unused]]) noexcept
+    {
+
+    }
+#endif
+
 private:
     std::vector<tph::descriptor_set_layout_binding> m_bindings{};
     std::vector<tph::push_constant_range> m_ranges{};
@@ -178,7 +187,12 @@ private:
     tph::pipeline m_pipeline{};
     std::mutex m_mutex{};
     std::vector<std::unique_ptr<descriptor_pool>> m_pools{};
+
+#ifdef CAPTAL_DEBUG
+    std::string m_name{};
+#endif
 };
+
 
 using render_technique_ptr = std::shared_ptr<render_technique>;
 using render_technique_weak_ptr = std::weak_ptr<render_technique>;
@@ -188,8 +202,6 @@ render_technique_ptr make_render_technique(Args&&... args)
 {
     return std::make_shared<render_technique>(std::forward<Args>(args)...);
 }
-
-//CAPTAL_API void set_object_name(const render_technique_ptr& object, const std::string& name);
 
 }
 

@@ -64,11 +64,6 @@ static std::string thread_name(std::thread::id thread)
     return ss.str();
 }
 
-static bool is_future_ready(const std::future<void>& future)
-{
-    return future.wait_for(std::chrono::seconds{0}) == std::future_status::ready;
-}
-
 memory_transfer_scheduler::memory_transfer_scheduler(tph::renderer& renderer) noexcept
 :m_renderer{&renderer}
 ,m_pool{renderer, tph::command_pool_options::reset | tph::command_pool_options::transient}
@@ -126,8 +121,6 @@ void memory_transfer_scheduler::submit_transfers()
     std::unique_lock queue_lock{engine::instance().submit_mutex()};
     tph::submit(*m_renderer, info, buffer.fence);
     queue_lock.unlock();
-
-    clean_threads();
 }
 
 memory_transfer_scheduler::transfer_buffer& memory_transfer_scheduler::next_buffer()
@@ -154,6 +147,7 @@ memory_transfer_scheduler::transfer_buffer& memory_transfer_scheduler::add_buffe
     if constexpr(debug_enabled)
     {
         tph::set_object_name(*m_renderer, data.buffer, "cpt::engine's primary transfer buffer #" + std::to_string(std::size(m_buffers)));
+        tph::set_object_name(*m_renderer, data.fence, "cpt::engine's transfer fence #" + std::to_string(std::size(m_buffers)));
     }
 
     return m_buffers.emplace_back(std::move(data));
@@ -219,9 +213,9 @@ std::vector<std::reference_wrapper<tph::command_buffer>> memory_transfer_schedul
     return output;
 }
 
-void memory_transfer_scheduler::clean_threads()
+std::size_t memory_transfer_scheduler::clean_threads()
 {
-    std::erase_if(m_thread_pools, [](const auto& item)
+    return std::erase_if(m_thread_pools, [](const auto& item)
     {
         auto&& [thread, pool] = item;
 
@@ -233,7 +227,7 @@ void memory_transfer_scheduler::clean_threads()
             }
         }
 
-        return is_future_ready(pool.exit_future);
+        return pool.exit_future.wait_for(std::chrono::seconds{0}) == std::future_status::ready;
     });
 }
 
@@ -257,14 +251,6 @@ memory_transfer_scheduler::thread_transfer_pool& memory_transfer_scheduler::get_
         }
 
         it = m_thread_pools.emplace(thread, std::move(pool)).first;
-    }
-
-    //A thread ID may be recycled, if it happens, simply do as nothing happened :)
-    if(is_future_ready(it->second.exit_future))
-    {
-        it->second.exit_promise = std::promise<void>{};
-        it->second.exit_promise.set_value_at_thread_exit();
-        it->second.exit_future = it->second.exit_promise.get_future();
     }
 
     return it->second;
@@ -306,6 +292,7 @@ memory_transfer_scheduler::thread_transfer_buffer& memory_transfer_scheduler::ad
 {
     thread_transfer_buffer data{};
     data.buffer = tph::cmd::begin(pool.pool, tph::command_buffer_level::secondary, tph::command_buffer_options::one_time_submit);
+    data.keeper.reserve(512);
 
     if constexpr(debug_enabled)
     {

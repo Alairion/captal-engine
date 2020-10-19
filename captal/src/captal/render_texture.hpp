@@ -90,10 +90,18 @@ public:
         return m_attachments;
     }
 
+#ifdef CAPTAL_DEBUG
+    void set_name(std::string_view name);
+#else
+    void set_name(std::string_view name [[maybe_unused]]) noexcept
+    {
+
+    }
+#endif
+
 private:
     struct frame_data
     {
-        tph::command_pool pool{};
         tph::command_buffer buffer{};
         tph::fence fence{};
         tph::query_pool query_pool{};
@@ -115,7 +123,12 @@ private:
 private:
     std::vector<render_texture_attachment> m_attachments{};
     tph::framebuffer m_framebuffer{};
+    tph::command_pool m_pool{};
     std::vector<frame_data> m_frames_data{};
+
+#ifdef CAPTAL_DEBUG
+    std::string m_name{};
+#endif
 };
 
 using render_texture_ptr = std::shared_ptr<render_texture>;

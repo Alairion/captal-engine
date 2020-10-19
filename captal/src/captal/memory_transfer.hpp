@@ -40,6 +40,7 @@ public:
     memory_transfer_info begin_transfer();
     memory_transfer_info begin_transfer(std::thread::id thread);
     void submit_transfers();
+    std::size_t clean_threads();
 
 private:
     struct thread_transfer_buffer
@@ -72,7 +73,6 @@ private:
     void reset_buffer(transfer_buffer& buffer);
     void reset_thread_buffer(thread_transfer_buffer& data);
     std::vector<std::reference_wrapper<tph::command_buffer>> secondary_buffers(std::size_t parent);
-    void clean_threads();
 
     thread_transfer_pool& get_transfer_pool(std::thread::id thread);
     thread_transfer_buffer& next_thread_buffer(thread_transfer_pool& pool, std::thread::id thread);

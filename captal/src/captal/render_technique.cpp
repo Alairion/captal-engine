@@ -131,17 +131,27 @@ descriptor_set_ptr render_technique::make_set()
 
     m_pools.emplace_back(std::make_unique<descriptor_pool>(*this, tph::descriptor_pool{engine::instance().renderer(), m_sizes, static_cast<std::uint32_t>(descriptor_pool::pool_size)}));
 
+#ifdef CAPTAL_DEBUG
+    tph::set_object_name(engine::instance().renderer(), m_pools.back()->pool(), m_name + " descriptor pool #" + std::to_string(std::size(m_pools) - 1));
+#endif
+
     return m_pools.back()->allocate();
 }
-/*
-void set_object_name(const render_technique_ptr& object, const std::string& name)
+
+#ifdef CAPTAL_DEBUG
+void render_technique::set_name(std::string_view name)
 {
-    if constexpr(debug_enabled)
+    m_name = name;
+
+    tph::set_object_name(engine::instance().renderer(), m_descriptor_set_layout, m_name + " descriptor set layout");
+    tph::set_object_name(engine::instance().renderer(), m_layout, m_name + " pipeline layout");
+    tph::set_object_name(engine::instance().renderer(), m_pipeline, m_name + " pipeline");
+
+    for(std::size_t i{}; i < std::size(m_pools); ++i)
     {
-        tph::set_object_name(engine::instance().renderer(), object->descriptor_set_layout(), name + " descriptor set layout");
-        tph::set_object_name(engine::instance().renderer(), object->pipeline_layout(), name + " pipeline layout");
-        tph::set_object_name(engine::instance().renderer(), object->pipeline(), name + " pipeline");
+        tph::set_object_name(engine::instance().renderer(), m_pools[i]->pool(), m_name + " descriptor pool #" + std::to_string(i));
     }
 }
-*/
+#endif
+
 }

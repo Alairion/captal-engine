@@ -94,7 +94,12 @@ set(WAYLAND_SHARED         OFF CACHE INTERNAL "")
 set(X11_SHARED             OFF CACHE INTERNAL "")
 
 captal_download_submodule(apyre/external/sdl TRUE)
+
+set(OLD_CMAKE_C_FLAGS ${CMAKE_C_FLAGS})
+
 add_subdirectory(external/sdl EXCLUDE_FROM_ALL)
+
+set(CMAKE_C_FLAGS ${OLD_CMAKE_C_FLAGS})
 
 unset(3DNOW                   CACHE)
 unset(ALSA                    CACHE)
