@@ -84,4 +84,11 @@ void view::set_binding(std::uint32_t index, cpt::binding new_binding)
     update_uniforms();
 }
 
+#ifdef CAPTAL_DEBUG
+void view::set_name(std::string_view name)
+{
+    m_buffer->set_name(std::string{name} + " uniform buffer");
+}
+#endif
+
 }

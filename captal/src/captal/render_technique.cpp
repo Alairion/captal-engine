@@ -44,6 +44,20 @@ bool descriptor_pool::unused() const noexcept
     return std::all_of(std::begin(m_sets), std::end(m_sets), [](const descriptor_set_ptr& data){return data.use_count() == 1;});
 }
 
+#ifdef CAPTAL_DEBUG
+void descriptor_pool::set_name(std::string_view name)
+{
+    const std::string name_str{name};
+
+    tph::set_object_name(engine::instance().renderer(), m_pool, name_str);
+
+    for(std::size_t i{}; i < std::size(m_sets); ++i)
+    {
+        tph::set_object_name(engine::instance().renderer(), m_pool, name_str + " descriptor set #" + std::to_string(i));
+    }
+}
+#endif
+
 static std::vector<tph::descriptor_set_layout_binding> make_bindings(const std::vector<tph::descriptor_set_layout_binding>& info)
 {
     std::vector<tph::descriptor_set_layout_binding> output{};
@@ -132,7 +146,10 @@ descriptor_set_ptr render_technique::make_set()
     m_pools.emplace_back(std::make_unique<descriptor_pool>(*this, tph::descriptor_pool{engine::instance().renderer(), m_sizes, static_cast<std::uint32_t>(descriptor_pool::pool_size)}));
 
 #ifdef CAPTAL_DEBUG
-    tph::set_object_name(engine::instance().renderer(), m_pools.back()->pool(), m_name + " descriptor pool #" + std::to_string(std::size(m_pools) - 1));
+    if(!std::empty(m_name))
+    {
+        m_pools.back()->set_name(m_name + " descriptor pool #" + std::to_string(std::size(m_pools) - 1));
+    }
 #endif
 
     return m_pools.back()->allocate();
@@ -149,7 +166,7 @@ void render_technique::set_name(std::string_view name)
 
     for(std::size_t i{}; i < std::size(m_pools); ++i)
     {
-        tph::set_object_name(engine::instance().renderer(), m_pools[i]->pool(), m_name + " descriptor pool #" + std::to_string(i));
+        m_pools[i]->set_name(m_name + " descriptor pool #" + std::to_string(std::size(m_pools) - 1));
     }
 }
 #endif

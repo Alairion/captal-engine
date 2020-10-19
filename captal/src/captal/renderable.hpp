@@ -195,6 +195,15 @@ public:
         return m_buffer;
     }
 
+#ifdef CAPTAL_DEBUG
+    void set_name(std::string_view name);
+#else
+    void set_name(std::string_view name [[maybe_unused]]) const noexcept
+    {
+
+    }
+#endif
+
 private:
     uniform_buffer_ptr m_buffer{};
     texture_ptr m_texture{};
@@ -215,6 +224,10 @@ private:
     bool m_hidden{};
     bool m_need_upload{true};
     bool m_need_descriptor_update{};
+
+#ifdef CAPTAL_DEBUG
+    std::string m_name{};
+#endif
 };
 
 class CAPTAL_API sprite final : public renderable

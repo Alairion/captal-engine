@@ -93,7 +93,7 @@ public:
 #ifdef CAPTAL_DEBUG
     void set_name(std::string_view name);
 #else
-    void set_name(std::string_view name [[maybe_unused]]) noexcept
+    void set_name(std::string_view name [[maybe_unused]]) const noexcept
     {
 
     }

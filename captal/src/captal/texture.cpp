@@ -5,6 +5,13 @@
 namespace cpt
 {
 
+#ifdef CAPTAL_DEBUG
+void texture::set_name(std::string_view name)
+{
+    tph::set_object_name(engine::instance().renderer(), m_texture, std::string{name});
+}
+#endif
+
 static tph::texture_format format_from_color_space(color_space space) noexcept
 {
     switch(space)
@@ -79,7 +86,13 @@ tph::renderer& texture::get_renderer() noexcept
 
 cpt::texture_ptr texture_pool::default_load_callback(const std::filesystem::path& path, const tph::sampling_options& sampling, color_space space)
 {
-    return make_texture(path, sampling, space);
+    auto output{make_texture(path, sampling, space)};
+
+#ifdef CAPTAL_DEBUG
+   output->set_name(convert_to<narrow>(path.u8string()));
+#endif
+
+    return output;
 }
 
 texture_pool::texture_pool()

@@ -209,6 +209,15 @@ void renderable::set_binding(std::uint32_t index, cpt::binding new_binding)
     m_need_descriptor_update = true;
 }
 
+#ifdef CAPTAL_DEBUG
+void renderable::set_name(std::string_view name)
+{
+    m_name = name;
+
+    m_buffer->set_name(m_name + " uniform buffer");
+}
+#endif
+
 sprite::sprite(std::uint32_t width, std::uint32_t height, const color& color)
 :renderable{6, 4}
 ,m_width{width}

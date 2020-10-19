@@ -66,6 +66,7 @@ uniform_buffer::uniform_buffer(std::vector<buffer_part> parts)
 void uniform_buffer::upload(tph::command_buffer& command_buffer, transfer_ended_signal& signal)
 {
     std::size_t staging_index{std::numeric_limits<std::size_t>::max()};
+
     for(std::size_t i{}; i < std::size(m_stagings); ++i)
     {
         if(m_stagings[i].available)
@@ -79,6 +80,13 @@ void uniform_buffer::upload(tph::command_buffer& command_buffer, transfer_ended_
     {
         m_stagings.emplace_back(staging_buffer{tph::buffer{engine::instance().renderer(), m_size, tph::buffer_usage::transfer_source}});
         staging_index = std::size(m_stagings) - 1;
+
+        #ifdef CAPTAL_DEBUG
+        if(!std::empty(m_name))
+        {
+            tph::set_object_name(engine::instance().renderer(), m_stagings[staging_index].buffer, m_name + " staging #" + std::to_string(staging_index));
+        }
+        #endif
     }
 
     staging_buffer& buffer{m_stagings[staging_index]};
@@ -99,5 +107,19 @@ std::uint64_t uniform_buffer::uniform_alignement()
 {
     return engine::instance().graphics_device().limits().min_uniform_buffer_alignment;
 }
+
+#ifdef CAPTAL_DEBUG
+void uniform_buffer::set_name(std::string_view name)
+{
+    m_name = name;
+
+    tph::set_object_name(engine::instance().renderer(), m_device_buffer, m_name);
+
+    for(std::size_t i{}; i < std::size(m_stagings); ++i)
+    {
+        tph::set_object_name(engine::instance().renderer(), m_stagings[i].buffer, m_name + " staging #" + std::to_string(i));
+    }
+}
+#endif
 
 }

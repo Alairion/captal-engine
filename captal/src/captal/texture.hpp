@@ -78,6 +78,15 @@ public:
         return m_texture;
     }
 
+#ifdef CAPTAL_DEBUG
+    void set_name(std::string_view name);
+#else
+    void set_name(std::string_view name [[maybe_unused]]) const noexcept
+    {
+
+    }
+#endif
+
 private:
     static tph::renderer& get_renderer() noexcept;
 

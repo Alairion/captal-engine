@@ -97,6 +97,15 @@ public:
         return m_pool;
     }
 
+#ifdef CAPTAL_DEBUG
+    void set_name(std::string_view name);
+#else
+    void set_name(std::string_view name [[maybe_unused]]) const noexcept
+    {
+
+    }
+#endif
+
 private:
     render_technique* m_parent{};
     tph::descriptor_pool m_pool{};
@@ -172,7 +181,7 @@ public:
 #ifdef CAPTAL_DEBUG
     void set_name(std::string_view name);
 #else
-    void set_name(std::string_view name [[maybe_unused]]) noexcept
+    void set_name(std::string_view name [[maybe_unused]]) const noexcept
     {
 
     }

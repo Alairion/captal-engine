@@ -98,6 +98,15 @@ public:
         return m_size;
     }
 
+#ifdef CAPTAL_DEBUG
+    void set_name(std::string_view name);
+#else
+    void set_name(std::string_view name [[maybe_unused]]) const noexcept
+    {
+
+    }
+#endif
+
 private:
     struct staging_buffer
     {
@@ -115,6 +124,10 @@ private:
     std::vector<std::uint8_t> m_data{}; //cpu local copy for host manipulation
     std::vector<staging_buffer> m_stagings{}; //cpu-gpu-shared buffers, stay alive waiting for transfers
     tph::buffer m_device_buffer{}; //the gpu buffer
+
+#ifdef CAPTAL_DEBUG
+    std::string m_name{};
+#endif
 };
 
 using uniform_buffer_ptr = std::shared_ptr<uniform_buffer>;

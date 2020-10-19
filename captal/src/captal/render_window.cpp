@@ -214,6 +214,7 @@ render_window::render_window(const apr::monitor& monitor, const std::string& tit
 ,m_multisampling_texture{make_multisampling_texture(mode, m_surface_format)}
 ,m_depth_texture{make_depth_texture(mode)}
 ,m_video_mode{mode}
+,m_pool{engine::instance().renderer(), tph::command_pool_options::reset | tph::command_pool_options::transient}
 {
     setup_frame_data();
     setup_signals();
@@ -420,6 +421,31 @@ void render_window::present()
     }
 }
 
+#ifdef CAPTAL_DEBUG
+void render_window::set_name(std::string_view name)
+{
+    m_name = name;
+
+    tph::set_object_name(engine::instance().renderer(), get_surface(), m_name + " surface");
+    tph::set_object_name(engine::instance().renderer(), m_swapchain, m_name + " swapchain");
+    tph::set_object_name(engine::instance().renderer(), get_render_pass(), m_name + " render pass");
+    tph::set_object_name(engine::instance().renderer(), m_multisampling_texture, m_name + " multisampling texture");
+    tph::set_object_name(engine::instance().renderer(), m_depth_texture, m_name + " depth texture");
+
+    for(std::size_t i{}; i < std::size(m_frames_data); ++i)
+    {
+        tph::set_object_name(engine::instance().renderer(), m_swapchain.textures()[i], m_name + " swapchain image #" + std::to_string(i));
+
+        tph::set_object_name(engine::instance().renderer(), m_frames_data[i].buffer,            m_name + " frame #" + std::to_string(i) + " command buffer");
+        tph::set_object_name(engine::instance().renderer(), m_frames_data[i].framebuffer,       m_name + " frame #" + std::to_string(i) + " framebuffer");
+        tph::set_object_name(engine::instance().renderer(), m_frames_data[i].image_available,   m_name + " frame #" + std::to_string(i) + " available semaphore");
+        tph::set_object_name(engine::instance().renderer(), m_frames_data[i].image_presentable, m_name + " frame #" + std::to_string(i) + " presentable semaphore");
+        tph::set_object_name(engine::instance().renderer(), m_frames_data[i].fence,             m_name + " frame #" + std::to_string(i) + " fence");
+        tph::set_object_name(engine::instance().renderer(), m_frames_data[i].query_pool,        m_name + " frame #" + std::to_string(i) + " query pool");
+    }
+}
+#endif
+
 void render_window::setup_frame_data()
 {
     for(std::uint32_t i{}; i < m_swapchain.info().image_count; ++i)
@@ -427,8 +453,8 @@ void render_window::setup_frame_data()
         const auto attachments{make_attachments(m_video_mode, m_swapchain.textures()[i], m_multisampling_texture, m_depth_texture)};
 
         frame_data data{};
+        data.buffer = tph::cmd::begin(m_pool, tph::command_buffer_level::primary, tph::command_buffer_options::one_time_submit);
         data.framebuffer = tph::framebuffer{engine::instance().renderer(), get_render_pass(), attachments, m_swapchain.info().width, m_swapchain.info().height, 1};
-        data.pool = tph::command_pool{engine::instance().renderer(), tph::command_pool_options::transient};
         data.image_available = tph::semaphore{engine::instance().renderer()};
         data.image_presentable = tph::semaphore{engine::instance().renderer()};
         data.fence = tph::fence{engine::instance().renderer(), true};
@@ -493,9 +519,7 @@ void render_window::begin_render_impl(frame_data& data)
 
         recreate(capabilities);
 
-        data.pool.reset();
-        data.buffer = tph::cmd::begin(data.pool, tph::command_buffer_level::primary, tph::command_buffer_options::one_time_submit);
-
+        tph::cmd::begin(data.buffer, tph::command_buffer_reset_options::none, tph::command_buffer_options::one_time_submit);
         tph::cmd::begin_render_pass(data.buffer, get_render_pass(), data.framebuffer);
 
         status = m_swapchain.acquire(data.image_available, tph::nullref);
@@ -534,9 +558,8 @@ void render_window::reset(frame_data& data)
     data.signal();
     data.signal.disconnect_all();
     data.keeper.clear();
-    data.pool.reset();
 
-    data.buffer = tph::cmd::begin(data.pool, tph::command_buffer_level::primary, tph::command_buffer_options::one_time_submit);
+    tph::cmd::begin(data.buffer, tph::command_buffer_reset_options::none, tph::command_buffer_options::one_time_submit);
     data.begin = true;
 }
 
@@ -574,10 +597,36 @@ void render_window::recreate(const tph::surface_capabilities& capabilities)
     m_multisampling_texture = make_multisampling_texture(m_video_mode, m_surface_format);
     m_depth_texture = make_depth_texture(m_video_mode);
 
+    #ifdef CAPTAL_DEBUG
+    if(!std::empty(m_name))
+    {
+        tph::set_object_name(engine::instance().renderer(), m_swapchain, m_name + " swapchain");
+        tph::set_object_name(engine::instance().renderer(), m_multisampling_texture, m_name + " multisampling texture");
+        tph::set_object_name(engine::instance().renderer(), m_depth_texture, m_name + " depth texture");
+    }
+    #endif
+
     if(std::size(m_frames_data) != m_swapchain.info().image_count)
     {
         m_frames_data.clear();
         setup_frame_data();
+
+        #ifdef CAPTAL_DEBUG
+        if(!std::empty(m_name))
+        {
+            for(std::size_t i{}; i < std::size(m_frames_data); ++i)
+            {
+                tph::set_object_name(engine::instance().renderer(), m_swapchain.textures()[i], m_name + " swapchain image #" + std::to_string(i));
+
+                tph::set_object_name(engine::instance().renderer(), m_frames_data[i].buffer,            m_name + " frame #" + std::to_string(i) + " command buffer");
+                tph::set_object_name(engine::instance().renderer(), m_frames_data[i].framebuffer,       m_name + " frame #" + std::to_string(i) + " framebuffer");
+                tph::set_object_name(engine::instance().renderer(), m_frames_data[i].image_available,   m_name + " frame #" + std::to_string(i) + " available semaphore");
+                tph::set_object_name(engine::instance().renderer(), m_frames_data[i].image_presentable, m_name + " frame #" + std::to_string(i) + " presentable semaphore");
+                tph::set_object_name(engine::instance().renderer(), m_frames_data[i].fence,             m_name + " frame #" + std::to_string(i) + " fence");
+                tph::set_object_name(engine::instance().renderer(), m_frames_data[i].query_pool,        m_name + " frame #" + std::to_string(i) + " query pool");
+            }
+        }
+        #endif
     }
     else
     {
@@ -587,6 +636,13 @@ void render_window::recreate(const tph::surface_capabilities& capabilities)
 
             frame_data& data{m_frames_data[i]};
             data.framebuffer = tph::framebuffer{engine::instance().renderer(), get_render_pass(), attachments, m_swapchain.info().width, m_swapchain.info().height, 1};
+
+            #ifdef CAPTAL_DEBUG
+            if(!std::empty(m_name))
+            {
+                tph::set_object_name(engine::instance().renderer(), m_frames_data[i].framebuffer, m_name + " frame #" + std::to_string(i) + " framebuffer");
+            }
+            #endif
         }
     }
 }

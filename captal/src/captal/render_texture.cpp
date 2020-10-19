@@ -294,29 +294,24 @@ void render_texture::set_name(std::string_view name)
     {
         tph::set_object_name(engine::instance().renderer(), m_frames_data[i].buffer,     m_name + " frame #" + std::to_string(i) + " command buffer");
         tph::set_object_name(engine::instance().renderer(), m_frames_data[i].fence,      m_name + " frame #" + std::to_string(i) + " fence");
-        tph::set_object_name(engine::instance().renderer(), m_frames_data[i].query_pool, m_name + " frame #" + std::to_string(i) + " query_pool");
+        tph::set_object_name(engine::instance().renderer(), m_frames_data[i].query_pool, m_name + " frame #" + std::to_string(i) + " query pool");
     }
 }
 #endif
 
 render_texture::frame_data& render_texture::next_frame()
 {
-    const auto find_data = [this]() -> frame_data&
+    for(auto& data : m_frames_data)
     {
-        for(auto& data : m_frames_data)
+        if(data.fence.try_wait())
         {
-            if(data.fence.try_wait())
-            {
-                reset(data);
+            reset(data);
 
-                return data;
-            }
+            return data;
         }
+    }
 
-        return add_frame_data();
-    };
-
-    return find_data();
+    return add_frame_data();
 }
 
 render_texture::frame_data& render_texture::add_frame_data()
@@ -331,7 +326,7 @@ render_texture::frame_data& render_texture::add_frame_data()
     const std::size_t i{std::size(m_frames_data)};
     tph::set_object_name(engine::instance().renderer(), m_frames_data[i].buffer,     m_name + " frame #" + std::to_string(i) + " command buffer");
     tph::set_object_name(engine::instance().renderer(), m_frames_data[i].fence,      m_name + " frame #" + std::to_string(i) + " fence");
-    tph::set_object_name(engine::instance().renderer(), m_frames_data[i].query_pool, m_name + " frame #" + std::to_string(i) + " query_pool");
+    tph::set_object_name(engine::instance().renderer(), m_frames_data[i].query_pool, m_name + " frame #" + std::to_string(i) + " query pool");
 #endif
 
     return m_frames_data.emplace_back(std::move(data));

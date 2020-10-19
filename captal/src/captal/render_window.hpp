@@ -168,11 +168,19 @@ public:
         return m_closed;
     }
 
+#ifdef CAPTAL_DEBUG
+    void set_name(std::string_view name);
+#else
+    void set_name(std::string_view name [[maybe_unused]]) const noexcept
+    {
+
+    }
+#endif
+
 private:
     struct frame_data
     {
         tph::framebuffer framebuffer{};
-        tph::command_pool pool{};
         tph::command_buffer buffer{};
         tph::semaphore image_available{};
         tph::semaphore image_presentable{};
@@ -208,6 +216,7 @@ private:
     tph::clear_depth_stencil_value m_clear_depth_stencil{};
     bool m_closed{};
 
+    tph::command_pool m_pool{};
     std::vector<frame_data> m_frames_data{};
 
     window_event_signal m_gained_focus{};
@@ -227,6 +236,10 @@ private:
     keyboard_event_signal m_key_pressed{};
     keyboard_event_signal m_key_released{};
     text_event_signal m_text_entered{};
+
+#ifdef CAPTAL_DEBUG
+    std::string m_name{};
+#endif
 };
 
 using render_window_ptr = std::shared_ptr<render_window>;
