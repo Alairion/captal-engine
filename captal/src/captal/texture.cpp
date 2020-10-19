@@ -25,7 +25,13 @@ static tph::texture_format format_from_color_space(color_space space) noexcept
 template<typename... Args>
 static tph::image make_image(Args&&... args)
 {
-    return tph::image{cpt::engine::instance().renderer(), std::forward<Args>(args)..., tph::image_usage::transfer_source};
+    tph::image output{engine::instance().renderer(), std::forward<Args>(args)..., tph::image_usage::transfer_source};
+
+#ifdef CAPTAL_DEBUG
+    tph::set_object_name(engine::instance().renderer(), output, "transfer image");
+#endif
+
+    return output;
 }
 
 static texture_ptr make_texture_impl(const tph::sampling_options& sampling, tph::texture_format format, tph::image image)
