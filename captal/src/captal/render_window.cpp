@@ -426,11 +426,22 @@ void render_window::set_name(std::string_view name)
 {
     m_name = name;
 
+    const bool has_multisampling{m_video_mode.sample_count != tph::sample_count::msaa_x1};
+    const bool has_depth_stencil{m_video_mode.depth_format != tph::texture_format::undefined};
+
     tph::set_object_name(engine::instance().renderer(), get_surface(), m_name + " surface");
     tph::set_object_name(engine::instance().renderer(), m_swapchain, m_name + " swapchain");
     tph::set_object_name(engine::instance().renderer(), get_render_pass(), m_name + " render pass");
-    tph::set_object_name(engine::instance().renderer(), m_multisampling_texture, m_name + " multisampling texture");
-    tph::set_object_name(engine::instance().renderer(), m_depth_texture, m_name + " depth texture");
+
+    if(has_multisampling)
+    {
+        tph::set_object_name(engine::instance().renderer(), m_multisampling_texture, m_name + " multisampling texture");
+    }
+
+    if(has_depth_stencil)
+    {
+        tph::set_object_name(engine::instance().renderer(), m_depth_texture, m_name + " depth texture");
+    }
 
     for(std::size_t i{}; i < std::size(m_frames_data); ++i)
     {
@@ -600,9 +611,20 @@ void render_window::recreate(const tph::surface_capabilities& capabilities)
     #ifdef CAPTAL_DEBUG
     if(!std::empty(m_name))
     {
+        const bool has_multisampling{m_video_mode.sample_count != tph::sample_count::msaa_x1};
+        const bool has_depth_stencil{m_video_mode.depth_format != tph::texture_format::undefined};
+
         tph::set_object_name(engine::instance().renderer(), m_swapchain, m_name + " swapchain");
-        tph::set_object_name(engine::instance().renderer(), m_multisampling_texture, m_name + " multisampling texture");
-        tph::set_object_name(engine::instance().renderer(), m_depth_texture, m_name + " depth texture");
+
+        if(has_multisampling)
+        {
+            tph::set_object_name(engine::instance().renderer(), m_multisampling_texture, m_name + " multisampling texture");
+        }
+
+        if(has_depth_stencil)
+        {
+            tph::set_object_name(engine::instance().renderer(), m_depth_texture, m_name + " depth texture");
+        }
     }
     #endif
 
