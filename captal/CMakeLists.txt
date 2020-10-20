@@ -32,6 +32,7 @@ set(CAPTAL_SOURCES
     src/captal/shapes.hpp
     src/captal/renderable.hpp
     src/captal/view.hpp
+    src/captal/bin_packing.hpp
     src/captal/text.hpp
     src/captal/sound.hpp
     src/captal/tiled_map.hpp
@@ -73,6 +74,7 @@ set(CAPTAL_SOURCES
     src/captal/shapes.cpp
     src/captal/renderable.cpp
     src/captal/view.cpp
+    src/captal/bin_packing.cpp
     src/captal/text.cpp
     src/captal/sound.cpp
     src/captal/tiled_map.cpp
