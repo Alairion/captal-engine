@@ -23,7 +23,7 @@ public:
 
 public:
     bin_packer() = default;
-    bin_packer(std::uint32_t width, std::uint32_t height);
+    explicit bin_packer(std::uint32_t width, std::uint32_t height);
 
     bin_packer(const bin_packer&) = delete;
     bin_packer& operator=(const bin_packer&) = delete;

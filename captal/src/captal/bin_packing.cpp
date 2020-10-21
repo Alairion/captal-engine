@@ -20,7 +20,8 @@ std::optional<bin_packer::rect> bin_packer::append(uint32_t image_width, uint32_
 
         if(splits)
         {
-            m_spaces.erase(std::begin(m_spaces) + i);
+            m_spaces[i] = m_spaces.back();
+            m_spaces.pop_back();
 
             for(std::size_t j{}; j < splits->count; ++j)
             {

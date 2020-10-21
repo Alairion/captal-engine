@@ -64,11 +64,6 @@ font::font(std::istream& stream, std::uint32_t initial_size)
     init(initial_size);
 }
 
-void font::set_style(font_style style) noexcept
-{
-    m_info.style = style;
-}
-
 void font::resize(std::uint32_t pixels_size)
 {
     if(pixels_size != m_info.size)

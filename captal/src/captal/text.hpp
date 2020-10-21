@@ -74,7 +74,11 @@ public:
     font& operator=(font&&) noexcept = default;
 
     void resize(std::uint32_t pixels_size);
-    void set_style(font_style style) noexcept;
+
+    void set_style(font_style style) noexcept
+    {
+        m_info.style = style;
+    }
 
     std::optional<glyph> load(codepoint_t codepoint);
     float kerning(codepoint_t left, codepoint_t right);
