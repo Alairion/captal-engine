@@ -17,6 +17,7 @@
 
 #include "color.hpp"
 #include "renderable.hpp"
+#include "bin_packing.hpp"
 
 namespace cpt
 {
@@ -36,6 +37,42 @@ enum class font_style : std::uint32_t
     bold = 0x01,
     underlined = 0x04,
     strikethrough = 0x08,
+};
+
+using font_atlas_resize_signal = cpt::signal<>;
+
+enum class font_atlas_format : std::uint32_t
+{
+    gray = static_cast<std::uint32_t>(tph::texture_format::r8_unorm),
+    color = static_cast<std::uint32_t>(tph::texture_format::r8g8b8a8_srgb)
+};
+
+class CAPTAL_API font_atlas
+{
+public:
+    font_atlas(font_atlas_format format);
+    ~font_atlas() = default;
+    font_atlas(const font_atlas&) = delete;
+    font_atlas& operator=(const font_atlas&) = delete;
+    font_atlas(font_atlas&&) noexcept = default;
+    font_atlas& operator=(font_atlas&&) noexcept = default;
+
+    bin_packer::rect add_glyph(tph::buffer& image, std::uint32_t width, std::uint32_t height);
+
+    const texture_ptr& texture() const noexcept
+    {
+        return m_texture;
+    }
+
+    font_atlas_resize_signal& signal() noexcept
+    {
+        return m_signal;
+    }
+
+private:
+    texture_ptr m_texture{};
+    font_atlas_resize_signal m_signal{};
+    bin_packer m_packer{};
 };
 
 struct font_info

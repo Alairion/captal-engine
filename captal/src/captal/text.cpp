@@ -19,6 +19,32 @@
 namespace cpt
 {
 
+font_atlas::font_atlas(font_atlas_format format)
+:m_packer{512, 512}
+{
+    if(format == font_atlas_format::gray)
+    {
+        constexpr tph::component_mapping mapping
+        {
+            tph::component_swizzle::one,
+            tph::component_swizzle::one,
+            tph::component_swizzle::one,
+            tph::component_swizzle::r,
+        };
+
+        m_texture = make_texture(512, 512, tph::texture_info{tph::texture_format::r8_unorm, tph::texture_usage::transfer_destination, mapping});
+    }
+    else
+    {
+        m_texture = make_texture(512, 512, tph::texture_info{tph::texture_format::r8g8b8a8_srgb, tph::texture_usage::transfer_destination});
+    }
+}
+
+bin_packer::rect font_atlas::add_glyph(tph::buffer& image, std::uint32_t width, std::uint32_t height)
+{
+
+}
+
 struct font::freetype_info
 {
     FT_Library library{};
