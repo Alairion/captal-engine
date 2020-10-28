@@ -22,13 +22,22 @@
 namespace cpt
 {
 
+enum class glyph_format : std::uint32_t
+{
+    gray = 0,
+    color = 1
+};
+
 struct glyph
 {
     vec2f origin{};
     float advance{};
     float ascent{};
     float descent{};
-    tph::image image{};
+    glyph_format format{};
+    std::vector<std::uint8_t> data{};
+    std::uint32_t width{};
+    std::uint32_t height{};
 };
 
 enum class font_style : std::uint32_t
@@ -41,23 +50,18 @@ enum class font_style : std::uint32_t
 
 using font_atlas_resize_signal = cpt::signal<>;
 
-enum class font_atlas_format : std::uint32_t
-{
-    gray = static_cast<std::uint32_t>(tph::texture_format::r8_unorm),
-    color = static_cast<std::uint32_t>(tph::texture_format::r8g8b8a8_srgb)
-};
-
 class CAPTAL_API font_atlas
 {
 public:
-    font_atlas(font_atlas_format format);
+    font_atlas(glyph_format format);
     ~font_atlas() = default;
     font_atlas(const font_atlas&) = delete;
     font_atlas& operator=(const font_atlas&) = delete;
     font_atlas(font_atlas&&) noexcept = default;
     font_atlas& operator=(font_atlas&&) noexcept = default;
 
-    bin_packer::rect add_glyph(tph::buffer& image, std::uint32_t width, std::uint32_t height);
+    std::optional<bin_packer::rect> add_glyph(const std::vector<std::uint8_t>& image, std::uint32_t width, std::uint32_t height);
+    void upload();
 
     const texture_ptr& texture() const noexcept
     {
@@ -69,10 +73,30 @@ public:
         return m_signal;
     }
 
+    bool need_upload() const noexcept
+    {
+        return !std::empty(m_buffers);
+    }
+
 private:
+    void resize(tph::command_buffer& buffer, asynchronous_resource_keeper& keeper);
+
+private:
+    struct transfer_buffer
+    {
+        std::size_t begin{};
+        bin_packer::rect rect{};
+    };
+
+private:
+    glyph_format m_format{};
     texture_ptr m_texture{};
     font_atlas_resize_signal m_signal{};
     bin_packer m_packer{};
+    std::vector<transfer_buffer> m_buffers{};
+    std::vector<std::uint8_t> m_buffer_data{};
+    std::uint32_t m_max_size{};
+    bool m_resized{};
 };
 
 struct font_info

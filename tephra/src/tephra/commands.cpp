@@ -197,7 +197,7 @@ void copy(command_buffer& command_buffer, buffer& source, texture& destination, 
     native_region.bufferOffset = region.buffer_offset;
     native_region.bufferRowLength = region.buffer_image_width;
     native_region.bufferImageHeight = region.buffer_image_height;
-    native_region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    native_region.imageSubresource.aspectMask = static_cast<VkImageAspectFlags>(destination.aspect());
     native_region.imageSubresource.mipLevel = 0;
     native_region.imageSubresource.baseArrayLayer = 0;
     native_region.imageSubresource.layerCount = 1;
@@ -226,7 +226,7 @@ void copy(command_buffer& command_buffer, buffer& source, texture& destination, 
         native_region.bufferOffset = region.buffer_offset;
         native_region.bufferRowLength = region.buffer_image_width;
         native_region.bufferImageHeight = region.buffer_image_height;
-        native_region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        native_region.imageSubresource.aspectMask = static_cast<VkImageAspectFlags>(destination.aspect());
         native_region.imageSubresource.mipLevel = 0;
         native_region.imageSubresource.baseArrayLayer = 0;
         native_region.imageSubresource.layerCount = 1;
@@ -263,7 +263,7 @@ void copy(command_buffer& command_buffer, image& source, texture& destination, c
     VkBufferImageCopy native_region{};
     native_region.bufferRowLength = static_cast<std::uint32_t>(source.width());
     native_region.bufferImageHeight = static_cast<std::uint32_t>(source.height());
-    native_region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    native_region.imageSubresource.aspectMask = static_cast<VkImageAspectFlags>(destination.aspect());
     native_region.imageSubresource.mipLevel = 0;
     native_region.imageSubresource.baseArrayLayer = 0;
     native_region.imageSubresource.layerCount = 1;
@@ -291,7 +291,7 @@ void copy(command_buffer& command_buffer, image& source, texture& destination, s
         VkBufferImageCopy& native_region{native_regions.emplace_back()};
         native_region.bufferRowLength = static_cast<std::uint32_t>(source.width());
         native_region.bufferImageHeight = static_cast<std::uint32_t>(source.height());
-        native_region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        native_region.imageSubresource.aspectMask = static_cast<VkImageAspectFlags>(destination.aspect());
         native_region.imageSubresource.mipLevel = 0;
         native_region.imageSubresource.baseArrayLayer = 0;
         native_region.imageSubresource.layerCount = 1;
@@ -315,7 +315,7 @@ void copy(command_buffer& command_buffer, texture& source, buffer& destination, 
     native_region.bufferOffset = region.buffer_offset;
     native_region.bufferRowLength = region.buffer_image_width;
     native_region.bufferImageHeight = region.buffer_image_height;
-    native_region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    native_region.imageSubresource.aspectMask = static_cast<VkImageAspectFlags>(source.aspect());
     native_region.imageSubresource.mipLevel = 0;
     native_region.imageSubresource.baseArrayLayer = 0;
     native_region.imageSubresource.layerCount = 1;
@@ -344,7 +344,7 @@ void copy(command_buffer& command_buffer, texture& source, buffer& destination, 
         native_region.bufferOffset = region.buffer_offset;
         native_region.bufferRowLength = region.buffer_image_width;
         native_region.bufferImageHeight = region.buffer_image_height;
-        native_region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        native_region.imageSubresource.aspectMask = static_cast<VkImageAspectFlags>(source.aspect());
         native_region.imageSubresource.mipLevel = 0;
         native_region.imageSubresource.baseArrayLayer = 0;
         native_region.imageSubresource.layerCount = 1;
@@ -367,7 +367,7 @@ void copy(command_buffer& command_buffer, texture& source, image& destination, c
     VkBufferImageCopy native_region{};
     native_region.bufferRowLength = static_cast<std::uint32_t>(destination.width());
     native_region.bufferImageHeight = static_cast<std::uint32_t>(destination.height());
-    native_region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    native_region.imageSubresource.aspectMask = static_cast<VkImageAspectFlags>(source.aspect());
     native_region.imageSubresource.mipLevel = 0;
     native_region.imageSubresource.baseArrayLayer = 0;
     native_region.imageSubresource.layerCount = 1;
@@ -395,7 +395,7 @@ void copy(command_buffer& command_buffer, texture& source, image& destination, s
         VkBufferImageCopy& native_region{native_regions.emplace_back()};
         native_region.bufferRowLength = static_cast<std::uint32_t>(destination.width());
         native_region.bufferImageHeight = static_cast<std::uint32_t>(destination.height());
-        native_region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        native_region.imageSubresource.aspectMask = static_cast<VkImageAspectFlags>(source.aspect());
         native_region.imageSubresource.mipLevel = 0;
         native_region.imageSubresource.baseArrayLayer = 0;
         native_region.imageSubresource.layerCount = 1;
@@ -416,14 +416,14 @@ void copy(command_buffer& command_buffer, texture& source, image& destination, s
 void copy(command_buffer& command_buffer, texture& source, texture& destination, const texture_copy& region) noexcept
 {
     VkImageCopy native_region{};
-    native_region.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    native_region.srcSubresource.aspectMask = static_cast<VkImageAspectFlags>(source.aspect());
     native_region.srcSubresource.mipLevel = 0;
     native_region.srcSubresource.baseArrayLayer = 0;
     native_region.srcSubresource.layerCount = 1;
     native_region.srcOffset.x = region.source_offset.x;
     native_region.srcOffset.y = region.source_offset.y;
     native_region.srcOffset.z = region.source_offset.z;
-    native_region.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    native_region.dstSubresource.aspectMask = static_cast<VkImageAspectFlags>(destination.aspect());
     native_region.dstSubresource.mipLevel = 0;
     native_region.dstSubresource.baseArrayLayer = 0;
     native_region.dstSubresource.layerCount = 1;
@@ -449,14 +449,14 @@ void copy(command_buffer& command_buffer, texture& source, texture& destination,
     for(auto&& region : regions)
     {
         VkImageCopy& native_region{native_regions.emplace_back()};
-        native_region.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        native_region.srcSubresource.aspectMask = static_cast<VkImageAspectFlags>(source.aspect());
         native_region.srcSubresource.mipLevel = 0;
         native_region.srcSubresource.baseArrayLayer = 0;
         native_region.srcSubresource.layerCount = 1;
         native_region.srcOffset.x = region.source_offset.x;
         native_region.srcOffset.y = region.source_offset.y;
         native_region.srcOffset.z = region.source_offset.z;
-        native_region.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        native_region.dstSubresource.aspectMask = static_cast<VkImageAspectFlags>(destination.aspect());
         native_region.dstSubresource.mipLevel = 0;
         native_region.dstSubresource.baseArrayLayer = 0;
         native_region.dstSubresource.layerCount = 1;
@@ -505,7 +505,7 @@ void copy(command_buffer& command_buffer, image& source, texture& destination) n
     VkBufferImageCopy native_region{};
     native_region.bufferRowLength = static_cast<std::uint32_t>(source.width());
     native_region.bufferImageHeight = static_cast<std::uint32_t>(source.height());
-    native_region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    native_region.imageSubresource.aspectMask = static_cast<VkImageAspectFlags>(destination.aspect());
     native_region.imageSubresource.mipLevel = 0;
     native_region.imageSubresource.layerCount = 1;
     native_region.imageSubresource.baseArrayLayer = 0;
@@ -524,7 +524,7 @@ void copy(command_buffer& command_buffer, texture& source, image& destination) n
     VkBufferImageCopy native_region{};
     native_region.bufferRowLength = static_cast<std::uint32_t>(destination.width());
     native_region.bufferImageHeight = static_cast<std::uint32_t>(destination.height());
-    native_region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    native_region.imageSubresource.aspectMask = static_cast<VkImageAspectFlags>(source.aspect());
     native_region.imageSubresource.mipLevel = 0;
     native_region.imageSubresource.layerCount = 1;
     native_region.imageSubresource.baseArrayLayer = 0;
@@ -543,11 +543,11 @@ void copy(command_buffer& command_buffer, texture& source, texture& destination)
     assert((source.width() <= destination.width() && source.height() <= destination.height() && source.depth() <= destination.depth()) && "tph::cmd::copy called with too small destination texture");
 
     VkImageCopy native_region{};
-    native_region.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    native_region.srcSubresource.aspectMask = static_cast<VkImageAspectFlags>(source.aspect());
     native_region.srcSubresource.mipLevel = 0;
     native_region.srcSubresource.layerCount = 1;
     native_region.srcSubresource.baseArrayLayer = 0;
-    native_region.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    native_region.dstSubresource.aspectMask = static_cast<VkImageAspectFlags>(destination.aspect());
     native_region.dstSubresource.mipLevel = 0;
     native_region.dstSubresource.layerCount = 1;
     native_region.dstSubresource.baseArrayLayer = 0;
@@ -570,7 +570,7 @@ void blit(command_buffer& command_buffer, texture& source, texture& destination,
     native_region.srcOffsets[1].x = region.source_offset.x + region.source_size.width;
     native_region.srcOffsets[1].y = region.source_offset.y + region.source_size.height;
     native_region.srcOffsets[1].z = region.source_offset.z + region.source_size.depth;
-    native_region.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    native_region.srcSubresource.aspectMask = static_cast<VkImageAspectFlags>(source.aspect());
     native_region.srcSubresource.mipLevel = 0;
     native_region.srcSubresource.layerCount = 1;
     native_region.srcSubresource.baseArrayLayer = 0;
@@ -580,7 +580,7 @@ void blit(command_buffer& command_buffer, texture& source, texture& destination,
     native_region.dstOffsets[1].x = region.destination_offset.x + region.destination_size.width;
     native_region.dstOffsets[1].y = region.destination_offset.y + region.destination_size.height;
     native_region.dstOffsets[1].z = region.destination_offset.z + region.destination_size.depth;
-    native_region.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    native_region.dstSubresource.aspectMask = static_cast<VkImageAspectFlags>(destination.aspect());
     native_region.dstSubresource.mipLevel = 0;
     native_region.dstSubresource.layerCount = 1;
     native_region.dstSubresource.baseArrayLayer = 0;
@@ -606,7 +606,7 @@ void blit(command_buffer& command_buffer, texture& source, texture& destination,
         native_region.srcOffsets[1].x = region.source_offset.x + region.source_size.width;
         native_region.srcOffsets[1].y = region.source_offset.y + region.source_size.height;
         native_region.srcOffsets[1].z = region.source_offset.z + region.source_size.depth;
-        native_region.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        native_region.srcSubresource.aspectMask = static_cast<VkImageAspectFlags>(source.aspect());
         native_region.srcSubresource.mipLevel = 0;
         native_region.srcSubresource.layerCount = 1;
         native_region.srcSubresource.baseArrayLayer = 0;
@@ -616,7 +616,7 @@ void blit(command_buffer& command_buffer, texture& source, texture& destination,
         native_region.dstOffsets[1].x = region.destination_offset.x + region.destination_size.width;
         native_region.dstOffsets[1].y = region.destination_offset.y + region.destination_size.height;
         native_region.dstOffsets[1].z = region.destination_offset.z + region.destination_size.depth;
-        native_region.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        native_region.dstSubresource.aspectMask = static_cast<VkImageAspectFlags>(destination.aspect());
         native_region.dstSubresource.mipLevel = 0;
         native_region.dstSubresource.layerCount = 1;
         native_region.dstSubresource.baseArrayLayer = 0;
@@ -637,7 +637,7 @@ void blit(command_buffer& command_buffer, texture& source, texture& destination,
     native_region.srcOffsets[1].x = source.width();
     native_region.srcOffsets[1].y = source.height();
     native_region.srcOffsets[1].z = source.depth();
-    native_region.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    native_region.srcSubresource.aspectMask = static_cast<VkImageAspectFlags>(source.aspect());
     native_region.srcSubresource.mipLevel = 0;
     native_region.srcSubresource.layerCount = 1;
     native_region.srcSubresource.baseArrayLayer = 0;
@@ -647,7 +647,7 @@ void blit(command_buffer& command_buffer, texture& source, texture& destination,
     native_region.dstOffsets[1].x = destination.width();
     native_region.dstOffsets[1].y = destination.height();
     native_region.dstOffsets[1].z = destination.depth();
-    native_region.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    native_region.dstSubresource.aspectMask = static_cast<VkImageAspectFlags>(destination.aspect());
     native_region.dstSubresource.mipLevel = 0;
     native_region.dstSubresource.layerCount = 1;
     native_region.dstSubresource.baseArrayLayer = 0;

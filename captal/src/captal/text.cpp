@@ -19,30 +19,141 @@
 namespace cpt
 {
 
-font_atlas::font_atlas(font_atlas_format format)
-:m_packer{512, 512}
+static constexpr tph::component_mapping red_to_alpha_mapping
 {
-    if(format == font_atlas_format::gray)
-    {
-        constexpr tph::component_mapping mapping
-        {
-            tph::component_swizzle::one,
-            tph::component_swizzle::one,
-            tph::component_swizzle::one,
-            tph::component_swizzle::r,
-        };
+    tph::component_swizzle::one,
+    tph::component_swizzle::one,
+    tph::component_swizzle::one,
+    tph::component_swizzle::r,
+};
 
-        m_texture = make_texture(512, 512, tph::texture_info{tph::texture_format::r8_unorm, tph::texture_usage::transfer_destination, mapping});
+font_atlas::font_atlas(glyph_format format)
+:m_format{format}
+,m_packer{512, 512}
+,m_max_size{engine::instance().graphics_device().limits().max_2d_texture_size}
+{
+    constexpr auto usage{tph::texture_usage::transfer_destination | tph::texture_usage::transfer_source};
+
+    if(m_format == glyph_format::gray)
+    {
+        m_texture = make_texture(512, 512, tph::texture_info{tph::texture_format::r8_unorm, usage, red_to_alpha_mapping});
     }
     else
     {
-        m_texture = make_texture(512, 512, tph::texture_info{tph::texture_format::r8g8b8a8_srgb, tph::texture_usage::transfer_destination});
+        m_texture = make_texture(512, 512, tph::texture_info{tph::texture_format::r8g8b8a8_srgb, usage});
     }
+
+    m_buffers.reserve(64);
+    m_buffer_data.reserve(1024 * 8);
 }
 
-bin_packer::rect font_atlas::add_glyph(tph::buffer& image, std::uint32_t width, std::uint32_t height)
+std::optional<bin_packer::rect> font_atlas::add_glyph(const std::vector<std::uint8_t>& image, std::uint32_t width, std::uint32_t height)
 {
+    auto rect{m_packer.append(width + 2, height + 2)};
+    while(!rect.has_value())
+    {
+        if(m_packer.width() * 2 > m_max_size)
+        {
+            return std::nullopt;
+        }
 
+        m_packer.resize(m_packer.width() * 2, m_packer.height() * 2);
+        m_resized = true;
+
+        rect = m_packer.append(width + 2, height + 2);
+    }
+
+    const auto begin{std::size(m_buffer_data)};
+    m_buffer_data.resize(begin + std::size(image));
+    std::copy(std::begin(image), std::end(image), std::begin(m_buffer_data) + begin);
+
+    m_buffers.emplace_back(transfer_buffer{begin, rect.value()});
+
+    ++rect->x;
+    ++rect->y;
+
+    return rect;
+}
+
+void font_atlas::upload()
+{
+    auto&& [buffer, signal, keeper] = engine::instance().begin_transfer();
+
+    if(m_resized)
+    {
+        resize(buffer, keeper);
+    }
+    else
+    {
+        tph::cmd::transition(buffer, m_texture->get_texture(),
+                             tph::resource_access::none, tph::resource_access::transfer_write,
+                             tph::pipeline_stage::top_of_pipe, tph::pipeline_stage::transfer,
+                             tph::texture_layout::shader_read_only_optimal, tph::texture_layout::transfer_destination_optimal);
+    }
+
+    std::vector<tph::buffer_texture_copy> copies{};
+    copies.reserve(std::size(m_buffers));
+
+    for(auto&& buffer : m_buffers)
+    {
+        tph::buffer_texture_copy copy{};
+        copy.buffer_offset = buffer.begin;
+        copy.buffer_image_width = buffer.rect.width - 2;
+        copy.buffer_image_height = buffer.rect.height - 2;
+        copy.texture_offset.x = buffer.rect.x + 1;
+        copy.texture_offset.y = buffer.rect.y + 1;
+        copy.texture_size.width = buffer.rect.width - 2;
+        copy.texture_size.height = buffer.rect.height - 2;
+        copy.texture_size.width = 1;
+
+        copies.emplace_back(copy);
+    }
+
+    tph::buffer staging_buffer{engine::instance().renderer(), std::size(m_buffer_data), tph::buffer_usage::staging | tph::buffer_usage::transfer_source};
+    std::memcpy(staging_buffer.map(), std::data(m_buffer_data), std::size(m_buffer_data));
+    staging_buffer.unmap();
+
+    tph::cmd::copy(buffer, staging_buffer, m_texture->get_texture(), copies);
+
+    tph::cmd::transition(buffer, m_texture->get_texture(),
+                         tph::resource_access::transfer_write, tph::resource_access::shader_read,
+                         tph::pipeline_stage::transfer, tph::pipeline_stage::fragment_shader,
+                         tph::texture_layout::transfer_destination_optimal, tph::texture_layout::shader_read_only_optimal);
+
+    keeper.keep(m_texture);
+    signal.connect([buffer = std::move(staging_buffer)](){});
+
+    m_buffers.clear();
+    m_buffer_data.clear();
+}
+
+void font_atlas::resize(tph::command_buffer& buffer, asynchronous_resource_keeper& keeper)
+{
+    constexpr auto usage{tph::texture_usage::transfer_destination | tph::texture_usage::transfer_source};
+
+    texture_ptr new_texture{};
+    if(m_format == glyph_format::gray)
+    {
+        new_texture = make_texture(m_packer.width(), m_packer.height(), tph::texture_info{tph::texture_format::r8_unorm, usage, red_to_alpha_mapping});
+    }
+    else
+    {
+        new_texture = make_texture(m_packer.width(), m_packer.height(), tph::texture_info{tph::texture_format::r8g8b8a8_srgb, usage});
+    }
+
+    tph::cmd::transition(buffer, m_texture->get_texture(),
+                         tph::resource_access::none, tph::resource_access::transfer_read,
+                         tph::pipeline_stage::top_of_pipe, tph::pipeline_stage::transfer,
+                         tph::texture_layout::shader_read_only_optimal, tph::texture_layout::transfer_source_optimal);
+
+    tph::cmd::transition(buffer, new_texture->get_texture(),
+                         tph::resource_access::none, tph::resource_access::transfer_write,
+                         tph::pipeline_stage::top_of_pipe, tph::pipeline_stage::transfer,
+                         tph::texture_layout::undefined, tph::texture_layout::transfer_destination_optimal);
+
+    tph::cmd::copy(buffer, m_texture->get_texture(), new_texture->get_texture());
+
+    keeper.keep(std::exchange(m_texture, new_texture));
 }
 
 struct font::freetype_info
@@ -110,7 +221,9 @@ void font::resize(std::uint32_t pixels_size)
 std::optional<glyph> font::load(codepoint_t codepoint)
 {
     if(FT_Load_Char(m_loader->face, codepoint, FT_HAS_COLOR(m_loader->face) ? FT_LOAD_COLOR : FT_LOAD_DEFAULT))
-       return std::nullopt;
+    {
+        return std::nullopt;
+    }
 
     if(m_loader->face->glyph->format == FT_GLYPH_FORMAT_OUTLINE && static_cast<bool>(m_info.style & font_style::bold))
     {
@@ -118,42 +231,41 @@ std::optional<glyph> font::load(codepoint_t codepoint)
     }
 
     if(FT_Render_Glyph(m_loader->face->glyph, FT_RENDER_MODE_NORMAL))
+    {
         return std::nullopt;
-
-    FT_Bitmap& bitmap = m_loader->face->glyph->bitmap;
+    }
 
     if(m_loader->face->glyph->format == FT_GLYPH_FORMAT_OUTLINE && static_cast<bool>(m_info.style & font_style::bold))
     {
-        FT_Bitmap_Embolden(m_loader->library, &bitmap, 64, 64);
+        FT_Bitmap_Embolden(m_loader->library, &m_loader->face->glyph->bitmap, 64, 64);
     }
+
+    const FT_Bitmap& bitmap{m_loader->face->glyph->bitmap};
 
     glyph output{};
     output.origin = vec2f{m_loader->face->glyph->metrics.horiBearingX / 64.0f, -m_loader->face->glyph->metrics.horiBearingY / 64.0f};
     output.advance = m_loader->face->glyph->metrics.horiAdvance / 64.0f;
     output.ascent = m_loader->face->glyph->metrics.horiBearingY / 64.0f;
     output.descent = (m_loader->face->glyph->metrics.height / 64.0f) - (m_loader->face->glyph->metrics.horiBearingY / 64.0f);
+    output.width = bitmap.width;
+    output.height = bitmap.rows;
 
-    if(bitmap.width > 0 && bitmap.rows > 0)
+    if(output.width > 0 && output.height > 0)
     {
-        output.image = tph::image{engine::instance().renderer(), static_cast<std::uint32_t>(m_loader->face->glyph->metrics.width / 64), static_cast<std::uint32_t>(m_loader->face->glyph->metrics.height / 64), tph::image_usage::transfer_source | tph::image_usage::host_access};
-        output.image.map();
+        const std::uint8_t* data{bitmap.buffer};
 
         if(bitmap.pixel_mode == FT_PIXEL_MODE_MONO)
         {
-            const std::uint8_t* data{bitmap.buffer};
+            output.data.resize(output.height * output.width);
+            output.format = glyph_format::gray;
 
-            for(std::size_t y{}; y < output.image.height(); ++y)
+            for(std::size_t y{}; y < output.height; ++y)
             {
-                for(std::size_t x{}; x <  output.image.width(); ++x)
+                for(std::size_t x{}; x < output.width; ++x)
                 {
-                    if(data[x / 8] & (1 << (7 - x % 8))) //test one bit at once
-                    {
-                        output.image(x, y) = tph::pixel{255, 255, 255, 255};
-                    }
-                    else
-                    {
-                        output.image(x, y) = tph::pixel{255, 255, 255, 0};
-                    }
+                    const auto bit{data[x / 8u] & (1u << (7u - x % 8u))};
+
+                    output.data[y * bitmap.width + x] = static_cast<std::uint8_t>(bit * 255u);
                 }
 
                 data += bitmap.pitch;
@@ -161,13 +273,14 @@ std::optional<glyph> font::load(codepoint_t codepoint)
         }
         else if(bitmap.pixel_mode == FT_PIXEL_MODE_GRAY)
         {
-            const std::uint8_t* data{bitmap.buffer};
+            output.data.resize(output.height * output.width);
+            output.format = glyph_format::gray;
 
-            for(std::size_t y{}; y < output.image.height(); ++y)
+            for(std::size_t y{}; y < output.height; ++y)
             {
-                for(std::size_t x{}; x <  output.image.width(); ++x)
+                for(std::size_t x{}; x < output.width; ++x)
                 {
-                    output.image(x, y) = tph::pixel{255, 255, 255, data[x]};
+                    output.data[y * bitmap.width + x] = data[x];
                 }
 
                 data += bitmap.pitch;
@@ -175,20 +288,22 @@ std::optional<glyph> font::load(codepoint_t codepoint)
         }
         else if(bitmap.pixel_mode == FT_PIXEL_MODE_BGRA)
         {
-            const tph::pixel* pixels{reinterpret_cast<const tph::pixel*>(bitmap.buffer)};
+            output.data.resize(output.height * output.width * 4);
+            output.format = glyph_format::color;
 
-            for(std::size_t y{}; y < output.image.height(); ++y)
+            for(std::size_t y{}; y < output.height; ++y)
             {
-                for(std::size_t x{}; x <  output.image.width(); ++x)
+                for(std::size_t x{}; x < output.width; ++x)
                 {
-                    output.image(x, y) = tph::pixel{pixels[x].blue, pixels[x].green, pixels[x].red, pixels[x].alpha};
+                    output.data[y * bitmap.width + x + 0] = data[x + 2];
+                    output.data[y * bitmap.width + x + 1] = data[x + 1];
+                    output.data[y * bitmap.width + x + 2] = data[x + 0];
+                    output.data[y * bitmap.width + x + 3] = data[x + 3];
                 }
 
-                pixels += bitmap.pitch / 4;
+                data += bitmap.pitch;
             }
         }
-
-        output.image.unmap();
     }
 
     return std::make_optional(std::move(output));
@@ -318,8 +433,8 @@ text_bounds text_drawer::bounds(std::string_view string)
         }
 
         const auto& glyph {*load_glyph(codepoint)};
-        const float width {static_cast<float>(glyph.image.width())};
-        const float height{static_cast<float>(glyph.image.height())};
+        const float width {static_cast<float>(glyph.width)};
+        const float height{static_cast<float>(glyph.height)};
 
         if(width > 0 && height > 0)
         {
@@ -382,8 +497,8 @@ text text_drawer::draw(std::string_view string, const color& color)
             const glyph& glyph{*slot.first};
             const vec2f& texture_pos{slot.second};
 
-            const float width {static_cast<float>(glyph.image.width())};
-            const float height{static_cast<float>(glyph.image.height())};
+            const float width {static_cast<float>(glyph.width)};
+            const float height{static_cast<float>(glyph.height)};
 
             if(width > 0 && height > 0)
             {
@@ -531,8 +646,8 @@ void text_drawer::draw_line(std::string_view line, std::uint32_t line_width, tex
                 const glyph& glyph{*slot.first};
                 const vec2f texture_pos{slot.second};
 
-                const float width {static_cast<float>(glyph.image.width())};
-                const float height{static_cast<float>(glyph.image.height())};
+                const float width {static_cast<float>(glyph.width)};
+                const float height{static_cast<float>(glyph.height)};
 
                 if(width > 0 && height > 0)
                 {
@@ -595,7 +710,7 @@ texture_ptr text_drawer::make_texture(std::string_view string, std::unordered_ma
 
         std::shared_ptr<glyph> character_glyph{load_glyph(codepoint)};
 
-        if(current_x + character_glyph->image.width() > max_texture_width)
+        if(current_x + character_glyph->width > max_texture_width)
         {
             current_x = 0;
             current_y += texture_height;
@@ -603,9 +718,9 @@ texture_ptr text_drawer::make_texture(std::string_view string, std::unordered_ma
 
         const vec2f texture_pos{static_cast<float>(current_x), static_cast<float>(current_y)};
 
-        current_x += character_glyph->image.width();
+        current_x += character_glyph->width;
         texture_width = std::max(current_x, texture_width);
-        texture_height = std::max(static_cast<std::uint32_t>(current_y + character_glyph->image.height()), texture_height);
+        texture_height = std::max(static_cast<std::uint32_t>(current_y + character_glyph->height), texture_height);
 
         cache.emplace(std::make_pair(codepoint, std::make_pair(std::move(character_glyph), texture_pos)));
     }
