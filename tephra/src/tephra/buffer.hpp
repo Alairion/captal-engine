@@ -55,7 +55,7 @@ public:
 
     std::uint8_t* map();
     const std::uint8_t* map() const;
-    void unmap();
+    void unmap() noexcept;
 
     std::uint64_t size() const noexcept
     {

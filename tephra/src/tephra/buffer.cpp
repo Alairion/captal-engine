@@ -42,7 +42,7 @@ const std::uint8_t* buffer::map() const
     return reinterpret_cast<const std::uint8_t*>(m_memory.map());
 }
 
-void buffer::unmap()
+void buffer::unmap() noexcept
 {
     m_memory.unmap();
 }

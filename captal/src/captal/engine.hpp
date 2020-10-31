@@ -19,6 +19,7 @@
 #include "texture.hpp"
 #include "translation.hpp"
 #include "memory_transfer.hpp"
+#include "font.hpp"
 
 namespace cpt
 {
@@ -175,9 +176,19 @@ public:
         return m_default_texture;
     }
 
-    const translator& translator() const noexcept
+    const cpt::translator& translator() const noexcept
     {
         return m_translator;
+    }
+
+    cpt::font_engine& font_engine() noexcept
+    {
+        return m_font_engine;
+    }
+
+    const cpt::font_engine& font_engine() const noexcept
+    {
+        return m_font_engine;
     }
 
     float frame_time() const noexcept
@@ -208,9 +219,11 @@ private:
 
 private:
     cpt::application m_application;
+
     const swl::physical_device& m_audio_device;
     swl::mixer m_audio_mixer;
     swl::stream m_audio_stream;
+
     const tph::physical_device& m_graphics_device;
     tph::renderer m_renderer;
     memory_transfer_scheduler m_transfer_scheduler;
@@ -219,7 +232,9 @@ private:
     tph::shader m_default_vertex_shader{};
     tph::shader m_default_fragment_shader{};
     texture_ptr m_default_texture{};
+
     cpt::translator m_translator{};
+    cpt::font_engine m_font_engine{};
 
     std::chrono::steady_clock::time_point m_last_update{std::chrono::steady_clock::now()};
     float m_frame_time{};

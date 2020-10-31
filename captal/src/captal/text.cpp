@@ -19,6 +19,20 @@
 namespace cpt
 {
 
+void font_engine::freetype_deleter::operator()(void* ptr) noexcept
+{
+    FT_Done_FreeType(reinterpret_cast<FT_Library>(ptr));
+}
+
+font_engine::font_engine()
+{
+    FT_Library library{};
+    if(FT_Init_FreeType(&library))
+        throw std::runtime_error{"Can not init freetype library."};
+
+    m_library = handle_type{library};
+}
+
 static constexpr tph::component_mapping red_to_alpha_mapping
 {
     tph::component_swizzle::one,
@@ -27,20 +41,21 @@ static constexpr tph::component_mapping red_to_alpha_mapping
     tph::component_swizzle::r,
 };
 
-font_atlas::font_atlas(glyph_format format)
+constexpr auto font_atlas_usage{tph::texture_usage::sampled | tph::texture_usage::transfer_destination | tph::texture_usage::transfer_source};
+
+font_atlas::font_atlas(glyph_format format, const tph::sampling_options& sampling)
 :m_format{format}
+,m_sampling{sampling}
 ,m_packer{512, 512}
 ,m_max_size{engine::instance().graphics_device().limits().max_2d_texture_size}
 {
-    constexpr auto usage{tph::texture_usage::transfer_destination | tph::texture_usage::transfer_source};
-
     if(m_format == glyph_format::gray)
     {
-        m_texture = make_texture(512, 512, tph::texture_info{tph::texture_format::r8_unorm, usage, red_to_alpha_mapping});
+        m_texture = make_texture(512, 512, tph::texture_info{tph::texture_format::r8_unorm, font_atlas_usage, red_to_alpha_mapping}, m_sampling);
     }
     else
     {
-        m_texture = make_texture(512, 512, tph::texture_info{tph::texture_format::r8g8b8a8_srgb, usage});
+        m_texture = make_texture(512, 512, tph::texture_info{tph::texture_format::r8g8b8a8_srgb, font_atlas_usage}, m_sampling);
     }
 
     m_buffers.reserve(64);
@@ -49,7 +64,10 @@ font_atlas::font_atlas(glyph_format format)
 
 std::optional<bin_packer::rect> font_atlas::add_glyph(const std::vector<std::uint8_t>& image, std::uint32_t width, std::uint32_t height)
 {
-    auto rect{m_packer.append(width + 2, height + 2)};
+    const bool has_padding{m_sampling.magnification_filter != tph::filter::nearest || m_sampling.minification_filter != tph::filter::nearest};
+    const std::uint32_t padding{has_padding ? 2u : 0u};
+
+    auto rect{m_packer.append(width + padding, height + padding)};
     while(!rect.has_value())
     {
         if(m_packer.width() * 2 > m_max_size)
@@ -60,17 +78,19 @@ std::optional<bin_packer::rect> font_atlas::add_glyph(const std::vector<std::uin
         m_packer.resize(m_packer.width() * 2, m_packer.height() * 2);
         m_resized = true;
 
-        rect = m_packer.append(width + 2, height + 2);
+        rect = m_packer.append(width + padding, height + padding);
     }
 
     const auto begin{std::size(m_buffer_data)};
     m_buffer_data.resize(begin + std::size(image));
     std::copy(std::begin(image), std::end(image), std::begin(m_buffer_data) + begin);
 
-    m_buffers.emplace_back(transfer_buffer{begin, rect.value()});
+    rect->x += padding / 2;
+    rect->y += padding / 2;
+    rect->width -= padding;
+    rect->height -= padding;
 
-    ++rect->x;
-    ++rect->y;
+    m_buffers.emplace_back(transfer_buffer{begin, rect.value()});
 
     return rect;
 }
@@ -79,7 +99,7 @@ void font_atlas::upload()
 {
     auto&& [buffer, signal, keeper] = engine::instance().begin_transfer();
 
-    if(m_resized)
+    if(std::exchange(m_resized, false))
     {
         resize(buffer, keeper);
     }
@@ -98,12 +118,12 @@ void font_atlas::upload()
     {
         tph::buffer_texture_copy copy{};
         copy.buffer_offset = buffer.begin;
-        copy.buffer_image_width = buffer.rect.width - 2;
-        copy.buffer_image_height = buffer.rect.height - 2;
-        copy.texture_offset.x = buffer.rect.x + 1;
-        copy.texture_offset.y = buffer.rect.y + 1;
-        copy.texture_size.width = buffer.rect.width - 2;
-        copy.texture_size.height = buffer.rect.height - 2;
+        copy.buffer_image_width = buffer.rect.width;
+        copy.buffer_image_height = buffer.rect.height;
+        copy.texture_offset.x = buffer.rect.x;
+        copy.texture_offset.y = buffer.rect.y;
+        copy.texture_size.width = buffer.rect.width;
+        copy.texture_size.height = buffer.rect.height;
         copy.texture_size.width = 1;
 
         copies.emplace_back(copy);
@@ -129,16 +149,14 @@ void font_atlas::upload()
 
 void font_atlas::resize(tph::command_buffer& buffer, asynchronous_resource_keeper& keeper)
 {
-    constexpr auto usage{tph::texture_usage::transfer_destination | tph::texture_usage::transfer_source};
-
     texture_ptr new_texture{};
     if(m_format == glyph_format::gray)
     {
-        new_texture = make_texture(m_packer.width(), m_packer.height(), tph::texture_info{tph::texture_format::r8_unorm, usage, red_to_alpha_mapping});
+        new_texture = make_texture(m_packer.width(), m_packer.height(), tph::texture_info{tph::texture_format::r8_unorm, font_atlas_usage, red_to_alpha_mapping}, m_sampling);
     }
     else
     {
-        new_texture = make_texture(m_packer.width(), m_packer.height(), tph::texture_info{tph::texture_format::r8g8b8a8_srgb, usage});
+        new_texture = make_texture(m_packer.width(), m_packer.height(), tph::texture_info{tph::texture_format::r8g8b8a8_srgb, font_atlas_usage}, m_sampling);
     }
 
     tph::cmd::transition(buffer, m_texture->get_texture(),
@@ -154,11 +172,12 @@ void font_atlas::resize(tph::command_buffer& buffer, asynchronous_resource_keepe
     tph::cmd::copy(buffer, m_texture->get_texture(), new_texture->get_texture());
 
     keeper.keep(std::exchange(m_texture, new_texture));
+
+    m_signal();
 }
 
 struct font::freetype_info
 {
-    FT_Library library{};
     FT_Face face{};
 };
 
@@ -167,11 +186,6 @@ void font::freetype_deleter::operator()(freetype_info* ptr) noexcept
     if(ptr->face)
     {
         FT_Done_Face(ptr->face);
-    }
-
-    if(ptr->library)
-    {
-        FT_Done_FreeType(ptr->library);
     }
 
     delete ptr;
@@ -215,6 +229,7 @@ void font::resize(std::uint32_t pixels_size)
         m_info.max_ascent = FT_MulFix(m_loader->face->ascender, m_loader->face->size->metrics.y_scale) / 64 + 1;
         m_info.underline_position = -FT_MulFix(m_loader->face->underline_position, m_loader->face->size->metrics.y_scale) / 64.0f;
         m_info.underline_thickness = -FT_MulFix(m_loader->face->underline_thickness, m_loader->face->size->metrics.y_scale) / 64.0f;
+        m_info.strikeout_position = m_info.max_ascent / 3;
     }
 }
 
@@ -263,7 +278,8 @@ std::optional<glyph> font::load(codepoint_t codepoint)
             {
                 for(std::size_t x{}; x < output.width; ++x)
                 {
-                    const auto bit{data[x / 8u] & (1u << (7u - x % 8u))};
+                    const auto shift{7u - x % 8u};
+                    const auto bit{(data[x / 8u] & (1u << shift)) >> shift};
 
                     output.data[y * bitmap.width + x] = static_cast<std::uint8_t>(bit * 255u);
                 }
@@ -321,16 +337,24 @@ float font::kerning(codepoint_t left, codepoint_t right)
 
 void font::init(std::uint32_t initial_size)
 {
-    if(FT_Init_FreeType(&m_loader->library))
-        throw std::runtime_error{"Can not init freetype library."};
     if(FT_New_Memory_Face(m_loader->library, reinterpret_cast<const FT_Byte*>(std::data(m_data)), static_cast<FT_Long>(std::size(m_data)), 0, &m_loader->face))
         throw std::runtime_error{"Can not init freetype font face."};
+
     if(FT_Select_Charmap(m_loader->face, FT_ENCODING_UNICODE))
         throw std::runtime_error{"Can not set font charmap."};
 
     m_info.family = std::string{m_loader->face->family_name};
     m_info.glyph_count = m_loader->face->num_glyphs;
-    m_info.style = font_style::regular;
+
+    if(m_loader->face->style_flags & FT_STYLE_FLAG_BOLD)
+    {
+        m_info.style |= font_style::bold;
+    }
+
+    if(m_loader->face->style_flags & FT_STYLE_FLAG_ITALIC)
+    {
+        m_info.style |= font_style::italic;
+    }
 
     resize(initial_size);
 }
