@@ -182,34 +182,31 @@ void font::freetype_deleter::operator()(void* ptr) noexcept
 }
 
 font::font(std::span<const std::uint8_t> data, std::uint32_t initial_size, glyph_format format)
-:m_format{format}
-,m_data{std::begin(data), std::end(data)}
+:m_data{std::begin(data), std::end(data)}
 {
-    init(initial_size);
+    init(initial_size, format);
 }
 
 font::font(const std::filesystem::path& file, std::uint32_t initial_size, glyph_format format)
-:m_format{format}
-,m_data{read_file<std::vector<std::uint8_t>>(file)}
+:m_data{read_file<std::vector<std::uint8_t>>(file)}
 {
-    init(initial_size);
+    init(initial_size, format);
 }
 
 font::font(std::istream& stream, std::uint32_t initial_size, glyph_format format)
-:m_format{format}
 {
     assert(stream && "Invalid stream.");
 
     m_data = std::vector<std::uint8_t>{std::istreambuf_iterator<char>{stream}, std::istreambuf_iterator<char>{}};
 
-    init(initial_size);
+    init(initial_size, format);
 }
 
 std::optional<glyph> font::load(codepoint_t codepoint)
 {
     const auto face{reinterpret_cast<FT_Face>(m_loader.get())};
 
-    if(FT_Load_Char(face, codepoint, m_format == glyph_format::color ? FT_LOAD_COLOR : FT_LOAD_DEFAULT))
+    if(FT_Load_Char(face, codepoint, m_info.format == glyph_format::color ? FT_LOAD_COLOR : FT_LOAD_DEFAULT))
     {
         return std::nullopt;
     }
@@ -253,7 +250,7 @@ std::optional<glyph> font::load_image(codepoint_t codepoint, bool embolden)
     output->width = bitmap.width;
     output->height = bitmap.rows;
 
-    if(m_format == glyph_format::gray)
+    if(m_info.format == glyph_format::gray)
     {
         output->data.resize(output->height * output->width);
     }
@@ -269,7 +266,7 @@ std::optional<glyph> font::load_image(codepoint_t codepoint, bool embolden)
 
         if(bitmap.pixel_mode == FT_PIXEL_MODE_GRAY)
         {
-            if(m_format == glyph_format::gray)
+            if(m_info.format == glyph_format::gray)
             {
                 for(std::size_t y{}; y < output->height; ++y)
                 {
@@ -348,7 +345,7 @@ void font::resize(std::uint32_t pixels_size)
     }
 }
 
-void font::init(std::uint32_t initial_size)
+void font::init(std::uint32_t initial_size, glyph_format format)
 {
     const auto library{reinterpret_cast<FT_Library>(engine::instance().font_engine().handle())};
     FT_Face face{};
@@ -362,6 +359,7 @@ void font::init(std::uint32_t initial_size)
     if(FT_Select_Charmap(face, FT_ENCODING_UNICODE))
         throw std::runtime_error{"Can not set font charmap."};
 
+    m_info.format = format;
     m_info.family = std::string{face->family_name};
     m_info.glyph_count = face->num_glyphs;
     m_info.category = static_cast<font_category>(face->style_flags);

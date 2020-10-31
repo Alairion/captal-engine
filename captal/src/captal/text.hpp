@@ -45,10 +45,9 @@ private:
 enum class text_drawer_options : std::uint32_t
 {
     none = 0x00,
-    kerning = 0x01
+    bold = 0x01,
+    italic = 0x02
 };
-
-template<> struct enable_enum_operations<text_drawer_options> {static constexpr bool value{true};};
 
 enum class text_align : std::uint32_t
 {
@@ -68,7 +67,7 @@ class CAPTAL_API text_drawer
 {
 public:
     text_drawer() = default;
-    explicit text_drawer(cpt::font font, text_drawer_options options = text_drawer_options::kerning);
+    explicit text_drawer(cpt::font font, text_drawer_options options = text_drawer_options::none);
 
     ~text_drawer() = default;
     text_drawer(const text_drawer&) = delete;
@@ -77,7 +76,6 @@ public:
     text_drawer& operator=(text_drawer&&) noexcept = default;
 
     void set_font(cpt::font font) noexcept;
-    void set_style(font_style style) noexcept;
     void resize(std::uint32_t pixels_size);
 
     text_bounds bounds(std::string_view string);
@@ -124,13 +122,13 @@ private:
     std::unordered_map<codepoint_t, std::shared_ptr<glyph>> m_cache{};
 };
 
-text CAPTAL_API draw_text(cpt::font& font, std::string_view string,  const color& color = colors::white, text_drawer_options options = text_drawer_options::kerning);
-text CAPTAL_API draw_text(cpt::font&& font, std::string_view string, const color& color = colors::white, text_drawer_options options = text_drawer_options::kerning);
-text CAPTAL_API draw_text(cpt::font& font, std::string_view string,  std::uint32_t line_width, text_align align = text_align::left, const color& color = colors::white, text_drawer_options options = text_drawer_options::kerning);
-text CAPTAL_API draw_text(cpt::font&& font, std::string_view string, std::uint32_t line_width, text_align align = text_align::left, const color& color = colors::white, text_drawer_options options = text_drawer_options::kerning);
+text CAPTAL_API draw_text(cpt::font& font, std::string_view string,  const color& color = colors::white, text_drawer_options options = text_drawer_options::none);
+text CAPTAL_API draw_text(cpt::font&& font, std::string_view string, const color& color = colors::white, text_drawer_options options = text_drawer_options::none);
+text CAPTAL_API draw_text(cpt::font& font, std::string_view string,  std::uint32_t line_width, text_align align = text_align::left, const color& color = colors::white, text_drawer_options options = text_drawer_options::none);
+text CAPTAL_API draw_text(cpt::font&& font, std::string_view string, std::uint32_t line_width, text_align align = text_align::left, const color& color = colors::white, text_drawer_options options = text_drawer_options::none);
 
 }
 
-template<> struct cpt::enable_enum_operations<cpt::font_style> {static constexpr bool value{true};};
+template<> struct cpt::enable_enum_operations<cpt::text_drawer_options> {static constexpr bool value{true};};
 
 #endif

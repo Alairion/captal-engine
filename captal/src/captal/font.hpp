@@ -74,7 +74,9 @@ using font_atlas_resize_signal = cpt::signal<>;
 class CAPTAL_API font_atlas
 {
 public:
+    font_atlas() = default;
     explicit font_atlas(glyph_format format, const tph::sampling_options& sampling = tph::sampling_options{});
+
     ~font_atlas() = default;
     font_atlas(const font_atlas&) = delete;
     font_atlas& operator=(const font_atlas&) = delete;
@@ -152,6 +154,7 @@ enum class font_features : std::uint32_t
 
 struct font_info
 {
+    glyph_format format{};
     std::string family{};
     std::uint32_t glyph_count{};
     font_category category{};
@@ -199,11 +202,10 @@ public:
     }
 
 private:
-    void init(std::uint32_t initial_size);
+    void init(std::uint32_t initial_size, glyph_format format);
 
 private:
     handle_type m_loader{};
-    glyph_format m_format{};
     std::vector<std::uint8_t> m_data{};
     font_info m_info{};
 };
