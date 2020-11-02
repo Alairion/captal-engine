@@ -14,7 +14,7 @@ class CAPTAL_API text final : public renderable
 {
 public:
     text() = default;
-    explicit text(std::span<const std::uint32_t> indices, std::span<const vertex> vertices, texture_ptr texture, std::uint32_t width, std::uint32_t height, std::size_t count);
+    explicit text(std::span<const std::uint32_t> indices, std::span<const vertex> vertices, font_atlas& atlas, std::uint32_t width, std::uint32_t height, std::size_t count);
 
     ~text() = default;
     text(const text&) = delete;
@@ -66,8 +66,11 @@ struct text_bounds
 class CAPTAL_API text_drawer
 {
 public:
+    static constexpr codepoint_t default_fallback{U'?'};
+
+public:
     text_drawer() = default;
-    explicit text_drawer(cpt::font font, text_drawer_options options = text_drawer_options::none);
+    explicit text_drawer(cpt::font font, text_drawer_options options = text_drawer_options::none, const tph::sampling_options& sampling = tph::sampling_options{});
 
     ~text_drawer() = default;
     text_drawer(const text_drawer&) = delete;
@@ -75,16 +78,31 @@ public:
     text_drawer(text_drawer&&) noexcept = default;
     text_drawer& operator=(text_drawer&&) noexcept = default;
 
-    void set_font(cpt::font font) noexcept;
-    void resize(std::uint32_t pixels_size);
+    void set_font(cpt::font font) noexcept
+    {
+        m_font = std::move(font);
+        m_atlases.clear();
+    }
+
+    void set_fallback(codepoint_t codepoint) noexcept
+    {
+        m_fallback = codepoint;
+    }
+
+    void resize(std::uint32_t pixels_size)
+    {
+        m_font.resize(pixels_size);
+    }
 
     text_bounds bounds(std::string_view string);
+    text_bounds bounds(std::string_view string, std::uint32_t line_width, text_align align = text_align::left);
     text draw(std::string_view string, const color& color = colors::white);
     text draw(std::string_view string, std::uint32_t line_width, text_align align = text_align::left, const color& color = colors::white);
+    void upload();
 
-    cpt::font& font() noexcept
+    cpt::font drain_font() noexcept
     {
-        return m_font;
+        return std::move(m_font);
     }
 
     const cpt::font& font() const noexcept
@@ -98,6 +116,21 @@ public:
     }
 
 private:
+    struct glyph_info
+    {
+        vec2f origin{};
+        float advance{};
+        float ascent{};
+        float descent{};
+        bin_packer::rect rect{};
+    };
+
+    struct atlas_info
+    {
+        font_atlas atlas{};
+        std::unordered_map<std::uint64_t, glyph_info> glyphs{};
+    };
+
     struct draw_line_state
     {
         float current_x{};
@@ -113,13 +146,17 @@ private:
     void draw_line(std::string_view line, std::uint32_t line_width, text_align align, draw_line_state& state, std::vector<vertex>& vertices, const std::unordered_map<codepoint_t, std::pair<std::shared_ptr<glyph>, vec2f>>& cache, const color& color);
 
 private:
-    texture_ptr make_texture(std::string_view string, std::unordered_map<codepoint_t, std::pair<std::shared_ptr<glyph>, vec2f>>& cache, tph::command_buffer& command_buffer);
-    const std::shared_ptr<glyph>& load_glyph(codepoint_t codepoint);
+    atlas_info& ensure(std::string_view string);
+    bool load(atlas_info& atlas, codepoint_t codepoint, std::uint64_t font_size, bool embolden, bool fallback = true);
+
+    const std::shared_ptr<glyph>& load_glyph(atlas_info& info, codepoint_t codepoint);
 
 private:
     cpt::font m_font{};
     text_drawer_options m_options{};
-    std::unordered_map<codepoint_t, std::shared_ptr<glyph>> m_cache{};
+    codepoint_t m_fallback{default_fallback};
+    tph::sampling_options m_sampling{};
+    std::vector<atlas_info> m_atlases{};
 };
 
 text CAPTAL_API draw_text(cpt::font& font, std::string_view string,  const color& color = colors::white, text_drawer_options options = text_drawer_options::none);

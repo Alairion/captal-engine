@@ -19,7 +19,7 @@
 namespace cpt
 {
 
-text::text(std::span<const std::uint32_t> indices, std::span<const vertex> vertices, texture_ptr texture, std::uint32_t width, std::uint32_t height, std::size_t count)
+text::text(std::span<const std::uint32_t> indices, std::span<const vertex> vertices, font_atlas& atlas, std::uint32_t width, std::uint32_t height, std::size_t count)
 :renderable{static_cast<std::uint32_t>(std::size(indices)), static_cast<std::uint32_t>(std::size(vertices))}
 ,m_width{width}
 ,m_height{height}
@@ -27,7 +27,7 @@ text::text(std::span<const std::uint32_t> indices, std::span<const vertex> verti
 {
     set_indices(indices);
     set_vertices(vertices);
-    set_texture(std::move(texture));
+    set_texture(atlas.texture());
 }
 
 void text::set_color(const color& color)
@@ -72,25 +72,30 @@ void text::set_color(std::uint32_t first, std::uint32_t count, const color& colo
     update();
 }
 
-text_drawer::text_drawer(cpt::font font, text_drawer_options options)
+static void add_glyph(std::vector<vertex>& vertices, float x, float y, float width, float height, const color& color, vec2f texpos, vec2f texsize)
+{
+    vertices.emplace_back(vertex{vec3f{x, y, 0.0f}, static_cast<vec4f>(color), texpos / texsize});
+    vertices.emplace_back(vertex{vec3f{x + width, y, 0.0f}, static_cast<vec4f>(color), vec2f{texpos.x() + width, texpos.y()} / texsize});
+    vertices.emplace_back(vertex{vec3f{x + width, y + height, 0.0f}, static_cast<vec4f>(color), vec2f{texpos.x() + width, texpos.y() + height} / texsize});
+    vertices.emplace_back(vertex{vec3f{x, y + height, 0.0f}, static_cast<vec4f>(color), vec2f{texpos.x(), texpos.y() + height} / texsize});
+}
+
+static void add_placeholder(std::vector<vertex>& vertices)
+{
+    vertices.emplace_back();
+    vertices.emplace_back();
+    vertices.emplace_back();
+    vertices.emplace_back();
+}
+
+text_drawer::text_drawer(cpt::font font, text_drawer_options options, const tph::sampling_options& sampling)
 :m_font{std::move(font)}
 ,m_options{options}
+,m_sampling{sampling}
 {
-
+    m_atlases.emplace_back(m_font.info().format, m_sampling);
 }
-
-void text_drawer::set_font(cpt::font font) noexcept
-{
-    m_font = std::move(font);
-    m_cache.clear();
-}
-
-void text_drawer::resize(std::uint32_t pixels_size)
-{
-    m_font.resize(pixels_size);
-    m_cache.clear();
-}
-
+/*
 text_bounds text_drawer::bounds(std::string_view string)
 {
     float current_x{};
@@ -133,16 +138,20 @@ text_bounds text_drawer::bounds(std::string_view string)
     return text_bounds{static_cast<std::uint32_t>(greatest_x - lowest_x), static_cast<std::uint32_t>(greatest_y - lowest_y)};
 }
 
+text_bounds text_drawer::bounds(std::string_view string, std::uint32_t line_width, text_align align)
+{
+
+}
+*/
 text text_drawer::draw(std::string_view string, const color& color)
 {
-    auto&& [command_buffer, signal, keeper] = cpt::engine::instance().begin_transfer();
+    auto& atlas{ensure(string)};
 
-    std::unordered_map<codepoint_t, std::pair<std::shared_ptr<glyph>, vec2f>> cache{};
-    texture_ptr texture{make_texture(string, cache, command_buffer)};
-
-    const float texture_width{static_cast<float>(texture->width())};
-    const float texture_height{static_cast<float>(texture->height())};
-    const std::size_t codepoint_count{utf8::count(std::begin(string), std::end(string))};
+    const auto  texture_width{static_cast<float>(atlas.atlas.texture()->width())};
+    const auto  texture_height{static_cast<float>(atlas.atlas.texture()->height())};
+    const vec2f texsize{texture_width, texture_height};
+    const auto  codepoint_count{utf8::count(std::begin(string), std::end(string))};
+    const auto  font_size{static_cast<std::uint64_t>(m_font.info().size)};
 
     std::vector<vertex> vertices{};
     vertices.reserve(codepoint_count * 4);
@@ -163,31 +172,24 @@ text text_drawer::draw(std::string_view string, const color& color)
             current_y += m_font.info().line_height;
             last = 0;
 
-            vertices.emplace_back(vertex{});
-            vertices.emplace_back(vertex{});
-            vertices.emplace_back(vertex{});
-            vertices.emplace_back(vertex{});
+            add_placeholder(vertices);
         }
         else
         {
-            auto& slot{cache.at(codepoint)};
+            const std::uint64_t key{(font_size << 32) | codepoint};
+            glyph_info& glyph{atlas.glyphs.at(key)};
 
-            const glyph& glyph{*slot.first};
-            const vec2f& texture_pos{slot.second};
-
-            const float width {static_cast<float>(glyph.width)};
-            const float height{static_cast<float>(glyph.height)};
+            const vec2f texpos{static_cast<float>(glyph.rect.x), static_cast<float>(glyph.rect.y)};
+            const float width {static_cast<float>(glyph.rect.width)};
+            const float height{static_cast<float>(glyph.rect.height)};
 
             if(width > 0 && height > 0)
             {
-                const float kerning{last != 0 && static_cast<bool>(m_options & text_drawer_options::kerning) ? m_font.kerning(last, codepoint) : 0.0f};
-                const float x{current_x + glyph.origin.x() + kerning};
-                const float y{current_y + glyph.origin.y()};
+                const vec2f kerning{m_font.kerning(last, codepoint)};
+                const float x{current_x + glyph.origin.x() + kerning.x()};
+                const float y{current_y + glyph.origin.y() + kerning.y()};
 
-                vertices.emplace_back(vertex{vec3f{x, y, 0.0f}, static_cast<vec4f>(color), vec2f{(texture_pos.x()) / texture_width, (texture_pos.y()) / texture_height}});
-                vertices.emplace_back(vertex{vec3f{x + width, y, 0.0f}, static_cast<vec4f>(color), vec2f{(texture_pos.x() + width) / texture_width, (texture_pos.y()) / texture_height}});
-                vertices.emplace_back(vertex{vec3f{x + width, y + height, 0.0f}, static_cast<vec4f>(color), vec2f{(texture_pos.x() + width) / texture_width, (texture_pos.y() + height) / texture_height}});
-                vertices.emplace_back(vertex{vec3f{x, y + height, 0.0f}, static_cast<vec4f>(color), vec2f{(texture_pos.x()) / texture_width, (texture_pos.y() + height) / texture_height}});
+                add_glyph(vertices, x, y, width, height, color, texpos, texsize);
 
                 lowest_x = std::min(lowest_x, x);
                 lowest_y = std::min(lowest_y, y);
@@ -196,10 +198,7 @@ text text_drawer::draw(std::string_view string, const color& color)
             }
             else
             {
-                vertices.emplace_back(vertex{});
-                vertices.emplace_back(vertex{});
-                vertices.emplace_back(vertex{});
-                vertices.emplace_back(vertex{});
+                add_placeholder(vertices);
             }
 
             current_x += glyph.advance;
@@ -207,22 +206,19 @@ text text_drawer::draw(std::string_view string, const color& color)
        }
     }
 
-    signal.connect([cache = std::move(cache)](){});
-    keeper.keep(texture);
-
     std::vector<std::uint32_t> indices{};
     indices.reserve(codepoint_count * 6);
 
     for(std::size_t i{}; i < codepoint_count; ++i)
     {
-        const std::size_t shift{i * 4};
+        const std::uint32_t shift{static_cast<std::uint32_t>(i * 4)};
 
-        indices.emplace_back(static_cast<std::uint32_t>(shift + 0));
-        indices.emplace_back(static_cast<std::uint32_t>(shift + 1));
-        indices.emplace_back(static_cast<std::uint32_t>(shift + 2));
-        indices.emplace_back(static_cast<std::uint32_t>(shift + 2));
-        indices.emplace_back(static_cast<std::uint32_t>(shift + 3));
-        indices.emplace_back(static_cast<std::uint32_t>(shift + 0));
+        indices.emplace_back(shift + 0);
+        indices.emplace_back(shift + 1);
+        indices.emplace_back(shift + 2);
+        indices.emplace_back(shift + 2);
+        indices.emplace_back(shift + 3);
+        indices.emplace_back(shift + 0);
     }
 
     const vec3f shift{-lowest_x, -lowest_y, 0.0f};
@@ -231,9 +227,9 @@ text text_drawer::draw(std::string_view string, const color& color)
         vertex.position += shift;
     }
 
-    return text{indices, vertices, std::move(texture), static_cast<std::uint32_t>(greatest_x - lowest_x), static_cast<std::uint32_t>(greatest_y - lowest_y), std::size(string)};
+    return text{indices, vertices, atlas.atlas, static_cast<std::uint32_t>(greatest_x - lowest_x), static_cast<std::uint32_t>(greatest_y - lowest_y), std::size(string)};
 }
-
+/*
 text text_drawer::draw(std::string_view string, std::uint32_t line_width, text_align align, const color& color)
 {
     auto&& [command_buffer, signal, keeper] = cpt::engine::instance().begin_transfer();
@@ -329,9 +325,9 @@ void text_drawer::draw_line(std::string_view line, std::uint32_t line_width, tex
 
                 if(width > 0 && height > 0)
                 {
-                    const float kerning{last != 0 && static_cast<bool>(m_options & text_drawer_options::kerning) ? m_font.kerning(last, codepoint) : 0.0f};
-                    const float x{state.current_x + glyph.origin.x() + kerning};
-                    const float y{state.current_y + glyph.origin.y()};
+                    const vec2f kerning{m_font.kerning(last, codepoint)};
+                    const float x{state.current_x + glyph.origin.x() + kerning.x()};
+                    const float y{state.current_y + glyph.origin.y() + kerning.y()};
 
                     vertices.emplace_back(vertex{vec3f{x, y, 0.0f}, static_cast<vec4f>(color), vec2f{(texture_pos.x()) / state.texture_width, (texture_pos.y()) / state.texture_height}});
                     vertices.emplace_back(vertex{vec3f{x + width, y, 0.0f}, static_cast<vec4f>(color), vec2f{(texture_pos.x() + width) / state.texture_width, (texture_pos.y()) / state.texture_height}});
@@ -355,10 +351,7 @@ void text_drawer::draw_line(std::string_view line, std::uint32_t line_width, tex
                 last = codepoint;
             }
 
-            vertices.emplace_back();
-            vertices.emplace_back();
-            vertices.emplace_back();
-            vertices.emplace_back();
+            add_placeholder(vertices);
 
             state.current_x += space_glyph.advance;
         }
@@ -371,80 +364,100 @@ void text_drawer::draw_line(std::string_view line, std::uint32_t line_width, tex
         assert(false && "only cpt::text_align::left is supported yet");
     }
 }
+*/
 
-texture_ptr text_drawer::make_texture(std::string_view string, std::unordered_map<codepoint_t, std::pair<std::shared_ptr<glyph>, vec2f>>& cache, tph::command_buffer& command_buffer)
+void text_drawer::upload()
 {
-    constexpr std::uint32_t max_texture_width{4096};
-
-    std::uint32_t current_x{};
-    std::uint32_t current_y{};
-    std::uint32_t texture_width{};
-    std::uint32_t texture_height{};
-
-    for(auto codepoint : decode<utf8>(string))
+    for(auto& atlas : m_atlases)
     {
-        if(cache.find(codepoint) != std::end(cache))
-            continue;
-
-        std::shared_ptr<glyph> character_glyph{load_glyph(codepoint)};
-
-        if(current_x + character_glyph->width > max_texture_width)
+        if(atlas.atlas.need_upload())
         {
-            current_x = 0;
-            current_y += texture_height;
-        }
-
-        const vec2f texture_pos{static_cast<float>(current_x), static_cast<float>(current_y)};
-
-        current_x += character_glyph->width;
-        texture_width = std::max(current_x, texture_width);
-        texture_height = std::max(static_cast<std::uint32_t>(current_y + character_glyph->height), texture_height);
-
-        cache.emplace(std::make_pair(codepoint, std::make_pair(std::move(character_glyph), texture_pos)));
-    }
-
-    constexpr auto format{tph::texture_format::r8g8b8a8_srgb};
-    constexpr auto usage{tph::texture_usage::transfer_destination | tph::texture_usage::sampled};
-    auto texture{cpt::make_texture(texture_width, texture_height, tph::texture_info{format, usage}, tph::sampling_options{})};
-
-    tph::cmd::transition(command_buffer, texture->get_texture(),
-                         tph::resource_access::none, tph::resource_access::transfer_write,
-                         tph::pipeline_stage::top_of_pipe, tph::pipeline_stage::transfer,
-                         tph::texture_layout::undefined, tph::texture_layout::transfer_destination_optimal);
-
-    for(auto&& [codepoint, slot] : cache)
-    {
-        auto&& [glyph, position] = slot;
-
-        if(glyph->image.width() > 0 && glyph->image.height() > 0)
-        {
-            tph::image_texture_copy copy_region{};
-            copy_region.texture_offset.x = static_cast<std::int32_t>(position.x());
-            copy_region.texture_offset.y = static_cast<std::int32_t>(position.y());
-            copy_region.texture_size.width = static_cast<std::uint32_t>(glyph->image.width());
-            copy_region.texture_size.height = static_cast<std::uint32_t>(glyph->image.height());
-
-            tph::cmd::copy(command_buffer, glyph->image, texture->get_texture(), copy_region);
+            atlas.atlas.upload();
         }
     }
-
-    tph::cmd::transition(command_buffer, texture->get_texture(),
-                         tph::resource_access::transfer_write, tph::resource_access::shader_read,
-                         tph::pipeline_stage::transfer, tph::pipeline_stage::fragment_shader,
-                         tph::texture_layout::transfer_destination_optimal, tph::texture_layout::shader_read_only_optimal);
-
-    return texture;
 }
 
-const std::shared_ptr<glyph>& text_drawer::load_glyph(codepoint_t codepoint)
+text_drawer::atlas_info& text_drawer::ensure(std::string_view string)
 {
-    auto it{m_cache.find(codepoint)};
-    if(it == std::end(m_cache))
+    std::u32string codepoints{convert_to<utf32>(string)};
+    std::sort(std::begin(codepoints), std::end(codepoints));
+    codepoints.erase(std::unique(std::begin(codepoints), std::end(codepoints)), std::end(codepoints));
+
+    const auto font_size{static_cast<std::uint64_t>(m_font.info().size)};
+    const bool need_embolden{!static_cast<bool>(m_font.info().category & font_category::bold) && static_cast<bool>(m_options & text_drawer_options::bold)};
+
+    for(auto& atlas : m_atlases)
     {
-        it = m_cache.emplace(std::make_pair(codepoint, std::make_shared<glyph>(m_font.load(codepoint).value_or(glyph{})))).first;
+        std::size_t available{};
+
+        for(auto codepoint : codepoints)
+        {
+            if(!load(atlas, codepoint, font_size, need_embolden))
+            {
+                break;
+            }
+
+            ++available;
+        }
+
+        if(available == std::size(codepoints))
+        {
+            return atlas;
+        }
     }
 
-    return it->second;
+    auto& atlas{m_atlases.emplace_back(m_font.info().format, m_sampling)};
+
+    for(auto codepoint : codepoints)
+    {
+        if(!load(atlas, codepoint, font_size, need_embolden))
+        {
+            throw std::runtime_error{"The text can not be rendered, no font atlas can hold every glyphs, try to split up the text."};
+        }
+    }
+
+    return atlas;
+}
+
+bool text_drawer::load(atlas_info& atlas, codepoint_t codepoint, std::uint64_t font_size, bool embolden, bool fallback)
+{
+    const std::uint64_t key{(font_size << 32) | codepoint};
+
+    if(atlas.glyphs.find(key) == std::end(atlas.glyphs))
+    {
+        const auto glyph{m_font.load_image(codepoint, embolden)};
+        if(glyph)
+        {
+            glyph_info info{};
+            info.origin = glyph->origin;
+            info.advance = glyph->advance;
+            info.ascent = glyph->ascent;
+            info.descent = glyph->descent;
+
+            if(glyph->width != 0 && glyph->height != 0)
+            {
+                const auto rect{atlas.atlas.add_glyph(glyph->data, glyph->width, glyph->height)};
+                if(!rect)
+                {
+                    return false;
+                }
+
+                info.rect = rect.value();
+            }
+
+            atlas.glyphs.emplace(key, info);
+        }
+        else if(fallback)
+        {
+            return load(atlas, m_fallback, font_size, embolden, false);
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 text draw_text(cpt::font& font, std::string_view string, const color& color, text_drawer_options options)
@@ -452,7 +465,7 @@ text draw_text(cpt::font& font, std::string_view string, const color& color, tex
     text_drawer drawer{std::move(font), options};
     text text{drawer.draw(string, color)};
 
-    font = std::move(drawer.font());
+    font = drawer.drain_font();
 
     return text;
 }
@@ -462,7 +475,7 @@ text draw_text(cpt::font&& font, std::string_view string, const color& color, te
     text_drawer drawer{std::move(font), options};
     text text{drawer.draw(string, color)};
 
-    font = std::move(drawer.font());
+    font = drawer.drain_font();
 
     return text;
 }
@@ -472,7 +485,7 @@ text draw_text(cpt::font& font, std::string_view string, std::uint32_t line_widt
     text_drawer drawer{std::move(font), options};
     text text{drawer.draw(string, line_width, align, color)};
 
-    font = std::move(drawer.font());
+    font = drawer.drain_font();
 
     return text;
 }
@@ -482,7 +495,7 @@ text draw_text(cpt::font&& font, std::string_view string, std::uint32_t line_wid
     text_drawer drawer{std::move(font), options};
     text text{drawer.draw(string, line_width, align, color)};
 
-    font = std::move(drawer.font());
+    font = drawer.drain_font();
 
     return text;
 }

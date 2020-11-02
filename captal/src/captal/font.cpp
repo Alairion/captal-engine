@@ -311,6 +311,13 @@ std::optional<glyph> font::load_image(codepoint_t codepoint, bool embolden)
     return output;
 }
 
+bool font::has(codepoint_t codepoint) const noexcept
+{
+    const auto face{reinterpret_cast<FT_Face>(m_loader.get())};
+
+    return FT_Get_Char_Index(face, codepoint);
+}
+
 vec2f font::kerning(codepoint_t left, codepoint_t right)
 {
     const auto face{reinterpret_cast<FT_Face>(m_loader.get())};
