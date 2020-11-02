@@ -10,11 +10,20 @@
 namespace cpt
 {
 
+enum class text_style : std::uint32_t
+{
+    regular = 0x00,
+    italic = 0x01,
+    bold = 0x02,
+    underlined = 0x04,
+    strikethrough = 0x08,
+};
+
 class CAPTAL_API text final : public renderable
 {
 public:
     text() = default;
-    explicit text(std::span<const std::uint32_t> indices, std::span<const vertex> vertices, font_atlas& atlas, std::uint32_t width, std::uint32_t height, std::size_t count);
+    explicit text(std::span<const std::uint32_t> indices, std::span<const vertex> vertices, font_atlas& atlas, text_style style, std::uint32_t width, std::uint32_t height, std::size_t count);
 
     ~text() = default;
     text(const text&) = delete;
@@ -39,14 +48,14 @@ public:
 private:
     std::uint32_t m_width{};
     std::uint32_t m_height{};
+    text_style m_style{};
     std::size_t m_count{};
+    scoped_connection m_connection{};
 };
 
 enum class text_drawer_options : std::uint32_t
 {
-    none = 0x00,
-    bold = 0x01,
-    italic = 0x02
+    none = 0x00
 };
 
 enum class text_align : std::uint32_t
@@ -94,10 +103,10 @@ public:
         m_font.resize(pixels_size);
     }
 
-    text_bounds bounds(std::string_view string);
-    text_bounds bounds(std::string_view string, std::uint32_t line_width, text_align align = text_align::left);
-    text draw(std::string_view string, const color& color = colors::white);
-    text draw(std::string_view string, std::uint32_t line_width, text_align align = text_align::left, const color& color = colors::white);
+    text_bounds bounds(std::string_view string, text_style style = text_style::regular);
+    text_bounds bounds(std::string_view string, std::uint32_t line_width, text_align align = text_align::left, text_style style = text_style::regular);
+    text draw(std::string_view string, text_style style = text_style::regular, const color& color = colors::white);
+    text draw(std::string_view string, std::uint32_t line_width, text_align align = text_align::left, text_style style = text_style::regular, const color& color = colors::white);
     void upload();
 
     cpt::font drain_font() noexcept
@@ -146,10 +155,8 @@ private:
     void draw_line(std::string_view line, std::uint32_t line_width, text_align align, draw_line_state& state, std::vector<vertex>& vertices, const std::unordered_map<codepoint_t, std::pair<std::shared_ptr<glyph>, vec2f>>& cache, const color& color);
 
 private:
-    atlas_info& ensure(std::string_view string);
+    atlas_info& ensure(std::string_view string, text_style style);
     bool load(atlas_info& atlas, codepoint_t codepoint, std::uint64_t font_size, bool embolden, bool fallback = true);
-
-    const std::shared_ptr<glyph>& load_glyph(atlas_info& info, codepoint_t codepoint);
 
 private:
     cpt::font m_font{};
@@ -166,6 +173,7 @@ text CAPTAL_API draw_text(cpt::font&& font, std::string_view string, std::uint32
 
 }
 
+template<> struct cpt::enable_enum_operations<cpt::text_style> {static constexpr bool value{true};};
 template<> struct cpt::enable_enum_operations<cpt::text_drawer_options> {static constexpr bool value{true};};
 
 #endif

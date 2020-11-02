@@ -69,7 +69,7 @@ struct glyph
     std::uint32_t height{};
 };
 
-using font_atlas_resize_signal = cpt::signal<>;
+using font_atlas_resize_signal = cpt::signal<texture_ptr>;
 
 class CAPTAL_API font_atlas
 {
@@ -128,15 +128,6 @@ enum class font_category : std::uint32_t
     regular = 0x00,
     italic = 0x01,
     bold = 0x02,
-};
-
-enum class font_style : std::uint32_t
-{
-    regular = 0x00,
-    italic = 0x01,
-    bold = 0x02,
-    underlined = 0x04,
-    strikethrough = 0x08,
 };
 
 enum class font_features : std::uint32_t
@@ -213,7 +204,6 @@ private:
 
 }
 
-template<> struct cpt::enable_enum_operations<cpt::font_style> {static constexpr bool value{true};};
 template<> struct cpt::enable_enum_operations<cpt::font_category> {static constexpr bool value{true};};
 template<> struct cpt::enable_enum_operations<cpt::font_features> {static constexpr bool value{true};};
 

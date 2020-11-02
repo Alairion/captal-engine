@@ -19,15 +19,32 @@
 namespace cpt
 {
 
-text::text(std::span<const std::uint32_t> indices, std::span<const vertex> vertices, font_atlas& atlas, std::uint32_t width, std::uint32_t height, std::size_t count)
+text::text(std::span<const std::uint32_t> indices, std::span<const vertex> vertices, font_atlas& atlas, text_style style, std::uint32_t width, std::uint32_t height, std::size_t count)
 :renderable{static_cast<std::uint32_t>(std::size(indices)), static_cast<std::uint32_t>(std::size(vertices))}
 ,m_width{width}
 ,m_height{height}
+,m_style{style}
 ,m_count{count}
 {
     set_indices(indices);
     set_vertices(vertices);
     set_texture(atlas.texture());
+
+    m_connection = atlas.signal().connect([this](texture_ptr new_texture)
+    {
+        const auto old_width{static_cast<float>(texture()->width())};
+        const auto old_height{static_cast<float>(texture()->height())};
+        const auto new_width{static_cast<float>(new_texture->width())};
+        const auto new_height{static_cast<float>(new_texture->height())};
+
+        const vec2f factor{old_width / new_width, old_height / new_height};
+        for(auto& vertex : get_vertices())
+        {
+            vertex.texture_coord *= factor;
+        }
+
+        set_texture(new_texture);
+    });
 }
 
 void text::set_color(const color& color)
@@ -143,9 +160,9 @@ text_bounds text_drawer::bounds(std::string_view string, std::uint32_t line_widt
 
 }
 */
-text text_drawer::draw(std::string_view string, const color& color)
+text text_drawer::draw(std::string_view string, text_style style, const color& color)
 {
-    auto& atlas{ensure(string)};
+    auto& atlas{ensure(string, style)};
 
     const auto  texture_width{static_cast<float>(atlas.atlas.texture()->width())};
     const auto  texture_height{static_cast<float>(atlas.atlas.texture()->height())};
@@ -177,7 +194,7 @@ text text_drawer::draw(std::string_view string, const color& color)
         else
         {
             const std::uint64_t key{(font_size << 32) | codepoint};
-            glyph_info& glyph{atlas.glyphs.at(key)};
+            const glyph_info& glyph{atlas.glyphs.at(key)};
 
             const vec2f texpos{static_cast<float>(glyph.rect.x), static_cast<float>(glyph.rect.y)};
             const float width {static_cast<float>(glyph.rect.width)};
@@ -203,7 +220,7 @@ text text_drawer::draw(std::string_view string, const color& color)
 
             current_x += glyph.advance;
             last = codepoint;
-       }
+        }
     }
 
     std::vector<std::uint32_t> indices{};
@@ -227,7 +244,7 @@ text text_drawer::draw(std::string_view string, const color& color)
         vertex.position += shift;
     }
 
-    return text{indices, vertices, atlas.atlas, static_cast<std::uint32_t>(greatest_x - lowest_x), static_cast<std::uint32_t>(greatest_y - lowest_y), std::size(string)};
+    return text{indices, vertices, atlas.atlas, style, static_cast<std::uint32_t>(greatest_x - lowest_x), static_cast<std::uint32_t>(greatest_y - lowest_y), std::size(string)};
 }
 /*
 text text_drawer::draw(std::string_view string, std::uint32_t line_width, text_align align, const color& color)
@@ -377,14 +394,14 @@ void text_drawer::upload()
     }
 }
 
-text_drawer::atlas_info& text_drawer::ensure(std::string_view string)
+text_drawer::atlas_info& text_drawer::ensure(std::string_view string, text_style style)
 {
     std::u32string codepoints{convert_to<utf32>(string)};
     std::sort(std::begin(codepoints), std::end(codepoints));
     codepoints.erase(std::unique(std::begin(codepoints), std::end(codepoints)), std::end(codepoints));
 
     const auto font_size{static_cast<std::uint64_t>(m_font.info().size)};
-    const bool need_embolden{!static_cast<bool>(m_font.info().category & font_category::bold) && static_cast<bool>(m_options & text_drawer_options::bold)};
+    const bool need_embolden{!static_cast<bool>(m_font.info().category & font_category::bold) && static_cast<bool>(style & text_style::bold)};
 
     for(auto& atlas : m_atlases)
     {
@@ -459,7 +476,7 @@ bool text_drawer::load(atlas_info& atlas, codepoint_t codepoint, std::uint64_t f
 
     return true;
 }
-
+/*
 text draw_text(cpt::font& font, std::string_view string, const color& color, text_drawer_options options)
 {
     text_drawer drawer{std::move(font), options};
@@ -499,5 +516,5 @@ text draw_text(cpt::font&& font, std::string_view string, std::uint32_t line_wid
 
     return text;
 }
-
+*/
 }

@@ -171,7 +171,7 @@ void font_atlas::resize(tph::command_buffer& buffer, asynchronous_resource_keepe
 
     keeper.keep(std::exchange(m_texture, new_texture));
 
-    m_signal();
+    m_signal(m_texture);
 }
 
 void font::freetype_deleter::operator()(void* ptr) noexcept
