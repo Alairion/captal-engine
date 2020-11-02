@@ -49,11 +49,11 @@ font_atlas::font_atlas(glyph_format format, const tph::sampling_options& samplin
 {
     if(m_format == glyph_format::gray)
     {
-        m_texture = make_texture(512, 512, tph::texture_info{tph::texture_format::r8_unorm, font_atlas_usage, red_to_alpha_mapping}, m_sampling);
+        m_texture = make_texture(512u, 512u, tph::texture_info{tph::texture_format::r8_unorm, font_atlas_usage, red_to_alpha_mapping}, m_sampling);
     }
     else
     {
-        m_texture = make_texture(512, 512, tph::texture_info{tph::texture_format::r8g8b8a8_srgb, font_atlas_usage}, m_sampling);
+        m_texture = make_texture(512u, 512u, tph::texture_info{tph::texture_format::r8g8b8a8_srgb, font_atlas_usage}, m_sampling);
     }
 
     m_buffers.reserve(64);

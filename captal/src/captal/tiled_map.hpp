@@ -66,7 +66,7 @@ struct object
         float height{};
         float angle{};
         color color{};
-        font_style style{};
+        text_style style{};
         bool italic{};
         text_drawer_options drawer_options{};
     };

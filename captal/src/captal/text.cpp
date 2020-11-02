@@ -110,7 +110,7 @@ text_drawer::text_drawer(cpt::font font, text_drawer_options options, const tph:
 ,m_options{options}
 ,m_sampling{sampling}
 {
-    m_atlases.emplace_back(m_font.info().format, m_sampling);
+    m_atlases.emplace_back(atlas_info{font_atlas{m_font.info().format, m_sampling}});
 }
 /*
 text_bounds text_drawer::bounds(std::string_view string)
@@ -423,7 +423,7 @@ text_drawer::atlas_info& text_drawer::ensure(std::string_view string, text_style
         }
     }
 
-    auto& atlas{m_atlases.emplace_back(m_font.info().format, m_sampling)};
+    auto& atlas{m_atlases.emplace_back(atlas_info{font_atlas{m_font.info().format, m_sampling}})};
 
     for(auto codepoint : codepoints)
     {

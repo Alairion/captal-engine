@@ -291,25 +291,25 @@ static object parse_object(const pugi::xml_node& node, const std::filesystem::pa
 
             if(child.attribute("bold").as_uint() != 0)
             {
-                text.style |= font_style::bold;
+                text.style |= text_style::bold;
             }
 
             if(child.attribute("underline").as_uint() != 0)
             {
-                text.style |= font_style::underlined;
+                text.style |= text_style::underlined;
             }
 
             if(child.attribute("strikeout").as_uint() != 0)
             {
-                text.style |= font_style::strikethrough;
+                text.style |= text_style::strikethrough;
             }
 
             text.italic = child.attribute("italic").as_uint() != 0;
-
+/*
             if(child.attribute("kerning").as_uint(1) != 0)
             {
                 text.drawer_options |= text_drawer_options::kerning;
-            }
+            }*/
 
             output.content = std::move(text);
         }
