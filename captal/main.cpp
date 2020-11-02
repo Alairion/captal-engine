@@ -174,7 +174,9 @@ static void add_logic(const cpt::render_window_ptr& window, entt::registry& worl
 
     const auto text{world.create()};
     world.emplace<cpt::components::node>(text, cpt::vec3f{4.0f, 4.0f, 1.0f});
-    world.emplace<cpt::components::drawable>(text, drawer.draw("Text", cpt::colors::black));
+    world.emplace<cpt::components::drawable>(text, drawer.draw("Text", cpt::text_style::regular, cpt::colors::black));
+
+    drawer.upload();
 
     //Display current FPS in window title, and GPU memory usage (only memory allocated using Tephra's renderer's allocator)
     cpt::engine::instance().frame_per_second_update_signal().connect([&world, text, drawer = std::move(drawer), time](std::uint32_t frame_per_second) mutable
@@ -213,8 +215,10 @@ static void add_logic(const cpt::render_window_ptr& window, entt::registry& worl
 
         cpt::engine::instance().renderer().allocator().clean_dedicated();
 
-        world.get<cpt::components::drawable>(text).attach(drawer.draw(info, cpt::colors::black));
+        world.get<cpt::components::drawable>(text).attach(drawer.draw(info, cpt::text_style::regular, cpt::colors::black));
         world.get<cpt::components::node>(text).update();
+
+        drawer.upload();
     });
 
     //Add a zoom support
