@@ -176,6 +176,14 @@ static void add_logic(const cpt::render_window_ptr& window, entt::registry& worl
     world.emplace<cpt::components::node>(text, cpt::vec3f{4.0f, 4.0f, 1.0f});
     world.emplace<cpt::components::drawable>(text, drawer.draw("Text", cpt::text_style::regular, cpt::colors::black));
 
+    for(std::uint32_t i{18}; i < 96; i += 2)
+    {
+        drawer.resize(i);
+        drawer.draw("ABCajDEsefsdFfGH5461'(?;:('))");
+    }
+
+    drawer.resize(16);
+
     drawer.upload();
 
     //Display current FPS in window title, and GPU memory usage (only memory allocated using Tephra's renderer's allocator)

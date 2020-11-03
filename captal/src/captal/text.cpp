@@ -19,32 +19,45 @@
 namespace cpt
 {
 
-text::text(std::span<const std::uint32_t> indices, std::span<const vertex> vertices, font_atlas& atlas, text_style style, std::uint32_t width, std::uint32_t height, std::size_t count)
+text::text(std::span<const std::uint32_t> indices, std::span<const vertex> vertices, std::shared_ptr<font_atlas> atlas, text_style style, std::uint32_t width, std::uint32_t height, std::size_t count)
 :renderable{static_cast<std::uint32_t>(std::size(indices)), static_cast<std::uint32_t>(std::size(vertices))}
 ,m_width{width}
 ,m_height{height}
 ,m_style{style}
 ,m_count{count}
+,m_atlas{std::move(atlas)}
 {
     set_indices(indices);
     set_vertices(vertices);
-    set_texture(atlas.texture());
+    set_texture(m_atlas->texture());
+    connect();
+}
 
-    m_connection = atlas.signal().connect([this](texture_ptr new_texture)
-    {
-        const auto old_width{static_cast<float>(texture()->width())};
-        const auto old_height{static_cast<float>(texture()->height())};
-        const auto new_width{static_cast<float>(new_texture->width())};
-        const auto new_height{static_cast<float>(new_texture->height())};
+text::text(text&& other) noexcept
+:renderable{std::move(other)}
+,m_width{other.m_width}
+,m_height{other.m_height}
+,m_style{other.m_style}
+,m_count{other.m_count}
+,m_atlas{std::move(other.m_atlas)}
+{
+    other.m_connection.disconnect();
+    connect();
+}
 
-        const vec2f factor{old_width / new_width, old_height / new_height};
-        for(auto& vertex : get_vertices())
-        {
-            vertex.texture_coord *= factor;
-        }
+text& text::operator=(text&& other) noexcept
+{
+    renderable::operator=(std::move(other));
+    m_width = other.m_width;
+    m_height = other.m_height;
+    m_style = other.m_style;
+    m_count = other.m_count;
+    m_atlas = std::move(other.m_atlas);
 
-        set_texture(new_texture);
-    });
+    other.m_connection.disconnect();
+    connect();
+
+    return *this;
 }
 
 void text::set_color(const color& color)
@@ -89,6 +102,25 @@ void text::set_color(std::uint32_t first, std::uint32_t count, const color& colo
     update();
 }
 
+void text::connect()
+{
+    m_connection = m_atlas->signal().connect([this](texture_ptr new_texture)
+    {
+        const auto old_width{static_cast<float>(texture()->width())};
+        const auto old_height{static_cast<float>(texture()->height())};
+        const auto new_width{static_cast<float>(new_texture->width())};
+        const auto new_height{static_cast<float>(new_texture->height())};
+
+        const vec2f factor{old_width / new_width, old_height / new_height};
+        for(auto& vertex : get_vertices())
+        {
+            vertex.texture_coord *= factor;
+        }
+
+        set_texture(new_texture);
+    });
+}
+
 static void add_glyph(std::vector<vertex>& vertices, float x, float y, float width, float height, const color& color, vec2f texpos, vec2f texsize)
 {
     vertices.emplace_back(vertex{vec3f{x, y, 0.0f}, static_cast<vec4f>(color), texpos / texsize});
@@ -110,7 +142,7 @@ text_drawer::text_drawer(cpt::font font, text_drawer_options options, const tph:
 ,m_options{options}
 ,m_sampling{sampling}
 {
-    m_atlases.emplace_back(atlas_info{font_atlas{m_font.info().format, m_sampling}});
+    m_atlases.emplace_back(atlas_info{std::make_shared<font_atlas>(m_font.info().format, m_sampling)});
 }
 /*
 text_bounds text_drawer::bounds(std::string_view string)
@@ -164,8 +196,8 @@ text text_drawer::draw(std::string_view string, text_style style, const color& c
 {
     auto& atlas{ensure(string, style)};
 
-    const auto  texture_width{static_cast<float>(atlas.atlas.texture()->width())};
-    const auto  texture_height{static_cast<float>(atlas.atlas.texture()->height())};
+    const auto  texture_width{static_cast<float>(atlas.atlas->texture()->width())};
+    const auto  texture_height{static_cast<float>(atlas.atlas->texture()->height())};
     const vec2f texsize{texture_width, texture_height};
     const auto  codepoint_count{utf8::count(std::begin(string), std::end(string))};
     const auto  font_size{static_cast<std::uint64_t>(m_font.info().size)};
@@ -387,9 +419,9 @@ void text_drawer::upload()
 {
     for(auto& atlas : m_atlases)
     {
-        if(atlas.atlas.need_upload())
+        if(atlas.atlas->need_upload())
         {
-            atlas.atlas.upload();
+            atlas.atlas->upload();
         }
     }
 }
@@ -423,7 +455,7 @@ text_drawer::atlas_info& text_drawer::ensure(std::string_view string, text_style
         }
     }
 
-    auto& atlas{m_atlases.emplace_back(atlas_info{font_atlas{m_font.info().format, m_sampling}})};
+    auto& atlas{m_atlases.emplace_back(atlas_info{std::make_shared<font_atlas>(m_font.info().format, m_sampling)})};
 
     for(auto codepoint : codepoints)
     {
@@ -453,7 +485,7 @@ bool text_drawer::load(atlas_info& atlas, codepoint_t codepoint, std::uint64_t f
 
             if(glyph->width != 0 && glyph->height != 0)
             {
-                const auto rect{atlas.atlas.add_glyph(glyph->data, glyph->width, glyph->height)};
+                const auto rect{atlas.atlas->add_glyph(glyph->data, glyph->width, glyph->height)};
                 if(!rect)
                 {
                     return false;

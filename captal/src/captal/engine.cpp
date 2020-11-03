@@ -128,6 +128,9 @@ engine::~engine()
 {
     m_renderer.wait();
 
+    m_update_signal.disconnect_all();
+    m_frame_per_second_signal.disconnect_all();
+
     m_instance = nullptr;
 }
 

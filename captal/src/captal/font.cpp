@@ -103,10 +103,20 @@ void font_atlas::upload()
     }
     else
     {
-        tph::cmd::transition(buffer, m_texture->get_texture(),
-                             tph::resource_access::none, tph::resource_access::transfer_write,
-                             tph::pipeline_stage::top_of_pipe, tph::pipeline_stage::transfer,
-                             tph::texture_layout::shader_read_only_optimal, tph::texture_layout::transfer_destination_optimal);
+        if(std::exchange(m_first_upload, false))
+        {
+            tph::cmd::transition(buffer, m_texture->get_texture(),
+                                 tph::resource_access::none, tph::resource_access::transfer_write,
+                                 tph::pipeline_stage::top_of_pipe, tph::pipeline_stage::transfer,
+                                 tph::texture_layout::undefined, tph::texture_layout::transfer_destination_optimal);
+        }
+        else
+        {
+            tph::cmd::transition(buffer, m_texture->get_texture(),
+                                 tph::resource_access::none, tph::resource_access::transfer_write,
+                                 tph::pipeline_stage::top_of_pipe, tph::pipeline_stage::transfer,
+                                 tph::texture_layout::shader_read_only_optimal, tph::texture_layout::transfer_destination_optimal);
+        }
     }
 
     std::vector<tph::buffer_texture_copy> copies{};
@@ -122,7 +132,7 @@ void font_atlas::upload()
         copy.texture_offset.y = buffer.rect.y;
         copy.texture_size.width = buffer.rect.width;
         copy.texture_size.height = buffer.rect.height;
-        copy.texture_size.width = 1;
+        copy.texture_size.depth = 1;
 
         copies.emplace_back(copy);
     }
@@ -157,10 +167,20 @@ void font_atlas::resize(tph::command_buffer& buffer, asynchronous_resource_keepe
         new_texture = make_texture(m_packer.width(), m_packer.height(), tph::texture_info{tph::texture_format::r8g8b8a8_srgb, font_atlas_usage}, m_sampling);
     }
 
-    tph::cmd::transition(buffer, m_texture->get_texture(),
-                         tph::resource_access::none, tph::resource_access::transfer_read,
-                         tph::pipeline_stage::top_of_pipe, tph::pipeline_stage::transfer,
-                         tph::texture_layout::shader_read_only_optimal, tph::texture_layout::transfer_source_optimal);
+    if(std::exchange(m_first_upload, false))
+    {
+        tph::cmd::transition(buffer, m_texture->get_texture(),
+                             tph::resource_access::none, tph::resource_access::transfer_read,
+                             tph::pipeline_stage::top_of_pipe, tph::pipeline_stage::transfer,
+                             tph::texture_layout::undefined, tph::texture_layout::transfer_source_optimal);
+    }
+    else
+    {
+        tph::cmd::transition(buffer, m_texture->get_texture(),
+                             tph::resource_access::none, tph::resource_access::transfer_read,
+                             tph::pipeline_stage::top_of_pipe, tph::pipeline_stage::transfer,
+                             tph::texture_layout::shader_read_only_optimal, tph::texture_layout::transfer_source_optimal);
+    }
 
     tph::cmd::transition(buffer, new_texture->get_texture(),
                          tph::resource_access::none, tph::resource_access::transfer_write,

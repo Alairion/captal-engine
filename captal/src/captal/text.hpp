@@ -23,13 +23,13 @@ class CAPTAL_API text final : public renderable
 {
 public:
     text() = default;
-    explicit text(std::span<const std::uint32_t> indices, std::span<const vertex> vertices, font_atlas& atlas, text_style style, std::uint32_t width, std::uint32_t height, std::size_t count);
+    explicit text(std::span<const std::uint32_t> indices, std::span<const vertex> vertices, std::shared_ptr<font_atlas> atlas, text_style style, std::uint32_t width, std::uint32_t height, std::size_t count);
 
     ~text() = default;
     text(const text&) = delete;
     text& operator=(const text&) = delete;
-    text(text&&) noexcept = default;
-    text& operator=(text&&) noexcept = default;
+    text(text&& other) noexcept;
+    text& operator=(text&& other) noexcept;
 
     void set_color(const color& color);
     void set_color(std::uint32_t character_index, const color& color);
@@ -46,10 +46,14 @@ public:
     }
 
 private:
+    void connect();
+
+private:
     std::uint32_t m_width{};
     std::uint32_t m_height{};
     text_style m_style{};
     std::size_t m_count{};
+    std::shared_ptr<font_atlas> m_atlas{};
     scoped_connection m_connection{};
 };
 
@@ -136,7 +140,7 @@ private:
 
     struct atlas_info
     {
-        font_atlas atlas{};
+        std::shared_ptr<font_atlas> atlas{};
         std::unordered_map<std::uint64_t, glyph_info> glyphs{};
     };
 

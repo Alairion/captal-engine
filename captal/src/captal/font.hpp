@@ -121,6 +121,7 @@ private:
     std::vector<std::uint8_t> m_buffer_data{};
     std::uint32_t m_max_size{};
     bool m_resized{};
+    bool m_first_upload{true};
 };
 
 enum class font_category : std::uint32_t
