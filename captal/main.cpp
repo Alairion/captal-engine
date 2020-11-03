@@ -170,16 +170,16 @@ static entt::entity fill_world(entt::registry& world, cpt::physical_world& physi
 
 static void add_logic(const cpt::render_window_ptr& window, entt::registry& world, cpt::physical_world& physical_world, entt::entity camera, const std::shared_ptr<cpt::frame_time_t>& time)
 {
-    cpt::text_drawer drawer{cpt::font{sansation_regular_font_data, 16}};
+    cpt::text_drawer drawer{cpt::font{sansation_regular_font_data, 16}, cpt::text_drawer_options::none, tph::sampling_options{tph::filter::linear, tph::filter::linear}};
 
     const auto text{world.create()};
     world.emplace<cpt::components::node>(text, cpt::vec3f{4.0f, 4.0f, 1.0f});
     world.emplace<cpt::components::drawable>(text, drawer.draw("Text", cpt::text_style::regular, cpt::colors::black));
 
-    for(std::uint32_t i{128}; i > 8; i -= 1)
+    for(std::uint32_t i{16}; i > 8; i -= 1)
     {
         drawer.resize(i);
-        drawer.draw("ABCajDEsemlkpgofNBJHMUfsdFfGH5461'(?;:('))");
+        drawer.draw("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890&é\"'(-è_çà)=~#{[|`\\^@]}^$*ù!:;,?./§µ%£¨ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãåæçèéêëìíîïñòóôö÷øùúûüþÿĀāĂăĄąĆćĈĉĊċČčĎďĐēĔĖėĘęĚěĜĝĞğĠġĢģĤĥĩĪīĬĭĮįİıĴĵĶķĸĹĻļĽľĿŀŁłŃńŅņŇňŉŊŋ");
     }
 
     drawer.resize(16);

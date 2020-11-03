@@ -66,6 +66,13 @@ std::optional<bin_packer::rect> font_atlas::add_glyph(std::span<const uint8_t> i
     const std::uint32_t padding{has_padding ? 2u : 0u};
 
     auto rect{m_packer.append(width + padding, height + padding)};
+/*
+    if(!rect)
+    {
+        m_packer.optimize();
+        rect = m_packer.append(width + padding, height + padding);
+    }
+*/
     while(!rect.has_value())
     {
         if(m_packer.width() * 2 > m_max_size)
