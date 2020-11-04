@@ -176,7 +176,7 @@ static void add_logic(const cpt::render_window_ptr& window, entt::registry& worl
     world.emplace<cpt::components::node>(text, cpt::vec3f{4.0f, 4.0f, 1.0f});
     world.emplace<cpt::components::drawable>(text, drawer.draw("Text", cpt::text_style::regular, cpt::colors::black));
 
-    for(std::uint32_t i{16}; i > 8; i -= 1)
+    for(std::uint32_t i{20}; i > 12; i -= 1)
     {
         drawer.resize(i);
         drawer.draw("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890&é\"'(-è_çà)=~#{[|`\\^@]}^$*ù!:;,?./§µ%£¨ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãåæçèéêëìíîïñòóôö÷øùúûüþÿĀāĂăĄąĆćĈĉĊċČčĎďĐēĔĖėĘęĚěĜĝĞğĠġĢģĤĥĩĪīĬĭĮįİıĴĵĶķĸĹĻļĽľĿŀŁłŃńŅņŇňŉŊŋ");
