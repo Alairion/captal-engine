@@ -25,35 +25,36 @@ std::optional<bin_packer::rect> bin_packer::append(std::uint32_t image_width, st
     std::uint32_t best_score{std::numeric_limits<std::uint32_t>::max()};
     bool best_flipped{};
 
+    const auto accept = [this](std::size_t i, const rect& candidate, const bin_packer::splits& splits, std::uint32_t image_width, std::uint32_t image_height)
+    {
+        m_spaces[i] = m_spaces.back();
+        m_spaces.pop_back();
+
+        for(std::size_t j{}; j < splits.count; ++j)
+        {
+            m_spaces.emplace_back(splits.splits[j]);
+        }
+
+        return rect{candidate.x, candidate.y, image_width, image_height};
+    };
+
     for(auto i{std::ssize(m_spaces) - 1}; i >= 0; --i)
     {
         const auto candidate{m_spaces[i]};
         const auto splits{split(image_width, image_height, candidate)};
         const auto flipped{split(image_height, image_width, candidate)};
 
-        const auto accept = [this, i, &candidate, image_width, image_height](const bin_packer::splits& splits)
-        {
-            m_spaces[i] = m_spaces.back();
-            m_spaces.pop_back();
-
-            for(std::size_t j{}; j < splits.count; ++j)
-            {
-                m_spaces.emplace_back(splits.splits[j]);
-            }
-
-            return rect{candidate.x, candidate.y, image_width, image_height};
-        };
 
         if(splits && flipped)
         {
             if(splits->count == 0) //perfect fit
             {
-                return accept(splits.value());
+                return accept(i, candidate, splits.value(), image_width, image_height);
             }
 
             if(flipped->count == 0) //perfect fit
             {
-                return accept(flipped.value());
+                return accept(i, candidate, flipped.value(), image_height, image_width);
             }
 
             const auto score{area_fit_score(image_width, image_height, candidate)};
@@ -79,7 +80,7 @@ std::optional<bin_packer::rect> bin_packer::append(std::uint32_t image_width, st
         {
             if(splits->count == 0) //perfect fit
             {
-                return accept(splits.value());
+                return accept(i, candidate, splits.value(), image_width, image_height);
             }
 
             const auto score{area_fit_score(image_width, image_height, candidate)};
@@ -96,7 +97,7 @@ std::optional<bin_packer::rect> bin_packer::append(std::uint32_t image_width, st
         {
             if(flipped->count == 0) //perfect fit
             {
-                return accept(flipped.value());
+                return accept(i, candidate, flipped.value(), image_height, image_width);
             }
 
             const auto score{area_fit_score(image_width, image_height, candidate)};
@@ -113,23 +114,14 @@ std::optional<bin_packer::rect> bin_packer::append(std::uint32_t image_width, st
 
     if(best_index != std::numeric_limits<std::ptrdiff_t>::max())
     {
-        const auto x{m_spaces[best_index].x};
-        const auto y{m_spaces[best_index].y};
-
-        m_spaces[best_index] = m_spaces.back();
-        m_spaces.pop_back();
-
-        for(std::size_t j{}; j < best_splits.count; ++j)
-        {
-            m_spaces.emplace_back(best_splits.splits[j]);
-        }
+        const auto candidate{m_spaces[best_index]};
 
         if(best_flipped)
         {
-            return rect{x, y, image_height, image_width};
+            return accept(best_index, candidate, best_splits, image_height, image_width);
         }
 
-        return rect{x, y, image_width, image_height};
+        return accept(best_index, candidate, best_splits, image_width, image_height);
     }
 
     return std::nullopt;
