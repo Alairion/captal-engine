@@ -136,6 +136,7 @@ private:
         float ascent{};
         float descent{};
         bin_packer::rect rect{};
+        bool flipped{};
     };
 
     struct atlas_info

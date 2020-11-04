@@ -5,7 +5,7 @@
 namespace cpt
 {
 
-static std::int32_t area_fit_score(std::uint32_t width, std::uint32_t height, const bin_packer::rect& rect) noexcept
+static std::uint32_t area_fit_score(std::uint32_t width, std::uint32_t height, const bin_packer::rect& rect) noexcept
 {
     return rect.width * rect.height - width * height;
 }
@@ -15,14 +15,14 @@ bin_packer::bin_packer(uint32_t width, uint32_t height)
 ,m_height{height}
 ,m_spaces{rect{0, 0, width, height}}
 {
-    m_spaces.reserve(256);
+    m_spaces.reserve(128);
 }
 
 std::optional<bin_packer::rect> bin_packer::append(std::uint32_t image_width, std::uint32_t image_height)
 {
     std::ptrdiff_t best_index{std::numeric_limits<std::ptrdiff_t>::max()};
     splits best_splits{};
-    std::int32_t best_score{};
+    std::uint32_t best_score{std::numeric_limits<std::uint32_t>::max()};
     bool best_flipped{};
 
     for(auto i{std::ssize(m_spaces) - 1}; i >= 0; --i)
@@ -31,37 +31,34 @@ std::optional<bin_packer::rect> bin_packer::append(std::uint32_t image_width, st
         const auto splits{split(image_width, image_height, candidate)};
         const auto flipped{split(image_height, image_width, candidate)};
 
+        const auto accept = [this, i, &candidate, image_width, image_height](const bin_packer::splits& splits)
+        {
+            m_spaces[i] = m_spaces.back();
+            m_spaces.pop_back();
+
+            for(std::size_t j{}; j < splits.count; ++j)
+            {
+                m_spaces.emplace_back(splits.splits[j]);
+            }
+
+            return rect{candidate.x, candidate.y, image_width, image_height};
+        };
+
         if(splits && flipped)
         {
             if(splits->count == 0) //perfect fit
             {
-                m_spaces[i] = m_spaces.back();
-                m_spaces.pop_back();
-
-                for(std::size_t j{}; j < splits->count; ++j)
-                {
-                    m_spaces.emplace_back(splits->splits[j]);
-                }
-
-                return rect{candidate.x, candidate.y, image_width, image_height};
+                return accept(splits.value());
             }
 
             if(flipped->count == 0) //perfect fit
             {
-                m_spaces[i] = m_spaces.back();
-                m_spaces.pop_back();
-
-                for(std::size_t j{}; j < flipped->count; ++j)
-                {
-                    m_spaces.emplace_back(flipped->splits[j]);
-                }
-
-                return rect{candidate.x, candidate.y, image_height, image_width};
+                return accept(flipped.value());
             }
 
-            const std::int32_t score{area_fit_score(image_width, image_height, candidate)};
+            const auto score{area_fit_score(image_width, image_height, candidate)};
 
-            if(score > best_score)
+            if(score < best_score)
             {
                 best_score = score;
                 best_index = i;
@@ -82,20 +79,12 @@ std::optional<bin_packer::rect> bin_packer::append(std::uint32_t image_width, st
         {
             if(splits->count == 0) //perfect fit
             {
-                m_spaces[i] = m_spaces.back();
-                m_spaces.pop_back();
-
-                for(std::size_t j{}; j < splits->count; ++j)
-                {
-                    m_spaces.emplace_back(splits->splits[j]);
-                }
-
-                return rect{candidate.x, candidate.y, image_width, image_height};
+                return accept(splits.value());
             }
 
-            const std::int32_t score{area_fit_score(image_width, image_height, candidate)};
+            const auto score{area_fit_score(image_width, image_height, candidate)};
 
-            if(score > best_score)
+            if(score < best_score)
             {
                 best_score = score;
                 best_index = i;
@@ -107,20 +96,12 @@ std::optional<bin_packer::rect> bin_packer::append(std::uint32_t image_width, st
         {
             if(flipped->count == 0) //perfect fit
             {
-                m_spaces[i] = m_spaces.back();
-                m_spaces.pop_back();
-
-                for(std::size_t j{}; j < flipped->count; ++j)
-                {
-                    m_spaces.emplace_back(flipped->splits[j]);
-                }
-
-                return rect{candidate.x, candidate.y, image_width, image_height};
+                return accept(flipped.value());
             }
 
-            const std::int32_t score{area_fit_score(image_width, image_height, candidate)};
+            const auto score{area_fit_score(image_width, image_height, candidate)};
 
-            if(score > best_score)
+            if(score < best_score)
             {
                 best_score = score;
                 best_index = i;
@@ -161,19 +142,6 @@ void bin_packer::resize(std::uint32_t width, std::uint32_t height) noexcept
 
     const auto width_diff{width - m_width};
     const auto height_diff{height - m_height};
-    /*
-    for(auto& space : m_spaces)
-    {
-        if(space.x + space.width == m_width)
-        {
-            space.width = width - space.x;
-        }
-
-        if(space.y + space.height == m_height)
-        {
-            space.height = height - space.y;
-        }
-    }*/
 
     m_spaces.emplace_back(rect{0, m_height, width_diff, height_diff});
     m_spaces.emplace_back(rect{m_width, m_height, width_diff, height_diff});

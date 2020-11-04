@@ -31,6 +31,8 @@ font_engine::font_engine()
     m_library = handle_type{library};
 }
 
+static constexpr std::uint32_t default_size{256};
+
 static constexpr tph::component_mapping red_to_alpha_mapping
 {
     tph::component_swizzle::one,
@@ -39,21 +41,21 @@ static constexpr tph::component_mapping red_to_alpha_mapping
     tph::component_swizzle::r,
 };
 
-constexpr auto font_atlas_usage{tph::texture_usage::sampled | tph::texture_usage::transfer_destination | tph::texture_usage::transfer_source};
+static constexpr auto font_atlas_usage{tph::texture_usage::sampled | tph::texture_usage::transfer_destination | tph::texture_usage::transfer_source};
 
 font_atlas::font_atlas(glyph_format format, const tph::sampling_options& sampling)
 :m_format{format}
 ,m_sampling{sampling}
-,m_packer{512, 512}
+,m_packer{default_size, default_size}
 ,m_max_size{engine::instance().graphics_device().limits().max_2d_texture_size}
 {
     if(m_format == glyph_format::gray)
     {
-        m_texture = make_texture(512u, 512u, tph::texture_info{tph::texture_format::r8_unorm, font_atlas_usage, red_to_alpha_mapping}, m_sampling);
+        m_texture = make_texture(default_size, default_size, tph::texture_info{tph::texture_format::r8_unorm, font_atlas_usage, red_to_alpha_mapping}, m_sampling);
     }
     else
     {
-        m_texture = make_texture(512u, 512u, tph::texture_info{tph::texture_format::r8g8b8a8_srgb, font_atlas_usage}, m_sampling);
+        m_texture = make_texture(default_size, default_size, tph::texture_info{tph::texture_format::r8g8b8a8_srgb, font_atlas_usage}, m_sampling);
     }
 
     m_buffers.reserve(64);
@@ -66,13 +68,6 @@ std::optional<bin_packer::rect> font_atlas::add_glyph(std::span<const uint8_t> i
     const std::uint32_t padding{has_padding ? 2u : 0u};
 
     auto rect{m_packer.append(width + padding, height + padding)};
-/*
-    if(!rect)
-    {
-        m_packer.optimize();
-        rect = m_packer.append(width + padding, height + padding);
-    }
-*/
     while(!rect.has_value())
     {
         if(m_packer.width() * 2 > m_max_size)
@@ -86,14 +81,31 @@ std::optional<bin_packer::rect> font_atlas::add_glyph(std::span<const uint8_t> i
         rect = m_packer.append(width + padding, height + padding);
     }
 
-    const auto begin{std::size(m_buffer_data)};
-    m_buffer_data.resize(begin + std::size(image));
-    std::copy(std::begin(image), std::end(image), std::begin(m_buffer_data) + begin);
-
     rect->x += padding / 2;
     rect->y += padding / 2;
     rect->width -= padding;
     rect->height -= padding;
+
+    const auto flipped{rect->width != width};
+    const auto begin{std::size(m_buffer_data)};
+    m_buffer_data.resize(begin + std::size(image));
+
+    if(flipped)
+    {
+        const auto it{std::begin(m_buffer_data) + begin};
+
+        for(std::size_t y{}; y < height; ++y)
+        {
+            for(std::size_t x{}; x < width; ++x)
+            {
+                it[x * height + y] = image[y * width + x];
+            }
+        }
+    }
+    else
+    {
+        std::copy(std::begin(image), std::end(image), std::begin(m_buffer_data) + begin);
+    }
 
     m_buffers.emplace_back(transfer_buffer{begin, rect.value()});
 

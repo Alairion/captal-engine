@@ -170,7 +170,7 @@ static entt::entity fill_world(entt::registry& world, cpt::physical_world& physi
 
 static void add_logic(const cpt::render_window_ptr& window, entt::registry& world, cpt::physical_world& physical_world, entt::entity camera, const std::shared_ptr<cpt::frame_time_t>& time)
 {
-    cpt::text_drawer drawer{cpt::font{sansation_regular_font_data, 16}, cpt::text_drawer_options::none, tph::sampling_options{tph::filter::linear, tph::filter::linear}};
+    cpt::text_drawer drawer{cpt::font{sansation_regular_font_data, 16}/*, cpt::text_drawer_options::none, tph::sampling_options{tph::filter::linear, tph::filter::linear}*/};
 
     const auto text{world.create()};
     world.emplace<cpt::components::node>(text, cpt::vec3f{4.0f, 4.0f, 1.0f});
@@ -219,7 +219,10 @@ static void add_logic(const cpt::render_window_ptr& window, entt::registry& worl
         info += "Device shared (" + std::to_string(memory_heaps.device_shared) + "): " + format_data(memory_used.device_shared) + " / " + format_data(memory_alloc.device_shared) + "\n";
         info += "Host shared (" + std::to_string(memory_heaps.host_shared) + "): " + format_data(memory_used.host_shared) + " / " + format_data(memory_alloc.host_shared) + "\n";
         info += std::to_string(frame_per_second) + " FPS\n";
-        info += "Frame time: " + std::to_string(std::chrono::duration<double, std::milli>{*time}.count()) + "ms";
+
+        auto fps{std::to_string(std::chrono::duration<double, std::milli>{*time}.count())};
+        fps.resize(4);
+        info += "Frame time: " + fps + "ms";
 
         cpt::engine::instance().renderer().allocator().clean_dedicated();
 

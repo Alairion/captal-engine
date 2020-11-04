@@ -121,20 +121,27 @@ void text::connect()
     });
 }
 
-static void add_glyph(std::vector<vertex>& vertices, float x, float y, float width, float height, const color& color, vec2f texpos, vec2f texsize)
+static void add_glyph(std::vector<vertex>& vertices, float x, float y, float width, float height, const vec4f& color, vec2f texpos, vec2f texsize, bool flipped)
 {
-    vertices.emplace_back(vertex{vec3f{x, y, 0.0f}, static_cast<vec4f>(color), texpos / texsize});
-    vertices.emplace_back(vertex{vec3f{x + width, y, 0.0f}, static_cast<vec4f>(color), vec2f{texpos.x() + width, texpos.y()} / texsize});
-    vertices.emplace_back(vertex{vec3f{x + width, y + height, 0.0f}, static_cast<vec4f>(color), vec2f{texpos.x() + width, texpos.y() + height} / texsize});
-    vertices.emplace_back(vertex{vec3f{x, y + height, 0.0f}, static_cast<vec4f>(color), vec2f{texpos.x(), texpos.y() + height} / texsize});
+    if(flipped)
+    {
+        vertices.emplace_back(vertex{vec3f{x, y, 0.0f}, color, texpos / texsize});
+        vertices.emplace_back(vertex{vec3f{x + width, y, 0.0f}, color, vec2f{texpos.x(), texpos.y() + width} / texsize});
+        vertices.emplace_back(vertex{vec3f{x + width, y + height, 0.0f}, color, vec2f{texpos.x() + height, texpos.y() + width} / texsize});
+        vertices.emplace_back(vertex{vec3f{x, y + height, 0.0f}, color, vec2f{texpos.x() + height, texpos.y()} / texsize});
+    }
+    else
+    {
+        vertices.emplace_back(vertex{vec3f{x, y, 0.0f}, color, texpos / texsize});
+        vertices.emplace_back(vertex{vec3f{x + width, y, 0.0f}, color, vec2f{texpos.x() + width, texpos.y()} / texsize});
+        vertices.emplace_back(vertex{vec3f{x + width, y + height, 0.0f}, color, vec2f{texpos.x() + width, texpos.y() + height} / texsize});
+        vertices.emplace_back(vertex{vec3f{x, y + height, 0.0f}, color, vec2f{texpos.x(), texpos.y() + height} / texsize});
+    }
 }
 
 static void add_placeholder(std::vector<vertex>& vertices)
 {
-    vertices.emplace_back();
-    vertices.emplace_back();
-    vertices.emplace_back();
-    vertices.emplace_back();
+    vertices.resize(std::size(vertices) + 4);
 }
 
 text_drawer::text_drawer(cpt::font font, text_drawer_options options, const tph::sampling_options& sampling)
@@ -229,8 +236,8 @@ text text_drawer::draw(std::string_view string, text_style style, const color& c
             const glyph_info& glyph{atlas.glyphs.at(key)};
 
             const vec2f texpos{static_cast<float>(glyph.rect.x), static_cast<float>(glyph.rect.y)};
-            const float width {static_cast<float>(glyph.rect.width)};
-            const float height{static_cast<float>(glyph.rect.height)};
+            const float width {static_cast<float>(glyph.flipped ? glyph.rect.height : glyph.rect.width)};
+            const float height{static_cast<float>(glyph.flipped ? glyph.rect.width : glyph.rect.height)};
 
             if(width > 0 && height > 0)
             {
@@ -238,7 +245,7 @@ text text_drawer::draw(std::string_view string, text_style style, const color& c
                 const float x{current_x + glyph.origin.x() + kerning.x()};
                 const float y{current_y + glyph.origin.y() + kerning.y()};
 
-                add_glyph(vertices, x, y, width, height, color, texpos, texsize);
+                add_glyph(vertices, x, y, width, height, static_cast<vec4f>(color), texpos, texsize, glyph.flipped);
 
                 lowest_x = std::min(lowest_x, x);
                 lowest_y = std::min(lowest_y, y);
@@ -492,6 +499,11 @@ bool text_drawer::load(atlas_info& atlas, codepoint_t codepoint, std::uint64_t f
                 }
 
                 info.rect = rect.value();
+
+                if(rect->width != glyph->width)
+                {
+                    info.flipped = true;
+                }
             }
 
             atlas.glyphs.emplace(key, info);
