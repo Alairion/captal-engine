@@ -179,7 +179,8 @@ static void add_logic(const cpt::render_window_ptr& window, entt::registry& worl
     for(std::uint32_t i{20}; i > 12; i -= 1)
     {
         drawer.resize(i);
-        drawer.draw("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890&é\"'(-è_çà)=~#{[|`\\^@]}^$*ù!:;,?./§µ%£¨ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãåæçèéêëìíîïñòóôö÷øùúûüþÿĀāĂăĄąĆćĈĉĊċČčĎďĐēĔĖėĘęĚěĜĝĞğĠġĢģĤĥĩĪīĬĭĮįİıĴĵĶķĸĹĻļĽľĿŀŁłŃńŅņŇňŉŊŋ");
+        const auto style{i % 2 == 1 ? cpt::text_style::bold : cpt::text_style::regular};
+        drawer.draw("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890&é\"'(-è_çà)=~#{[|`\\^@]}^$*ù!:;,?./§µ%£¨ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãåæçèéêëìíîïñòóôö÷øùúûüþÿĀāĂăĄąĆćĈĉĊċČčĎďĐēĔĖėĘęĚěĜĝĞğĠġĢģĤĥĩĪīĬĭĮįİıĴĵĶķĸĹĻļĽľĿŀŁłŃńŅņŇňŉŊŋ", style);
     }
 
     drawer.resize(16);
