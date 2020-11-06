@@ -23,7 +23,7 @@ class CAPTAL_API text final : public renderable
 {
 public:
     text() = default;
-    explicit text(std::span<const std::uint32_t> indices, std::span<const vertex> vertices, std::shared_ptr<font_atlas> atlas, text_style style, std::uint32_t width, std::uint32_t height, std::size_t count);
+    explicit text(std::span<const std::uint32_t> indices, std::span<const vertex> vertices, std::weak_ptr<font_atlas> atlas, text_style style, std::uint32_t width, std::uint32_t height, std::size_t count);
 
     ~text() = default;
     text(const text&) = delete;
@@ -53,7 +53,7 @@ private:
     std::uint32_t m_height{};
     text_style m_style{};
     std::size_t m_count{};
-    std::shared_ptr<font_atlas> m_atlas{};
+    std::weak_ptr<font_atlas> m_atlas{};
     scoped_connection m_connection{};
 };
 
@@ -145,6 +145,7 @@ private:
         std::unordered_map<std::uint64_t, glyph_info> glyphs{};
     };
 
+private:
     struct draw_line_state
     {
         float current_x{};
@@ -153,11 +154,13 @@ private:
         float lowest_y{};
         float greatest_x{};
         float greatest_y{};
-        float texture_width{};
-        float texture_height{};
+        vec2f texture_size{};
+        std::uint32_t line_width{};
+        std::uint64_t font_size{};
     };
 
-    void draw_line(std::string_view line, std::uint32_t line_width, text_align align, draw_line_state& state, std::vector<vertex>& vertices, const std::unordered_map<codepoint_t, std::pair<std::shared_ptr<glyph>, vec2f>>& cache, const color& color);
+    void draw_line(std::string_view line, text_align align, draw_line_state& state, std::vector<vertex>& vertices, const color& color);
+    void draw_left_aligned(std::string_view line, draw_line_state& state, std::vector<vertex>& vertices, const color& color);
 
 private:
     atlas_info& ensure(std::string_view string, text_style style);

@@ -32,15 +32,7 @@ font_engine::font_engine()
 }
 
 static constexpr std::uint32_t default_size{256};
-
-static constexpr tph::component_mapping red_to_alpha_mapping
-{
-    tph::component_swizzle::one,
-    tph::component_swizzle::one,
-    tph::component_swizzle::one,
-    tph::component_swizzle::r,
-};
-
+static constexpr tph::component_mapping red_to_alpha_mapping{tph::component_swizzle::one, tph::component_swizzle::one, tph::component_swizzle::one, tph::component_swizzle::r};
 static constexpr auto font_atlas_usage{tph::texture_usage::sampled | tph::texture_usage::transfer_destination | tph::texture_usage::transfer_source};
 
 font_atlas::font_atlas(glyph_format format, const tph::sampling_options& sampling)
@@ -289,18 +281,18 @@ std::optional<glyph> font::load_image(codepoint_t codepoint, bool embolden)
     output->width = bitmap.width;
     output->height = bitmap.rows;
 
-    if(m_info.format == glyph_format::gray)
-    {
-        output->data.resize(output->height * output->width);
-    }
-    else
-    {
-        output->data.resize(output->height * output->width * 4);
-        std::fill(std::begin(output->data), std::end(output->data), 255);
-    }
-
     if(output->width > 0 && output->height > 0)
     {
+        if(m_info.format == glyph_format::gray)
+        {
+            output->data.resize(output->height * output->width);
+        }
+        else
+        {
+            output->data.resize(output->height * output->width * 4);
+            std::fill(std::begin(output->data), std::end(output->data), 255);
+        }
+
         const std::uint8_t* data{bitmap.buffer};
 
         if(bitmap.pixel_mode == FT_PIXEL_MODE_GRAY)
