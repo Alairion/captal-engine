@@ -128,6 +128,15 @@ public:
         return m_options;
     }
 
+#ifdef CAPTAL_DEBUG
+    void set_name(std::string_view name);
+#else
+    void set_name(std::string_view name [[maybe_unused]]) const noexcept
+    {
+
+    }
+#endif
+
 private:
     struct glyph_info
     {
@@ -156,11 +165,12 @@ private:
         float greatest_y{};
         vec2f texture_size{};
         std::uint32_t line_width{};
+        text_style style{};
         std::uint64_t font_size{};
     };
 
-    void draw_line(std::string_view line, text_align align, draw_line_state& state, std::vector<vertex>& vertices, const color& color);
-    void draw_left_aligned(std::string_view line, draw_line_state& state, std::vector<vertex>& vertices, const color& color);
+    void draw_line(atlas_info& atlas, std::string_view line, text_align align, draw_line_state& state, std::vector<vertex>& vertices, const color& color);
+    void draw_left_aligned(atlas_info& atlas, std::string_view line, draw_line_state& state, std::vector<vertex>& vertices, const color& color);
 
 private:
     atlas_info& ensure(std::string_view string, text_style style);
@@ -172,12 +182,10 @@ private:
     codepoint_t m_fallback{default_fallback};
     tph::sampling_options m_sampling{};
     std::vector<atlas_info> m_atlases{};
+#ifdef CAPTAL_DEBUG
+    std::string m_name{};
+#endif
 };
-
-text CAPTAL_API draw_text(cpt::font& font, std::string_view string,  const color& color = colors::white, text_drawer_options options = text_drawer_options::none);
-text CAPTAL_API draw_text(cpt::font&& font, std::string_view string, const color& color = colors::white, text_drawer_options options = text_drawer_options::none);
-text CAPTAL_API draw_text(cpt::font& font, std::string_view string,  std::uint32_t line_width, text_align align = text_align::left, const color& color = colors::white, text_drawer_options options = text_drawer_options::none);
-text CAPTAL_API draw_text(cpt::font&& font, std::string_view string, std::uint32_t line_width, text_align align = text_align::left, const color& color = colors::white, text_drawer_options options = text_drawer_options::none);
 
 }
 

@@ -101,6 +101,15 @@ public:
         return !std::empty(m_buffers);
     }
 
+#ifdef CAPTAL_DEBUG
+    void set_name(std::string_view name);
+#else
+    void set_name(std::string_view name [[maybe_unused]]) const noexcept
+    {
+
+    }
+#endif
+
 private:
     void resize(tph::command_buffer& buffer, asynchronous_resource_keeper& keeper);
 
@@ -122,6 +131,9 @@ private:
     std::uint32_t m_max_size{};
     bool m_resized{};
     bool m_first_upload{true};
+#ifdef CAPTAL_DEBUG
+    std::string m_name{};
+#endif
 };
 
 enum class font_category : std::uint32_t

@@ -171,6 +171,7 @@ static entt::entity fill_world(entt::registry& world, cpt::physical_world& physi
 static void add_logic(const cpt::render_window_ptr& window, entt::registry& world, cpt::physical_world& physical_world, entt::entity camera, const std::shared_ptr<cpt::frame_time_t>& time)
 {
     cpt::text_drawer drawer{cpt::font{sansation_regular_font_data, 16}/*, cpt::text_drawer_options::none, tph::sampling_options{tph::filter::linear, tph::filter::linear}*/};
+    drawer.set_name("sansation");
 
     const auto text{world.create()};
     world.emplace<cpt::components::node>(text, cpt::vec3f{4.0f, 4.0f, 1.0f});

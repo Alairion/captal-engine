@@ -125,6 +125,16 @@ void text::connect()
     }
 }
 
+static std::uint64_t make_key(std::uint64_t font_size, codepoint_t codepoint, bool embolden) noexcept
+{
+    return (static_cast<std::uint64_t>(embolden) << 63) | (font_size << 32) | codepoint;
+}
+
+static bool need_embolden(font_category category, text_style style) noexcept
+{
+    return !static_cast<bool>(category & font_category::bold) && static_cast<bool>(style & text_style::bold);
+}
+
 static void add_glyph(std::vector<vertex>& vertices, float x, float y, float width, float height, const vec4f& color, vec2f texpos, vec2f texsize, bool flipped)
 {
     if(flipped)
@@ -181,6 +191,7 @@ text_bounds text_drawer::bounds(std::string_view string, text_style style)
     auto& atlas{ensure(string, style)};
 
     const auto font_size{static_cast<std::uint64_t>(m_font.info().size)};
+    const auto embolden{need_embolden(m_font.info().category, style)};
 
     float current_x{};
     float current_y{static_cast<float>(m_font.info().max_ascent)};
@@ -190,7 +201,7 @@ text_bounds text_drawer::bounds(std::string_view string, text_style style)
     float greatest_y{};
     codepoint_t last{};
 
-    for(auto codepoint : decode<utf8>(string))
+    for(const auto codepoint : decode<utf8>(string))
     {
         if(codepoint == U'\n')
         {
@@ -199,7 +210,7 @@ text_bounds text_drawer::bounds(std::string_view string, text_style style)
             last = 0;
         }
 
-        const std::uint64_t key{(font_size << 32) | codepoint};
+        const std::uint64_t key{make_key(font_size, codepoint, embolden)};
         const glyph_info& glyph{atlas.glyphs.at(key)};
 
         const vec2f texpos{static_cast<float>(glyph.rect.x), static_cast<float>(glyph.rect.y)};
@@ -237,11 +248,13 @@ text text_drawer::draw(std::string_view string, text_style style, const color& c
 {
     auto& atlas{ensure(string, style)};
 
-    const auto  texture_width{static_cast<float>(atlas.atlas->texture()->width())};
-    const auto  texture_height{static_cast<float>(atlas.atlas->texture()->height())};
+    const float texture_width{static_cast<float>(atlas.atlas->texture()->width())};
+    const float texture_height{static_cast<float>(atlas.atlas->texture()->height())};
     const vec2f texsize{texture_width, texture_height};
-    const auto  codepoint_count{utf8::count(std::begin(string), std::end(string))};
-    const auto  font_size{static_cast<std::uint64_t>(m_font.info().size)};
+
+    const auto codepoint_count{utf8::count(std::begin(string), std::end(string))};
+    const auto font_size{static_cast<std::uint64_t>(m_font.info().size)};
+    const auto embolden{need_embolden(m_font.info().category, style)};
 
     std::vector<vertex> vertices{};
     vertices.reserve(codepoint_count * 4);
@@ -254,7 +267,7 @@ text text_drawer::draw(std::string_view string, text_style style, const color& c
     float greatest_y{};
     codepoint_t last{};
 
-    for(auto codepoint : decode<utf8>(string))
+    for(const auto codepoint : decode<utf8>(string))
     {
         if(codepoint == U'\n')
         {
@@ -266,7 +279,7 @@ text text_drawer::draw(std::string_view string, text_style style, const color& c
         }
         else
         {
-            const std::uint64_t key{(font_size << 32) | codepoint};
+            const std::uint64_t key{make_key(font_size, codepoint, embolden)};
             const glyph_info& glyph{atlas.glyphs.at(key)};
 
             const vec2f texpos{static_cast<float>(glyph.rect.x), static_cast<float>(glyph.rect.y)};
@@ -331,6 +344,7 @@ text text_drawer::draw(std::string_view string, std::uint32_t line_width, text_a
     state.lowest_y = static_cast<float>(m_font.info().max_glyph_height);
     state.texture_size = vec2f{texture_width, texture_height};
     state.line_width = line_width;
+    state.style = style;
     state.font_size = m_font.info().size;
 
     for(auto&& line : split(string, '\n'))
@@ -370,6 +384,18 @@ void text_drawer::upload()
     }
 }
 
+#ifdef CAPTAL_DEBUG
+void text_drawer::set_name(std::string_view name)
+{
+    m_name = name;
+
+    for(std::size_t i{}; i < std::size(m_atlases); ++i)
+    {
+        m_atlases[i].atlas->set_name(m_name + " atlas #" + std::to_string(i));
+    }
+}
+#endif
+
 void text_drawer::draw_line(atlas_info& atlas, std::string_view line, text_align align, draw_line_state& state, std::vector<vertex>& vertices, const color& color)
 {
     if(align == text_align::left)
@@ -384,17 +410,18 @@ void text_drawer::draw_line(atlas_info& atlas, std::string_view line, text_align
 
 void text_drawer::draw_left_aligned(atlas_info& atlas, std::string_view line, draw_line_state& state, std::vector<vertex>& vertices, const color& color)
 {
-    const std::uint64_t space_key{(state.font_size << 32) | U' '};
+    const std::uint64_t space_key{make_key(state.font_size, U' ', false)};
     const glyph_info& space_glyph{atlas.glyphs.at(space_key)};
+    const bool embolden{need_embolden(m_font.info().category, state.style)};
 
-    for(auto word : split(line, ' '))
+    for(const auto word : split(line, ' '))
     {
         codepoint_t last{};
 
         float word_advance{};
         for(auto codepoint : decode<utf8>(word))
         {
-            const std::uint64_t key{(state.font_size << 32) | codepoint};
+            const std::uint64_t key{make_key(state.font_size, codepoint, embolden)};
             const glyph_info& glyph{atlas.glyphs.at(key)};
 
             word_advance += glyph.advance;
@@ -407,9 +434,9 @@ void text_drawer::draw_left_aligned(atlas_info& atlas, std::string_view line, dr
             last = 0;
         }
 
-        for(auto codepoint : decode<utf8>(word))
+        for(const auto codepoint : decode<utf8>(word))
         {
-            const std::uint64_t key{(state.font_size << 32) | codepoint};
+            const std::uint64_t key{make_key(state.font_size, codepoint, embolden)};
             const glyph_info& glyph{atlas.glyphs.at(key)};
 
             const vec2f texpos{static_cast<float>(glyph.rect.x), static_cast<float>(glyph.rect.y)};
@@ -454,7 +481,7 @@ text_drawer::atlas_info& text_drawer::ensure(std::string_view string, text_style
     codepoints.erase(std::unique(std::begin(codepoints), std::end(codepoints)), std::end(codepoints));
 
     const auto font_size{static_cast<std::uint64_t>(m_font.info().size)};
-    const bool need_embolden{!static_cast<bool>(m_font.info().category & font_category::bold) && static_cast<bool>(style & text_style::bold)};
+    const auto embolden{need_embolden(m_font.info().category, style)};
 
     for(auto& atlas : m_atlases)
     {
@@ -462,7 +489,7 @@ text_drawer::atlas_info& text_drawer::ensure(std::string_view string, text_style
 
         for(auto codepoint : codepoints)
         {
-            if(!load(atlas, codepoint, font_size, need_embolden))
+            if(!load(atlas, codepoint, font_size, embolden))
             {
                 break;
             }
@@ -478,9 +505,16 @@ text_drawer::atlas_info& text_drawer::ensure(std::string_view string, text_style
 
     auto& atlas{m_atlases.emplace_back(atlas_info{std::make_shared<font_atlas>(m_font.info().format, m_sampling)})};
 
+#ifdef CAPTAL_DEBUG
+    if(!std::empty(m_name))
+    {
+        atlas.atlas->set_name(m_name + " atlas #" + std::to_string(std::size(m_atlases) - 1));
+    }
+#endif
+
     for(auto codepoint : codepoints)
     {
-        if(!load(atlas, codepoint, font_size, need_embolden))
+        if(!load(atlas, codepoint, font_size, embolden))
         {
             throw std::runtime_error{"The text can not be rendered, no font atlas can hold every glyphs, try to split up the text."};
         }
@@ -491,7 +525,7 @@ text_drawer::atlas_info& text_drawer::ensure(std::string_view string, text_style
 
 bool text_drawer::load(atlas_info& atlas, codepoint_t codepoint, std::uint64_t font_size, bool embolden, bool fallback)
 {
-    const std::uint64_t key{(font_size << 32) | codepoint};
+    const std::uint64_t key{make_key(font_size, codepoint, embolden)};
 
     if(atlas.glyphs.find(key) == std::end(atlas.glyphs))
     {
@@ -534,45 +568,5 @@ bool text_drawer::load(atlas_info& atlas, codepoint_t codepoint, std::uint64_t f
 
     return true;
 }
-/*
-text draw_text(cpt::font& font, std::string_view string, const color& color, text_drawer_options options)
-{
-    text_drawer drawer{std::move(font), options};
-    text text{drawer.draw(string, color)};
 
-    font = drawer.drain_font();
-
-    return text;
-}
-
-text draw_text(cpt::font&& font, std::string_view string, const color& color, text_drawer_options options)
-{
-    text_drawer drawer{std::move(font), options};
-    text text{drawer.draw(string, color)};
-
-    font = drawer.drain_font();
-
-    return text;
-}
-
-text draw_text(cpt::font& font, std::string_view string, std::uint32_t line_width, text_align align, const color& color, text_drawer_options options)
-{
-    text_drawer drawer{std::move(font), options};
-    text text{drawer.draw(string, line_width, align, color)};
-
-    font = drawer.drain_font();
-
-    return text;
-}
-
-text draw_text(cpt::font&& font, std::string_view string, std::uint32_t line_width, text_align align, const color& color, text_drawer_options options)
-{
-    text_drawer drawer{std::move(font), options};
-    text text{drawer.draw(string, line_width, align, color)};
-
-    font = drawer.drain_font();
-
-    return text;
-}
-*/
 }

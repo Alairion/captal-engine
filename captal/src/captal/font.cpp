@@ -152,6 +152,13 @@ void font_atlas::upload()
     std::memcpy(staging_buffer.map(), std::data(m_buffer_data), std::size(m_buffer_data));
     staging_buffer.unmap();
 
+#ifdef CAPTAL_DEBUG
+    if(!std::empty(m_name))
+    {
+        tph::set_object_name(engine::instance().renderer(), staging_buffer, m_name + " staging buffer (frame: " + std::to_string(engine::instance().frame()) + ")");
+    }
+#endif
+
     tph::cmd::copy(buffer, staging_buffer, m_texture->get_texture(), copies);
 
     tph::cmd::transition(buffer, m_texture->get_texture(),
@@ -166,6 +173,15 @@ void font_atlas::upload()
     m_buffer_data.clear();
 }
 
+#ifdef CAPTAL_DEBUG
+void font_atlas::set_name(std::string_view name)
+{
+    m_name = name;
+
+    m_texture->set_name(m_name + " texture");
+}
+#endif
+
 void font_atlas::resize(tph::command_buffer& buffer, asynchronous_resource_keeper& keeper)
 {
     texture_ptr new_texture{};
@@ -177,6 +193,14 @@ void font_atlas::resize(tph::command_buffer& buffer, asynchronous_resource_keepe
     {
         new_texture = make_texture(m_packer.width(), m_packer.height(), tph::texture_info{tph::texture_format::r8g8b8a8_srgb, font_atlas_usage}, m_sampling);
     }
+
+#ifdef CAPTAL_DEBUG
+    if(!std::empty(m_name))
+    {
+        m_texture->set_name(m_name + " old texture (frame: " + std::to_string(engine::instance().frame()) + ")");
+        new_texture->set_name(m_name + " texture");
+    }
+#endif
 
     if(std::exchange(m_first_upload, false))
     {
