@@ -384,7 +384,9 @@ vec2f font::kerning(codepoint_t left, codepoint_t right)
         return vec2f{};
     }
 
-    return vec2f{output.x / (FT_IS_SCALABLE(face) ? 64.0f : 1.0f), output.y / (FT_IS_SCALABLE(face) ? 64.0f : 1.0f)};
+    const float factor{FT_IS_SCALABLE(face) ? 1.0f / 64.0f : 1.0f};
+
+    return vec2f{output.x * factor, output.y * factor};
 }
 
 void font::resize(std::uint32_t pixels_size)

@@ -99,7 +99,7 @@ static entt::entity add_player(entt::registry& world, cpt::physical_world& physi
     world.emplace<cpt::components::node>(player, cpt::vec3f{320.0f, 240.0f, 0.5f});
 
     //The player will emit sounds when a wall is hit
-    world.emplace<cpt::components::audio_emiter>(player, std::make_unique<sawtooth_generator>(44100, 2, 240))->set_volume(0.5f);
+    world.emplace<cpt::components::audio_emiter>(player, std::make_unique<sawtooth_generator>(44100, 2, 250))->set_volume(0.5f);
 
     //The player sprite, we use an ellipse. Why ? Because why not !
     const auto points{cpt::ellipse(48.0f, 32.0f)};
