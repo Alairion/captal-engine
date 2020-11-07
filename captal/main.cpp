@@ -24,6 +24,8 @@
 
 #include <apyre/messagebox.hpp>
 
+#include "sansation.hpp"
+
 using namespace cpt::enum_operations;
 
 class sawtooth_generator : public swl::sound_reader
@@ -81,11 +83,6 @@ private:
     float m_value{-1.0f};
     std::uint32_t m_wave_lenght{};
 };
-
-static constexpr auto sansation_regular_font_data = std::to_array<std::uint8_t>(
-{
-    #include "Sansation_Regular.ttf.txt"
-});
 
 static constexpr cpt::collision_type_t player_type{1};
 static constexpr cpt::collision_type_t wall_type{2};
@@ -170,21 +167,11 @@ static entt::entity fill_world(entt::registry& world, cpt::physical_world& physi
 
 static void add_logic(const cpt::render_window_ptr& window, entt::registry& world, cpt::physical_world& physical_world, entt::entity camera, const std::shared_ptr<cpt::frame_time_t>& time)
 {
-    cpt::text_drawer drawer{cpt::font{sansation_regular_font_data, 16}/*, cpt::text_drawer_options::none, tph::sampling_options{tph::filter::linear, tph::filter::linear}*/};
-    drawer.set_name("sansation");
+    cpt::text_drawer drawer{cpt::font{sansation_regular_font_data, 16}};
 
     const auto text{world.create()};
     world.emplace<cpt::components::node>(text, cpt::vec3f{4.0f, 4.0f, 1.0f});
     world.emplace<cpt::components::drawable>(text, drawer.draw("Text", cpt::text_style::regular, cpt::colors::black));
-
-    for(std::uint32_t i{20}; i > 12; i -= 1)
-    {
-        drawer.resize(i);
-        const auto style{i % 2 == 1 ? cpt::text_style::bold : cpt::text_style::regular};
-        drawer.draw("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890&é\"'(-è_çà)=~#{[|`\\^@]}^$*ù!:;,?./§µ%£¨ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãåæçèéêëìíîïñòóôö÷øùúûüþÿĀāĂăĄąĆćĈĉĊċČčĎďĐēĔĖėĘęĚěĜĝĞğĠġĢģĤĥĩĪīĬĭĮįİıĴĵĶķĸĹĻļĽľĿŀŁłŃńŅņŇňŉŊŋ", style);
-    }
-
-    drawer.resize(16);
 
     drawer.upload();
 

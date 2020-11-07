@@ -196,10 +196,10 @@ public:
 
     std::optional<glyph> load(codepoint_t codepoint);
     std::optional<glyph> load_image(codepoint_t codepoint, bool embolden = false);
-    bool has(codepoint_t codepoint) const noexcept;
-
-    vec2f kerning(codepoint_t left, codepoint_t right);
     void resize(std::uint32_t pixels_size);
+
+    bool has(codepoint_t codepoint) const noexcept;
+    vec2f kerning(codepoint_t left, codepoint_t right) const noexcept;
 
     const font_info& info() const noexcept
     {

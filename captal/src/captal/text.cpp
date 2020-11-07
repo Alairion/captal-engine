@@ -188,14 +188,15 @@ text_drawer::text_drawer(cpt::font font, text_drawer_options options, const tph:
 
 text_bounds text_drawer::bounds(std::string_view string, text_style style)
 {
-    auto& atlas{ensure(string, style)};
+    const auto embolden{need_embolden(m_font.info().category, style)};
+
+    auto& atlas{ensure(string, embolden)};
 
     const auto font_size{static_cast<std::uint64_t>(m_font.info().size)};
-    const auto embolden{need_embolden(m_font.info().category, style)};
 
     float current_x{};
     float current_y{static_cast<float>(m_font.info().max_ascent)};
-    float lowest_x{static_cast<float>(m_font.info().max_glyph_width)};
+    float lowest_x{};
     float lowest_y{static_cast<float>(m_font.info().max_glyph_height)};
     float greatest_x{};
     float greatest_y{};
@@ -210,13 +211,13 @@ text_bounds text_drawer::bounds(std::string_view string, text_style style)
             last = 0;
         }
 
-        const glyph_info& glyph{get(atlas, font_size, codepoint, embolden)};
+        const glyph_info& glyph{get(atlas, codepoint, font_size, embolden)};
 
         const vec2f texpos{static_cast<float>(glyph.rect.x), static_cast<float>(glyph.rect.y)};
         const float width {static_cast<float>(glyph.flipped ? glyph.rect.height : glyph.rect.width)};
         const float height{static_cast<float>(glyph.flipped ? glyph.rect.width  : glyph.rect.height)};
 
-        if(width > 0 && height > 0)
+        if(width > 0.0f)
         {
             const vec2f kerning{m_font.kerning(last, codepoint)};
             const float x{current_x + glyph.origin.x() + kerning.x()};
@@ -240,16 +241,17 @@ text_bounds text_drawer::bounds(std::string_view string, text_style style)
 
 text_bounds text_drawer::bounds(std::string_view string, std::uint32_t line_width, text_align align, text_style style)
 {
-    auto& atlas{ensure(string, style)};
+    const bool embolden{need_embolden(m_font.info().category, style)};
 
-    if(!load(atlas, U' ', m_font.info().size, false)) //ensure that the space glyph is loaded (in case the string doesn't contains any)
+    auto& atlas{ensure(string, embolden)};
+
+    if(!load(atlas, U' ', m_font.info().size, embolden)) //ensure that the space glyph is loaded (in case the string doesn't contains any)
     {
         throw std::runtime_error{"How did you find a font without the space character ?"};
     }
 
     draw_line_state state{};
     state.current_y = static_cast<float>(m_font.info().max_ascent);
-    state.lowest_x = static_cast<float>(m_font.info().max_glyph_width);
     state.lowest_y = static_cast<float>(m_font.info().max_glyph_height);
     state.line_width = line_width;
     state.style = style;
@@ -271,7 +273,9 @@ text_bounds text_drawer::bounds(std::string_view string, std::uint32_t line_widt
 
 text text_drawer::draw(std::string_view string, text_style style, const color& color)
 {
-    auto& atlas{ensure(string, style)};
+    const auto embolden{need_embolden(m_font.info().category, style)};
+
+    auto& atlas{ensure(string, embolden)};
 
     const float texture_width{static_cast<float>(atlas.atlas->texture()->width())};
     const float texture_height{static_cast<float>(atlas.atlas->texture()->height())};
@@ -279,14 +283,13 @@ text text_drawer::draw(std::string_view string, text_style style, const color& c
 
     const auto codepoint_count{utf8::count(std::begin(string), std::end(string))};
     const auto font_size{static_cast<std::uint64_t>(m_font.info().size)};
-    const auto embolden{need_embolden(m_font.info().category, style)};
 
     std::vector<vertex> vertices{};
     vertices.reserve(codepoint_count * 4);
 
     float current_x{};
     float current_y{static_cast<float>(m_font.info().max_ascent)};
-    float lowest_x{static_cast<float>(m_font.info().max_glyph_width)};
+    float lowest_x{};
     float lowest_y{static_cast<float>(m_font.info().max_glyph_height)};
     float greatest_x{};
     float greatest_y{};
@@ -304,13 +307,13 @@ text text_drawer::draw(std::string_view string, text_style style, const color& c
         }
         else
         {
-            const glyph_info& glyph{get(atlas, font_size, codepoint, embolden)};
+            const glyph_info& glyph{get(atlas, codepoint, font_size, embolden)};
 
             const vec2f texpos{static_cast<float>(glyph.rect.x), static_cast<float>(glyph.rect.y)};
             const float width {static_cast<float>(glyph.flipped ? glyph.rect.height : glyph.rect.width)};
             const float height{static_cast<float>(glyph.flipped ? glyph.rect.width : glyph.rect.height)};
 
-            if(width > 0 && height > 0)
+            if(width > 0.0f)
             {
                 const vec2f kerning{m_font.kerning(last, codepoint)};
                 const float x{current_x + glyph.origin.x() + kerning.x()};
@@ -348,9 +351,11 @@ text text_drawer::draw(std::string_view string, text_style style, const color& c
 
 text text_drawer::draw(std::string_view string, std::uint32_t line_width, text_align align, text_style style, const color& color)
 {
-    auto& atlas{ensure(string, style)};
+    const bool embolden{need_embolden(m_font.info().category, style)};
 
-    if(!load(atlas, U' ', m_font.info().size, false)) //ensure that the space glyph is loaded (in case the string doesn't contains any)
+    auto& atlas{ensure(string, embolden)};
+
+    if(!load(atlas, U' ', m_font.info().size, embolden)) //ensure that the space glyph is loaded (in case the string doesn't contains any)
     {
         throw std::runtime_error{"How did you find a font without the space character ?"};
     }
@@ -364,7 +369,6 @@ text text_drawer::draw(std::string_view string, std::uint32_t line_width, text_a
 
     draw_line_state state{};
     state.current_y = static_cast<float>(m_font.info().max_ascent);
-    state.lowest_x = static_cast<float>(m_font.info().max_glyph_width);
     state.lowest_y = static_cast<float>(m_font.info().max_glyph_height);
     state.texture_size = vec2f{texture_width, texture_height};
     state.line_width = line_width;
@@ -426,6 +430,10 @@ void text_drawer::draw_line(atlas_info& atlas, std::string_view line, text_align
     {
         draw_left_aligned(atlas, line, state, vertices, color);
     }
+    else if(align == text_align::right)
+    {
+        draw_right_aligned(atlas, line, state, vertices, color);
+    }
     else
     {
         assert(false && "only cpt::text_align::left is supported yet");
@@ -440,15 +448,7 @@ void text_drawer::draw_left_aligned(atlas_info& atlas, std::string_view line, dr
 
     for(const auto word : split(line, ' '))
     {
-        float word_advance{};
-        for(auto codepoint : decode<utf8>(word))
-        {
-            const glyph_info& glyph{get(atlas, state.font_size, codepoint, embolden)};
-
-            word_advance += glyph.advance;
-        }
-
-        if(static_cast<std::uint32_t>(state.current_x + word_advance) > state.line_width)
+        if(static_cast<std::uint32_t>(state.current_x + word_width(atlas, word, state.font_size, embolden)) > state.line_width)
         {
             state.current_x = 0.0f;
             state.current_y += m_font.info().line_height;
@@ -463,7 +463,7 @@ void text_drawer::draw_left_aligned(atlas_info& atlas, std::string_view line, dr
             const float width {static_cast<float>(glyph.flipped ? glyph.rect.height : glyph.rect.width)};
             const float height{static_cast<float>(glyph.flipped ? glyph.rect.width : glyph.rect.height)};
 
-            if(width > 0 && height > 0)
+            if(width > 0.0f)
             {
                 const vec2f kerning{m_font.kerning(last, codepoint)};
                 const float x{state.current_x + glyph.origin.x() + kerning.x()};
@@ -494,6 +494,11 @@ void text_drawer::draw_left_aligned(atlas_info& atlas, std::string_view line, dr
     vertices.resize(std::size(vertices) - 4);
 }
 
+void text_drawer::draw_right_aligned(atlas_info& atlas, std::string_view line, draw_line_state& state, std::vector<vertex>& vertices, const color& color)
+{
+
+}
+
 void text_drawer::line_bounds(atlas_info& atlas, std::string_view line, text_align align, draw_line_state& state)
 {
     if(align == text_align::left)
@@ -514,15 +519,7 @@ void text_drawer::left_aligned_bounds(atlas_info& atlas, std::string_view line, 
 
     for(const auto word : split(line, ' '))
     {
-        float word_advance{};
-        for(auto codepoint : decode<utf8>(word))
-        {
-            const glyph_info& glyph{get(atlas, state.font_size, codepoint, embolden)};
-
-            word_advance += glyph.advance;
-        }
-
-        if(static_cast<std::uint32_t>(state.current_x + word_advance) > state.line_width)
+        if(static_cast<std::uint32_t>(state.current_x + word_width(atlas, word, state.font_size, embolden)) > state.line_width)
         {
             state.current_x = 0.0f;
             state.current_y += m_font.info().line_height;
@@ -537,7 +534,7 @@ void text_drawer::left_aligned_bounds(atlas_info& atlas, std::string_view line, 
             const float width {static_cast<float>(glyph.flipped ? glyph.rect.height : glyph.rect.width)};
             const float height{static_cast<float>(glyph.flipped ? glyph.rect.width : glyph.rect.height)};
 
-            if(width > 0 && height > 0)
+            if(width > 0.0f)
             {
                 const vec2f kerning{m_font.kerning(last, codepoint)};
                 const float x{state.current_x + glyph.origin.x() + kerning.x()};
@@ -557,20 +554,19 @@ void text_drawer::left_aligned_bounds(atlas_info& atlas, std::string_view line, 
     }
 }
 
-text_drawer::atlas_info& text_drawer::ensure(std::string_view string, text_style style)
+text_drawer::atlas_info& text_drawer::ensure(std::string_view string, bool embolden)
 {
     std::u32string codepoints{convert_to<utf32>(string)};
     std::sort(std::begin(codepoints), std::end(codepoints));
     codepoints.erase(std::unique(std::begin(codepoints), std::end(codepoints)), std::end(codepoints));
 
     const auto font_size{static_cast<std::uint64_t>(m_font.info().size)};
-    const auto embolden{need_embolden(m_font.info().category, style)};
 
     for(auto& atlas : m_atlases)
     {
         std::size_t available{};
 
-        for(auto codepoint : codepoints)
+        for(const auto codepoint : codepoints)
         {
             if(!load(atlas, codepoint, font_size, embolden))
             {
@@ -595,7 +591,7 @@ text_drawer::atlas_info& text_drawer::ensure(std::string_view string, text_style
     }
 #endif
 
-    for(auto codepoint : codepoints)
+    for(const auto codepoint : codepoints)
     {
         if(!load(atlas, codepoint, font_size, embolden))
         {
@@ -621,7 +617,7 @@ bool text_drawer::load(atlas_info& atlas, codepoint_t codepoint, std::uint64_t f
             info.ascent = glyph->ascent;
             info.descent = glyph->descent;
 
-            if(glyph->width != 0 && glyph->height != 0)
+            if(glyph->width != 0)
             {
                 const auto rect{atlas.atlas->add_glyph(glyph->data, glyph->width, glyph->height)};
                 if(!rect)
@@ -652,7 +648,7 @@ bool text_drawer::load(atlas_info& atlas, codepoint_t codepoint, std::uint64_t f
     return true;
 }
 
-const text_drawer::glyph_info& text_drawer::get(atlas_info& atlas, codepoint_t codepoint, std::uint64_t font_size, bool embolden)
+const text_drawer::glyph_info& text_drawer::get(atlas_info& atlas, codepoint_t codepoint, std::uint64_t font_size, bool embolden) const
 {
     const std::uint64_t key{make_key(font_size, codepoint, embolden)};
 
@@ -665,6 +661,34 @@ const text_drawer::glyph_info& text_drawer::get(atlas_info& atlas, codepoint_t c
     }
 
     return it->second;
+}
+
+float text_drawer::word_width(atlas_info& atlas, std::string_view word, std::uint64_t font_size, bool embolden) const
+{
+    float current_x{};
+    float lowest_x{};
+    float greatest_x{};
+    codepoint_t last{};
+
+    for(const auto codepoint : decode<utf8>(word))
+    {
+        const glyph_info& glyph{get(atlas, codepoint, font_size, embolden)};
+
+        const float width{static_cast<float>(glyph.flipped ? glyph.rect.height : glyph.rect.width)};
+
+        if(width > 0.0f)
+        {
+            const vec2f kerning{m_font.kerning(last, codepoint)};
+            const float x{current_x + glyph.origin.x() + kerning.x()};
+
+            lowest_x = std::min(lowest_x, x);
+            greatest_x = std::max(greatest_x, x + width);
+        }
+
+        current_x += glyph.advance;
+    }
+
+    return greatest_x - lowest_x;
 }
 
 }

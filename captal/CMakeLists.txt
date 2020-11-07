@@ -145,7 +145,13 @@ install(DIRECTORY ${PROJECT_SOURCE_DIR}/src/captal
         FILES_MATCHING PATTERN *.hpp)
 
 if(CAPTAL_BUILD_CAPTAL_EXAMPLES)
-    add_executable(captal_test "main.cpp")
-    target_link_libraries(captal_test PRIVATE captal)
-    target_include_directories(captal_test PRIVATE ${GLOBAL_INCLUDES})
+    add_library(captal_sansation STATIC sansation.hpp sansation.cpp)
+
+    add_executable(captal_example main.cpp)
+    target_link_libraries(captal_example PRIVATE captal captal_sansation)
+    target_include_directories(captal_example PRIVATE ${GLOBAL_INCLUDES})
+
+    add_executable(captal_text text.cpp)
+    target_link_libraries(captal_text PRIVATE captal captal_sansation)
+    target_include_directories(captal_text PRIVATE ${GLOBAL_INCLUDES})
 endif()

@@ -154,7 +154,6 @@ private:
         std::unordered_map<std::uint64_t, glyph_info> glyphs{};
     };
 
-private:
     struct draw_line_state
     {
         float current_x{};
@@ -169,16 +168,20 @@ private:
         std::uint64_t font_size{};
     };
 
+private:
     void draw_line(atlas_info& atlas, std::string_view line, text_align align, draw_line_state& state, std::vector<vertex>& vertices, const color& color);
     void draw_left_aligned(atlas_info& atlas, std::string_view line, draw_line_state& state, std::vector<vertex>& vertices, const color& color);
+    void draw_right_aligned(atlas_info& atlas, std::string_view line, draw_line_state& state, std::vector<vertex>& vertices, const color& color);
 
     void line_bounds(atlas_info& atlas, std::string_view line, text_align align, draw_line_state& state);
     void left_aligned_bounds(atlas_info& atlas, std::string_view line, draw_line_state& state);
 
 private:
-    atlas_info& ensure(std::string_view string, text_style style);
+    atlas_info& ensure(std::string_view string, bool embolden);
     bool load(atlas_info& atlas, codepoint_t codepoint, std::uint64_t font_size, bool embolden, bool fallback = true);
-    const glyph_info& get(atlas_info& atlas, codepoint_t codepoint, std::uint64_t font_size, bool embolden);
+
+    const glyph_info& get(atlas_info& atlas, codepoint_t codepoint, std::uint64_t font_size, bool embolden) const;
+    float word_width(atlas_info& atlas, std::string_view word, std::uint64_t font_size, bool embolden) const;
 
 private:
     cpt::font m_font{};
