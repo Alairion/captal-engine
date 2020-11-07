@@ -57,7 +57,6 @@ set(CAPTAL_SOURCES
     src/captal/systems/physics.hpp
 
     src/captal/signal.hpp
-    src/captal/entity.hpp
 
     #Sources:
     src/captal/application.cpp
