@@ -196,7 +196,7 @@ text_bounds text_drawer::bounds(std::string_view string, text_style style)
 
     float current_x{};
     float current_y{static_cast<float>(m_font.info().max_ascent)};
-    float lowest_x{static_cast<float>(m_font.info().max_glyph_width)};
+    float lowest_x{};
     float lowest_y{static_cast<float>(m_font.info().max_glyph_height)};
     float greatest_x{};
     float greatest_y{};
@@ -220,7 +220,9 @@ text_bounds text_drawer::bounds(std::string_view string, text_style style)
         if(width > 0.0f)
         {
             const vec2f kerning{m_font.kerning(last, codepoint)};
-            const float x{current_x + glyph.origin.x() + kerning.x()};
+            const float x_padding{last != 0 ? glyph.origin.x() + kerning.x() : 0.0f};
+
+            const float x{current_x + x_padding};
             const float y{current_y + glyph.origin.y() + kerning.y()};
 
             lowest_x = std::min(lowest_x, x);
@@ -252,7 +254,6 @@ text_bounds text_drawer::bounds(std::string_view string, std::uint32_t line_widt
 
     draw_line_state state{};
     state.current_y = static_cast<float>(m_font.info().max_ascent);
-    state.lowest_x = static_cast<float>(m_font.info().max_glyph_width);
     state.lowest_y = static_cast<float>(m_font.info().max_glyph_height);
     state.line_width = line_width;
     state.style = style;
@@ -290,7 +291,7 @@ text text_drawer::draw(std::string_view string, text_style style, const color& c
 
     float current_x{};
     float current_y{static_cast<float>(m_font.info().max_ascent)};
-    float lowest_x{static_cast<float>(m_font.info().max_glyph_width)}; //the first character won't start at 0
+    float lowest_x{};
     float lowest_y{static_cast<float>(m_font.info().max_glyph_height)};
     float greatest_x{};
     float greatest_y{};
@@ -317,7 +318,9 @@ text text_drawer::draw(std::string_view string, text_style style, const color& c
             if(width > 0.0f)
             {
                 const vec2f kerning{m_font.kerning(last, codepoint)};
-                const float x{current_x + glyph.origin.x() + kerning.x()};
+                const float x_padding{last != 0 ? glyph.origin.x() + kerning.x() : 0.0f};
+
+                const float x{current_x + x_padding};
                 const float y{current_y + glyph.origin.y() + kerning.y()};
 
                 add_glyph(vertices, x, y, width, height, static_cast<vec4f>(color), texpos, texsize, glyph.flipped);
@@ -366,11 +369,10 @@ text text_drawer::draw(std::string_view string, std::uint32_t line_width, text_a
     const auto codepoint_count{utf8::count(std::begin(string), std::end(string))};
 
     std::vector<vertex> vertices{};
-    vertices.reserve(codepoint_count * 4);
+    vertices.reserve(codepoint_count * 4 + 4);
 
     draw_line_state state{};
     state.current_y = static_cast<float>(m_font.info().max_ascent);
-    state.lowest_x = static_cast<float>(m_font.info().max_glyph_width);
     state.lowest_y = static_cast<float>(m_font.info().max_glyph_height);
     state.texture_size = vec2f{texture_width, texture_height};
     state.line_width = line_width;
@@ -448,15 +450,16 @@ void text_drawer::draw_left_aligned(atlas_info& atlas, std::string_view line, dr
     const glyph_info& space_glyph{atlas.glyphs.at(space_key)};
     const bool embolden{need_embolden(m_font.info().category, state.style)};
 
+    codepoint_t last{};
     for(const auto word : split(line, ' '))
     {
         if(static_cast<std::uint32_t>(state.current_x + word_width(atlas, word, state.font_size, embolden)) > state.line_width)
         {
             state.current_x = 0.0f;
             state.current_y += m_font.info().line_height;
+            last = 0;
         }
 
-        codepoint_t last{};
         for(const auto codepoint : decode<utf8>(word))
         {
             const glyph_info& glyph{get(atlas, codepoint, state.font_size, embolden)};
@@ -468,7 +471,9 @@ void text_drawer::draw_left_aligned(atlas_info& atlas, std::string_view line, dr
             if(width > 0.0f)
             {
                 const vec2f kerning{m_font.kerning(last, codepoint)};
-                const float x{state.current_x + glyph.origin.x() + kerning.x()};
+                const float x_padding{last != 0 ? glyph.origin.x() + kerning.x() : 0.0f};
+
+                const float x{state.current_x + x_padding};
                 const float y{state.current_y + glyph.origin.y() + kerning.y()};
 
                 add_glyph(vertices, x, y, width, height, static_cast<vec4f>(color), texpos, state.texture_size, glyph.flipped);
@@ -498,7 +503,62 @@ void text_drawer::draw_left_aligned(atlas_info& atlas, std::string_view line, dr
 
 void text_drawer::draw_right_aligned(atlas_info& atlas, std::string_view line, draw_line_state& state, std::vector<vertex>& vertices, const color& color)
 {
+    const std::uint64_t space_key{make_key(U' ', state.font_size, false)};
+    const glyph_info& space_glyph{atlas.glyphs.at(space_key)};
+    const bool embolden{need_embolden(m_font.info().category, state.style)};
 
+    std::size_t begin{std::size(vertices)};
+    std::size_t size{};
+    codepoint_t last{};
+    for(const auto word : split(line, ' '))
+    {
+        if(static_cast<std::uint32_t>(state.current_x + word_width(atlas, word, state.font_size, embolden)) > state.line_width)
+        {
+            state.current_x = 0.0f;
+            state.current_y += m_font.info().line_height;
+            last = 0;
+        }
+
+        for(const auto codepoint : decode<utf8>(word))
+        {
+            const glyph_info& glyph{get(atlas, codepoint, state.font_size, embolden)};
+
+            const vec2f texpos{static_cast<float>(glyph.rect.x), static_cast<float>(glyph.rect.y)};
+            const float width {static_cast<float>(glyph.flipped ? glyph.rect.height : glyph.rect.width)};
+            const float height{static_cast<float>(glyph.flipped ? glyph.rect.width : glyph.rect.height)};
+
+            if(width > 0.0f)
+            {
+                const vec2f kerning{m_font.kerning(last, codepoint)};
+                const float x_padding{last != 0 ? glyph.origin.x() + kerning.x() : 0.0f};
+
+                const float x{state.current_x + x_padding};
+                const float y{state.current_y + glyph.origin.y() + kerning.y()};
+
+                add_glyph(vertices, x, y, width, height, static_cast<vec4f>(color), texpos, state.texture_size, glyph.flipped);
+
+                state.lowest_x = std::min(state.lowest_x, x);
+                state.lowest_y = std::min(state.lowest_y, y);
+                state.greatest_x = std::max(state.greatest_x, x + width);
+                state.greatest_y = std::max(state.greatest_y, y + height);
+            }
+            else
+            {
+                add_placeholder(vertices);
+            }
+
+            state.current_x += glyph.advance;
+            size += 1;
+            last = codepoint;
+        }
+
+        add_placeholder(vertices);
+
+        state.current_x += space_glyph.advance;
+    }
+
+    //There is an additionnal space at the end
+    vertices.resize(std::size(vertices) - 4);
 }
 
 void text_drawer::line_bounds(atlas_info& atlas, std::string_view line, text_align align, draw_line_state& state)
@@ -539,7 +599,9 @@ void text_drawer::left_aligned_bounds(atlas_info& atlas, std::string_view line, 
             if(width > 0.0f)
             {
                 const vec2f kerning{m_font.kerning(last, codepoint)};
-                const float x{state.current_x + glyph.origin.x() + kerning.x()};
+                const float x_padding{last != 0 ? glyph.origin.x() + kerning.x() : 0.0f};
+
+                const float x{state.current_x + x_padding};
                 const float y{state.current_y + glyph.origin.y() + kerning.y()};
 
                 state.lowest_x = std::min(state.lowest_x, x);
@@ -668,7 +730,7 @@ const text_drawer::glyph_info& text_drawer::get(atlas_info& atlas, codepoint_t c
 float text_drawer::word_width(atlas_info& atlas, std::string_view word, std::uint64_t font_size, bool embolden) const
 {
     float current_x{};
-    float lowest_x{static_cast<float>(m_font.info().max_glyph_width)};
+    float lowest_x{};
     float greatest_x{};
     codepoint_t last{};
 
@@ -681,7 +743,8 @@ float text_drawer::word_width(atlas_info& atlas, std::string_view word, std::uin
         if(width > 0.0f)
         {
             const vec2f kerning{m_font.kerning(last, codepoint)};
-            const float x{current_x + glyph.origin.x() + kerning.x()};
+            const float x_padding{last != 0 ? glyph.origin.x() + kerning.x() : 0.0f};
+            const float x{current_x + x_padding};
 
             lowest_x = std::min(lowest_x, x);
             greatest_x = std::max(greatest_x, x + width);
