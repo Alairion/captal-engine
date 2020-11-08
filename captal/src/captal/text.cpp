@@ -125,7 +125,7 @@ void text::connect()
     }
 }
 
-static std::uint64_t make_key(std::uint64_t font_size, codepoint_t codepoint, bool embolden) noexcept
+static std::uint64_t make_key(codepoint_t codepoint, std::uint64_t font_size, bool embolden) noexcept
 {
     return (static_cast<std::uint64_t>(embolden) << 63) | (font_size << 32) | codepoint;
 }
@@ -196,7 +196,7 @@ text_bounds text_drawer::bounds(std::string_view string, text_style style)
 
     float current_x{};
     float current_y{static_cast<float>(m_font.info().max_ascent)};
-    float lowest_x{};
+    float lowest_x{static_cast<float>(m_font.info().max_glyph_width)};
     float lowest_y{static_cast<float>(m_font.info().max_glyph_height)};
     float greatest_x{};
     float greatest_y{};
@@ -252,6 +252,7 @@ text_bounds text_drawer::bounds(std::string_view string, std::uint32_t line_widt
 
     draw_line_state state{};
     state.current_y = static_cast<float>(m_font.info().max_ascent);
+    state.lowest_x = static_cast<float>(m_font.info().max_glyph_width);
     state.lowest_y = static_cast<float>(m_font.info().max_glyph_height);
     state.line_width = line_width;
     state.style = style;
@@ -289,7 +290,7 @@ text text_drawer::draw(std::string_view string, text_style style, const color& c
 
     float current_x{};
     float current_y{static_cast<float>(m_font.info().max_ascent)};
-    float lowest_x{};
+    float lowest_x{static_cast<float>(m_font.info().max_glyph_width)}; //the first character won't start at 0
     float lowest_y{static_cast<float>(m_font.info().max_glyph_height)};
     float greatest_x{};
     float greatest_y{};
@@ -369,6 +370,7 @@ text text_drawer::draw(std::string_view string, std::uint32_t line_width, text_a
 
     draw_line_state state{};
     state.current_y = static_cast<float>(m_font.info().max_ascent);
+    state.lowest_x = static_cast<float>(m_font.info().max_glyph_width);
     state.lowest_y = static_cast<float>(m_font.info().max_glyph_height);
     state.texture_size = vec2f{texture_width, texture_height};
     state.line_width = line_width;
@@ -442,7 +444,7 @@ void text_drawer::draw_line(atlas_info& atlas, std::string_view line, text_align
 
 void text_drawer::draw_left_aligned(atlas_info& atlas, std::string_view line, draw_line_state& state, std::vector<vertex>& vertices, const color& color)
 {
-    const std::uint64_t space_key{make_key(state.font_size, U' ', false)};
+    const std::uint64_t space_key{make_key(U' ', state.font_size, false)};
     const glyph_info& space_glyph{atlas.glyphs.at(space_key)};
     const bool embolden{need_embolden(m_font.info().category, state.style)};
 
@@ -457,7 +459,7 @@ void text_drawer::draw_left_aligned(atlas_info& atlas, std::string_view line, dr
         codepoint_t last{};
         for(const auto codepoint : decode<utf8>(word))
         {
-            const glyph_info& glyph{get(atlas, state.font_size, codepoint, embolden)};
+            const glyph_info& glyph{get(atlas, codepoint, state.font_size, embolden)};
 
             const vec2f texpos{static_cast<float>(glyph.rect.x), static_cast<float>(glyph.rect.y)};
             const float width {static_cast<float>(glyph.flipped ? glyph.rect.height : glyph.rect.width)};
@@ -513,7 +515,7 @@ void text_drawer::line_bounds(atlas_info& atlas, std::string_view line, text_ali
 
 void text_drawer::left_aligned_bounds(atlas_info& atlas, std::string_view line, draw_line_state& state)
 {
-    const std::uint64_t space_key{make_key(state.font_size, U' ', false)};
+    const std::uint64_t space_key{make_key(U' ', state.font_size, false)};
     const glyph_info& space_glyph{atlas.glyphs.at(space_key)};
     const bool embolden{need_embolden(m_font.info().category, state.style)};
 
@@ -528,7 +530,7 @@ void text_drawer::left_aligned_bounds(atlas_info& atlas, std::string_view line, 
         codepoint_t last{};
         for(const auto codepoint : decode<utf8>(word))
         {
-            const glyph_info& glyph{get(atlas, state.font_size, codepoint, embolden)};
+            const glyph_info& glyph{get(atlas, codepoint, state.font_size, embolden)};
 
             const vec2f texpos{static_cast<float>(glyph.rect.x), static_cast<float>(glyph.rect.y)};
             const float width {static_cast<float>(glyph.flipped ? glyph.rect.height : glyph.rect.width)};
@@ -604,7 +606,7 @@ text_drawer::atlas_info& text_drawer::ensure(std::string_view string, bool embol
 
 bool text_drawer::load(atlas_info& atlas, codepoint_t codepoint, std::uint64_t font_size, bool embolden, bool fallback)
 {
-    const std::uint64_t key{make_key(font_size, codepoint, embolden)};
+    const std::uint64_t key{make_key(codepoint, font_size, embolden)};
 
     if(atlas.glyphs.find(key) == std::end(atlas.glyphs))
     {
@@ -650,12 +652,12 @@ bool text_drawer::load(atlas_info& atlas, codepoint_t codepoint, std::uint64_t f
 
 const text_drawer::glyph_info& text_drawer::get(atlas_info& atlas, codepoint_t codepoint, std::uint64_t font_size, bool embolden) const
 {
-    const std::uint64_t key{make_key(font_size, codepoint, embolden)};
+    const std::uint64_t key{make_key(codepoint, font_size, embolden)};
 
     const auto it{atlas.glyphs.find(key)};
     if(it == std::end(atlas.glyphs))
     {
-        const std::uint64_t fallback_key{make_key(font_size, m_fallback, embolden)};
+        const std::uint64_t fallback_key{make_key(m_fallback, font_size, embolden)};
 
         return atlas.glyphs.at(fallback_key);
     }
@@ -666,7 +668,7 @@ const text_drawer::glyph_info& text_drawer::get(atlas_info& atlas, codepoint_t c
 float text_drawer::word_width(atlas_info& atlas, std::string_view word, std::uint64_t font_size, bool embolden) const
 {
     float current_x{};
-    float lowest_x{};
+    float lowest_x{static_cast<float>(m_font.info().max_glyph_width)};
     float greatest_x{};
     codepoint_t last{};
 

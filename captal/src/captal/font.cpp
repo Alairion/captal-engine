@@ -288,7 +288,7 @@ std::optional<glyph> font::load_image(codepoint_t codepoint, bool embolden)
 
     if(face->glyph->format == FT_GLYPH_FORMAT_OUTLINE && embolden)
     {
-        FT_Outline_Embolden(&face->glyph->outline, 64);
+        FT_Outline_Embolden(&face->glyph->outline, m_info.size);
     }
 
     if(FT_Render_Glyph(face->glyph, FT_RENDER_MODE_NORMAL))
@@ -298,7 +298,7 @@ std::optional<glyph> font::load_image(codepoint_t codepoint, bool embolden)
 
     if(face->glyph->format == FT_GLYPH_FORMAT_BITMAP && embolden)
     {
-        FT_Bitmap_Embolden(library, &face->glyph->bitmap, 64, 64);
+        FT_Bitmap_Embolden(library, &face->glyph->bitmap, m_info.size, m_info.size);
     }
 
     const FT_Bitmap& bitmap{face->glyph->bitmap};
