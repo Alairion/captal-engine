@@ -35,9 +35,9 @@ static void setup(entt::registry& world)
     //Left aligned
     const auto text_left{world.create()};
     world.emplace<cpt::components::node>(text_left, cpt::vec3f{0.0f, 0.0f, 1.0f});
-    world.emplace<cpt::components::drawable>(text_left, drawer.draw("Hello world!", 320, cpt::text_align::left, cpt::text_style::regular, cpt::colors::black));
+    world.emplace<cpt::components::drawable>(text_left, drawer.draw(lorem_ipsum, 320, cpt::text_align::left, cpt::text_style::regular, cpt::colors::black));
 
-    const auto computed_bounds_value{drawer.bounds("Hello world!", cpt::text_style::regular)};
+    const auto computed_bounds_value{drawer.bounds(lorem_ipsum, 320, cpt::text_align::left, cpt::text_style::regular)};
     const auto computed_bounds{world.create()};
     world.emplace<cpt::components::node>(computed_bounds, cpt::vec3f{0.0f, 0.0f, 0.5f});
     world.emplace<cpt::components::drawable>(computed_bounds, std::in_place_type<cpt::sprite>, computed_bounds_value.width, computed_bounds_value.height, cpt::colors::orange);
