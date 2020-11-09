@@ -399,12 +399,12 @@ void font::resize(std::uint32_t pixels_size)
             throw std::runtime_error{"Can not set font size."};
 
         m_info.size = pixels_size;
-        m_info.line_height = face->size->metrics.height / 64.0f;
         m_info.max_glyph_width = FT_MulFix(face->bbox.xMax - face->bbox.xMin, face->size->metrics.x_scale) / 64 + 1;
         m_info.max_glyph_height = FT_MulFix(face->bbox.yMax - face->bbox.yMin, face->size->metrics.y_scale) / 64 + 1;
         m_info.max_ascent = FT_MulFix(face->ascender, face->size->metrics.y_scale) / 64 + 1;
-        m_info.underline_position = -FT_MulFix(face->underline_position, face->size->metrics.y_scale) / 64.0f;
-        m_info.underline_thickness = -FT_MulFix(face->underline_thickness, face->size->metrics.y_scale) / 64.0f;
+        m_info.line_height = std::round(face->size->metrics.height / 64.0f);
+        m_info.underline_position = std::round(-FT_MulFix(face->underline_position, face->size->metrics.y_scale) / 64.0f);
+        m_info.underline_thickness = std::round(-FT_MulFix(face->underline_thickness, face->size->metrics.y_scale) / 64.0f);
         m_info.strikeout_position = static_cast<float>(m_info.max_ascent / 3);
     }
 }

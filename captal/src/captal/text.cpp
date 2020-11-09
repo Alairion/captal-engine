@@ -438,6 +438,10 @@ void text_drawer::draw_line(atlas_info& atlas, std::string_view line, text_align
     {
         draw_right_aligned(atlas, line, state, vertices, color);
     }
+    else if(align == text_align::center)
+    {
+        draw_center_aligned(atlas, line, state, vertices, color);
+    }
     else
     {
         assert(false && "only cpt::text_align::left is supported yet");
@@ -504,6 +508,8 @@ void text_drawer::draw_left_aligned(atlas_info& atlas, std::string_view line, dr
 
 void text_drawer::draw_right_aligned(atlas_info& atlas, std::string_view line, draw_line_state& state, std::vector<vertex>& vertices, const color& color)
 {
+    state.lowest_x = static_cast<float>(state.line_width);
+
     const std::uint64_t space_key{make_key(U' ', state.font_size, false)};
     const glyph_info& space_glyph{atlas.glyphs.at(space_key)};
     const bool embolden{need_embolden(m_font.info().category, state.style)};
@@ -585,17 +591,110 @@ void text_drawer::draw_right_aligned(atlas_info& atlas, std::string_view line, d
         last = U' ';
     }
 
+    do_shift(begin, count, lowest_x, greatest_x);
+
     //There is an additionnal space at the end
     vertices.resize(std::size(vertices) - 4);
-
     state.greatest_x = static_cast<float>(state.line_width);
+}
+
+void text_drawer::draw_center_aligned(atlas_info& atlas, std::string_view line, draw_line_state& state, std::vector<vertex>& vertices, const color& color)
+{
+    state.lowest_x = static_cast<float>(state.line_width);
+
+    const std::uint64_t space_key{make_key(U' ', state.font_size, false)};
+    const glyph_info& space_glyph{atlas.glyphs.at(space_key)};
+    const bool embolden{need_embolden(m_font.info().category, state.style)};
+
+    //We have to adjust these values before returning them
+    std::size_t begin{std::size(vertices)};
+    std::size_t count{};
+    float lowest_x{};
+    float greatest_x{};
+    codepoint_t last{};
+
+    auto do_shift = [&state, &vertices](std::size_t begin, std::size_t count, float lowest_x, float greatest_x) mutable
+    {
+        const float width{greatest_x - lowest_x};
+        const float shift{std::round((state.line_width - width) / 2.0f)};
+
+        for(auto& vertex : std::span{std::begin(vertices) + begin, count * 4})
+        {
+            vertex.position.x() += shift;
+        }
+
+        state.lowest_x = std::min(state.lowest_x, shift);
+        state.greatest_x = std::max(state.greatest_x, shift + width);
+    };
+
+    for(const auto word : split(line, ' '))
+    {
+        if(static_cast<std::uint32_t>(state.current_x + word_width(atlas, word, state.font_size, embolden)) > state.line_width)
+        {
+            do_shift(begin, count, lowest_x, greatest_x);
+
+            state.current_x = 0.0f;
+            state.current_y += m_font.info().line_height;
+
+            begin = std::size(vertices);
+            count = 0;
+            lowest_x = 0.0f;
+            greatest_x = 0.0f;
+            last = 0;
+        }
+
+        for(const auto codepoint : decode<utf8>(word))
+        {
+            const glyph_info& glyph{get(atlas, codepoint, state.font_size, embolden)};
+
+            const vec2f texpos{static_cast<float>(glyph.rect.x), static_cast<float>(glyph.rect.y)};
+            const float width {static_cast<float>(glyph.flipped ? glyph.rect.height : glyph.rect.width)};
+            const float height{static_cast<float>(glyph.flipped ? glyph.rect.width : glyph.rect.height)};
+
+            if(width > 0.0f)
+            {
+                const vec2f kerning{m_font.kerning(last, codepoint)};
+                const float x_padding{last != 0 ? glyph.origin.x() + kerning.x() : 0.0f};
+
+                const float x{state.current_x + x_padding};
+                const float y{state.current_y + glyph.origin.y() + kerning.y()};
+
+                add_glyph(vertices, x, y, width, height, static_cast<vec4f>(color), texpos, state.texture_size, glyph.flipped);
+
+                lowest_x = std::min(lowest_x, x);
+                greatest_x = std::max(greatest_x, x + width);
+
+                state.lowest_y = std::min(state.lowest_y, y);
+                state.greatest_y = std::max(state.greatest_y, y + height);
+            }
+            else
+            {
+                add_placeholder(vertices);
+            }
+
+            state.current_x += glyph.advance;
+            count += 1;
+            last = codepoint;
+        }
+
+        add_placeholder(vertices);
+
+        state.current_x += space_glyph.advance;
+        count += 1;
+        last = U' ';
+    }
+
+    do_shift(begin, count, lowest_x, greatest_x);
+
+    //There is an additionnal space at the end
+    vertices.resize(std::size(vertices) - 4);
 }
 
 void text_drawer::line_bounds(atlas_info& atlas, std::string_view line, text_align align, draw_line_state& state)
 {
-    if(align == text_align::left)
+    if(align == text_align::left || align == text_align::right || align == text_align::center)
     {
-        left_aligned_bounds(atlas, line, state);
+        default_bounds(atlas, line, state);
     }
     else
     {
@@ -603,21 +702,22 @@ void text_drawer::line_bounds(atlas_info& atlas, std::string_view line, text_ali
     }
 }
 
-void text_drawer::left_aligned_bounds(atlas_info& atlas, std::string_view line, draw_line_state& state)
+void text_drawer::default_bounds(atlas_info& atlas, std::string_view line, draw_line_state& state)
 {
     const std::uint64_t space_key{make_key(U' ', state.font_size, false)};
     const glyph_info& space_glyph{atlas.glyphs.at(space_key)};
     const bool embolden{need_embolden(m_font.info().category, state.style)};
 
+    codepoint_t last{};
     for(const auto word : split(line, ' '))
     {
         if(static_cast<std::uint32_t>(state.current_x + word_width(atlas, word, state.font_size, embolden)) > state.line_width)
         {
             state.current_x = 0.0f;
             state.current_y += m_font.info().line_height;
+            last = 0;
         }
 
-        codepoint_t last{};
         for(const auto codepoint : decode<utf8>(word))
         {
             const glyph_info& glyph{get(atlas, codepoint, state.font_size, embolden)};

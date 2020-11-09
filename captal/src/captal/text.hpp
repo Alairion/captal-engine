@@ -170,11 +170,12 @@ private:
 
 private:
     void draw_line(atlas_info& atlas, std::string_view line, text_align align, draw_line_state& state, std::vector<vertex>& vertices, const color& color);
-    void draw_left_aligned(atlas_info& atlas, std::string_view line, draw_line_state& state, std::vector<vertex>& vertices, const color& color);
-    void draw_right_aligned(atlas_info& atlas, std::string_view line, draw_line_state& state, std::vector<vertex>& vertices, const color& color);
+    void draw_left_aligned  (atlas_info& atlas, std::string_view line, draw_line_state& state, std::vector<vertex>& vertices, const color& color);
+    void draw_right_aligned (atlas_info& atlas, std::string_view line, draw_line_state& state, std::vector<vertex>& vertices, const color& color);
+    void draw_center_aligned(atlas_info& atlas, std::string_view line, draw_line_state& state, std::vector<vertex>& vertices, const color& color);
 
     void line_bounds(atlas_info& atlas, std::string_view line, text_align align, draw_line_state& state);
-    void left_aligned_bounds(atlas_info& atlas, std::string_view line, draw_line_state& state);
+    void default_bounds(atlas_info& atlas, std::string_view line, draw_line_state& state);
 
 private:
     atlas_info& ensure(std::string_view string, bool embolden);
