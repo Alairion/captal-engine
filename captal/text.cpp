@@ -37,16 +37,17 @@ static void setup(entt::registry& world)
     world.emplace<cpt::components::node>(text_left, cpt::vec3f{0.0f, 0.0f, 1.0f});
     world.emplace<cpt::components::drawable>(text_left, drawer.draw(lorem_ipsum, 320, cpt::text_align::left, cpt::text_style::regular, cpt::colors::black));
 
-    const auto computed_bounds_value{drawer.bounds(lorem_ipsum, 320, cpt::text_align::left, cpt::text_style::regular)};
-    const auto computed_bounds{world.create()};
-    world.emplace<cpt::components::node>(computed_bounds, cpt::vec3f{0.0f, 0.0f, 0.5f});
-    world.emplace<cpt::components::drawable>(computed_bounds, std::in_place_type<cpt::sprite>, computed_bounds_value.width, computed_bounds_value.height, cpt::colors::orange);
+    const auto left_bounds_value{drawer.bounds(lorem_ipsum, 320, cpt::text_align::left, cpt::text_style::regular)};
+    const auto left_bounds{world.create()};
+    world.emplace<cpt::components::node>(left_bounds, cpt::vec3f{0.0f, 0.0f, 0.5f});
+    world.emplace<cpt::components::drawable>(left_bounds, std::in_place_type<cpt::sprite>, left_bounds_value.width, left_bounds_value.height, cpt::colors::orange);
 
     //right aligned
-    /*const auto text2{world.create()};
-    world.emplace<cpt::components::node>(text2, cpt::vec3f{320.0f, 0.0f, 1.0f});
-    world.emplace<cpt::components::drawable>(text2, drawer.draw("Hello world!", cpt::text_style::regular, cpt::colors::black));
-*/
+    const auto text_right{world.create()};
+    world.emplace<cpt::components::drawable>(text_right, drawer.draw(lorem_ipsum, 320, cpt::text_align::right, cpt::text_style::regular, cpt::colors::black));
+    const auto right_width{world.get<cpt::components::drawable>(text_right).get<cpt::text>().width()};
+    world.emplace<cpt::components::node>(text_right, cpt::vec3f{640.0f - right_width, 0.0f, 1.0f});
+
     drawer.upload();
 }
 

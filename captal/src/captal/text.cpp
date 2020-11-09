@@ -495,6 +495,7 @@ void text_drawer::draw_left_aligned(atlas_info& atlas, std::string_view line, dr
         add_placeholder(vertices);
 
         state.current_x += space_glyph.advance;
+        last = U' ';
     }
 
     //There is an additionnal space at the end
@@ -507,15 +508,39 @@ void text_drawer::draw_right_aligned(atlas_info& atlas, std::string_view line, d
     const glyph_info& space_glyph{atlas.glyphs.at(space_key)};
     const bool embolden{need_embolden(m_font.info().category, state.style)};
 
+    //We have to adjust these values before returning them
     std::size_t begin{std::size(vertices)};
-    std::size_t size{};
+    std::size_t count{};
+    float lowest_x{};
+    float greatest_x{};
     codepoint_t last{};
+
+    auto do_shift = [&state, &vertices](std::size_t begin, std::size_t count, float lowest_x, float greatest_x) mutable
+    {
+        const float width{greatest_x - lowest_x};
+        const float shift{state.line_width - width};
+
+        for(auto& vertex : std::span{std::begin(vertices) + begin, count * 4})
+        {
+            vertex.position.x() += shift;
+        }
+
+        state.lowest_x = std::min(state.lowest_x, shift);
+    };
+
     for(const auto word : split(line, ' '))
     {
         if(static_cast<std::uint32_t>(state.current_x + word_width(atlas, word, state.font_size, embolden)) > state.line_width)
         {
+            do_shift(begin, count, lowest_x, greatest_x);
+
             state.current_x = 0.0f;
             state.current_y += m_font.info().line_height;
+
+            begin = std::size(vertices);
+            count = 0;
+            lowest_x = 0.0f;
+            greatest_x = 0.0f;
             last = 0;
         }
 
@@ -537,9 +562,10 @@ void text_drawer::draw_right_aligned(atlas_info& atlas, std::string_view line, d
 
                 add_glyph(vertices, x, y, width, height, static_cast<vec4f>(color), texpos, state.texture_size, glyph.flipped);
 
-                state.lowest_x = std::min(state.lowest_x, x);
+                lowest_x = std::min(lowest_x, x);
+                greatest_x = std::max(greatest_x, x + width);
+
                 state.lowest_y = std::min(state.lowest_y, y);
-                state.greatest_x = std::max(state.greatest_x, x + width);
                 state.greatest_y = std::max(state.greatest_y, y + height);
             }
             else
@@ -548,17 +574,21 @@ void text_drawer::draw_right_aligned(atlas_info& atlas, std::string_view line, d
             }
 
             state.current_x += glyph.advance;
-            size += 1;
+            count += 1;
             last = codepoint;
         }
 
         add_placeholder(vertices);
 
         state.current_x += space_glyph.advance;
+        count += 1;
+        last = U' ';
     }
 
     //There is an additionnal space at the end
     vertices.resize(std::size(vertices) - 4);
+
+    state.greatest_x = static_cast<float>(state.line_width);
 }
 
 void text_drawer::line_bounds(atlas_info& atlas, std::string_view line, text_align align, draw_line_state& state)
@@ -615,6 +645,7 @@ void text_drawer::left_aligned_bounds(atlas_info& atlas, std::string_view line, 
         }
 
         state.current_x += space_glyph.advance;
+        last = U' ';
     }
 }
 
