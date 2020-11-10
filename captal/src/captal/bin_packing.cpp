@@ -64,23 +64,28 @@ std::optional<bin_packer::rect> bin_packer::append(std::uint32_t image_width, st
     return std::nullopt;
 }
 
-void bin_packer::resize(std::uint32_t width, std::uint32_t height)
+void bin_packer::grow(std::uint32_t width, std::uint32_t height)
 {
-    assert(width > m_width);
-    assert(height > m_height);
+    if(width > 0)
+    {
+        const rect top_right{m_width, 0, width, m_height};
+        m_spaces.insert(std::lower_bound(std::begin(m_spaces), std::end(m_spaces), top_right, rect_area_comparator), top_right);
+    }
 
-    const auto width_diff{width - m_width};
-    const auto height_diff{height - m_height};
-    const rect bottom_left{0, m_height, width_diff, height_diff};
-    const rect bottom_right{m_width, m_height, width_diff, height_diff};
-    const rect top_right{m_width, 0, width_diff, height_diff};
+    if(height > 0)
+    {
+        const rect bottom_left{0, m_height, m_width, height};
+        m_spaces.insert(std::lower_bound(std::begin(m_spaces), std::end(m_spaces), bottom_left, rect_area_comparator), bottom_left);
+    }
 
-    m_spaces.insert(std::lower_bound(std::begin(m_spaces), std::end(m_spaces), bottom_left, rect_area_comparator), bottom_left);
-    m_spaces.insert(std::lower_bound(std::begin(m_spaces), std::end(m_spaces), bottom_right, rect_area_comparator), bottom_right);
-    m_spaces.insert(std::lower_bound(std::begin(m_spaces), std::end(m_spaces), top_right, rect_area_comparator), top_right);
+    if(width > 0 && height > 0)
+    {
+        const rect bottom_right{m_width, m_height, width, width};
+        m_spaces.insert(std::lower_bound(std::begin(m_spaces), std::end(m_spaces), bottom_right, rect_area_comparator), bottom_right);
+    }
 
-    m_width = width;
-    m_height = height;
+    m_width += width;
+    m_height += height;
 }
 
 bin_packer::splits bin_packer::split(std::uint32_t image_width, std::uint32_t image_height, const rect& space) noexcept

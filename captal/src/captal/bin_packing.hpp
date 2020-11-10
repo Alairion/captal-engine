@@ -31,7 +31,7 @@ public:
     bin_packer& operator=(bin_packer&&) noexcept = default;
 
     std::optional<rect> append(std::uint32_t image_width, std::uint32_t image_height);
-    void resize(std::uint32_t width, std::uint32_t height);
+    void grow(std::uint32_t width, std::uint32_t height);
 
     std::uint32_t width() const noexcept
     {

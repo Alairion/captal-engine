@@ -62,12 +62,22 @@ std::optional<bin_packer::rect> font_atlas::add_glyph(std::span<const uint8_t> i
     auto rect{m_packer.append(width + padding, height + padding)};
     while(!rect.has_value())
     {
-        if(m_packer.width() * 2 > m_max_size)
+        if(m_packer.width() == m_packer.height() && m_packer.width() * 2 > m_max_size)
         {
             return std::nullopt;
         }
 
-        m_packer.resize(m_packer.width() * 2, m_packer.height() * 2);
+        if(m_grow)
+        {
+            m_packer.grow(m_packer.width() * 2, 0);
+            m_grow = false;
+        }
+        else
+        {
+            m_packer.grow(0, m_packer.height() * 2);
+            m_grow = true;
+        }
+
         m_resized = true;
 
         rect = m_packer.append(width + padding, height + padding);
@@ -271,11 +281,13 @@ std::optional<glyph> font::load(codepoint_t codepoint)
     output.advance = face->glyph->metrics.horiAdvance / 64.0f;
     output.ascent = face->glyph->metrics.horiBearingY / 64.0f;
     output.descent = (face->glyph->metrics.height / 64.0f) - (face->glyph->metrics.horiBearingY / 64.0f);
+    output.width = static_cast<std::uint32_t>(face->glyph->metrics.width / 64.0f);
+    output.height = static_cast<std::uint32_t>(face->glyph->metrics.height / 64.0f);
 
     return std::make_optional(std::move(output));
 }
 
-std::optional<glyph> font::load_image(codepoint_t codepoint, bool embolden)
+std::optional<glyph> font::load_image(codepoint_t codepoint, bool embolden, float shift)
 {
     const auto library{reinterpret_cast<FT_Library>(engine::instance().font_engine().handle())};
     const auto face{reinterpret_cast<FT_Face>(m_loader.get())};
@@ -284,6 +296,11 @@ std::optional<glyph> font::load_image(codepoint_t codepoint, bool embolden)
     if(!output)
     {
         return std::nullopt;
+    }
+
+    if(face->glyph->format == FT_GLYPH_FORMAT_OUTLINE && shift != 0.0f)
+    {
+        FT_Outline_Translate(&face->glyph->outline, static_cast<FT_Pos>(shift * 64.0f), 0);
     }
 
     if(face->glyph->format == FT_GLYPH_FORMAT_OUTLINE && embolden)
@@ -370,7 +387,7 @@ bool font::has(codepoint_t codepoint) const noexcept
 {
     const auto face{reinterpret_cast<FT_Face>(m_loader.get())};
 
-    return FT_Get_Char_Index(face, codepoint);
+    return FT_Get_Char_Index(face, codepoint) != 0;
 }
 
 vec2f font::kerning(codepoint_t left, codepoint_t right) const noexcept
@@ -401,8 +418,8 @@ void font::resize(std::uint32_t pixels_size)
         m_info.size = pixels_size;
         m_info.max_glyph_width = FT_MulFix(face->bbox.xMax - face->bbox.xMin, face->size->metrics.x_scale) / 64 + 1;
         m_info.max_glyph_height = FT_MulFix(face->bbox.yMax - face->bbox.yMin, face->size->metrics.y_scale) / 64 + 1;
-        m_info.max_ascent = FT_MulFix(face->ascender, face->size->metrics.y_scale) / 64 + 1;
-        m_info.line_height = std::round(face->size->metrics.height / 64.0f);
+        m_info.max_ascent = FT_MulFix(face->bbox.yMax, face->size->metrics.y_scale) / 64 + 1;
+        m_info.line_height = std::round(FT_MulFix(face->height, face->size->metrics.y_scale) / 64.0f);
         m_info.underline_position = std::round(-FT_MulFix(face->underline_position, face->size->metrics.y_scale) / 64.0f);
         m_info.underline_thickness = std::round(-FT_MulFix(face->underline_thickness, face->size->metrics.y_scale) / 64.0f);
         m_info.strikeout_position = static_cast<float>(m_info.max_ascent / 3);

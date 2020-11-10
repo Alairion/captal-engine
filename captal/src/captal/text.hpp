@@ -59,7 +59,18 @@ private:
 
 enum class text_drawer_options : std::uint32_t
 {
-    none = 0x00
+    none = 0x00,
+};
+
+enum class text_subpixel_adjustment : std::uint32_t
+{
+    x1 = 0,  //1  step  of width 1
+    x2 = 1,  //2  steps of width 0.5
+    x4 = 2,  //4  steps of width 0.25
+    x8 = 3,  //8  steps of width 0.125
+    x16 = 4, //16 steps of width 0.0625
+    x32 = 5, //32 steps of width 0.03125
+    x64 = 6, //64 steps of width 0.015625
 };
 
 enum class text_align : std::uint32_t
@@ -83,7 +94,7 @@ public:
 
 public:
     text_drawer() = default;
-    explicit text_drawer(cpt::font font, text_drawer_options options = text_drawer_options::none, const tph::sampling_options& sampling = tph::sampling_options{});
+    explicit text_drawer(cpt::font font, text_drawer_options options = text_drawer_options::none, text_subpixel_adjustment adjustment = text_subpixel_adjustment::x2, const tph::sampling_options& sampling = tph::sampling_options{});
 
     ~text_drawer() = default;
     text_drawer(const text_drawer&) = delete;
@@ -100,6 +111,11 @@ public:
     void set_fallback(codepoint_t codepoint) noexcept
     {
         m_fallback = codepoint;
+    }
+
+    void set_subpixel_adjustement(text_subpixel_adjustment adjustment) noexcept
+    {
+        m_adjustment = adjustment;
     }
 
     void resize(std::uint32_t pixels_size)
@@ -128,6 +144,11 @@ public:
         return m_options;
     }
 
+    text_subpixel_adjustment subpixel_adjustment() const noexcept
+    {
+        return m_adjustment;
+    }
+
 #ifdef CAPTAL_DEBUG
     void set_name(std::string_view name);
 #else
@@ -152,6 +173,12 @@ private:
     {
         std::shared_ptr<font_atlas> atlas{};
         std::unordered_map<std::uint64_t, glyph_info> glyphs{};
+    };
+
+    struct text_part
+    {
+        std::uint64_t key{};
+        vec2f position{};
     };
 
     struct draw_line_state
@@ -179,16 +206,17 @@ private:
 
 private:
     atlas_info& ensure(std::string_view string, bool embolden);
-    bool load(atlas_info& atlas, codepoint_t codepoint, std::uint64_t font_size, bool embolden, bool fallback = true);
+    bool load(atlas_info& atlas, codepoint_t codepoint, std::uint64_t font_size, std::uint64_t adjustment, bool embolden, bool fallback = true);
+    const glyph_info& get(atlas_info& atlas, codepoint_t codepoint, std::uint64_t font_size, std::uint64_t adjustment, bool embolden) const;
 
-    const glyph_info& get(atlas_info& atlas, codepoint_t codepoint, std::uint64_t font_size, bool embolden) const;
     float word_width(atlas_info& atlas, std::string_view word, std::uint64_t font_size, bool embolden) const;
 
 private:
     cpt::font m_font{};
     text_drawer_options m_options{};
-    codepoint_t m_fallback{default_fallback};
+    text_subpixel_adjustment m_adjustment{};
     tph::sampling_options m_sampling{};
+    codepoint_t m_fallback{default_fallback};
     std::vector<atlas_info> m_atlases{};
 #ifdef CAPTAL_DEBUG
     std::string m_name{};

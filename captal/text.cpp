@@ -32,6 +32,11 @@ static void setup(entt::registry& world)
 
     cpt::text_drawer drawer{cpt::font{sansation_regular_font_data, 24}};
 
+    drawer.ensure("ABCDefgh", false, 0.0f);
+    drawer.ensure("ABCDefgh", false, 0.25f);
+    drawer.ensure("ABCDefgh", false, 0.5f);
+    drawer.ensure("ABCDefgh", false, 0.75f);
+
     //Left aligned
     const auto text_left{world.create()};
     world.emplace<cpt::components::node>(text_left, cpt::vec3f{0.0f, 0.0f, 1.0f});

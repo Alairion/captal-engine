@@ -125,9 +125,9 @@ void text::connect()
     }
 }
 
-static std::uint64_t make_key(codepoint_t codepoint, std::uint64_t font_size, bool embolden) noexcept
+static std::uint64_t make_key(codepoint_t codepoint, std::uint64_t font_size, std::uint64_t adjustment, bool embolden) noexcept
 {
-    return (static_cast<std::uint64_t>(embolden) << 63) | (font_size << 32) | codepoint;
+    return (static_cast<std::uint64_t>(embolden) << 63) | (adjustment << 56) | (font_size << 32) | codepoint;
 }
 
 static bool need_embolden(font_category category, text_style style) noexcept
@@ -178,9 +178,10 @@ static std::vector<std::uint32_t> generate_indices(std::size_t codepoint_count)
     return indices;
 }
 
-text_drawer::text_drawer(cpt::font font, text_drawer_options options, const tph::sampling_options& sampling)
+text_drawer::text_drawer(cpt::font font, text_drawer_options options, text_subpixel_adjustment adjustment, const tph::sampling_options& sampling)
 :m_font{std::move(font)}
 ,m_options{options}
+,m_adjustment{adjustment}
 ,m_sampling{sampling}
 {
     m_atlases.emplace_back(atlas_info{std::make_shared<font_atlas>(m_font.info().format, m_sampling)});
@@ -450,7 +451,7 @@ void text_drawer::draw_line(atlas_info& atlas, std::string_view line, text_align
 
 void text_drawer::draw_left_aligned(atlas_info& atlas, std::string_view line, draw_line_state& state, std::vector<vertex>& vertices, const color& color)
 {
-    const std::uint64_t space_key{make_key(U' ', state.font_size, false)};
+    const std::uint64_t space_key{make_key(U' ', state.font_size, 0, false)};
     const glyph_info& space_glyph{atlas.glyphs.at(space_key)};
     const bool embolden{need_embolden(m_font.info().category, state.style)};
 
@@ -510,7 +511,7 @@ void text_drawer::draw_right_aligned(atlas_info& atlas, std::string_view line, d
 {
     state.lowest_x = static_cast<float>(state.line_width);
 
-    const std::uint64_t space_key{make_key(U' ', state.font_size, false)};
+    const std::uint64_t space_key{make_key(U' ', state.font_size, 0, false)};
     const glyph_info& space_glyph{atlas.glyphs.at(space_key)};
     const bool embolden{need_embolden(m_font.info().category, state.style)};
 
@@ -602,7 +603,7 @@ void text_drawer::draw_center_aligned(atlas_info& atlas, std::string_view line, 
 {
     state.lowest_x = static_cast<float>(state.line_width);
 
-    const std::uint64_t space_key{make_key(U' ', state.font_size, false)};
+    const std::uint64_t space_key{make_key(U' ', state.font_size, 0, false)};
     const glyph_info& space_glyph{atlas.glyphs.at(space_key)};
     const bool embolden{need_embolden(m_font.info().category, state.style)};
 
@@ -704,7 +705,7 @@ void text_drawer::line_bounds(atlas_info& atlas, std::string_view line, text_ali
 
 void text_drawer::default_bounds(atlas_info& atlas, std::string_view line, draw_line_state& state)
 {
-    const std::uint64_t space_key{make_key(U' ', state.font_size, false)};
+    const std::uint64_t space_key{make_key(U' ', state.font_size, 0, false)};
     const glyph_info& space_glyph{atlas.glyphs.at(space_key)};
     const bool embolden{need_embolden(m_font.info().category, state.style)};
 
@@ -797,7 +798,7 @@ text_drawer::atlas_info& text_drawer::ensure(std::string_view string, bool embol
     return atlas;
 }
 
-bool text_drawer::load(atlas_info& atlas, codepoint_t codepoint, std::uint64_t font_size, bool embolden, bool fallback)
+bool text_drawer::load(atlas_info& atlas, codepoint_t codepoint, std::uint64_t font_size, std::uint64_t adjustment, bool embolden, bool fallback)
 {
     const std::uint64_t key{make_key(codepoint, font_size, embolden)};
 
@@ -843,7 +844,7 @@ bool text_drawer::load(atlas_info& atlas, codepoint_t codepoint, std::uint64_t f
     return true;
 }
 
-const text_drawer::glyph_info& text_drawer::get(atlas_info& atlas, codepoint_t codepoint, std::uint64_t font_size, bool embolden) const
+const text_drawer::glyph_info& text_drawer::get(atlas_info& atlas, codepoint_t codepoint, std::uint64_t font_size, std::uint64_t adjustment, bool embolden) const
 {
     const std::uint64_t key{make_key(codepoint, font_size, embolden)};
 

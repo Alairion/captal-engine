@@ -131,6 +131,7 @@ private:
     std::uint32_t m_max_size{};
     bool m_resized{};
     bool m_first_upload{true};
+    bool m_grow{};
 #ifdef CAPTAL_DEBUG
     std::string m_name{};
 #endif
@@ -195,7 +196,7 @@ public:
     font& operator=(font&&) noexcept = default;
 
     std::optional<glyph> load(codepoint_t codepoint);
-    std::optional<glyph> load_image(codepoint_t codepoint, bool embolden = false);
+    std::optional<glyph> load_image(codepoint_t codepoint, bool embolden = false, float shift = 0.0f);
     void resize(std::uint32_t pixels_size);
 
     bool has(codepoint_t codepoint) const noexcept;
