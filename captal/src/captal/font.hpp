@@ -64,9 +64,9 @@ struct glyph
     float advance{};
     float ascent{};
     float descent{};
-    std::vector<std::uint8_t> data{};
     std::uint32_t width{};
     std::uint32_t height{};
+    std::vector<std::uint8_t> data{};
 };
 
 using font_atlas_resize_signal = cpt::signal<texture_ptr>;
