@@ -30,18 +30,13 @@ static void setup(entt::registry& world)
     world.emplace<cpt::components::node>(background_right, cpt::vec3f{640.0f, 0.0f, 0.0f});
     world.emplace<cpt::components::drawable>(background_right, std::in_place_type<cpt::sprite>, 320, 800, cpt::colors::lightgray);
 
-    cpt::text_drawer drawer{cpt::font{sansation_regular_font_data, 24}};
-
-    drawer.ensure("ABCDefgh", false, 0.0f);
-    drawer.ensure("ABCDefgh", false, 0.25f);
-    drawer.ensure("ABCDefgh", false, 0.5f);
-    drawer.ensure("ABCDefgh", false, 0.75f);
+    cpt::text_drawer drawer{cpt::font{sansation_regular_font_data, 21}};
 
     //Left aligned
     const auto text_left{world.create()};
     world.emplace<cpt::components::node>(text_left, cpt::vec3f{0.0f, 0.0f, 1.0f});
     world.emplace<cpt::components::drawable>(text_left, drawer.draw(lorem_ipsum, 320, cpt::text_align::left, cpt::text_style::regular, cpt::colors::black));
-
+/*
     const auto left_bounds_value{drawer.bounds(lorem_ipsum, 320, cpt::text_align::left, cpt::text_style::regular)};
     const auto left_bounds{world.create()};
     world.emplace<cpt::components::node>(left_bounds, cpt::vec3f{0.0f, 0.0f, 0.5f});
@@ -58,7 +53,7 @@ static void setup(entt::registry& world)
     world.emplace<cpt::components::drawable>(text_center, drawer.draw(lorem_ipsum, 320, cpt::text_align::center, cpt::text_style::regular, cpt::colors::black));
     const auto center_width{world.get<cpt::components::drawable>(text_right).get<cpt::text>().width()};
     world.emplace<cpt::components::node>(text_center, cpt::vec3f{std::floor(640.0f + (320.0f - center_width) / 2.0f), 0.0f, 1.0f});
-
+*/
     drawer.upload();
 }
 

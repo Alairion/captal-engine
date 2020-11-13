@@ -105,7 +105,7 @@ public:
     void set_font(cpt::font font) noexcept
     {
         m_font = std::move(font);
-        m_atlases.clear();
+        m_glyphs.clear();
     }
 
     void set_fallback(codepoint_t codepoint) noexcept
@@ -163,22 +163,8 @@ private:
     {
         vec2f origin{};
         float advance{};
-        float ascent{};
-        float descent{};
         bin_packer::rect rect{};
         bool flipped{};
-    };
-
-    struct atlas_info
-    {
-        std::shared_ptr<font_atlas> atlas{};
-        std::unordered_map<std::uint64_t, glyph_info> glyphs{};
-    };
-
-    struct text_part
-    {
-        std::uint64_t key{};
-        vec2f position{};
     };
 
     struct draw_line_state
@@ -196,20 +182,17 @@ private:
     };
 
 private:
-    void draw_line(atlas_info& atlas, std::string_view line, text_align align, draw_line_state& state, std::vector<vertex>& vertices, const color& color);
-    void draw_left_aligned  (atlas_info& atlas, std::string_view line, draw_line_state& state, std::vector<vertex>& vertices, const color& color);
-    void draw_right_aligned (atlas_info& atlas, std::string_view line, draw_line_state& state, std::vector<vertex>& vertices, const color& color);
-    void draw_center_aligned(atlas_info& atlas, std::string_view line, draw_line_state& state, std::vector<vertex>& vertices, const color& color);
+    void draw_line(std::string_view line, text_align align, draw_line_state& state, std::vector<vertex>& vertices, const color& color);
+    void draw_left_aligned  (std::string_view line, draw_line_state& state, std::vector<vertex>& vertices, const color& color);
+    void draw_right_aligned (std::string_view line, draw_line_state& state, std::vector<vertex>& vertices, const color& color);
+    void draw_center_aligned(std::string_view line, draw_line_state& state, std::vector<vertex>& vertices, const color& color);
 
-    void line_bounds(atlas_info& atlas, std::string_view line, text_align align, draw_line_state& state);
-    void default_bounds(atlas_info& atlas, std::string_view line, draw_line_state& state);
+    void line_bounds(std::string_view line, text_align align, draw_line_state& state);
+    void default_bounds(std::string_view line, draw_line_state& state);
 
 private:
-    atlas_info& ensure(std::string_view string, bool embolden);
-    bool load(atlas_info& atlas, codepoint_t codepoint, std::uint64_t font_size, std::uint64_t adjustment, bool embolden, bool fallback = true);
-    const glyph_info& get(atlas_info& atlas, codepoint_t codepoint, std::uint64_t font_size, std::uint64_t adjustment, bool embolden) const;
-
-    float word_width(atlas_info& atlas, std::string_view word, std::uint64_t font_size, bool embolden) const;
+    const glyph_info& load(std::uint64_t key);
+    float word_width(std::string_view word, std::uint64_t font_size, bool embolden, float base_shift);
 
 private:
     cpt::font m_font{};
@@ -217,7 +200,8 @@ private:
     text_subpixel_adjustment m_adjustment{};
     tph::sampling_options m_sampling{};
     codepoint_t m_fallback{default_fallback};
-    std::vector<atlas_info> m_atlases{};
+    std::shared_ptr<font_atlas> m_atlas{};
+    std::unordered_map<std::uint64_t, glyph_info> m_glyphs{};
 #ifdef CAPTAL_DEBUG
     std::string m_name{};
 #endif

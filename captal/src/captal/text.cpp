@@ -19,6 +19,8 @@
 namespace cpt
 {
 
+struct full_font_atlas{};
+
 text::text(std::span<const std::uint32_t> indices, std::span<const vertex> vertices, std::weak_ptr<font_atlas> atlas, text_style style, std::uint32_t width, std::uint32_t height, std::size_t count)
 :renderable{static_cast<std::uint32_t>(std::size(indices)), static_cast<std::uint32_t>(std::size(vertices))}
 ,m_width{width}
@@ -193,8 +195,9 @@ text_drawer::text_drawer(cpt::font font, text_drawer_options options, text_subpi
 ,m_options{options}
 ,m_adjustment{adjustment}
 ,m_sampling{sampling}
+,m_atlas{std::make_shared<font_atlas>(m_font.info().format, m_sampling)}
 {
-    m_atlases.emplace_back(atlas_info{std::make_shared<font_atlas>(m_font.info().format, m_sampling)});
+
 }
 
 text_bounds text_drawer::bounds(std::string_view string, text_style style)
@@ -203,7 +206,7 @@ text_bounds text_drawer::bounds(std::string_view string, text_style style)
 }
 
 text_bounds text_drawer::bounds(std::string_view string, std::uint32_t line_width, text_align align, text_style style)
-{
+{/*
     const bool embolden{need_embolden(m_font.info().category, style)};
 
     auto& atlas{ensure(string, embolden)};
@@ -231,88 +234,16 @@ text_bounds text_drawer::bounds(std::string_view string, std::uint32_t line_widt
     const auto text_width{static_cast<std::uint32_t>(state.greatest_x - state.lowest_x)};
     const auto text_height{static_cast<std::uint32_t>(state.greatest_y - state.lowest_y)};
 
-    return text_bounds{text_width, text_height};
+    return text_bounds{text_width, text_height};*/
 }
 
 text text_drawer::draw(std::string_view string, text_style style, const color& color)
 {
-    const auto embolden{need_embolden(m_font.info().category, style)};
-    const auto codepoints{convert_to<utf32>(string)};
-    const auto font_size{static_cast<std::uint64_t>(m_font.info().size)};
-    const auto fallback{m_font.load(m_fallback)};
-
-    std::vector<text_part> parts{};
-    parts.reserve(std::size(codepoints));
-
-    float current_x{};
-    float current_y{static_cast<float>(m_font.info().max_ascent)};
-    float lowest_x{};
-    float lowest_y{static_cast<float>(m_font.info().max_glyph_height)};
-    codepoint_t last{};
-
-    for(const auto codepoint : decode<utf8>(string))
-    {
-        if(codepoint == U'\n')
-        {
-            current_x = 0.0f;
-            current_y += m_font.info().line_height;
-            last = 0;
-        }
-        else
-        {
-            const auto glyph{m_font.has(codepoint) ? m_font.load(codepoint) : fallback};
-
-            const vec2f kerning{m_font.kerning(last, codepoint)};
-            const float x_padding{last != 0 ? glyph->origin.x() + kerning.x() : 0.0f};
-
-            const float x{current_x + x_padding};
-            const float y{current_y + glyph->origin.y() + kerning.y()};
-
-            parts.emplace_back(make_key(codepoint, font_size, adjust(m_adjustment, x), embolden), vec2f{std::floor(x), y});
-
-            lowest_x = std::min(lowest_x, x);
-            lowest_y = std::min(lowest_y, y);
-
-            current_x += glyph->advance;
-            last = codepoint;
-        }
-    }
-
-    float greatest_x{};
-    float greatest_y{};
-
-    std::vector<vertex> vertices{};
-    vertices.reserve(std::size(codepoints) * 4);
-
-    const vec3f shift{-lowest_x, -lowest_y, 0.0f};
-    for(auto& vertex : vertices)
-    {
-        vertex.position += shift;
-    }
-
-    const float texture_width{static_cast<float>(atlas.atlas->texture()->width())};
-    const float texture_height{static_cast<float>(atlas.atlas->texture()->height())};
-
-    const auto indices{generate_indices(codepoint_count)};
-    const auto text_width{static_cast<std::uint32_t>(greatest_x - lowest_x)};
-    const auto text_height{static_cast<std::uint32_t>(greatest_y - lowest_y)};
-
-    return text{indices, vertices, atlas.atlas, style, text_width, text_height, std::size(string)};
+    return draw(string, std::numeric_limits<std::uint32_t>::max(), text_align::left, style, color);
 }
-/*
+
 text text_drawer::draw(std::string_view string, std::uint32_t line_width, text_align align, text_style style, const color& color)
 {
-    const bool embolden{need_embolden(m_font.info().category, style)};
-
-    auto& atlas{ensure(string, embolden)};
-
-    if(!load(atlas, U' ', m_font.info().size, embolden)) //ensure that the space glyph is loaded (in case the string doesn't contains any)
-    {
-        throw std::runtime_error{"How did you find a font without the space character ?"};
-    }
-
-    const auto texture_width{static_cast<float>(atlas.atlas->texture()->width())};
-    const auto texture_height{static_cast<float>(atlas.atlas->texture()->height())};
     const auto codepoint_count{utf8::count(std::begin(string), std::end(string))};
 
     std::vector<vertex> vertices{};
@@ -321,14 +252,14 @@ text text_drawer::draw(std::string_view string, std::uint32_t line_width, text_a
     draw_line_state state{};
     state.current_y = static_cast<float>(m_font.info().max_ascent);
     state.lowest_y = static_cast<float>(m_font.info().max_glyph_height);
-    state.texture_size = vec2f{texture_width, texture_height};
+    state.texture_size = vec2f{static_cast<float>(m_atlas->texture()->width()), static_cast<float>(m_atlas->texture()->height())};
     state.line_width = line_width;
     state.style = style;
     state.font_size = m_font.info().size;
 
     for(auto&& line : split(string, '\n'))
     {
-        draw_line(atlas, line, align, state, vertices, color);
+        draw_line(line, align, state, vertices, color);
 
         state.current_x = 0.0f;
         state.current_y += m_font.info().line_height;
@@ -349,17 +280,14 @@ text text_drawer::draw(std::string_view string, std::uint32_t line_width, text_a
     const auto text_width{static_cast<std::uint32_t>(state.greatest_x - state.lowest_x)};
     const auto text_height{static_cast<std::uint32_t>(state.greatest_y - state.lowest_y)};
 
-    return text{indices, vertices, atlas.atlas, style, text_width, text_height, std::size(string)};
+    return text{indices, vertices, m_atlas, style, text_width, text_height, std::size(string)};
 }
 
 void text_drawer::upload()
 {
-    for(auto& atlas : m_atlases)
+    if(m_atlas->need_upload())
     {
-        if(atlas.atlas->need_upload())
-        {
-            atlas.atlas->upload();
-        }
+        m_atlas->upload();
     }
 }
 
@@ -368,43 +296,40 @@ void text_drawer::set_name(std::string_view name)
 {
     m_name = name;
 
-    for(std::size_t i{}; i < std::size(m_atlases); ++i)
-    {
-        m_atlases[i].atlas->set_name(m_name + " atlas #" + std::to_string(i));
-    }
+    m_atlas->set_name(m_name + " atlas" );
 }
 #endif
 
-void text_drawer::draw_line(atlas_info& atlas, std::string_view line, text_align align, draw_line_state& state, std::vector<vertex>& vertices, const color& color)
+void text_drawer::draw_line(std::string_view line, text_align align, draw_line_state& state, std::vector<vertex>& vertices, const color& color)
 {
     if(align == text_align::left)
     {
-        draw_left_aligned(atlas, line, state, vertices, color);
-    }
+        draw_left_aligned(line, state, vertices, color);
+    }/*
     else if(align == text_align::right)
     {
-        draw_right_aligned(atlas, line, state, vertices, color);
+        draw_right_aligned(line, state, vertices, color);
     }
     else if(align == text_align::center)
     {
-        draw_center_aligned(atlas, line, state, vertices, color);
-    }
+        draw_center_aligned(line, state, vertices, color);
+    }*/
     else
     {
-        assert(false && "only cpt::text_align::left is supported yet");
+        assert(false && "cpt::text_align::justify is supported yet");
     }
 }
 
-void text_drawer::draw_left_aligned(atlas_info& atlas, std::string_view line, draw_line_state& state, std::vector<vertex>& vertices, const color& color)
+void text_drawer::draw_left_aligned(std::string_view line, draw_line_state& state, std::vector<vertex>& vertices, const color& color)
 {
-    const std::uint64_t space_key{make_key(U' ', state.font_size, 0, false)};
-    const glyph_info& space_glyph{atlas.glyphs.at(space_key)};
+    const glyph_info& space_glyph{load(make_key(U' ', state.font_size, 0, false))};
     const bool embolden{need_embolden(m_font.info().category, state.style)};
 
     codepoint_t last{};
     for(const auto word : split(line, ' '))
     {
-        if(static_cast<std::uint32_t>(state.current_x + word_width(atlas, word, state.font_size, embolden)) > state.line_width)
+        const auto current_shift{state.current_x - std::floor(state.current_x)};
+        if(static_cast<std::uint32_t>(state.current_x + word_width(word, state.font_size, embolden, current_shift)) > state.line_width)
         {
             state.current_x = 0.0f;
             state.current_y += m_font.info().line_height;
@@ -413,7 +338,8 @@ void text_drawer::draw_left_aligned(atlas_info& atlas, std::string_view line, dr
 
         for(const auto codepoint : decode<utf8>(word))
         {
-            const glyph_info& glyph{get(atlas, codepoint, state.font_size, embolden)};
+            const auto key{make_key(codepoint, state.font_size, adjust(m_adjustment, state.current_x), embolden)};
+            const glyph_info& glyph{load(key)};
 
             const vec2f texpos{static_cast<float>(glyph.rect.x), static_cast<float>(glyph.rect.y)};
             const float width {static_cast<float>(glyph.flipped ? glyph.rect.height : glyph.rect.width)};
@@ -452,8 +378,8 @@ void text_drawer::draw_left_aligned(atlas_info& atlas, std::string_view line, dr
     //There is an additionnal space at the end
     vertices.resize(std::size(vertices) - 4);
 }
-
-void text_drawer::draw_right_aligned(atlas_info& atlas, std::string_view line, draw_line_state& state, std::vector<vertex>& vertices, const color& color)
+/*
+void text_drawer::draw_right_aligned(std::string_view line, draw_line_state& state, std::vector<vertex>& vertices, const color& color)
 {
     state.lowest_x = static_cast<float>(state.line_width);
 
@@ -545,7 +471,7 @@ void text_drawer::draw_right_aligned(atlas_info& atlas, std::string_view line, d
     state.greatest_x = static_cast<float>(state.line_width);
 }
 
-void text_drawer::draw_center_aligned(atlas_info& atlas, std::string_view line, draw_line_state& state, std::vector<vertex>& vertices, const color& color)
+void text_drawer::draw_center_aligned(std::string_view line, draw_line_state& state, std::vector<vertex>& vertices, const color& color)
 {
     state.lowest_x = static_cast<float>(state.line_width);
 
@@ -637,7 +563,7 @@ void text_drawer::draw_center_aligned(atlas_info& atlas, std::string_view line, 
     vertices.resize(std::size(vertices) - 4);
 }
 
-void text_drawer::line_bounds(atlas_info& atlas, std::string_view line, text_align align, draw_line_state& state)
+void text_drawer::line_bounds(std::string_view line, text_align align, draw_line_state& state)
 {
     if(align == text_align::left || align == text_align::right || align == text_align::center)
     {
@@ -649,7 +575,7 @@ void text_drawer::line_bounds(atlas_info& atlas, std::string_view line, text_ali
     }
 }
 
-void text_drawer::default_bounds(atlas_info& atlas, std::string_view line, draw_line_state& state)
+void text_drawer::default_bounds(std::string_view line, draw_line_state& state)
 {
     const std::uint64_t space_key{make_key(U' ', state.font_size, 0, false)};
     const glyph_info& space_glyph{atlas.glyphs.at(space_key)};
@@ -695,76 +621,31 @@ void text_drawer::default_bounds(atlas_info& atlas, std::string_view line, draw_
         last = U' ';
     }
 }
-
-text_drawer::atlas_info& text_drawer::ensure(std::string_view string, bool embolden)
+*/
+const text_drawer::glyph_info& text_drawer::load(std::uint64_t key)
 {
-    std::u32string codepoints{convert_to<utf32>(string)};
-    std::sort(std::begin(codepoints), std::end(codepoints));
-    codepoints.erase(std::unique(std::begin(codepoints), std::end(codepoints)), std::end(codepoints));
-
-    const auto font_size{static_cast<std::uint64_t>(m_font.info().size)};
-
-    for(auto& atlas : m_atlases)
+    const auto it{m_glyphs.find(key)};
+    if(it == std::end(m_glyphs))
     {
-        std::size_t available{};
+        const auto codepoint{static_cast<codepoint_t>(key)};
+        const auto embolden{static_cast<bool>(key >> 63)};
+        const auto adjustement{(key >> 56) & 0x7F};
+        const auto shift{adjustement / 64.0f};
 
-        for(const auto codepoint : codepoints)
-        {
-            if(!load(atlas, codepoint, font_size, embolden))
-            {
-                break;
-            }
+        const auto glyph{m_font.load_image(codepoint, embolden, shift)};
 
-            ++available;
-        }
-
-        if(available == std::size(codepoints))
-        {
-            return atlas;
-        }
-    }
-
-    auto& atlas{m_atlases.emplace_back(atlas_info{std::make_shared<font_atlas>(m_font.info().format, m_sampling)})};
-
-#ifdef CAPTAL_DEBUG
-    if(!std::empty(m_name))
-    {
-        atlas.atlas->set_name(m_name + " atlas #" + std::to_string(std::size(m_atlases) - 1));
-    }
-#endif
-
-    for(const auto codepoint : codepoints)
-    {
-        if(!load(atlas, codepoint, font_size, embolden))
-        {
-            throw std::runtime_error{"The text can not be rendered, no font atlas can hold every glyphs, try to split up the text."};
-        }
-    }
-
-    return atlas;
-}
-
-bool text_drawer::load(atlas_info& atlas, codepoint_t codepoint, std::uint64_t font_size, std::uint64_t adjustment, bool embolden, bool fallback)
-{
-    const std::uint64_t key{make_key(codepoint, font_size, embolden)};
-
-    if(atlas.glyphs.find(key) == std::end(atlas.glyphs))
-    {
-        const auto glyph{m_font.load_image(codepoint, embolden)};
         if(glyph)
         {
             glyph_info info{};
             info.origin = glyph->origin;
             info.advance = glyph->advance;
-            info.ascent = glyph->ascent;
-            info.descent = glyph->descent;
 
             if(glyph->width != 0)
             {
-                const auto rect{atlas.atlas->add_glyph(glyph->data, glyph->width, glyph->height)};
+                const auto rect{m_atlas->add_glyph(glyph->data, glyph->width, glyph->height)};
                 if(!rect)
                 {
-                    return false;
+                    throw full_font_atlas{};
                 }
 
                 info.rect = rect.value();
@@ -775,37 +656,14 @@ bool text_drawer::load(atlas_info& atlas, codepoint_t codepoint, std::uint64_t f
                 }
             }
 
-            atlas.glyphs.emplace(key, info);
+            return m_glyphs.emplace(key, info).first->second;
         }
-        else if(fallback)
-        {
-            return load(atlas, m_fallback, font_size, embolden, false);
-        }
-        else
-        {
-            return false;
-        }
-    }
-
-    return true;
-}
-
-const text_drawer::glyph_info& text_drawer::get(atlas_info& atlas, codepoint_t codepoint, std::uint64_t font_size, std::uint64_t adjustment, bool embolden) const
-{
-    const std::uint64_t key{make_key(codepoint, font_size, embolden)};
-
-    const auto it{atlas.glyphs.find(key)};
-    if(it == std::end(atlas.glyphs))
-    {
-        const std::uint64_t fallback_key{make_key(m_fallback, font_size, embolden)};
-
-        return atlas.glyphs.at(fallback_key);
     }
 
     return it->second;
 }
 
-float text_drawer::word_width(atlas_info& atlas, std::string_view word, std::uint64_t font_size, bool embolden) const
+float text_drawer::word_width(std::string_view word, std::uint64_t font_size, bool embolden, float base_shift)
 {
     float current_x{};
     float lowest_x{};
@@ -814,7 +672,7 @@ float text_drawer::word_width(atlas_info& atlas, std::string_view word, std::uin
 
     for(const auto codepoint : decode<utf8>(word))
     {
-        const glyph_info& glyph{get(atlas, codepoint, font_size, embolden)};
+        const glyph_info& glyph{load(make_key(codepoint, font_size, adjust(m_adjustment, base_shift + current_x), embolden))};
 
         const float width{static_cast<float>(glyph.flipped ? glyph.rect.height : glyph.rect.width)};
 
@@ -833,7 +691,5 @@ float text_drawer::word_width(atlas_info& atlas, std::string_view word, std::uin
 
     return greatest_x - lowest_x;
 }
-  */
-
 
 }
