@@ -396,7 +396,7 @@ vec2f font::kerning(codepoint_t left, codepoint_t right) const noexcept
 
     FT_Vector output{};
 
-    if(FT_Get_Kerning(face, FT_Get_Char_Index(face, left), FT_Get_Char_Index(face, right), FT_KERNING_DEFAULT, &output))
+    if(FT_Get_Kerning(face, FT_Get_Char_Index(face, left), FT_Get_Char_Index(face, right), FT_KERNING_UNFITTED, &output))
     {
         return vec2f{};
     }
@@ -419,8 +419,8 @@ void font::resize(std::uint32_t pixels_size)
         m_info.max_glyph_width = FT_MulFix(face->bbox.xMax - face->bbox.xMin, face->size->metrics.x_scale) / 64 + 1;
         m_info.max_glyph_height = FT_MulFix(face->bbox.yMax - face->bbox.yMin, face->size->metrics.y_scale) / 64 + 1;
         m_info.max_ascent = FT_MulFix(face->bbox.yMax, face->size->metrics.y_scale) / 64 + 1;
-        m_info.line_height = std::round(FT_MulFix(face->height, face->size->metrics.y_scale) / 64.0f);
-        m_info.underline_position = std::round(-FT_MulFix(face->underline_position, face->size->metrics.y_scale) / 64.0f);
+        m_info.line_height = std::floor(FT_MulFix(face->height, face->size->metrics.y_scale) / 64.0f);
+        m_info.underline_position = std::floor(-FT_MulFix(face->underline_position, face->size->metrics.y_scale) / 64.0f);
         m_info.underline_thickness = std::round(-FT_MulFix(face->underline_thickness, face->size->metrics.y_scale) / 64.0f);
         m_info.strikeout_position = static_cast<float>(m_info.max_ascent / 3);
     }

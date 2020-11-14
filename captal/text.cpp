@@ -14,7 +14,7 @@
 
 #include "sansation.hpp"
 
-constexpr std::string_view lorem_ipsum{"Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. "
+constexpr std::string_view lorem_ipsum{"BRAVVO Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. "
                                        "Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. "
                                        "Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. "
                                        "Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."};
@@ -30,7 +30,7 @@ static void setup(entt::registry& world)
     world.emplace<cpt::components::node>(background_right, cpt::vec3f{640.0f, 0.0f, 0.0f});
     world.emplace<cpt::components::drawable>(background_right, std::in_place_type<cpt::sprite>, 320, 800, cpt::colors::lightgray);
 
-    cpt::text_drawer drawer{cpt::font{sansation_regular_font_data, 20}};
+    cpt::text_drawer drawer{cpt::font{sansation_regular_font_data, 22}, cpt::text_drawer_options::none, cpt::text_subpixel_adjustment::x8};
 
     //Left aligned
     const auto text_left{world.create()};

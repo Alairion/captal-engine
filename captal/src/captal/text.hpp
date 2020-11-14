@@ -175,17 +175,20 @@ private:
         float lowest_y{};
         float greatest_x{};
         float greatest_y{};
+        float line_width{};
         vec2f texture_size{};
-        std::uint32_t line_width{};
         text_style style{};
         std::uint64_t font_size{};
+        std::u32string current_line{};
+        std::vector<vertex> vertices{};
+        color color{};
     };
 
 private:
-    void draw_line(std::string_view line, text_align align, draw_line_state& state, std::vector<vertex>& vertices, const color& color);
-    void draw_left_aligned  (std::string_view line, draw_line_state& state, std::vector<vertex>& vertices, const color& color);
-    void draw_right_aligned (std::string_view line, draw_line_state& state, std::vector<vertex>& vertices, const color& color);
-    void draw_center_aligned(std::string_view line, draw_line_state& state, std::vector<vertex>& vertices, const color& color);
+    void draw_line(std::string_view line, text_align align, draw_line_state& state);
+    void draw_left_aligned  (std::string_view line, draw_line_state& state);
+    void draw_right_aligned (std::string_view line, draw_line_state& state);
+    void draw_center_aligned(std::string_view line, draw_line_state& state);
 
     void line_bounds(std::string_view line, text_align align, draw_line_state& state);
     void default_bounds(std::string_view line, draw_line_state& state);
