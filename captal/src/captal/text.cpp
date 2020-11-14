@@ -305,7 +305,7 @@ void text_drawer::draw_line(std::string_view line, text_align align, draw_line_s
     if(align == text_align::left)
     {
         draw_left_aligned(line, state, vertices, color);
-    }/*
+    }
     else if(align == text_align::right)
     {
         draw_right_aligned(line, state, vertices, color);
@@ -313,7 +313,7 @@ void text_drawer::draw_line(std::string_view line, text_align align, draw_line_s
     else if(align == text_align::center)
     {
         draw_center_aligned(line, state, vertices, color);
-    }*/
+    }
     else
     {
         assert(false && "cpt::text_align::justify is not supported yet");
@@ -338,8 +338,8 @@ void text_drawer::draw_left_aligned(std::string_view line, draw_line_state& stat
 
         for(const auto codepoint : decode<utf8>(word))
         {
-            const auto key{make_key(codepoint, state.font_size, adjust(m_adjustment, state.current_x), embolden)};
-            const glyph_info& glyph{load(key)};
+            const auto  key{make_key(codepoint, state.font_size, adjust(m_adjustment, state.current_x), embolden)};
+            const auto& glyph{load(key)};
 
             const vec2f texpos{static_cast<float>(glyph.rect.x), static_cast<float>(glyph.rect.y)};
             const float width {static_cast<float>(glyph.flipped ? glyph.rect.height : glyph.rect.width)};
@@ -502,7 +502,8 @@ void text_drawer::draw_center_aligned(std::string_view line, draw_line_state& st
 
     for(const auto word : split(line, ' '))
     {
-        if(static_cast<std::uint32_t>(state.current_x + word_width(atlas, word, state.font_size, embolden)) > state.line_width)
+        const auto current_shift{state.current_x - std::floor(state.current_x)};
+        if(static_cast<std::uint32_t>(state.current_x + word_width(word, state.font_size, embolden, current_shift)) > state.line_width)
         {
             do_shift(begin, count, lowest_x, greatest_x);
 
@@ -518,7 +519,9 @@ void text_drawer::draw_center_aligned(std::string_view line, draw_line_state& st
 
         for(const auto codepoint : decode<utf8>(word))
         {
-            const glyph_info& glyph{get(atlas, codepoint, state.font_size, embolden)};
+            const auto  key{make_key(codepoint, state.font_size, adjust(m_adjustment, state.current_x), embolden)};
+            const auto& glyph{load(key)};
+
 
             const vec2f texpos{static_cast<float>(glyph.rect.x), static_cast<float>(glyph.rect.y)};
             const float width {static_cast<float>(glyph.flipped ? glyph.rect.height : glyph.rect.width)};

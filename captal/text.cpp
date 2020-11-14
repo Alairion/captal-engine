@@ -41,7 +41,7 @@ static void setup(entt::registry& world)
     const auto left_bounds{world.create()};
     world.emplace<cpt::components::node>(left_bounds, cpt::vec3f{0.0f, 0.0f, 0.5f});
     world.emplace<cpt::components::drawable>(left_bounds, std::in_place_type<cpt::sprite>, left_bounds_value.width, left_bounds_value.height, cpt::colors::orange);
-
+*/
     //Right aligned
     const auto text_right{world.create()};
     world.emplace<cpt::components::drawable>(text_right, drawer.draw(lorem_ipsum, 320, cpt::text_align::right, cpt::text_style::regular, cpt::colors::black));
@@ -53,7 +53,7 @@ static void setup(entt::registry& world)
     world.emplace<cpt::components::drawable>(text_center, drawer.draw(lorem_ipsum, 320, cpt::text_align::center, cpt::text_style::regular, cpt::colors::black));
     const auto center_width{world.get<cpt::components::drawable>(text_right).get<cpt::text>().width()};
     world.emplace<cpt::components::node>(text_center, cpt::vec3f{std::floor(640.0f + (320.0f - center_width) / 2.0f), 0.0f, 1.0f});
-*/
+
     drawer.upload();
 }
 
