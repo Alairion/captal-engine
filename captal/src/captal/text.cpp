@@ -316,7 +316,7 @@ void text_drawer::draw_line(std::string_view line, text_align align, draw_line_s
     }*/
     else
     {
-        assert(false && "cpt::text_align::justify is supported yet");
+        assert(false && "cpt::text_align::justify is not supported yet");
     }
 }
 
@@ -378,13 +378,12 @@ void text_drawer::draw_left_aligned(std::string_view line, draw_line_state& stat
     //There is an additionnal space at the end
     vertices.resize(std::size(vertices) - 4);
 }
-/*
+
 void text_drawer::draw_right_aligned(std::string_view line, draw_line_state& state, std::vector<vertex>& vertices, const color& color)
 {
     state.lowest_x = static_cast<float>(state.line_width);
 
-    const std::uint64_t space_key{make_key(U' ', state.font_size, 0, false)};
-    const glyph_info& space_glyph{atlas.glyphs.at(space_key)};
+    const glyph_info& space_glyph{load(make_key(U' ', state.font_size, 0, false))};
     const bool embolden{need_embolden(m_font.info().category, state.style)};
 
     //We have to adjust these values before returning them
@@ -409,7 +408,8 @@ void text_drawer::draw_right_aligned(std::string_view line, draw_line_state& sta
 
     for(const auto word : split(line, ' '))
     {
-        if(static_cast<std::uint32_t>(state.current_x + word_width(atlas, word, state.font_size, embolden)) > state.line_width)
+        const auto current_shift{state.current_x - std::floor(state.current_x)};
+        if(static_cast<std::uint32_t>(state.current_x + word_width(word, state.font_size, embolden, current_shift)) > state.line_width)
         {
             do_shift(begin, count, lowest_x, greatest_x);
 
@@ -425,7 +425,8 @@ void text_drawer::draw_right_aligned(std::string_view line, draw_line_state& sta
 
         for(const auto codepoint : decode<utf8>(word))
         {
-            const glyph_info& glyph{get(atlas, codepoint, state.font_size, embolden)};
+            const auto  key{make_key(codepoint, state.font_size, adjust(m_adjustment, state.current_x), embolden)};
+            const auto& glyph{load(key)};
 
             const vec2f texpos{static_cast<float>(glyph.rect.x), static_cast<float>(glyph.rect.y)};
             const float width {static_cast<float>(glyph.flipped ? glyph.rect.height : glyph.rect.width)};
@@ -475,8 +476,7 @@ void text_drawer::draw_center_aligned(std::string_view line, draw_line_state& st
 {
     state.lowest_x = static_cast<float>(state.line_width);
 
-    const std::uint64_t space_key{make_key(U' ', state.font_size, 0, false)};
-    const glyph_info& space_glyph{atlas.glyphs.at(space_key)};
+    const glyph_info& space_glyph{load(make_key(U' ', state.font_size, 0, false))};
     const bool embolden{need_embolden(m_font.info().category, state.style)};
 
     //We have to adjust these values before returning them
@@ -567,24 +567,24 @@ void text_drawer::line_bounds(std::string_view line, text_align align, draw_line
 {
     if(align == text_align::left || align == text_align::right || align == text_align::center)
     {
-        default_bounds(atlas, line, state);
+        default_bounds(line, state);
     }
     else
     {
-        assert(false && "only cpt::text_align::left is supported yet");
+        assert(false && "cpt::text_align::justify is not supported yet");
     }
 }
 
 void text_drawer::default_bounds(std::string_view line, draw_line_state& state)
 {
-    const std::uint64_t space_key{make_key(U' ', state.font_size, 0, false)};
-    const glyph_info& space_glyph{atlas.glyphs.at(space_key)};
+    const glyph_info& space_glyph{load(make_key(U' ', state.font_size, 0, false))};
     const bool embolden{need_embolden(m_font.info().category, state.style)};
 
     codepoint_t last{};
     for(const auto word : split(line, ' '))
     {
-        if(static_cast<std::uint32_t>(state.current_x + word_width(atlas, word, state.font_size, embolden)) > state.line_width)
+        const auto current_shift{state.current_x - std::floor(state.current_x)};
+        if(static_cast<std::uint32_t>(state.current_x + word_width(word, state.font_size, embolden, current_shift)) > state.line_width)
         {
             state.current_x = 0.0f;
             state.current_y += m_font.info().line_height;
@@ -593,7 +593,8 @@ void text_drawer::default_bounds(std::string_view line, draw_line_state& state)
 
         for(const auto codepoint : decode<utf8>(word))
         {
-            const glyph_info& glyph{get(atlas, codepoint, state.font_size, embolden)};
+            const auto key{make_key(codepoint, state.font_size, adjust(m_adjustment, state.current_x), embolden)};
+            const glyph_info& glyph{load(key)};
 
             const vec2f texpos{static_cast<float>(glyph.rect.x), static_cast<float>(glyph.rect.y)};
             const float width {static_cast<float>(glyph.flipped ? glyph.rect.height : glyph.rect.width)};
@@ -621,7 +622,7 @@ void text_drawer::default_bounds(std::string_view line, draw_line_state& state)
         last = U' ';
     }
 }
-*/
+
 const text_drawer::glyph_info& text_drawer::load(std::uint64_t key)
 {
     const auto it{m_glyphs.find(key)};

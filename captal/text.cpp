@@ -30,7 +30,7 @@ static void setup(entt::registry& world)
     world.emplace<cpt::components::node>(background_right, cpt::vec3f{640.0f, 0.0f, 0.0f});
     world.emplace<cpt::components::drawable>(background_right, std::in_place_type<cpt::sprite>, 320, 800, cpt::colors::lightgray);
 
-    cpt::text_drawer drawer{cpt::font{sansation_regular_font_data, 21}};
+    cpt::text_drawer drawer{cpt::font{sansation_regular_font_data, 20}};
 
     //Left aligned
     const auto text_left{world.create()};
