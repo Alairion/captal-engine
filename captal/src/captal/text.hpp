@@ -195,7 +195,7 @@ private:
 
 private:
     const glyph_info& load(std::uint64_t key);
-    float word_width(std::string_view word, std::uint64_t font_size, bool embolden, float base_shift);
+    float word_width(std::string_view word, std::uint64_t font_size, bool embolden, codepoint_t last, float base_shift);
 
 private:
     cpt::font m_font{};

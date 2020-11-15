@@ -275,7 +275,7 @@ text text_drawer::draw(std::string_view string, std::uint32_t line_width, text_a
     //There is an additionnal newline at the end
     state.vertices.resize(std::size(state.vertices) - 4);
 
-    const vec3f shift{-state.lowest_x, -state.lowest_y, 0.0f};
+    const vec3f shift{-std::floor(state.lowest_x), -std::floor(state.lowest_y), 0.0f};
     for(auto& vertex : state.vertices)
     {
         vertex.position += shift;
@@ -334,7 +334,7 @@ void text_drawer::draw_left_aligned(std::string_view line, draw_line_state& stat
     for(const auto word : split(line, ' '))
     {
         const auto current_shift{state.current_x - std::floor(state.current_x)};
-        if(state.current_x + word_width(word, state.font_size, embolden, current_shift) > state.line_width)
+        if(state.current_x + word_width(word, state.font_size, embolden, last, current_shift) > state.line_width)
         {
             state.current_x = 0.0f;
             state.current_y += m_font.info().line_height;
@@ -414,7 +414,7 @@ void text_drawer::draw_right_aligned(std::string_view line, draw_line_state& sta
     for(const auto word : split(line, ' '))
     {
         const auto current_shift{state.current_x - std::floor(state.current_x)};
-        if(state.current_x + word_width(word, state.font_size, embolden, current_shift) > state.line_width)
+        if(state.current_x + word_width(word, state.font_size, embolden, last, current_shift) > state.line_width)
         {
             do_shift(begin, count, lowest_x, greatest_x);
 
@@ -507,7 +507,7 @@ void text_drawer::draw_center_aligned(std::string_view line, draw_line_state& st
     for(const auto word : split(line, ' '))
     {
         const auto current_shift{state.current_x - std::floor(state.current_x)};
-        if(static_cast<std::uint32_t>(state.current_x + word_width(word, state.font_size, embolden, current_shift)) > state.line_width)
+        if(state.current_x + word_width(word, state.font_size, embolden, last, current_shift) > state.line_width)
         {
             do_shift(begin, count, lowest_x, greatest_x);
 
@@ -590,7 +590,7 @@ void text_drawer::default_bounds(std::string_view line, draw_line_state& state)
     for(const auto word : split(line, ' '))
     {
         const auto current_shift{state.current_x - std::floor(state.current_x)};
-        if(static_cast<std::uint32_t>(state.current_x + word_width(word, state.font_size, embolden, current_shift)) > state.line_width)
+        if(state.current_x + word_width(word, state.font_size, embolden, last, current_shift) > state.line_width)
         {
             state.current_x = 0.0f;
             state.current_y += m_font.info().line_height;
@@ -670,12 +670,11 @@ const text_drawer::glyph_info& text_drawer::load(std::uint64_t key)
     return it->second;
 }
 
-float text_drawer::word_width(std::string_view word, std::uint64_t font_size, bool embolden, float base_shift)
+float text_drawer::word_width(std::string_view word, std::uint64_t font_size, bool embolden, codepoint_t last, float base_shift)
 {
     float current_x{};
     float lowest_x{};
     float greatest_x{};
-    codepoint_t last{};
 
     for(const auto codepoint : decode<utf8>(word))
     {
