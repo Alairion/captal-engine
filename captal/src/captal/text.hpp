@@ -169,8 +169,8 @@ private:
 
     struct draw_line_state
     {
-        float current_x{};
-        float current_y{};
+        float x{};
+        float y{};
         float lowest_x{};
         float lowest_y{};
         float greatest_x{};
@@ -179,7 +179,7 @@ private:
         vec2f texture_size{};
         text_style style{};
         std::uint64_t font_size{};
-        std::u32string current_line{};
+        std::u32string line{};
         std::vector<vertex> vertices{};
         color color{};
     };
