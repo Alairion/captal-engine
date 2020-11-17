@@ -178,24 +178,25 @@ private:
         float line_width{};
         vec2f texture_size{};
         text_style style{};
-        std::uint64_t font_size{};
-        std::u32string line{};
-        std::vector<vertex> vertices{};
         color color{};
+        std::uint64_t font_size{};
+        std::u32string_view codepoints{};
+        std::vector<vertex> vertices{};
     };
 
 private:
-    void draw_line(std::string_view line, text_align align, draw_line_state& state);
-    void draw_left_aligned  (std::string_view line, draw_line_state& state);
-    void draw_right_aligned (std::string_view line, draw_line_state& state);
-    void draw_center_aligned(std::string_view line, draw_line_state& state);
+    void draw_line(std::u32string_view line, text_align align, draw_line_state& state);
+    void draw_left_aligned  (std::u32string_view line, draw_line_state& state);
+    void draw_right_aligned (std::u32string_view line, draw_line_state& state);
+    void draw_center_aligned(std::u32string_view line, draw_line_state& state);
 
-    void line_bounds(std::string_view line, text_align align, draw_line_state& state);
-    void default_bounds(std::string_view line, draw_line_state& state);
+    void line_bounds(std::u32string_view line, text_align align, draw_line_state& state);
+    void default_bounds(std::u32string_view line, draw_line_state& state);
 
 private:
     const glyph_info& load(std::uint64_t key);
-    float word_width(std::string_view word, std::uint64_t font_size, bool embolden, codepoint_t last, float base_shift);
+    float word_width(std::u32string_view word, std::uint64_t font_size, bool embolden, codepoint_t last, float base_shift);
+    float line_width(std::u32string_view line, std::uint64_t font_size, bool embolden, float line_width, const glyph_info& space_glyph);
 
 private:
     cpt::font m_font{};
