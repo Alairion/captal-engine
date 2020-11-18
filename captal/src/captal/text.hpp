@@ -184,6 +184,13 @@ private:
         std::vector<vertex> vertices{};
     };
 
+    struct line_width_info
+    {
+        float width{};
+        std::u32string_view line{};
+        std::u32string_view remainder{};
+    };
+
 private:
     void draw_line(std::u32string_view line, text_align align, draw_line_state& state);
     void draw_left_aligned  (std::u32string_view line, draw_line_state& state);
@@ -196,7 +203,7 @@ private:
 private:
     const glyph_info& load(std::uint64_t key);
     float word_width(std::u32string_view word, std::uint64_t font_size, bool embolden, codepoint_t last, float base_shift);
-    float line_width(std::u32string_view line, std::uint64_t font_size, bool embolden, float line_width, const glyph_info& space_glyph);
+    line_width_info line_width(std::u32string_view line, std::uint64_t font_size, bool embolden, float line_width, float space);
 
 private:
     cpt::font m_font{};

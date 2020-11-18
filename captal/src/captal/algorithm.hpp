@@ -72,7 +72,7 @@ constexpr bool bounding_box_query(const vec2<T>& point, const vec2<T>& box_posit
 }
 
 template<typename CharT, typename Traits>
-std::vector<std::basic_string_view<CharT, Traits>> split(std::basic_string_view<CharT, Traits> string, CharT delimiter)
+std::vector<std::basic_string_view<CharT, Traits>> split_once(std::basic_string_view<CharT, Traits> string, CharT delimiter)
 {
     std::vector<std::basic_string_view<CharT, Traits>> substrings{};
     substrings.reserve(std::count(std::begin(string), std::end(string), delimiter));
@@ -90,7 +90,7 @@ std::vector<std::basic_string_view<CharT, Traits>> split(std::basic_string_view<
 }
 
 template<typename CharT, typename Traits>
-std::vector<std::basic_string_view<CharT, Traits>> split(std::basic_string_view<CharT, Traits> string, std::basic_string_view<CharT, Traits> delimiter)
+std::vector<std::basic_string_view<CharT, Traits>> split_once(std::basic_string_view<CharT, Traits> string, std::basic_string_view<CharT, Traits> delimiter)
 {
     std::vector<std::basic_string_view<CharT, Traits>> substrings{};
 
@@ -104,32 +104,6 @@ std::vector<std::basic_string_view<CharT, Traits>> split(std::basic_string_view<
     }
 
     return substrings;
-}
-
-template<typename CharT, typename Traits>
-std::pair<std::basic_string_view<CharT, Traits>, std::basic_string_view<CharT, Traits>> partial_split(std::basic_string_view<CharT, Traits> string, CharT delimiter)
-{
-    const std::size_t position{string.find(delimiter)};
-
-    if(position == std::basic_string_view<CharT, Traits>::npos)
-    {
-        return std::make_pair(string.substr(0, position), std::basic_string_view<CharT, Traits>{});
-    }
-
-    return std::make_pair(string.substr(0, position), string.substr(position + 1));
-}
-
-template<typename CharT, typename Traits>
-std::pair<std::basic_string_view<CharT, Traits>, std::basic_string_view<CharT, Traits>> partial_split(std::basic_string_view<CharT, Traits> string, std::basic_string_view<CharT, Traits> delimiter)
-{
-    const std::size_t position{string.find(delimiter)};
-
-    if(position == std::basic_string_view<CharT, Traits>::npos)
-    {
-        return std::make_pair(string.substr(0, position), std::basic_string_view<CharT, Traits>{});
-    }
-
-    return std::make_pair(string.substr(0, position), string.substr(position + std::size(delimiter)));
 }
 
 template<typename CharT, typename Delimiter, typename Traits = std::char_traits<CharT>>
@@ -152,9 +126,10 @@ public:
 public:
     constexpr split_iterator() = default;
 
-    constexpr split_iterator(string_view_type string, delimiter_type delimiter)
+    constexpr split_iterator(string_view_type string, delimiter_type delimiter) noexcept
     :m_value{{}, string}
     ,m_delimiter{delimiter}
+    ,m_not_end{true}
     {
         operator++();
     }
@@ -177,23 +152,33 @@ public:
 
     constexpr split_iterator& operator++()
     {
-        const std::size_t position{m_value.second.find(m_delimiter)};
-
-        if(position == string_view_type::npos)
+        if(std::empty(m_value.second))
         {
-            m_value.first = m_value.second.substr(0, position);
-            m_value.second = string_view_type{};
-        }
-
-        m_value.first = m_value.second.substr(0, position);
-
-        if constexpr(std::is_same_v<delimiter_type, char_type>)
-        {
-            m_value.second = m_value.second.substr(position + 1);
+            m_value.first = string_view_type{};
+            m_not_end = false;
         }
         else
         {
-            m_value.second = m_value.second.substr(position + std::size(m_delimiter));
+            const std::size_t position{m_value.second.find(m_delimiter)};
+
+            if(position == string_view_type::npos)
+            {
+                m_value.first = m_value.second;
+                m_value.second = string_view_type{};
+            }
+            else
+            {
+                m_value.first = m_value.second.substr(0, position);
+
+                if constexpr(std::is_same_v<delimiter_type, char_type>)
+                {
+                    m_value.second = m_value.second.substr(position + 1);
+                }
+                else
+                {
+                    m_value.second = m_value.second.substr(position + std::size(m_delimiter));
+                }
+            }
         }
 
         return *this;
@@ -207,25 +192,38 @@ public:
         return temp;
     }
 
-    constexpr split_iterator begin() const
+    constexpr split_iterator begin() const noexcept
     {
         return *this;
     }
 
-    constexpr split_iterator end() const
+    constexpr split_iterator end() const noexcept
     {
         return split_iterator{};
     }
 
     constexpr bool operator!=(const split_iterator& other) const noexcept
     {
-        return std::empty(m_value.second) != std::empty(other.m_value.second);
+        return m_not_end != other.m_not_end;
     }
 
 private:
     value_type m_value{};
     delimiter_type m_delimiter{};
+    bool m_not_end{};
 };
+
+template<typename CharT, typename Traits>
+split_iterator<CharT, CharT, Traits> split(std::basic_string_view<CharT, Traits> string, CharT delimiter) noexcept
+{
+    return split_iterator<CharT, CharT, Traits>{string, delimiter};
+}
+
+template<typename CharT, typename Traits>
+split_iterator<CharT, std::basic_string_view<CharT, Traits>, Traits> split(std::basic_string_view<CharT, Traits> string, std::basic_string_view<CharT, Traits> delimiter) noexcept
+{
+    return split_iterator<CharT, std::basic_string_view<CharT, Traits>, Traits>{string, delimiter};
+}
 
 }
 

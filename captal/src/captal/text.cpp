@@ -261,20 +261,15 @@ text text_drawer::draw(std::string_view string, std::uint32_t line_width, text_a
 
     state.vertices.reserve(std::size(state.codepoints) * 4 + 4);
 
-    auto line{partial_split(state.codepoints, U'\n')};
-
-    do
+    for(auto&& [line, _] : split(state.codepoints, U'\n'))
     {
-        draw_line(line.first, align, state);
+        draw_line(line, align, state);
 
         state.x = 0.0f;
         state.y += m_font.info().line_height;
 
         add_placeholder(state.vertices);
-
-        line = partial_split(state.codepoints, U'\n');
-
-    } while(!std::empty(line.second));
+    }
 
     //There is an additionnal newline at the end
     state.vertices.resize(std::size(state.vertices) - 4);
@@ -331,11 +326,11 @@ void text_drawer::draw_line(std::u32string_view line, text_align align, draw_lin
 
 void text_drawer::draw_left_aligned(std::u32string_view line, draw_line_state& state)
 {
-    const glyph_info& space_glyph{load(make_key(U' ', state.font_size, 0, false))};
+    const float space{load(make_key(U' ', state.font_size, 0, false)).advance};
     const bool embolden{need_embolden(m_font.info().category, state.style)};
 
     codepoint_t last{};
-    for(const auto word : split(line, U' '))
+    for(auto&& [word, _] : split(line, U' '))
     {
         const auto shift{state.x - std::floor(state.x)};
         if(state.x + word_width(word, state.font_size, embolden, last, shift) > state.line_width)
@@ -380,7 +375,7 @@ void text_drawer::draw_left_aligned(std::u32string_view line, draw_line_state& s
 
         add_placeholder(state.vertices);
 
-        state.x += space_glyph.advance;
+        state.x += space;
         last = U' ';
     }
 
@@ -393,7 +388,7 @@ void text_drawer::draw_right_aligned(std::u32string_view line, draw_line_state& 
     state.lowest_x = state.line_width;
     state.greatest_x = state.line_width;
 
-    const glyph_info& space_glyph{load(make_key(U' ', state.font_size, 0, false))};
+    const float space{load(make_key(U' ', state.font_size, 0, false)).advance};
     const bool embolden{need_embolden(m_font.info().category, state.style)};
 
     std::size_t begin{std::size(state.vertices)};
@@ -415,7 +410,7 @@ void text_drawer::draw_right_aligned(std::u32string_view line, draw_line_state& 
         state.lowest_x = std::min(state.lowest_x, shift);
     };
 
-    for(const auto word : split(line, U' '))
+    for(auto&& [word, _] : split(line, U' '))
     {
         const auto shift{state.x - std::floor(state.x)};
         if(state.x + word_width(word, state.font_size, embolden, last, shift) > state.line_width)
@@ -469,7 +464,7 @@ void text_drawer::draw_right_aligned(std::u32string_view line, draw_line_state& 
 
         add_placeholder(state.vertices);
 
-        state.x += space_glyph.advance;
+        state.x += space;
         count += 1;
         last = U' ';
     }
@@ -484,89 +479,63 @@ void text_drawer::draw_center_aligned(std::u32string_view line, draw_line_state&
 {
     state.lowest_x = static_cast<float>(state.line_width);
 
-    const glyph_info& space_glyph{load(make_key(U' ', state.font_size, 0, false))};
+    const float space{load(make_key(U' ', state.font_size, 0, false)).advance};
     const bool embolden{need_embolden(m_font.info().category, state.style)};
 
-    //We have to adjust these values before returning them
-    std::size_t begin{std::size(state.vertices)};
-    std::size_t count{};
-    float lowest_x{};
-    float greatest_x{};
     codepoint_t last{};
+    auto line_info{line_width(line, state.font_size, embolden, state.line_width, space)};
 
-    auto do_shift = [&state](std::size_t begin, std::size_t count, float width) mutable
+    do
     {
-        const float shift{std::round((state.line_width - width) / 2.0f)};
+        state.x = (state.line_width - line_info.width) / 2.0f;
 
-        for(auto& vertex : std::span{std::begin(state.vertices) + begin, count * 4})
+        for(auto&& [word, _] : split(line_info.line, U' '))
         {
-            vertex.position.x() += shift;
-        }
-
-        state.lowest_x = std::min(state.lowest_x, shift);
-        state.greatest_x = std::max(state.greatest_x, shift + width);
-    };
-
-    for(const auto word : split(line, U' '))
-    {
-        const auto shift{state.x - std::floor(state.x)};
-        if(state.x + word_width(word, state.font_size, embolden, last, shift) > state.line_width)
-        {
-            do_shift(begin, count, lowest_x, greatest_x);
-
-            state.x = 0.0f;
-            state.y += m_font.info().line_height;
-
-            begin = std::size(state.vertices);
-            count = 0;
-            lowest_x = 0.0f;
-            greatest_x = 0.0f;
-            last = 0;
-        }
-
-        for(const auto codepoint : word)
-        {
-            const vec2f kerning{m_font.kerning(last, codepoint)};
-            const auto  key    {make_key(codepoint, state.font_size, adjust(m_adjustment, state.x + kerning.x()), embolden)};
-            const auto& glyph  {load(key)};
-
-            const vec2f texpos{static_cast<float>(glyph.rect.x), static_cast<float>(glyph.rect.y)};
-            const float width {static_cast<float>(glyph.flipped ? glyph.rect.height : glyph.rect.width)};
-            const float height{static_cast<float>(glyph.flipped ? glyph.rect.width : glyph.rect.height)};
-
-            if(width > 0.0f)
+            for(const auto codepoint : word)
             {
-                const float x_padding{last != 0 ? glyph.origin.x() + kerning.x() : 0.0f};
+                const vec2f kerning{m_font.kerning(last, codepoint)};
+                const auto  key    {make_key(codepoint, state.font_size, adjust(m_adjustment, state.x + kerning.x()), embolden)};
+                const auto& glyph  {load(key)};
 
-                const float x{state.x + x_padding};
-                const float y{state.y + glyph.origin.y() + kerning.y()};
+                const vec2f texpos{static_cast<float>(glyph.rect.x), static_cast<float>(glyph.rect.y)};
+                const float width {static_cast<float>(glyph.flipped ? glyph.rect.height : glyph.rect.width)};
+                const float height{static_cast<float>(glyph.flipped ? glyph.rect.width : glyph.rect.height)};
 
-                add_glyph(state.vertices, x, y, width, height, static_cast<vec4f>(state.color), texpos, state.texture_size, glyph.flipped);
+                if(width > 0.0f)
+                {
+                    const float x_padding{last != 0 ? glyph.origin.x() + kerning.x() : 0.0f};
 
-                lowest_x = std::min(lowest_x, x);
-                greatest_x = std::max(greatest_x, x + width);
+                    const float x{state.x + x_padding};
+                    const float y{state.y + glyph.origin.y() + kerning.y()};
 
-                state.lowest_y = std::min(state.lowest_y, y);
-                state.greatest_y = std::max(state.greatest_y, y + height);
-            }
-            else
-            {
-                add_placeholder(state.vertices);
+                    add_glyph(state.vertices, x, y, width, height, static_cast<vec4f>(state.color), texpos, state.texture_size, glyph.flipped);
+
+                    state.lowest_x = std::min(state.lowest_x, x);
+                    state.greatest_x = std::max(state.greatest_x, x + width);
+                    state.lowest_y = std::min(state.lowest_y, y);
+                    state.greatest_y = std::max(state.greatest_y, y + height);
+                }
+                else
+                {
+                    add_placeholder(state.vertices);
+                }
+
+                state.x += glyph.advance;
+                last = codepoint;
             }
 
-            state.x += glyph.advance;
-            count += 1;
-            last = codepoint;
+            add_placeholder(state.vertices);
+
+            state.x += space;
+            last = U' ';
         }
 
-        add_placeholder(state.vertices);
+        state.y += m_font.info().line_height;
+        last = 0;
 
-        state.x += space_glyph.advance;
-        count += 1;
-        last = U' ';
-    }
+        line_info = line_width(line_info.remainder, state.font_size, embolden, state.line_width, space);
 
-    do_shift(begin, count, lowest_x, greatest_x);
+    } while(!std::empty(line_info.remainder));
 
     //There is an additionnal space at the end
     state.vertices.resize(std::size(state.vertices) - 4);
@@ -586,11 +555,11 @@ void text_drawer::line_bounds(std::u32string_view line, text_align align, draw_l
 
 void text_drawer::default_bounds(std::u32string_view line, draw_line_state& state)
 {
-    const glyph_info& space_glyph{load(make_key(U' ', state.font_size, 0, false))};
+    const float space{load(make_key(U' ', state.font_size, 0, false)).advance};
     const bool embolden{need_embolden(m_font.info().category, state.style)};
 
     codepoint_t last{};
-    for(const auto word : split(line, U' '))
+    for(auto&& [word, _] : split(line, U' '))
     {
         const auto shift{state.x - std::floor(state.x)};
         if(state.x + word_width(word, state.font_size, embolden, last, shift) > state.line_width)
@@ -627,7 +596,7 @@ void text_drawer::default_bounds(std::u32string_view line, draw_line_state& stat
             last = codepoint;
         }
 
-        state.x += space_glyph.advance;
+        state.x += space;
         last = U' ';
     }
 }
@@ -701,28 +670,34 @@ float text_drawer::word_width(std::u32string_view word, std::uint64_t font_size,
     return greatest_x - lowest_x;
 }
 
-float text_drawer::line_width(std::u32string_view line, std::uint64_t font_size, bool embolden, float line_width, const glyph_info& space_glyph)
+text_drawer::line_width_info text_drawer::line_width(std::u32string_view line, std::uint64_t font_size, bool embolden, float line_width, float space)
 {
     float x{};
-    float lowest_x{};
     float greatest_x{};
 
     codepoint_t last{};
-    for(const auto word : split(line, U' '))
+    line_width_info output{};
+
+    for(auto&& [word, remainder] : split(line, U' '))
     {
         const auto shift{x - std::floor(x)};
-        x += word_width(word, font_size, embolden, last, shift);
+        x += word_width(word, font_size, embolden, std::exchange(last, U' '), shift);
 
         if(x > line_width)
         {
             break;
         }
 
-        x += space_glyph.advance;
-        last = U' ';
+        greatest_x = std::max(greatest_x, x);
+        output.remainder = remainder;
+
+        x += space;
     }
 
-    return greatest_x - lowest_x;
+    output.line = line.substr(0, std::size(line) - std::size(output.remainder) - 1);
+    output.width = greatest_x;
+
+    return output;
 }
 
 }
