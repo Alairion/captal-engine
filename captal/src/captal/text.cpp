@@ -333,7 +333,7 @@ void text_drawer::draw_left_aligned(std::u32string_view line, draw_line_state& s
     for(auto&& [word, _] : split(line, U' '))
     {
         const auto shift{state.x - std::floor(state.x)};
-        if(state.x + word_width(word, state.font_size, embolden, last, shift) > state.line_width)
+        if(state.x + word_width(word, state.font_size, embolden, last, shift).width > state.line_width)
         {
             state.x = 0.0f;
             state.y += m_font.info().line_height;
@@ -413,7 +413,7 @@ void text_drawer::draw_right_aligned(std::u32string_view line, draw_line_state& 
     for(auto&& [word, _] : split(line, U' '))
     {
         const auto shift{state.x - std::floor(state.x)};
-        if(state.x + word_width(word, state.font_size, embolden, last, shift) > state.line_width)
+        if(state.x + word_width(word, state.font_size, embolden, last, shift).width > state.line_width)
         {
             do_shift(begin, count, lowest_x, greatest_x);
 
@@ -654,8 +654,7 @@ const text_drawer::glyph_info& text_drawer::load(std::uint64_t key)
     return it->second;
 }
 
-
-float text_drawer::word_width(std::u32string_view word, std::uint64_t font_size, bool embolden, codepoint_t last, float base_shift)
+text_drawer::word_width_info text_drawer::word_width(std::u32string_view word, std::uint64_t font_size, bool embolden, codepoint_t last, float base_shift)
 {
     float current_x{base_shift};
     float lowest_x{base_shift};
@@ -682,7 +681,7 @@ float text_drawer::word_width(std::u32string_view word, std::uint64_t font_size,
         last = codepoint;
     }
 
-    return greatest_x - lowest_x;
+    return word_width_info{greatest_x - lowest_x, current_x - lowest_x};
 }
 
 text_drawer::line_width_info text_drawer::line_width(std::u32string_view line, std::uint64_t font_size, bool embolden, float line_width, float space)
@@ -695,13 +694,14 @@ text_drawer::line_width_info text_drawer::line_width(std::u32string_view line, s
     for(auto&& [word, remainder] : split(line, U' '))
     {
         const float shift{current_x - std::floor(current_x)};
-        current_x += word_width(word, font_size, embolden, last, shift);
+        const auto word_info{word_width(word, font_size, embolden, last, shift)};
 
-        if(current_x > line_width)
+        if(current_x + word_info.width > line_width)
         {
             break;
         }
 
+        current_x += word_info.advance;
         greatest_x = current_x;
 
         current_x += space;

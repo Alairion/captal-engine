@@ -189,6 +189,12 @@ private:
         std::vector<vertex> vertices{};
     };
 
+    struct word_width_info
+    {
+        float width{};
+        float advance{};
+    };
+
     struct line_width_info
     {
         float width{};
@@ -207,7 +213,7 @@ private:
 
 private:
     const glyph_info& load(std::uint64_t key);
-    float word_width(std::u32string_view word, std::uint64_t font_size, bool embolden, codepoint_t last, float base_shift);
+    word_width_info word_width(std::u32string_view word, std::uint64_t font_size, bool embolden, codepoint_t last, float base_shift);
     line_width_info line_width(std::u32string_view line, std::uint64_t font_size, bool embolden, float line_width, float space);
 
 private:
