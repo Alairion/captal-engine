@@ -170,6 +170,7 @@ private:
         float advance{};
         bin_packer::rect rect{};
         bool flipped{};
+        bool deferred{};
     };
 
     struct draw_line_state
@@ -204,15 +205,16 @@ private:
 
 private:
     void draw_line(std::u32string_view line, text_align align, draw_line_state& state);
-    void draw_left_aligned  (std::u32string_view line, draw_line_state& state);
-    void draw_right_aligned (std::u32string_view line, draw_line_state& state);
-    void draw_center_aligned(std::u32string_view line, draw_line_state& state);
+    void draw_left_aligned   (std::u32string_view line, draw_line_state& state);
+    void draw_right_aligned  (std::u32string_view line, draw_line_state& state);
+    void draw_center_aligned (std::u32string_view line, draw_line_state& state);
+    void draw_justify_aligned(std::u32string_view line, draw_line_state& state);
 
     void line_bounds(std::u32string_view line, text_align align, draw_line_state& state);
     void default_bounds(std::u32string_view line, draw_line_state& state);
 
 private:
-    const glyph_info& load(std::uint64_t key);
+    const glyph_info& load(std::uint64_t key, bool deferred = false);
     word_width_info word_width(std::u32string_view word, std::uint64_t font_size, bool embolden, codepoint_t last, float base_shift);
     line_width_info line_width(std::u32string_view line, std::uint64_t font_size, bool embolden, float line_width, float space);
 

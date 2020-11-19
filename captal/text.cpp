@@ -14,7 +14,7 @@
 
 #include "sansation.hpp"
 
-constexpr std::string_view lorem_ipsum{"BRAVVO Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. "
+constexpr std::string_view lorem_ipsum{"AV Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. "
                                        "Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. "
                                        "Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. "
                                        "Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."};
@@ -30,7 +30,7 @@ static void setup(entt::registry& world)
     world.emplace<cpt::components::node>(background_right, cpt::vec3f{640.0f, 0.0f, 0.0f});
     world.emplace<cpt::components::drawable>(background_right, std::in_place_type<cpt::sprite>, 320, 800, cpt::colors::lightgray);
 
-    cpt::text_drawer drawer{cpt::font{sansation_regular_font_data, 22}, cpt::text_drawer_options::none, cpt::text_subpixel_adjustment::x8};
+    cpt::text_drawer drawer{cpt::font{/*sansation_regular_font_data*/u8"arial.ttf", 20}, cpt::text_drawer_options::none, cpt::text_subpixel_adjustment::x4};
 
     //Left aligned
     const auto text_left{world.create()};
@@ -41,18 +41,23 @@ static void setup(entt::registry& world)
     const auto left_bounds{world.create()};
     world.emplace<cpt::components::node>(left_bounds, cpt::vec3f{0.0f, 0.0f, 0.5f});
     world.emplace<cpt::components::drawable>(left_bounds, std::in_place_type<cpt::sprite>, left_bounds_value.width, left_bounds_value.height, cpt::colors::orange);
-
+*/
     //Right aligned
     const auto text_right{world.create()};
     world.emplace<cpt::components::drawable>(text_right, drawer.draw(lorem_ipsum, 320, cpt::text_align::right, cpt::text_style::regular, cpt::colors::black));
     const auto right_width{world.get<cpt::components::drawable>(text_right).get<cpt::text>().width()};
     world.emplace<cpt::components::node>(text_right, cpt::vec3f{640.0f - right_width, 0.0f, 1.0f});
-*/
+
     //Center aligned
     const auto text_center{world.create()};
     world.emplace<cpt::components::drawable>(text_center, drawer.draw(lorem_ipsum, 320, cpt::text_align::center, cpt::text_style::regular, cpt::colors::black));
     const auto center_width{world.get<cpt::components::drawable>(text_center).get<cpt::text>().width()};
     world.emplace<cpt::components::node>(text_center, cpt::vec3f{std::floor(640.0f + (320.0f - center_width) / 2.0f), 0.0f, 1.0f});
+
+    //Justify aligned
+    const auto text_justify{world.create()};
+    world.emplace<cpt::components::drawable>(text_justify, drawer.draw(lorem_ipsum, 320, cpt::text_align::justify, cpt::text_style::regular, cpt::colors::black));
+    world.emplace<cpt::components::node>(text_justify, cpt::vec3f{960.0f, 0.0f, 1.0f});
 
     drawer.upload();
 }

@@ -320,7 +320,7 @@ void text_drawer::draw_line(std::u32string_view line, text_align align, draw_lin
     }
     else
     {
-        assert(false && "cpt::text_align::justify is not supported yet");
+        draw_justify_aligned(line, state);
     }
 }
 
@@ -536,9 +536,72 @@ void text_drawer::draw_center_aligned(std::u32string_view line, draw_line_state&
         last = 0;
 
     } while(!std::empty(line_info.line) && !std::empty(line_info.remainder));
+}
 
-    //There is an additionnal space at the end
-    state.vertices.resize(std::size(state.vertices) - 4);
+void text_drawer::draw_justify_aligned(std::u32string_view line, draw_line_state& state)
+{
+    state.lowest_x = static_cast<float>(state.line_width);
+
+    const float space{load(make_key(U' ', state.font_size, 0, false)).advance};
+    const bool embolden{need_embolden(m_font.info().category, state.style)};
+
+    codepoint_t last{};
+    line_width_info line_info{.remainder = line};
+
+    do
+    {
+        line_info = line_width(line_info.remainder, state.font_size, embolden, state.line_width, space);
+
+        state.x = 0.0f;
+
+        const float word_count{static_cast<float>(std::count(std::begin(line_info.line), std::end(line_info.line), U' '))};
+        const float adjusted_space{std::empty(line_info.remainder) ? space : (state.line_width - line_info.width + space * word_count) / word_count};
+
+        for(auto&& [word, _] : split(line_info.line, U' '))
+        {
+            for(const auto codepoint : word)
+            {
+                const vec2f kerning{m_font.kerning(last, codepoint)};
+                const auto  key    {make_key(codepoint, state.font_size, adjust(m_adjustment, state.x + kerning.x()), embolden)};
+                const auto& glyph  {load(key)};
+
+                const vec2f texpos{static_cast<float>(glyph.rect.x), static_cast<float>(glyph.rect.y)};
+                const float width {static_cast<float>(glyph.flipped ? glyph.rect.height : glyph.rect.width)};
+                const float height{static_cast<float>(glyph.flipped ? glyph.rect.width : glyph.rect.height)};
+
+                if(width > 0.0f)
+                {
+                    const float x_padding{last != 0 ? glyph.origin.x() + kerning.x() : 0.0f};
+
+                    const float x{state.x + x_padding};
+                    const float y{state.y + glyph.origin.y() + kerning.y()};
+
+                    add_glyph(state.vertices, std::floor(x), y, width, height, static_cast<vec4f>(state.color), texpos, state.texture_size, glyph.flipped);
+
+                    state.lowest_x = std::min(state.lowest_x, x);
+                    state.lowest_y = std::min(state.lowest_y, y);
+                    state.greatest_x = std::max(state.greatest_x, x + width);
+                    state.greatest_y = std::max(state.greatest_y, y + height);
+                }
+                else
+                {
+                    add_placeholder(state.vertices);
+                }
+
+                state.x += glyph.advance;
+                last = codepoint;
+            }
+
+            add_placeholder(state.vertices);
+
+            state.x += adjusted_space;
+            last = U' ';
+        }
+
+        state.y += m_font.info().line_height;
+        last = 0;
+
+    } while(!std::empty(line_info.line) && !std::empty(line_info.remainder));
 }
 
 void text_drawer::line_bounds(std::u32string_view line, text_align align, draw_line_state& state)
@@ -571,8 +634,8 @@ void text_drawer::default_bounds(std::u32string_view line, draw_line_state& stat
 
         for(const auto codepoint : word)
         {
-            const auto key{make_key(codepoint, state.font_size, adjust(m_adjustment, state.x), embolden)};
-            const glyph_info& glyph{load(key)};
+            const auto  key  {make_key(codepoint, state.font_size, adjust(m_adjustment, state.x), embolden)};
+            const auto& glyph{load(key, true)};
 
             const vec2f texpos{static_cast<float>(glyph.rect.x), static_cast<float>(glyph.rect.y)};
             const float width {static_cast<float>(glyph.flipped ? glyph.rect.height : glyph.rect.width)};
@@ -601,7 +664,7 @@ void text_drawer::default_bounds(std::u32string_view line, draw_line_state& stat
     }
 }
 
-const text_drawer::glyph_info& text_drawer::load(std::uint64_t key)
+const text_drawer::glyph_info& text_drawer::load(std::uint64_t key, bool deferred)
 {
     const auto it{m_glyphs.find(key)};
     if(it == std::end(m_glyphs))
@@ -631,7 +694,13 @@ const text_drawer::glyph_info& text_drawer::load(std::uint64_t key)
             info.origin = glyph->origin;
             info.advance = glyph->advance;
 
-            if(glyph->width != 0)
+            if(deferred)
+            {
+                info.rect.width = glyph->width;
+                info.rect.height = glyph->height;
+                info.deferred = deferred;
+            }
+            else if(glyph->width != 0)
             {
                 const auto rect{m_atlas->add_glyph(glyph->data, glyph->width, glyph->height)};
                 if(!rect)
@@ -651,6 +720,28 @@ const text_drawer::glyph_info& text_drawer::load(std::uint64_t key)
         }
     }
 
+    if(it->second.deferred && !deferred)
+    {
+        const auto codepoint{static_cast<codepoint_t>(key)};
+        const auto embolden{static_cast<bool>(key >> 63)};
+        const auto adjustement{(key >> 56) & 0x7F};
+        const auto glyph{m_font.load_image(codepoint, embolden, adjustement / 64.0f)};
+
+        const auto rect{m_atlas->add_glyph(glyph->data, glyph->width, glyph->height)};
+        if(!rect)
+        {
+            throw full_font_atlas{};
+        }
+
+        it->second.rect = rect.value();
+        it->second.deferred = false;
+
+        if(rect->width != glyph->width)
+        {
+            it->second.flipped = true;
+        }
+    }
+
     return it->second;
 }
 
@@ -664,7 +755,7 @@ text_drawer::word_width_info text_drawer::word_width(std::u32string_view word, s
     {
         const vec2f kerning{m_font.kerning(last, codepoint)};
         const auto  key    {make_key(codepoint, font_size, adjust(m_adjustment, current_x + kerning.x()), embolden)};
-        const auto& glyph  {load(key)};
+        const auto& glyph  {load(key, true)};
 
         const float width{static_cast<float>(glyph.flipped ? glyph.rect.height : glyph.rect.width)};
 
@@ -709,7 +800,15 @@ text_drawer::line_width_info text_drawer::line_width(std::u32string_view line, s
         output.remainder = remainder;
     }
 
-    output.line = line.substr(0, std::size(line) - std::size(output.remainder) - 1);
+    if(std::empty(output.remainder))
+    {
+        output.line = line;
+    }
+    else
+    {
+        output.line = line.substr(0, std::size(line) - std::size(output.remainder) - 1);
+    }
+
     output.width = greatest_x;
 
     return output;

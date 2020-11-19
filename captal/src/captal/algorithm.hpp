@@ -75,7 +75,7 @@ template<typename CharT, typename Traits>
 std::vector<std::basic_string_view<CharT, Traits>> split_once(std::basic_string_view<CharT, Traits> string, CharT delimiter)
 {
     std::vector<std::basic_string_view<CharT, Traits>> substrings{};
-    substrings.reserve(std::count(std::begin(string), std::end(string), delimiter));
+    substrings.reserve(std::count(std::begin(string), std::end(string), delimiter) + 1);
 
     std::size_t position{};
     std::size_t last{};
