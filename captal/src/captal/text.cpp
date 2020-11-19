@@ -562,7 +562,7 @@ void text_drawer::default_bounds(std::u32string_view line, draw_line_state& stat
     for(auto&& [word, _] : split(line, U' '))
     {
         const auto shift{state.x - std::floor(state.x)};
-        if(state.x + word_width(word, state.font_size, embolden, last, shift) > state.line_width)
+        if(state.x + word_width(word, state.font_size, embolden, last, shift).width > state.line_width)
         {
             state.x = 0.0f;
             state.y += m_font.info().line_height;
