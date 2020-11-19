@@ -145,7 +145,7 @@ static std::uint64_t adjust(text_subpixel_adjustment adjustment, float x) noexce
     const float padding{x - std::floor(x)};
     const float step{adjustment_steps[static_cast<std::uint32_t>(adjustment)]};
 
-    return static_cast<std::uint64_t>(std::round(padding / step) * step * 64.0f);
+    return static_cast<std::uint64_t>(std::round(padding / step) * step * 64.0f) % 64; //modulo so 64 == 0 (otherwise it break text rendering by adding padding)
 }
 
 static void add_glyph(std::vector<vertex>& vertices, float x, float y, float width, float height, const vec4f& color, vec2f texpos, vec2f texsize, bool flipped)
