@@ -108,8 +108,13 @@ public:
         m_glyphs.clear();
     }
 
-    void set_fallback(codepoint_t codepoint) noexcept
+    void set_fallback(codepoint_t codepoint)
     {
+        if(!m_font.has(codepoint))
+        {
+            throw std::runtime_error{"Can not set fallback '" + convert_to<narrow>(std::u32string_view{&codepoint, 1}) + "'"};
+        }
+
         m_fallback = codepoint;
     }
 

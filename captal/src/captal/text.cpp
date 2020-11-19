@@ -340,7 +340,7 @@ void text_drawer::draw_left_aligned(std::u32string_view line, draw_line_state& s
             last = 0;
         }
 
-        for(const auto codepoint : decode<utf8>(word))
+        for(const auto codepoint : word)
         {
             const vec2f kerning{m_font.kerning(last, codepoint)};
             const auto  key    {make_key(codepoint, state.font_size, adjust(m_adjustment, state.x + kerning.x()), embolden)};
@@ -483,10 +483,12 @@ void text_drawer::draw_center_aligned(std::u32string_view line, draw_line_state&
     const bool embolden{need_embolden(m_font.info().category, state.style)};
 
     codepoint_t last{};
-    auto line_info{line_width(line, state.font_size, embolden, state.line_width, space)};
+    line_width_info line_info{.remainder = line};
 
     do
     {
+        line_info = line_width(line_info.remainder, state.font_size, embolden, state.line_width, space);
+
         state.x = (state.line_width - line_info.width) / 2.0f;
 
         for(auto&& [word, _] : split(line_info.line, U' '))
@@ -508,11 +510,11 @@ void text_drawer::draw_center_aligned(std::u32string_view line, draw_line_state&
                     const float x{state.x + x_padding};
                     const float y{state.y + glyph.origin.y() + kerning.y()};
 
-                    add_glyph(state.vertices, x, y, width, height, static_cast<vec4f>(state.color), texpos, state.texture_size, glyph.flipped);
+                    add_glyph(state.vertices, std::floor(x), y, width, height, static_cast<vec4f>(state.color), texpos, state.texture_size, glyph.flipped);
 
                     state.lowest_x = std::min(state.lowest_x, x);
-                    state.greatest_x = std::max(state.greatest_x, x + width);
                     state.lowest_y = std::min(state.lowest_y, y);
+                    state.greatest_x = std::max(state.greatest_x, x + width);
                     state.greatest_y = std::max(state.greatest_y, y + height);
                 }
                 else
@@ -533,9 +535,7 @@ void text_drawer::draw_center_aligned(std::u32string_view line, draw_line_state&
         state.y += m_font.info().line_height;
         last = 0;
 
-        line_info = line_width(line_info.remainder, state.font_size, embolden, state.line_width, space);
-
-    } while(!std::empty(line_info.remainder));
+    } while(!std::empty(line_info.line) && !std::empty(line_info.remainder));
 
     //There is an additionnal space at the end
     state.vertices.resize(std::size(state.vertices) - 4);
@@ -609,9 +609,21 @@ const text_drawer::glyph_info& text_drawer::load(std::uint64_t key)
         const auto codepoint{static_cast<codepoint_t>(key)};
         const auto embolden{static_cast<bool>(key >> 63)};
         const auto adjustement{(key >> 56) & 0x7F};
-        const auto shift{adjustement / 64.0f};
 
-        const auto glyph{m_font.load_image(codepoint, embolden, shift)};
+        if(!m_font.has(codepoint))
+        {
+            //Load the fallback in case the requested codepoint does not have a glyph inside the font
+            if(codepoint != m_fallback)
+            {
+                return load(make_key(m_fallback, m_font.info().size, adjustement, embolden));
+            }
+            else
+            {
+                throw std::runtime_error{"Can not render text, '" + convert_to<narrow>(std::u32string_view{&codepoint, 1}) + "' is not available nor is '" + convert_to<narrow>(std::u32string_view{&m_fallback, 1}) + "'"};
+            }
+        }
+
+        const auto glyph{m_font.load_image(codepoint, embolden, adjustement / 64.0f)};
 
         if(glyph)
         {
@@ -642,29 +654,32 @@ const text_drawer::glyph_info& text_drawer::load(std::uint64_t key)
     return it->second;
 }
 
+
 float text_drawer::word_width(std::u32string_view word, std::uint64_t font_size, bool embolden, codepoint_t last, float base_shift)
 {
-    float x{base_shift};
-    float lowest_x{};
-    float greatest_x{};
+    float current_x{base_shift};
+    float lowest_x{base_shift};
+    float greatest_x{base_shift};
 
     for(const auto codepoint : word)
     {
         const vec2f kerning{m_font.kerning(last, codepoint)};
-        const auto& glyph  {load(make_key(codepoint, font_size, adjust(m_adjustment, x + kerning.x()), embolden))};
+        const auto  key    {make_key(codepoint, font_size, adjust(m_adjustment, current_x + kerning.x()), embolden)};
+        const auto& glyph  {load(key)};
 
         const float width{static_cast<float>(glyph.flipped ? glyph.rect.height : glyph.rect.width)};
 
         if(width > 0.0f)
         {
             const float x_padding{last != 0 ? glyph.origin.x() + kerning.x() : 0.0f};
-            const float x{x + x_padding};
+            const float x{current_x + x_padding};
 
             lowest_x = std::min(lowest_x, x);
             greatest_x = std::max(greatest_x, x + width);
         }
 
-        x += glyph.advance;
+        current_x += glyph.advance;
+        last = codepoint;
     }
 
     return greatest_x - lowest_x;
@@ -672,26 +687,26 @@ float text_drawer::word_width(std::u32string_view word, std::uint64_t font_size,
 
 text_drawer::line_width_info text_drawer::line_width(std::u32string_view line, std::uint64_t font_size, bool embolden, float line_width, float space)
 {
-    float x{};
+    float current_x{};
     float greatest_x{};
-
     codepoint_t last{};
     line_width_info output{};
 
     for(auto&& [word, remainder] : split(line, U' '))
     {
-        const auto shift{x - std::floor(x)};
-        x += word_width(word, font_size, embolden, std::exchange(last, U' '), shift);
+        const float shift{current_x - std::floor(current_x)};
+        current_x += word_width(word, font_size, embolden, last, shift);
 
-        if(x > line_width)
+        if(current_x > line_width)
         {
             break;
         }
 
-        greatest_x = std::max(greatest_x, x);
-        output.remainder = remainder;
+        greatest_x = current_x;
 
-        x += space;
+        current_x += space;
+        last = U' ';
+        output.remainder = remainder;
     }
 
     output.line = line.substr(0, std::size(line) - std::size(output.remainder) - 1);
