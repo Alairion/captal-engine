@@ -287,7 +287,7 @@ std::optional<glyph> font::load(codepoint_t codepoint)
     return std::make_optional(std::move(output));
 }
 
-std::optional<glyph> font::load_image(codepoint_t codepoint, bool embolden, float shift)
+std::optional<glyph> font::load_image(codepoint_t codepoint, bool embolden, float shift, float lean [[maybe_unused]])
 {
     const auto library{reinterpret_cast<FT_Library>(engine::instance().font_engine().handle())};
     const auto face{reinterpret_cast<FT_Face>(m_loader.get())};
@@ -298,10 +298,20 @@ std::optional<glyph> font::load_image(codepoint_t codepoint, bool embolden, floa
         return std::nullopt;
     }
 
-    if(face->glyph->format == FT_GLYPH_FORMAT_OUTLINE && shift != 0.0f)
+    if(face->glyph->format == FT_GLYPH_FORMAT_OUTLINE)
     {
-        FT_Outline_Translate(&face->glyph->outline, static_cast<FT_Pos>(shift * 64.0f), 0);
+        if(shift > 0.0f)
+        {
+            FT_Outline_Translate(&face->glyph->outline, static_cast<FT_Pos>(shift * 64.0f), 0);
+        }
+/*
+        if(lean > 0.0f)
+        {
+             FT_Matrix matrix{65536, static_cast<FT_Fixed>(lean * 65536), 0, 65536};
+             FT_Glyph_Transform(face->glyph, &matrix, nullptr);
+        }*/
     }
+
 
     if(face->glyph->format == FT_GLYPH_FORMAT_OUTLINE && embolden)
     {
