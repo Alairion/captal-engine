@@ -27,28 +27,23 @@ class CAPTAL_API font_engine
         void operator()(void* ptr) noexcept;
     };
 
-    using handle_type = std::unique_ptr<void, freetype_deleter>;
+public:
+    using handle_type = std::shared_ptr<void>;
+    using weak_handle_type = std::weak_ptr<void>;
 
 public:
-    font_engine();
+    font_engine() = default;
     ~font_engine() = default;
     font_engine(const font_engine&) = delete;
     font_engine& operator=(const font_engine&) = delete;
     font_engine(font_engine&&) noexcept = delete;
     font_engine& operator=(font_engine&&) noexcept = delete;
 
-    std::mutex& mutex() noexcept
-    {
-        return m_mutex;
-    }
-
-    void* handle() const noexcept
-    {
-        return m_library.get();
-    }
+    handle_type handle(std::thread::id thread);
+    void clean() noexcept;
 
 private:
-    handle_type m_library{};
+    std::unordered_map<std::thread::id, weak_handle_type> m_libraries{};
     std::mutex m_mutex{};
 };
 
@@ -195,8 +190,8 @@ public:
     font(font&&) noexcept = default;
     font& operator=(font&&) noexcept = default;
 
-    std::optional<glyph> load(codepoint_t codepoint);
-    std::optional<glyph> load_image(codepoint_t codepoint, bool embolden = false, float shift = 0.0f);
+    std::optional<glyph> load(codepoint_t codepoint, bool embolden = false, float shift = 0.0f, float outline = 0.0f, float lean = 0.0f);
+    std::optional<glyph> load_image(codepoint_t codepoint, bool embolden = false, float shift = 0.0f, float outline = 0.0f, float lean = 0.0f);
     void resize(std::uint32_t pixels_size);
 
     bool has(codepoint_t codepoint) const noexcept;

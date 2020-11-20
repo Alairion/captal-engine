@@ -22,13 +22,38 @@ void font_engine::freetype_deleter::operator()(void* ptr) noexcept
     FT_Done_FreeType(reinterpret_cast<FT_Library>(ptr));
 }
 
-font_engine::font_engine()
+font_engine::handle_type font_engine::handle(std::thread::id thread)
 {
+    std::lock_guard lock{m_mutex};
+
+    const auto it{m_libraries.find(thread)};
+    if(it != std::end(m_libraries))
+    {
+        auto handle{it->second.lock()};
+        if(handle)
+        {
+            return handle;
+        }
+
+        m_libraries.erase(it); //expired, erase it then fallback on initialization
+    }
+
     FT_Library library{};
     if(FT_Init_FreeType(&library))
-        throw std::runtime_error{"Can not init freetype library."};
+        throw std::runtime_error{"Can not init freetype library"};
 
-    m_library = handle_type{library};
+    handle_type handle{library, freetype_deleter{}};
+    m_libraries.emplace(thread, weak_handle_type{handle});
+
+    return handle;
+}
+
+void font_engine::clean() noexcept
+{
+    std::erase_if(m_libraries, [](const auto& item)
+    {
+        return item.second.expired();
+    });
 }
 
 static constexpr std::uint32_t default_size{256};
@@ -241,8 +266,6 @@ void font_atlas::resize(tph::command_buffer& buffer, asynchronous_resource_keepe
 
 void font::freetype_deleter::operator()(void* ptr) noexcept
 {
-    std::lock_guard lock{engine::instance().font_engine().mutex()};
-
     FT_Done_Face(reinterpret_cast<FT_Face>(ptr));
 }
 
@@ -267,7 +290,7 @@ font::font(std::istream& stream, std::uint32_t initial_size, glyph_format format
     init(initial_size, format);
 }
 
-std::optional<glyph> font::load(codepoint_t codepoint)
+std::optional<glyph> font::load(codepoint_t codepoint, bool embolden, float shift, float outline, float lean)
 {
     const auto face{reinterpret_cast<FT_Face>(m_loader.get())};
 
@@ -287,7 +310,7 @@ std::optional<glyph> font::load(codepoint_t codepoint)
     return std::make_optional(std::move(output));
 }
 
-std::optional<glyph> font::load_image(codepoint_t codepoint, bool embolden, float shift, float lean [[maybe_unused]])
+std::optional<glyph> font::load_image(codepoint_t codepoint, bool embolden, float shift, float outline, float lean [[maybe_unused]])
 {
     const auto library{reinterpret_cast<FT_Library>(engine::instance().font_engine().handle())};
     const auto face{reinterpret_cast<FT_Face>(m_loader.get())};

@@ -178,9 +178,9 @@ static std::vector<std::uint32_t> generate_indices(std::size_t codepoint_count)
     std::vector<std::uint32_t> indices{};
     indices.reserve(codepoint_count * 6);
 
-    for(std::size_t i{}; i < codepoint_count; ++i)
+    for(std::uint32_t i{}; i < codepoint_count; ++i)
     {
-        const std::uint32_t shift{static_cast<std::uint32_t>(i * 4)};
+        const std::uint32_t shift{i * 4};
 
         indices.emplace_back(shift + 0);
         indices.emplace_back(shift + 1);
@@ -282,7 +282,7 @@ text text_drawer::draw(std::string_view string, std::uint32_t line_width, text_a
         vertex.position += shift;
     }
 
-    const auto indices{generate_indices(std::size(state.vertices))};
+    const auto indices{generate_indices(std::size(state.codepoints))};
     const auto text_width{static_cast<std::uint32_t>(state.greatest_x - state.lowest_x)};
     const auto text_height{static_cast<std::uint32_t>(state.greatest_y - state.lowest_y)};
 

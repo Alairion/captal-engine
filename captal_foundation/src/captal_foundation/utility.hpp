@@ -5,6 +5,7 @@
 #include <fstream>
 #include <vector>
 #include <ranges>
+#include <type_traits>
 #include <stdexcept>
 
 #include "encoding.hpp"
@@ -19,7 +20,7 @@ template<typename T>
 concept dynamic_contiguous_range = requires(T container, std::size_t count)
 {
     std::ranges::contiguous_range<T>;
-    std::integral<std::ranges::range_value_t<T>>;
+    std::is_standard_layout_v<std::ranges::range_value_t<T>>;
     container.resize(count);
 };
 
@@ -34,11 +35,13 @@ Container read_file(const std::filesystem::path& path)
         throw std::runtime_error{"Can not open file \"" + convert_to<narrow>(path.u8string()) + "\"."};
     }
 
-    Container output{};
-    output.resize(static_cast<std::size_t>(std::filesystem::file_size(path) / sizeof(value_type)));
+    const auto file_size{std::filesystem::file_size(path)};
 
-    const auto total_size{static_cast<std::streamsize>(std::size(output) * sizeof(value_type))};
-    if(ifs.read(reinterpret_cast<char*>(std::data(output)), total_size).gcount() != total_size)
+    Container output{};
+    output.resize(file_size / sizeof(value_type));
+
+    const auto stream_size{static_cast<std::streamsize>(file_size)};
+    if(ifs.read(reinterpret_cast<char*>(std::data(output)), stream_size).gcount() != stream_size)
     {
         throw std::runtime_error{"Can not read entire file \"" + convert_to<narrow>(path.u8string()) + "\"."};
     }
