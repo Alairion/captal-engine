@@ -298,6 +298,8 @@ static glyph make_glyph(FT_Glyph_Metrics metrics) noexcept
     return output;
 }
 
+
+
 void font::face_deleter::operator()(void* ptr) const noexcept
 {
     FT_Done_Face(reinterpret_cast<FT_Face>(ptr));
@@ -331,17 +333,87 @@ font::font(std::istream& stream, std::uint32_t initial_size, glyph_format format
 
 std::optional<glyph> font::load_no_render(codepoint_t codepoint, bool embolden, float outline, float lean, float shift)
 {
+    const auto library{reinterpret_cast<FT_Library>(m_engine.get())};
     const auto face{reinterpret_cast<FT_Face>(m_face.get())};
+    const auto stroker{reinterpret_cast<FT_Stroker>(m_stroker.get())};
 
-    if(FT_Load_Char(face, codepoint, m_info.format == glyph_format::color ? FT_LOAD_COLOR : FT_LOAD_DEFAULT))
+    std::int32_t flags{};
+
+    if(m_info.format == glyph_format::color)
+    {
+        flags |= FT_LOAD_COLOR;
+    }
+
+    if(outline > 0.0f || lean > 0.0f || shift > 0.0f)
+    {
+        flags |= FT_LOAD_NO_BITMAP;
+    }
+
+    if(FT_Load_Char(face, codepoint, flags))
     {
         return std::nullopt;
     }
 
     glyph output{make_glyph(face->glyph->metrics)};
 
-    output.width = static_cast<std::uint32_t>(face->glyph->metrics.width / 64.0f);
-    output.height = static_cast<std::uint32_t>(face->glyph->metrics.height / 64.0f);
+    FT_Glyph glyph;
+    if(FT_Get_Glyph(face->glyph, &glyph))
+    {
+        return std::nullopt;
+    }
+
+    const glyph_keeper keeper{glyph};
+
+    if(glyph->format == FT_GLYPH_FORMAT_OUTLINE)
+    {
+        if(embolden)
+        {
+            FT_Outline_Embolden(&reinterpret_cast<FT_OutlineGlyph>(glyph)->outline, m_info.size);
+        }
+
+        if(outline > 0.0f)
+        {
+            FT_Stroker_Set(stroker, static_cast<FT_Fixed>(outline * 64.0f), FT_STROKER_LINECAP_ROUND, FT_STROKER_LINEJOIN_ROUND, 0);
+            FT_Glyph_Stroke(&glyph, stroker, static_cast<FT_Bool>(true));
+
+            output.advance += outline;
+        }
+
+        if(lean > 0.0f)
+        {
+             FT_Matrix matrix{65536, static_cast<FT_Fixed>(lean * 65536.0f), 0, 65536};
+             FT_Glyph_Transform(glyph, &matrix, nullptr);
+        }
+
+        FT_BBox bbox;
+        FT_Glyph_Get_CBox(glyph, FT_GLYPH_BBOX_PIXELS, &bbox);
+        const auto old_xmin{bbox.xMin};
+
+        if(shift > 0.0f)
+        {
+            FT_Outline_Translate(&reinterpret_cast<FT_OutlineGlyph>(glyph)->outline, static_cast<FT_Pos>(shift * 64.0f), 0);
+
+            FT_Glyph_Get_CBox(glyph, FT_GLYPH_BBOX_PIXELS, &bbox);
+
+            if(old_xmin != bbox.xMin)
+            {
+                output.origin.x() += 1.0f;
+            }
+        }
+
+        output.width = static_cast<std::uint32_t>(bbox.xMax - bbox.xMin);
+        output.height = static_cast<std::uint32_t>(bbox.yMax - bbox.yMin);
+    }
+    else
+    {
+        if(embolden)
+        {
+            FT_Bitmap_Embolden(library, &reinterpret_cast<FT_BitmapGlyph>(glyph)->bitmap, m_info.size, m_info.size);
+        }
+
+        output.width = reinterpret_cast<FT_BitmapGlyph>(glyph)->bitmap.width;
+        output.height = reinterpret_cast<FT_BitmapGlyph>(glyph)->bitmap.rows;
+    }
 
     return std::make_optional(std::move(output));
 }
@@ -356,7 +428,19 @@ std::optional<glyph> font::load(codepoint_t codepoint, bool embolden, float outl
     const auto face{reinterpret_cast<FT_Face>(m_face.get())};
     const auto stroker{reinterpret_cast<FT_Stroker>(m_stroker.get())};
 
-    if(FT_Load_Char(face, codepoint, m_info.format == glyph_format::color ? FT_LOAD_COLOR : FT_LOAD_DEFAULT))
+    std::int32_t flags{};
+
+    if(m_info.format == glyph_format::color)
+    {
+        flags |= FT_LOAD_COLOR;
+    }
+
+    if(outline > 0.0f || lean > 0.0f || shift > 0.0f)
+    {
+        flags |= FT_LOAD_NO_BITMAP;
+    }
+
+    if(FT_Load_Char(face, codepoint, flags))
     {
         return std::nullopt;
     }
@@ -384,11 +468,13 @@ std::optional<glyph> font::load(codepoint_t codepoint, bool embolden, float outl
         {
             FT_Stroker_Set(stroker, static_cast<FT_Fixed>(outline * 64.0f), FT_STROKER_LINECAP_ROUND, FT_STROKER_LINEJOIN_ROUND, 0);
             FT_Glyph_Stroke(&glyph, stroker, static_cast<FT_Bool>(true));
+
+            output.advance += outline;
         }
 
         if(lean > 0.0f)
         {
-             FT_Matrix matrix{65536, static_cast<FT_Fixed>(lean * 65536), 0, 65536};
+             FT_Matrix matrix{65536, static_cast<FT_Fixed>(lean * 65536.0f), 0, 65536};
              FT_Glyph_Transform(glyph, &matrix, nullptr);
         }
 
@@ -423,7 +509,7 @@ std::optional<glyph> font::load(codepoint_t codepoint, bool embolden, float outl
         FT_BBox bbox;
         FT_Glyph_Get_CBox(glyph, FT_GLYPH_BBOX_PIXELS, &bbox);
 
-        if(old_xmin && old_xmin.value() != bbox.xMin) //Subpixel adjustment correction in case the size
+        if(old_xmin && old_xmin.value() != bbox.xMin) //Subpixel adjustment correction
         {
             output.origin.x() += 1.0f;
         }

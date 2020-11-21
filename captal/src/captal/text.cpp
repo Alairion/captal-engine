@@ -147,7 +147,7 @@ static std::uint64_t adjust(text_subpixel_adjustment adjustment, float x) noexce
     const float shift{std::round(padding / step) * step * 64.0f};
 
     //modulo so 64 == 0 (otherwise it break text rendering by adding 1px padding)
-    return static_cast<std::uint64_t>(shift) % 64u;
+    return static_cast<std::uint64_t>(shift) % 64;
 }
 
 static void add_glyph(std::vector<vertex>& vertices, float x, float y, float width, float height, const vec4f& color, vec2f texpos, vec2f texsize, bool flipped)
@@ -688,23 +688,29 @@ const text_drawer::glyph_info& text_drawer::load(std::uint64_t key, bool deferre
             }
         }
 
-        const auto glyph{m_font.load(codepoint, embolden, adjustement / 64.0f)};
+        glyph_info info{};
 
-        if(glyph)
+        if(deferred)
         {
-            glyph_info info{};
+            const auto glyph{m_font.load_no_render(codepoint, embolden, 0.0f, 0.0f, adjustement / 64.0f)};
+
+            info.origin = glyph->origin;
+            info.advance = glyph->advance;
+            info.rect.width = glyph->width;
+            info.rect.height = glyph->height;
+            info.deferred = true;
+        }
+        else
+        {
+            const auto glyph{m_font.load(codepoint, embolden, 0.0f, 0.0f, adjustement / 64.0f)};
+
             info.origin = glyph->origin;
             info.advance = glyph->advance;
 
-            if(deferred)
-            {
-                info.rect.width = glyph->width;
-                info.rect.height = glyph->height;
-                info.deferred = deferred;
-            }
-            else if(glyph->width != 0)
+            if(glyph->width != 0)
             {
                 const auto rect{m_atlas->add_glyph(glyph->data, glyph->width, glyph->height)};
+
                 if(!rect)
                 {
                     throw full_font_atlas{};
@@ -717,9 +723,9 @@ const text_drawer::glyph_info& text_drawer::load(std::uint64_t key, bool deferre
                     info.flipped = true;
                 }
             }
-
-            return m_glyphs.emplace(key, info).first->second;
         }
+
+        return m_glyphs.emplace(key, info).first->second;
     }
 
     if(it->second.deferred && !deferred)
@@ -727,21 +733,26 @@ const text_drawer::glyph_info& text_drawer::load(std::uint64_t key, bool deferre
         const auto codepoint{static_cast<codepoint_t>(key)};
         const auto embolden{static_cast<bool>(key >> 63)};
         const auto adjustement{(key >> 56) & 0x7F};
-        const auto glyph{m_font.load(codepoint, embolden, adjustement / 64.0f)};
+        const auto glyph{m_font.load(codepoint, embolden, 0.0f, 0.0f, adjustement / 64.0f)};
 
-        const auto rect{m_atlas->add_glyph(glyph->data, glyph->width, glyph->height)};
-        if(!rect)
+        if(glyph->width != 0)
         {
-            throw full_font_atlas{};
+            const auto rect{m_atlas->add_glyph(glyph->data, glyph->width, glyph->height)};
+
+            if(!rect)
+            {
+                throw full_font_atlas{};
+            }
+
+            it->second.rect = rect.value();
+
+            if(rect->width != glyph->width)
+            {
+                it->second.flipped = true;
+            }
         }
 
-        it->second.rect = rect.value();
         it->second.deferred = false;
-
-        if(rect->width != glyph->width)
-        {
-            it->second.flipped = true;
-        }
     }
 
     return it->second;
