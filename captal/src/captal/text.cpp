@@ -668,19 +668,19 @@ void text_drawer::default_bounds(std::u32string_view line, draw_line_state& stat
 
 const text_drawer::glyph_info& text_drawer::load(std::uint64_t key, bool deferred)
 {
+    const auto codepoint{static_cast<codepoint_t>(key)};
+    const auto embolden{static_cast<bool>(key >> 63)};
+    const auto adjustment{(key >> 56) & 0x7F};
+
     const auto it{m_glyphs.find(key)};
     if(it == std::end(m_glyphs))
     {
-        const auto codepoint{static_cast<codepoint_t>(key)};
-        const auto embolden{static_cast<bool>(key >> 63)};
-        const auto adjustement{(key >> 56) & 0x7F};
-
         if(!m_font.has(codepoint))
         {
             //Load the fallback in case the requested codepoint does not have a glyph inside the font
             if(codepoint != m_fallback)
             {
-                return load(make_key(m_fallback, m_font.info().size, adjustement, embolden));
+                return load(make_key(m_fallback, m_font.info().size, adjustment, embolden));
             }
             else
             {
@@ -692,7 +692,7 @@ const text_drawer::glyph_info& text_drawer::load(std::uint64_t key, bool deferre
 
         if(deferred)
         {
-            const auto glyph{m_font.load_no_render(codepoint, embolden, 0.0f, 0.0f, adjustement / 64.0f)};
+            const auto glyph{m_font.load_no_render(codepoint, embolden, 0.0f, 0.0f, adjustment / 64.0f)};
 
             info.origin = glyph->origin;
             info.advance = glyph->advance;
@@ -702,7 +702,7 @@ const text_drawer::glyph_info& text_drawer::load(std::uint64_t key, bool deferre
         }
         else
         {
-            const auto glyph{m_font.load(codepoint, embolden, 0.0f, 0.0f, adjustement / 64.0f)};
+            const auto glyph{m_font.load(codepoint, embolden, 0.0f, 0.0f, adjustment / 64.0f)};
 
             info.origin = glyph->origin;
             info.advance = glyph->advance;
@@ -728,12 +728,9 @@ const text_drawer::glyph_info& text_drawer::load(std::uint64_t key, bool deferre
         return m_glyphs.emplace(key, info).first->second;
     }
 
-    if(it->second.deferred && !deferred)
+    if(!deferred && it->second.deferred)
     {
-        const auto codepoint{static_cast<codepoint_t>(key)};
-        const auto embolden{static_cast<bool>(key >> 63)};
-        const auto adjustement{(key >> 56) & 0x7F};
-        const auto glyph{m_font.load(codepoint, embolden, 0.0f, 0.0f, adjustement / 64.0f)};
+        const auto glyph{m_font.load_render(codepoint, embolden, 0.0f, 0.0f, adjustment / 64.0f)};
 
         if(glyph->width != 0)
         {

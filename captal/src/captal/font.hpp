@@ -196,8 +196,10 @@ public:
     font(font&&) noexcept = default;
     font& operator=(font&&) noexcept = default;
 
-    std::optional<glyph> load_no_render(codepoint_t codepoint, bool embolden = false, float outline = 0.0f, float lean = 0.0f, float shift = 0.0f);
     std::optional<glyph> load(codepoint_t codepoint, bool embolden = false, float outline = 0.0f, float lean = 0.0f, float shift = 0.0f);
+    std::optional<glyph> load_no_render(codepoint_t codepoint, bool embolden = false, float outline = 0.0f, float lean = 0.0f, float shift = 0.0f);
+    std::optional<glyph> load_render(codepoint_t codepoint, bool embolden = false, float outline = 0.0f, float lean = 0.0f, float shift = 0.0f);
+
     void resize(std::uint32_t pixels_size);
 
     bool has(codepoint_t codepoint) const noexcept;
