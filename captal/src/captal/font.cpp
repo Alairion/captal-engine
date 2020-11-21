@@ -9,6 +9,7 @@
 #include FT_GLYPH_H
 #include FT_OUTLINE_H
 #include FT_BITMAP_H
+#include FT_STROKER_H
 
 #include <captal_foundation/utility.hpp>
 
@@ -264,9 +265,47 @@ void font_atlas::resize(tph::command_buffer& buffer, asynchronous_resource_keepe
     m_signal(m_texture);
 }
 
-void font::freetype_deleter::operator()(void* ptr) noexcept
+struct glyph_keeper
+{
+    glyph_keeper(const FT_Glyph& glyph)
+    :m_glyph{glyph}
+    {
+
+    }
+
+    ~glyph_keeper()
+    {
+        FT_Done_Glyph(m_glyph);
+    }
+
+    glyph_keeper(const glyph_keeper&) = delete;
+    glyph_keeper& operator=(const glyph_keeper&) = delete;
+    glyph_keeper(glyph_keeper&&) noexcept = delete;
+    glyph_keeper& operator=(glyph_keeper&&) noexcept = delete;
+
+private:
+    const FT_Glyph& m_glyph;
+};
+
+static glyph make_glyph(FT_Glyph_Metrics metrics) noexcept
+{
+    glyph output{};
+    output.origin = vec2f{metrics.horiBearingX / 64.0f, -metrics.horiBearingY / 64.0f};
+    output.advance = metrics.horiAdvance / 64.0f;
+    output.ascent = metrics.horiBearingY / 64.0f;
+    output.descent = (metrics.height / 64.0f) - (metrics.horiBearingY / 64.0f);
+
+    return output;
+}
+
+void font::face_deleter::operator()(void* ptr) const noexcept
 {
     FT_Done_Face(reinterpret_cast<FT_Face>(ptr));
+}
+
+void font::stroker_deleter::operator()(void* ptr) const noexcept
+{
+    FT_Stroker_Done(reinterpret_cast<FT_Stroker>(ptr));
 }
 
 font::font(std::span<const std::uint8_t> data, std::uint32_t initial_size, glyph_format format)
@@ -276,7 +315,7 @@ font::font(std::span<const std::uint8_t> data, std::uint32_t initial_size, glyph
 }
 
 font::font(const std::filesystem::path& file, std::uint32_t initial_size, glyph_format format)
-:m_data{read_file<std::vector<std::uint8_t>>(file)}
+:m_data{read_file< std::vector<std::uint8_t> >(file)}
 {
     init(initial_size, format);
 }
@@ -290,81 +329,113 @@ font::font(std::istream& stream, std::uint32_t initial_size, glyph_format format
     init(initial_size, format);
 }
 
-std::optional<glyph> font::load(codepoint_t codepoint, bool embolden, float shift, float outline, float lean)
+std::optional<glyph> font::load_no_render(codepoint_t codepoint, bool embolden, float outline, float lean, float shift)
 {
-    const auto face{reinterpret_cast<FT_Face>(m_loader.get())};
+    const auto face{reinterpret_cast<FT_Face>(m_face.get())};
 
     if(FT_Load_Char(face, codepoint, m_info.format == glyph_format::color ? FT_LOAD_COLOR : FT_LOAD_DEFAULT))
     {
         return std::nullopt;
     }
 
-    glyph output{};
-    output.origin = vec2f{face->glyph->metrics.horiBearingX / 64.0f, -face->glyph->metrics.horiBearingY / 64.0f};
-    output.advance = face->glyph->metrics.horiAdvance / 64.0f;
-    output.ascent = face->glyph->metrics.horiBearingY / 64.0f;
-    output.descent = (face->glyph->metrics.height / 64.0f) - (face->glyph->metrics.horiBearingY / 64.0f);
+    glyph output{make_glyph(face->glyph->metrics)};
+
     output.width = static_cast<std::uint32_t>(face->glyph->metrics.width / 64.0f);
     output.height = static_cast<std::uint32_t>(face->glyph->metrics.height / 64.0f);
 
     return std::make_optional(std::move(output));
 }
 
-std::optional<glyph> font::load_image(codepoint_t codepoint, bool embolden, float shift, float outline, float lean [[maybe_unused]])
+std::optional<glyph> font::load(codepoint_t codepoint, bool embolden, float outline, float lean, float shift)
 {
-    const auto library{reinterpret_cast<FT_Library>(engine::instance().font_engine().handle())};
-    const auto face{reinterpret_cast<FT_Face>(m_loader.get())};
+    assert((0.0f <= outline && outline <= 1.0f) && "cpt::font::load called with outline not in range [0; 1]");
+    assert((0.0f <= lean    && lean    <= 1.0f) && "cpt::font::load called with lean not in range [0; 1]");
+    assert((0.0f <= shift   && shift   <= 1.0f) && "cpt::font::load called with shift not in range [0; 1]");
 
-    auto output{load(codepoint)};
-    if(!output)
+    const auto library{reinterpret_cast<FT_Library>(m_engine.get())};
+    const auto face{reinterpret_cast<FT_Face>(m_face.get())};
+    const auto stroker{reinterpret_cast<FT_Stroker>(m_stroker.get())};
+
+    if(FT_Load_Char(face, codepoint, m_info.format == glyph_format::color ? FT_LOAD_COLOR : FT_LOAD_DEFAULT))
     {
         return std::nullopt;
     }
 
-    if(face->glyph->format == FT_GLYPH_FORMAT_OUTLINE)
+    glyph output{make_glyph(face->glyph->metrics)};
+
+    FT_Glyph glyph;
+    if(FT_Get_Glyph(face->glyph, &glyph))
     {
-        if(shift > 0.0f)
+        return std::nullopt;
+    }
+
+    const glyph_keeper keeper{glyph};
+
+    std::optional<std::int32_t> old_xmin{};
+
+    if(glyph->format == FT_GLYPH_FORMAT_OUTLINE)
+    {
+        if(embolden)
         {
-            FT_Outline_Translate(&face->glyph->outline, static_cast<FT_Pos>(shift * 64.0f), 0);
+            FT_Outline_Embolden(&reinterpret_cast<FT_OutlineGlyph>(glyph)->outline, m_info.size);
         }
-/*
+
+        if(outline > 0.0f)
+        {
+            FT_Stroker_Set(stroker, static_cast<FT_Fixed>(outline * 64.0f), FT_STROKER_LINECAP_ROUND, FT_STROKER_LINEJOIN_ROUND, 0);
+            FT_Glyph_Stroke(&glyph, stroker, static_cast<FT_Bool>(true));
+        }
+
         if(lean > 0.0f)
         {
              FT_Matrix matrix{65536, static_cast<FT_Fixed>(lean * 65536), 0, 65536};
-             FT_Glyph_Transform(face->glyph, &matrix, nullptr);
-        }*/
+             FT_Glyph_Transform(glyph, &matrix, nullptr);
+        }
+
+        if(shift > 0.0f)
+        {
+            FT_BBox bbox;
+            FT_Glyph_Get_CBox(glyph, FT_GLYPH_BBOX_PIXELS, &bbox);
+            old_xmin = bbox.xMin;
+
+            FT_Outline_Translate(&reinterpret_cast<FT_OutlineGlyph>(glyph)->outline, static_cast<FT_Pos>(shift * 64.0f), 0);
+        }
+
+        if(FT_Glyph_To_Bitmap(&glyph, FT_RENDER_MODE_NORMAL, nullptr, static_cast<FT_Bool>(true)))
+        {
+            return std::nullopt;
+        }
+    }
+    else
+    {
+        if(embolden)
+        {
+            FT_Bitmap_Embolden(library, &reinterpret_cast<FT_BitmapGlyph>(glyph)->bitmap, m_info.size, m_info.size);
+        }
     }
 
+    const FT_Bitmap& bitmap{reinterpret_cast<FT_BitmapGlyph>(glyph)->bitmap};
+    output.width = bitmap.width;
+    output.height = bitmap.rows;
 
-    if(face->glyph->format == FT_GLYPH_FORMAT_OUTLINE && embolden)
+    if(output.width > 0 && output.height > 0)
     {
-        FT_Outline_Embolden(&face->glyph->outline, m_info.size);
-    }
+        FT_BBox bbox;
+        FT_Glyph_Get_CBox(glyph, FT_GLYPH_BBOX_PIXELS, &bbox);
 
-    if(FT_Render_Glyph(face->glyph, FT_RENDER_MODE_NORMAL))
-    {
-        return std::nullopt;
-    }
+        if(old_xmin && old_xmin.value() != bbox.xMin) //Subpixel adjustment correction in case the size
+        {
+            output.origin.x() += 1.0f;
+        }
 
-    if(face->glyph->format == FT_GLYPH_FORMAT_BITMAP && embolden)
-    {
-        FT_Bitmap_Embolden(library, &face->glyph->bitmap, m_info.size, m_info.size);
-    }
-
-    const FT_Bitmap& bitmap{face->glyph->bitmap};
-    output->width = bitmap.width;
-    output->height = bitmap.rows;
-
-    if(output->width > 0 && output->height > 0)
-    {
         if(m_info.format == glyph_format::gray)
         {
-            output->data.resize(output->height * output->width);
+            output.data.resize(output.height * output.width);
         }
         else
         {
-            output->data.resize(output->height * output->width * 4);
-            std::fill(std::begin(output->data), std::end(output->data), 255);
+            output.data.resize(output.height * output.width * 4);
+            std::fill(std::begin(output.data), std::end(output.data), 255);
         }
 
         const std::uint8_t* data{bitmap.buffer};
@@ -373,11 +444,11 @@ std::optional<glyph> font::load_image(codepoint_t codepoint, bool embolden, floa
         {
             if(m_info.format == glyph_format::gray)
             {
-                for(std::size_t y{}; y < output->height; ++y)
+                for(std::size_t y{}; y < output.height; ++y)
                 {
-                    for(std::size_t x{}; x < output->width; ++x)
+                    for(std::size_t x{}; x < output.width; ++x)
                     {
-                        output->data[y * bitmap.width + x] = data[x];
+                        output.data[y * bitmap.width + x] = data[x];
                     }
 
                     data += bitmap.pitch;
@@ -385,11 +456,11 @@ std::optional<glyph> font::load_image(codepoint_t codepoint, bool embolden, floa
             }
             else
             {
-                for(std::size_t y{}; y < output->height; ++y)
+                for(std::size_t y{}; y < output.height; ++y)
                 {
-                    for(std::size_t x{}; x < output->width; ++x)
+                    for(std::size_t x{}; x < output.width; ++x)
                     {
-                        output->data[y * bitmap.width + x + 3] = data[x];
+                        output.data[y * bitmap.width + x + 3] = data[x];
                     }
 
                     data += bitmap.pitch;
@@ -398,14 +469,14 @@ std::optional<glyph> font::load_image(codepoint_t codepoint, bool embolden, floa
         }
         else if(bitmap.pixel_mode == FT_PIXEL_MODE_BGRA)
         {
-            for(std::size_t y{}; y < output->height; ++y)
+            for(std::size_t y{}; y < output.height; ++y)
             {
-                for(std::size_t x{}; x < output->width; ++x)
+                for(std::size_t x{}; x < output.width; ++x)
                 {
-                    output->data[y * bitmap.width + x + 0] = data[x + 2];
-                    output->data[y * bitmap.width + x + 1] = data[x + 1];
-                    output->data[y * bitmap.width + x + 2] = data[x + 0];
-                    output->data[y * bitmap.width + x + 3] = data[x + 3];
+                    output.data[y * bitmap.width + x + 0] = data[x + 2];
+                    output.data[y * bitmap.width + x + 1] = data[x + 1];
+                    output.data[y * bitmap.width + x + 2] = data[x + 0];
+                    output.data[y * bitmap.width + x + 3] = data[x + 3];
                 }
 
                 data += bitmap.pitch;
@@ -413,19 +484,19 @@ std::optional<glyph> font::load_image(codepoint_t codepoint, bool embolden, floa
         }
     }
 
-    return output;
+    return std::make_optional(std::move(output));
 }
 
 bool font::has(codepoint_t codepoint) const noexcept
 {
-    const auto face{reinterpret_cast<FT_Face>(m_loader.get())};
+    const auto face{reinterpret_cast<FT_Face>(m_face.get())};
 
     return FT_Get_Char_Index(face, codepoint) != 0;
 }
 
 vec2f font::kerning(codepoint_t left, codepoint_t right) const noexcept
 {
-    const auto face{reinterpret_cast<FT_Face>(m_loader.get())};
+    const auto face{reinterpret_cast<FT_Face>(m_face.get())};
 
     FT_Vector output{};
 
@@ -441,7 +512,7 @@ vec2f font::kerning(codepoint_t left, codepoint_t right) const noexcept
 
 void font::resize(std::uint32_t pixels_size)
 {
-    const auto face{reinterpret_cast<FT_Face>(m_loader.get())};
+    const auto face{reinterpret_cast<FT_Face>(m_face.get())};
 
     if(pixels_size != m_info.size)
     {
@@ -461,14 +532,21 @@ void font::resize(std::uint32_t pixels_size)
 
 void font::init(std::uint32_t initial_size, glyph_format format)
 {
-    const auto library{reinterpret_cast<FT_Library>(engine::instance().font_engine().handle())};
-    FT_Face face{};
+    m_engine = engine::instance().font_engine().handle(std::this_thread::get_id());
 
-    std::lock_guard lock{engine::instance().font_engine().mutex()};
+    const auto library{reinterpret_cast<FT_Library>(m_engine.get())};
+
+    FT_Face face{};
     if(FT_New_Memory_Face(library, reinterpret_cast<const FT_Byte*>(std::data(m_data)), static_cast<FT_Long>(std::size(m_data)), 0, &face))
         throw std::runtime_error{"Can not init freetype font face."};
 
-    m_loader = handle_type{face};
+    m_face = face_handle_type{face};
+
+    FT_Stroker stroker{};
+    if(FT_Stroker_New(library, &stroker))
+        throw std::runtime_error{"Can not init freetype font stroker."};
+
+    m_stroker = stroker_handle_type{stroker};
 
     if(FT_Select_Charmap(face, FT_ENCODING_UNICODE))
         throw std::runtime_error{"Can not set font charmap."};

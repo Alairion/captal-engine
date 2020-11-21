@@ -147,7 +147,7 @@ static std::uint64_t adjust(text_subpixel_adjustment adjustment, float x) noexce
     const float shift{std::round(padding / step) * step * 64.0f};
 
     //modulo so 64 == 0 (otherwise it break text rendering by adding 1px padding)
-    return static_cast<std::uint64_t>(shift) % 64;
+    return static_cast<std::uint64_t>(shift) % 64u;
 }
 
 static void add_glyph(std::vector<vertex>& vertices, float x, float y, float width, float height, const vec4f& color, vec2f texpos, vec2f texsize, bool flipped)
@@ -688,7 +688,7 @@ const text_drawer::glyph_info& text_drawer::load(std::uint64_t key, bool deferre
             }
         }
 
-        const auto glyph{m_font.load_image(codepoint, embolden, adjustement / 64.0f)};
+        const auto glyph{m_font.load(codepoint, embolden, adjustement / 64.0f)};
 
         if(glyph)
         {
@@ -727,7 +727,7 @@ const text_drawer::glyph_info& text_drawer::load(std::uint64_t key, bool deferre
         const auto codepoint{static_cast<codepoint_t>(key)};
         const auto embolden{static_cast<bool>(key >> 63)};
         const auto adjustement{(key >> 56) & 0x7F};
-        const auto glyph{m_font.load_image(codepoint, embolden, adjustement / 64.0f)};
+        const auto glyph{m_font.load(codepoint, embolden, adjustement / 64.0f)};
 
         const auto rect{m_atlas->add_glyph(glyph->data, glyph->width, glyph->height)};
         if(!rect)

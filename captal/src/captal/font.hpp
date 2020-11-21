@@ -53,17 +53,6 @@ enum class glyph_format : std::uint32_t
     color = 1
 };
 
-struct glyph
-{
-    vec2f origin{};
-    float advance{};
-    float ascent{};
-    float descent{};
-    std::uint32_t width{};
-    std::uint32_t height{};
-    std::vector<std::uint8_t> data{};
-};
-
 using font_atlas_resize_signal = cpt::signal<texture_ptr>;
 
 class CAPTAL_API font_atlas
@@ -169,14 +158,31 @@ struct font_info
     float strikeout_position{};
 };
 
+struct glyph
+{
+    vec2f origin{};
+    float advance{};
+    float ascent{};
+    float descent{};
+    std::uint32_t width{};
+    std::uint32_t height{};
+    std::vector<std::uint8_t> data{};
+};
+
 class CAPTAL_API font
 {
-    struct CAPTAL_API freetype_deleter
+    struct CAPTAL_API face_deleter
     {
-        void operator()(void* ptr) noexcept;
+        void operator()(void* ptr) const noexcept;
     };
 
-    using handle_type = std::unique_ptr<void, freetype_deleter>;
+    struct CAPTAL_API stroker_deleter
+    {
+        void operator()(void* ptr) const noexcept;
+    };
+
+    using face_handle_type = std::unique_ptr<void, face_deleter>;
+    using stroker_handle_type = std::unique_ptr<void, stroker_deleter>;
 
 public:
     font() = default;
@@ -190,8 +196,8 @@ public:
     font(font&&) noexcept = default;
     font& operator=(font&&) noexcept = default;
 
-    std::optional<glyph> load(codepoint_t codepoint, bool embolden = false, float shift = 0.0f, float outline = 0.0f, float lean = 0.0f);
-    std::optional<glyph> load_image(codepoint_t codepoint, bool embolden = false, float shift = 0.0f, float outline = 0.0f, float lean = 0.0f);
+    std::optional<glyph> load_no_render(codepoint_t codepoint, bool embolden = false, float outline = 0.0f, float lean = 0.0f, float shift = 0.0f);
+    std::optional<glyph> load(codepoint_t codepoint, bool embolden = false, float outline = 0.0f, float lean = 0.0f, float shift = 0.0f);
     void resize(std::uint32_t pixels_size);
 
     bool has(codepoint_t codepoint) const noexcept;
@@ -206,7 +212,9 @@ private:
     void init(std::uint32_t initial_size, glyph_format format);
 
 private:
-    handle_type m_loader{};
+    font_engine::handle_type m_engine{};
+    face_handle_type m_face{};
+    stroker_handle_type m_stroker{};
     std::vector<std::uint8_t> m_data{};
     font_info m_info{};
 };
