@@ -36,7 +36,7 @@ static void setup(entt::registry& world)
     world.emplace<comp::node>(background_right, cpt::vec3f{1280.0f, 0.0f, 0.0f});
     world.emplace<comp::drawable>(background_right, std::in_place_type<cpt::sprite>, 320, 800, cpt::colors::lightgray);
 
-    cpt::text_drawer drawer{cpt::font{/*sansation_regular_font_data*/u8"arial.ttf", 21}, cpt::text_drawer_options::none, cpt::text_subpixel_adjustment::x8};
+    cpt::text_drawer drawer{cpt::font{/*sansation_regular_font_data*/u8"arial.ttf", 19}, cpt::text_drawer_options::none, cpt::text_subpixel_adjustment::x2};
 
     //Left aligned
     const auto text_left{world.create()};
@@ -64,20 +64,6 @@ static void setup(entt::registry& world)
     const auto text_justify{world.create()};
     world.emplace<comp::drawable>(text_justify, drawer.draw(lorem_ipsum, 320, cpt::text_align::justify, cpt::text_style::regular, cpt::colors::black));
     world.emplace<comp::node>(text_justify, cpt::vec3f{960.0f, 0.0f, 1.0f});
-
-    drawer.set_subpixel_adjustement(cpt::text_subpixel_adjustment::x1);
-
-    //Center aligned
-    const auto text_center_no_adjust{world.create()};
-    world.emplace<comp::drawable>(text_center_no_adjust, drawer.draw(lorem_ipsum, 320, cpt::text_align::center, cpt::text_style::regular, cpt::colors::black));
-    const auto center_width_no_adjust{world.get<comp::drawable>(text_center).get<cpt::text>().width()};
-    world.emplace<comp::node>(text_center_no_adjust, cpt::vec3f{std::floor(1280.0f + (320.0f - center_width_no_adjust) / 2.0f), 0.0f, 1.0f});
-
-    //Justify aligned
-    const auto text_justify_no_adjust{world.create()};
-    world.emplace<comp::drawable>(text_justify_no_adjust, drawer.draw(lorem_ipsum, 320, cpt::text_align::justify, cpt::text_style::regular, cpt::colors::black));
-    world.emplace<comp::node>(text_justify_no_adjust, cpt::vec3f{1600.0f, 0.0f, 1.0f});
-
 
     drawer.upload();
 }

@@ -102,30 +102,13 @@ public:
     text_drawer(text_drawer&&) noexcept = default;
     text_drawer& operator=(text_drawer&&) noexcept = default;
 
-    void set_font(cpt::font font) noexcept
-    {
-        m_font = std::move(font);
-        m_glyphs.clear();
-    }
-
-    void set_fallback(codepoint_t codepoint)
-    {
-        if(!m_font.has(codepoint))
-        {
-            throw std::runtime_error{"Can not set fallback '" + convert_to<narrow>(std::u32string_view{&codepoint, 1}) + "'"};
-        }
-
-        m_fallback = codepoint;
-    }
+    void set_font(cpt::font font) noexcept;
+    void set_fallback(codepoint_t codepoint);
+    void resize(std::uint32_t pixels_size);
 
     void set_subpixel_adjustement(text_subpixel_adjustment adjustment) noexcept
     {
         m_adjustment = adjustment;
-    }
-
-    void resize(std::uint32_t pixels_size)
-    {
-        m_font.resize(pixels_size);
     }
 
     text_bounds bounds(std::string_view string, text_style style = text_style::regular);
@@ -216,7 +199,7 @@ private:
 private:
     const glyph_info& load(std::uint64_t key, bool deferred = false);
     word_width_info word_width(std::u32string_view word, std::uint64_t font_size, bool embolden, codepoint_t last, float base_shift);
-    line_width_info line_width(std::u32string_view line, std::uint64_t font_size, bool embolden, float line_width, float space);
+    line_width_info line_width(std::u32string_view line, std::uint64_t font_size, bool embolden, float line_width);
 
 private:
     cpt::font m_font{};
@@ -224,6 +207,7 @@ private:
     text_subpixel_adjustment m_adjustment{};
     tph::sampling_options m_sampling{};
     codepoint_t m_fallback{default_fallback};
+    float m_space{};
     std::shared_ptr<font_atlas> m_atlas{};
     std::unordered_map<std::uint64_t, glyph_info> m_glyphs{};
 #ifdef CAPTAL_DEBUG

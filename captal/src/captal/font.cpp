@@ -393,7 +393,7 @@ font::font(std::istream& stream, std::uint32_t initial_size, glyph_format format
 
 std::optional<glyph> font::load(codepoint_t codepoint, bool embolden, float outline, float lean, float shift)
 {
-    assert((0.0f <= outline && outline <= 1.0f) && "cpt::font::load called with outline not in range [0; 1]");
+    assert(outline >= 0.0f && "cpt::font::load called with outline not in range [0; +inf]");
     assert((0.0f <= lean    && lean    <= 1.0f) && "cpt::font::load called with lean not in range [0; 1]");
     assert((0.0f <= shift   && shift   <= 1.0f) && "cpt::font::load called with shift not in range [0; 1]");
 
@@ -495,6 +495,10 @@ std::optional<glyph> font::load(codepoint_t codepoint, bool embolden, float outl
 
 std::optional<glyph> font::load_no_render(codepoint_t codepoint, bool embolden, float outline, float lean, float shift)
 {
+    assert(outline >= 0.0f && "cpt::font::load called with outline not in range [0; +inf]");
+    assert((0.0f <= lean    && lean    <= 1.0f) && "cpt::font::load called with lean not in range [0; 1]");
+    assert((0.0f <= shift   && shift   <= 1.0f) && "cpt::font::load called with shift not in range [0; 1]");
+
     const auto library{reinterpret_cast<FT_Library>(m_engine.get())};
     const auto face{reinterpret_cast<FT_Face>(m_face.get())};
     const auto stroker{reinterpret_cast<FT_Stroker>(m_stroker.get())};
@@ -582,7 +586,7 @@ std::optional<glyph> font::load_no_render(codepoint_t codepoint, bool embolden, 
 
 std::optional<glyph> font::load_render(codepoint_t codepoint, bool embolden, float outline, float lean, float shift)
 {
-    assert((0.0f <= outline && outline <= 1.0f) && "cpt::font::load called with outline not in range [0; 1]");
+    assert(outline >= 0.0f && "cpt::font::load called with outline not in range [0; +inf]");
     assert((0.0f <= lean    && lean    <= 1.0f) && "cpt::font::load called with lean not in range [0; 1]");
     assert((0.0f <= shift   && shift   <= 1.0f) && "cpt::font::load called with shift not in range [0; 1]");
 
