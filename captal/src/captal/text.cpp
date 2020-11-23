@@ -237,11 +237,10 @@ static std::vector<std::uint32_t> generate_indices(std::size_t codepoint_count)
     return indices;
 }
 
-text_drawer::text_drawer(cpt::font font, text_drawer_options options, text_subpixel_adjustment adjustment, const tph::sampling_options& sampling)
+text_drawer::text_drawer(cpt::font font, text_drawer_options options, const tph::sampling_options& sampling)
 :m_font{std::move(font)}
 ,m_sampling{sampling}
 ,m_options{options}
-,m_adjustment{adjustment}
 ,m_space{compute_space(m_font)}
 ,m_atlas{std::make_shared<font_atlas>(m_font.info().format, m_sampling)}
 {

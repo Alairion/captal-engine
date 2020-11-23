@@ -95,7 +95,7 @@ public:
 
 public:
     text_drawer() = default;
-    explicit text_drawer(cpt::font font, text_drawer_options options = text_drawer_options::none, text_subpixel_adjustment adjustment = text_subpixel_adjustment::x2, const tph::sampling_options& sampling = tph::sampling_options{});
+    explicit text_drawer(cpt::font font, text_drawer_options options = text_drawer_options::none, const tph::sampling_options& sampling = tph::sampling_options{});
 
     ~text_drawer() = default;
     text_drawer(const text_drawer&) = delete;
@@ -222,7 +222,7 @@ private:
     tph::sampling_options m_sampling{};
 
     text_drawer_options m_options{};
-    text_subpixel_adjustment m_adjustment{};
+    text_subpixel_adjustment m_adjustment{cpt::text_subpixel_adjustment::x2};
     codepoint_t m_fallback{default_fallback};
     text_style m_style{text_style::regular};
     vec4f m_color{1.0f, 1.0f, 1.0f, 1.0f};

@@ -168,10 +168,11 @@ static entt::entity fill_world(entt::registry& world, cpt::physical_world& physi
 static void add_logic(const cpt::render_window_ptr& window, entt::registry& world, cpt::physical_world& physical_world, entt::entity camera, const std::shared_ptr<cpt::frame_time_t>& time)
 {
     cpt::text_drawer drawer{cpt::font{sansation_regular_font_data, 16}};
+    drawer.set_color(cpt::colors::black);
 
     const auto text{world.create()};
     world.emplace<cpt::components::node>(text, cpt::vec3f{4.0f, 4.0f, 1.0f});
-    world.emplace<cpt::components::drawable>(text, drawer.draw("Text", cpt::text_style::regular, cpt::colors::black));
+    world.emplace<cpt::components::drawable>(text, drawer.draw("Text"));
 
     drawer.upload();
 
@@ -215,7 +216,7 @@ static void add_logic(const cpt::render_window_ptr& window, entt::registry& worl
 
         cpt::engine::instance().renderer().allocator().clean_dedicated();
 
-        world.get<cpt::components::drawable>(text).attach(drawer.draw(info, cpt::text_style::regular, cpt::colors::black));
+        world.get<cpt::components::drawable>(text).attach(drawer.draw(info));
         world.get<cpt::components::node>(text).update();
 
         drawer.upload();

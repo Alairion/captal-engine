@@ -39,7 +39,7 @@ static void setup(entt::registry& world)
     world.emplace<comp::node>(background_center, cpt::vec3f{640.0f, 0.0f, 0.0f});
     world.emplace<comp::drawable>(background_center, std::in_place_type<cpt::sprite>, 320, 800, cpt::colors::lightgray);
 
-    cpt::text_drawer drawer{cpt::font{/*sansation_regular_font_data*/u8"arial.ttf", 19}, cpt::text_drawer_options::none, cpt::text_subpixel_adjustment::x2};
+    cpt::text_drawer drawer{cpt::font{/*sansation_regular_font_data*/u8"arial.ttf", 19}, cpt::text_drawer_options::none};
     drawer.set_color(cpt::colors::black);
 
     //Left aligned
@@ -75,7 +75,7 @@ static void setup(entt::registry& world)
 
 static void run()
 {
-    auto window{cpt::make_render_window("Captal test", cpt::video_mode{1920, 800}, apr::window_options::resizable)};
+    auto window{cpt::make_render_window("Captal test", cpt::video_mode{1280, 800}, apr::window_options::resizable)};
     window->set_clear_color(cpt::colors::white);
 
     entt::registry world{};
