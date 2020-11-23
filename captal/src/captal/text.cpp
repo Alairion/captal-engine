@@ -139,7 +139,7 @@ static float compute_space(cpt::font& font)
     return font.info().size / 4.0f;
 }
 
-static std::uint64_t make_key(codepoint_t codepoint, std::uint64_t font_size, std::uint64_t adjustment, std::uint64_t outline, bool embolden, bool italic) noexcept
+static std::uint64_t make_key(codepoint_t codepoint, std::uint64_t font_size, std::uint64_t outline, std::uint64_t adjustment, bool embolden, bool italic) noexcept
 {
     //Key: [1 bit: italic][1 bit: bold][6 bits: ajustment][16 bits: outline][16 bits: font size][24 bits: codepoint]
     //Italic: 1 if the key represent a italic glyph
@@ -147,7 +147,7 @@ static std::uint64_t make_key(codepoint_t codepoint, std::uint64_t font_size, st
     //Ajustments: subpixel adjustment in 26.6 format (64 = 1 pixel)
     //Outline: outline thickness in 26.6 format (64 = 1 pixel)
     //Font size: font size in pixels
-    //Codepoint: the effective codepoint, use 24 bits even if only 21 are theorically required
+    //Codepoint: the codepoint, use 24 bits even if only 21 are required
     //Parameters are assumed to fit in their limits, must be ensured from caller
 
     std::uint64_t output{};
@@ -162,14 +162,24 @@ static std::uint64_t make_key(codepoint_t codepoint, std::uint64_t font_size, st
     return output;
 }
 
-static bool need_embolden(font_category category, text_style style) noexcept
+static std::uint64_t make_base_key(std::uint64_t font_size, std::uint64_t outline, bool embolden, bool italic) noexcept
 {
-    return !static_cast<bool>(category & font_category::bold) && static_cast<bool>(style & text_style::bold);
+    std::uint64_t output{};
+
+    output |= static_cast<std::uint64_t>(italic) << 63;
+    output |= static_cast<std::uint64_t>(embolden) << 62;
+    output |= outline << 40;
+    output |= font_size << 24;
+
+    return output;
 }
 
-static bool need_italic(font_category category, text_style style) noexcept
+static std::uint64_t combine_keys(std::uint64_t base, codepoint_t codepoint, std::uint64_t adjustment) noexcept
 {
-    return !static_cast<bool>(category & font_category::italic) && static_cast<bool>(style & text_style::italic);
+    base |= adjustment << 56;
+    base |= codepoint;
+
+    return base;
 }
 
 static constexpr std::array adjustment_steps{1.0f, 0.5f, 0.25f, 0.125f, 0.0625f, 0.03125f, 0.015625f};
@@ -229,9 +239,9 @@ static std::vector<std::uint32_t> generate_indices(std::size_t codepoint_count)
 
 text_drawer::text_drawer(cpt::font font, text_drawer_options options, text_subpixel_adjustment adjustment, const tph::sampling_options& sampling)
 :m_font{std::move(font)}
+,m_sampling{sampling}
 ,m_options{options}
 ,m_adjustment{adjustment}
-,m_sampling{sampling}
 ,m_space{compute_space(m_font)}
 ,m_atlas{std::make_shared<font_atlas>(m_font.info().format, m_sampling)}
 {
@@ -262,12 +272,7 @@ void text_drawer::resize(uint32_t pixels_size)
     m_space = compute_space(m_font);
 }
 
-text_bounds text_drawer::bounds(std::string_view string, text_style style)
-{
-    return bounds(string, std::numeric_limits<std::uint32_t>::max(), text_align::left, style);
-}
-
-text_bounds text_drawer::bounds(std::string_view string, std::uint32_t line_width, text_align align, text_style style)
+text_bounds text_drawer::bounds(std::string_view string, std::uint32_t line_width)
 {/*
     const bool embolden{need_embolden(m_font.info().category, style)};
 
@@ -299,13 +304,12 @@ text_bounds text_drawer::bounds(std::string_view string, std::uint32_t line_widt
     return text_bounds{text_width, text_height};*/
 }
 
-text text_drawer::draw(std::string_view string, text_style style, const color& color)
+text text_drawer::draw(std::string_view string, std::uint32_t line_width)
 {
-    return draw(string, std::numeric_limits<std::uint32_t>::max(), text_align::left, style, color);
-}
+    const auto outline{static_cast<std::uint64_t>(m_outline * 64.0f)};
+    const auto bold{static_cast<bool>(m_style & text_style::bold)};
+    const auto italic{static_cast<bool>(m_style & text_style::italic)};
 
-text text_drawer::draw(std::string_view string, std::uint32_t line_width, text_align align, text_style style, const color& color)
-{
     const auto codepoints{convert_to<utf32>(string)};
 
     draw_line_state state
@@ -314,9 +318,7 @@ text text_drawer::draw(std::string_view string, std::uint32_t line_width, text_a
         .lowest_y = static_cast<float>(m_font.info().max_glyph_height),
         .line_width = static_cast<float>(line_width),
         .texture_size = vec2f{static_cast<float>(m_atlas->texture()->width()), static_cast<float>(m_atlas->texture()->height())},
-        .style = style,
-        .color = color,
-        .font_size = m_font.info().size,
+        .base_key = make_base_key(m_font.info().size, outline, bold, italic),
         .codepoints = codepoints
     };
 
@@ -324,7 +326,7 @@ text text_drawer::draw(std::string_view string, std::uint32_t line_width, text_a
 
     for(auto&& [line, _] : split(state.codepoints, U'\n'))
     {
-        draw_line(line, align, state);
+        draw_line(line, state);
 
         state.x = 0.0f;
         state.y += m_font.info().line_height;
@@ -345,7 +347,7 @@ text text_drawer::draw(std::string_view string, std::uint32_t line_width, text_a
     const auto text_width{static_cast<std::uint32_t>(state.greatest_x - state.lowest_x)};
     const auto text_height{static_cast<std::uint32_t>(state.greatest_y - state.lowest_y)};
 
-    return text{indices, state.vertices, m_atlas, style, text_width, text_height, std::size(state.vertices)};
+    return text{indices, state.vertices, m_atlas, m_style, text_width, text_height, std::size(state.vertices)};
 }
 
 void text_drawer::upload()
@@ -365,36 +367,38 @@ void text_drawer::set_name(std::string_view name)
 }
 #endif
 
-void text_drawer::draw_line(std::u32string_view line, text_align align, draw_line_state& state)
+void text_drawer::draw_line(std::u32string_view line, draw_line_state& state)
 {
-    if(align == text_align::left)
+    switch(m_align)
     {
-        draw_left_aligned(line, state);
-    }
-    else if(align == text_align::right)
-    {
-        draw_right_aligned(line, state);
-    }
-    else if(align == text_align::center)
-    {
-        draw_center_aligned(line, state);
-    }
-    else
-    {
-        draw_justify_aligned(line, state);
+        case text_align::left:
+            draw_left_aligned(line, state);
+            break;
+
+        case text_align::right:
+            draw_right_aligned(line, state);
+            break;
+
+        case text_align::center:
+            draw_center_aligned(line, state);
+            break;
+
+        case text_align::justify:
+            draw_justify_aligned(line, state);
+            break;
+
+        default:
+            std::terminate();
     }
 }
 
 void text_drawer::draw_left_aligned(std::u32string_view line, draw_line_state& state)
 {
-    const bool embolden{need_embolden(m_font.info().category, state.style)};
-    const bool italic{need_italic(m_font.info().category, state.style)};
-
     codepoint_t last{};
     for(auto&& [word, _] : split(line, U' '))
     {
         const auto shift{state.x - std::floor(state.x)};
-        if(state.x + word_width(word, state.font_size, embolden, last, shift).width > state.line_width)
+        if(state.x + word_width(word, state.base_key, last, shift).width > state.line_width)
         {
             state.x = 0.0f;
             state.y += m_font.info().line_height;
@@ -404,7 +408,7 @@ void text_drawer::draw_left_aligned(std::u32string_view line, draw_line_state& s
         for(const auto codepoint : word)
         {
             const vec2f kerning{m_font.kerning(last, codepoint)};
-            const auto  key    {make_key(codepoint, state.font_size, adjust(m_adjustment, state.x + kerning.x()), embolden, italic)};
+            const auto  key    {combine_keys(state.base_key, codepoint, adjust(m_adjustment, state.x + kerning.x()))};
             const auto& glyph  {load(key)};
 
             const vec2f texpos{static_cast<float>(glyph.rect.x), static_cast<float>(glyph.rect.y)};
@@ -418,7 +422,7 @@ void text_drawer::draw_left_aligned(std::u32string_view line, draw_line_state& s
                 const float x{state.x + x_padding};
                 const float y{state.y + glyph.origin.y() + kerning.y()};
 
-                add_glyph(state.vertices, std::floor(x), y, width, height, static_cast<vec4f>(state.color), texpos, state.texture_size, glyph.flipped);
+                add_glyph(state.vertices, std::floor(x), y, width, height, m_color, texpos, state.texture_size, glyph.flipped);
 
                 state.lowest_x = std::min(state.lowest_x, x);
                 state.lowest_y = std::min(state.lowest_y, y);
@@ -449,9 +453,6 @@ void text_drawer::draw_right_aligned(std::u32string_view line, draw_line_state& 
     state.lowest_x = state.line_width;
     state.greatest_x = state.line_width;
 
-    const bool embolden{need_embolden(m_font.info().category, state.style)};
-    const bool italic{need_italic(m_font.info().category, state.style)};
-
     std::size_t begin{std::size(state.vertices)};
     std::size_t count{};
     float lowest_x{};
@@ -474,7 +475,7 @@ void text_drawer::draw_right_aligned(std::u32string_view line, draw_line_state& 
     for(auto&& [word, _] : split(line, U' '))
     {
         const auto shift{state.x - std::floor(state.x)};
-        if(state.x + word_width(word, state.font_size, embolden, last, shift).width > state.line_width)
+        if(state.x + word_width(word, state.base_key, last, shift).width > state.line_width)
         {
             do_shift(begin, count, lowest_x, greatest_x);
 
@@ -491,7 +492,7 @@ void text_drawer::draw_right_aligned(std::u32string_view line, draw_line_state& 
         for(const auto codepoint : word)
         {
             const vec2f kerning{m_font.kerning(last, codepoint)};
-            const auto  key    {make_key(codepoint, state.font_size, adjust(m_adjustment, state.x + kerning.x()), embolden, italic)};
+            const auto  key    {combine_keys(state.base_key, codepoint, adjust(m_adjustment, state.x + kerning.x()))};
             const auto& glyph  {load(key)};
 
             const vec2f texpos{static_cast<float>(glyph.rect.x), static_cast<float>(glyph.rect.y)};
@@ -505,7 +506,7 @@ void text_drawer::draw_right_aligned(std::u32string_view line, draw_line_state& 
                 const float x{state.x + x_padding};
                 const float y{state.y + glyph.origin.y() + kerning.y()};
 
-                add_glyph(state.vertices, std::floor(x), y, width, height, static_cast<vec4f>(state.color), texpos, state.texture_size, glyph.flipped);
+                add_glyph(state.vertices, std::floor(x), y, width, height, m_color, texpos, state.texture_size, glyph.flipped);
 
                 lowest_x = std::min(lowest_x, x);
                 greatest_x = std::max(greatest_x, x + width);
@@ -540,15 +541,12 @@ void text_drawer::draw_center_aligned(std::u32string_view line, draw_line_state&
 {
     state.lowest_x = static_cast<float>(state.line_width);
 
-    const bool embolden{need_embolden(m_font.info().category, state.style)};
-    const bool italic{need_italic(m_font.info().category, state.style)};
-
     codepoint_t last{};
     line_width_info line_info{.remainder = line};
 
     do
     {
-        line_info = line_width(line_info.remainder, state.font_size, embolden, state.line_width);
+        line_info = line_width(line_info.remainder, state.base_key, state.line_width);
 
         state.x = (state.line_width - line_info.width) / 2.0f;
 
@@ -557,7 +555,7 @@ void text_drawer::draw_center_aligned(std::u32string_view line, draw_line_state&
             for(const auto codepoint : word)
             {
                 const vec2f kerning{m_font.kerning(last, codepoint)};
-                const auto  key    {make_key(codepoint, state.font_size, adjust(m_adjustment, state.x + kerning.x()), embolden, italic)};
+                const auto  key    {combine_keys(state.base_key, codepoint, adjust(m_adjustment, state.x + kerning.x()))};
                 const auto& glyph  {load(key)};
 
                 const vec2f texpos{static_cast<float>(glyph.rect.x), static_cast<float>(glyph.rect.y)};
@@ -571,7 +569,7 @@ void text_drawer::draw_center_aligned(std::u32string_view line, draw_line_state&
                     const float x{state.x + x_padding};
                     const float y{state.y + glyph.origin.y() + kerning.y()};
 
-                    add_glyph(state.vertices, std::floor(x), y, width, height, static_cast<vec4f>(state.color), texpos, state.texture_size, glyph.flipped);
+                    add_glyph(state.vertices, std::floor(x), y, width, height, m_color, texpos, state.texture_size, glyph.flipped);
 
                     state.lowest_x = std::min(state.lowest_x, x);
                     state.lowest_y = std::min(state.lowest_y, y);
@@ -603,15 +601,12 @@ void text_drawer::draw_justify_aligned(std::u32string_view line, draw_line_state
 {
     state.lowest_x = static_cast<float>(state.line_width);
 
-    const bool embolden{need_embolden(m_font.info().category, state.style)};
-    const bool italic{need_italic(m_font.info().category, state.style)};
-
     codepoint_t last{};
     line_width_info line_info{.remainder = line};
 
     do
     {
-        line_info = line_width(line_info.remainder, state.font_size, embolden, state.line_width);
+        line_info = line_width(line_info.remainder, state.base_key, state.line_width);
 
         state.x = 0.0f;
 
@@ -623,7 +618,7 @@ void text_drawer::draw_justify_aligned(std::u32string_view line, draw_line_state
             for(const auto codepoint : word)
             {
                 const vec2f kerning{m_font.kerning(last, codepoint)};
-                const auto  key    {make_key(codepoint, state.font_size, adjust(m_adjustment, state.x + kerning.x()), embolden, italic)};
+                const auto  key    {combine_keys(state.base_key, codepoint, adjust(m_adjustment, state.x + kerning.x()))};
                 const auto& glyph  {load(key)};
 
                 const vec2f texpos{static_cast<float>(glyph.rect.x), static_cast<float>(glyph.rect.y)};
@@ -637,7 +632,7 @@ void text_drawer::draw_justify_aligned(std::u32string_view line, draw_line_state
                     const float x{state.x + x_padding};
                     const float y{state.y + glyph.origin.y() + kerning.y()};
 
-                    add_glyph(state.vertices, std::floor(x), y, width, height, static_cast<vec4f>(state.color), texpos, state.texture_size, glyph.flipped);
+                    add_glyph(state.vertices, std::floor(x), y, width, height, m_color, texpos, state.texture_size, glyph.flipped);
 
                     state.lowest_x = std::min(state.lowest_x, x);
                     state.lowest_y = std::min(state.lowest_y, y);
@@ -665,23 +660,27 @@ void text_drawer::draw_justify_aligned(std::u32string_view line, draw_line_state
     } while(!std::empty(line_info.line) && !std::empty(line_info.remainder));
 }
 
-void text_drawer::line_bounds(std::u32string_view line, text_align align, draw_line_state& state)
+void text_drawer::line_bounds(std::u32string_view line, draw_line_state& state)
 {
-    if(align == text_align::left || align == text_align::right || align == text_align::center)
+    switch(m_align)
     {
-        default_bounds(line, state);
-    }
-    else
-    {
-        assert(false && "cpt::text_align::justify is not supported yet");
+        case text_align::left:  [[fallthrough]];
+        case text_align::right: [[fallthrough]];
+        case text_align::center:
+           default_bounds(line, state);
+           break;
+
+        case text_align::justify:
+            assert(false && "cpt::text_align::justify is not supported yet");
+            [[fallthrough]];
+
+        default:
+            std::terminate();
     }
 }
 
 void text_drawer::default_bounds(std::u32string_view line, draw_line_state& state)
-{
-    const bool embolden{need_embolden(m_font.info().category, state.style)};
-    const bool italic{need_italic(m_font.info().category, state.style)};
-
+{/*
     codepoint_t last{};
     for(auto&& [word, _] : split(line, U' '))
     {
@@ -722,16 +721,22 @@ void text_drawer::default_bounds(std::u32string_view line, draw_line_state& stat
 
         state.x += m_space;
         last = U' ';
-    }
+    }*/
 }
 
 const text_drawer::glyph_info& text_drawer::load(std::uint64_t key, bool deferred)
 {
-    const auto codepoint{static_cast<codepoint_t>(key)};
-    const auto adjustment{(key >> 56) & 0x3F};
-    const auto embolden{static_cast<bool>(key >> 62)};
-    const auto italic{static_cast<bool>(key >> 63)};
-    const auto lean{italic ? 0.2f : 0.0f};
+    const auto codepoint{static_cast<codepoint_t>(key & 0x00FFFFFF)};
+
+    const auto outline{(key >> 40) & 0xFFFF};
+    const auto adjust {(key >> 56) & 0x3F};
+    const auto bold   {(key >> 62) & 0x02};
+    const auto italic {(key >> 63) & 0x01};
+
+    const auto need_embolden{!static_cast<bool>(m_font.info().category & font_category::bold)   && bold};
+    const auto need_italic  {!static_cast<bool>(m_font.info().category & font_category::italic) && italic};
+
+    const auto lean{need_italic ? 0.2f : 0.0f};
 
     const auto it{m_glyphs.find(key)};
     if(it == std::end(m_glyphs))
@@ -741,7 +746,7 @@ const text_drawer::glyph_info& text_drawer::load(std::uint64_t key, bool deferre
             //Load the fallback in case the requested codepoint does not have a glyph inside the font
             if(codepoint != m_fallback)
             {
-                return load(make_key(m_fallback, m_font.info().size, adjustment, embolden, italic));
+                return load(make_key(m_fallback, m_font.info().size, outline, adjust, bold, italic));
             }
             else
             {
@@ -753,7 +758,7 @@ const text_drawer::glyph_info& text_drawer::load(std::uint64_t key, bool deferre
 
         if(deferred)
         {
-            const auto glyph{m_font.load_no_render(codepoint, embolden, 0.0f, lean, adjustment / 64.0f)};
+            const auto glyph{m_font.load_no_render(codepoint, need_embolden, outline / 64.0f, lean, adjust / 64.0f)};
 
             info.origin = glyph->origin;
             info.advance = glyph->advance;
@@ -763,7 +768,7 @@ const text_drawer::glyph_info& text_drawer::load(std::uint64_t key, bool deferre
         }
         else
         {
-            const auto glyph{m_font.load(codepoint, embolden, 0.0f, lean, adjustment / 64.0f)};
+            const auto glyph{m_font.load(codepoint, need_embolden, outline / 64.0f, lean, adjust / 64.0f)};
 
             info.origin = glyph->origin;
             info.advance = glyph->advance;
@@ -791,7 +796,7 @@ const text_drawer::glyph_info& text_drawer::load(std::uint64_t key, bool deferre
 
     if(!deferred && it->second.deferred)
     {
-        const auto glyph{m_font.load_render(codepoint, embolden, 0.0f, lean, adjustment / 64.0f)};
+        const auto glyph{m_font.load_render(codepoint, need_embolden, outline / 64.0f, lean, adjust / 64.0f)};
 
         if(glyph->width != 0)
         {
@@ -816,7 +821,7 @@ const text_drawer::glyph_info& text_drawer::load(std::uint64_t key, bool deferre
     return it->second;
 }
 
-text_drawer::word_width_info text_drawer::word_width(std::u32string_view word, std::uint64_t font_size, bool embolden, codepoint_t last, float base_shift)
+text_drawer::word_width_info text_drawer::word_width(std::u32string_view word, std::uint64_t base_key, codepoint_t last, float base_shift)
 {
     float current_x{base_shift};
     float lowest_x{base_shift};
@@ -825,7 +830,7 @@ text_drawer::word_width_info text_drawer::word_width(std::u32string_view word, s
     for(const auto codepoint : word)
     {
         const vec2f kerning{m_font.kerning(last, codepoint)};
-        const auto  key    {make_key(codepoint, font_size, adjust(m_adjustment, current_x + kerning.x()), embolden)};
+        const auto  key    {combine_keys(base_key, codepoint, adjust(m_adjustment, current_x + kerning.x()))};
         const auto& glyph  {load(key, true)};
 
         const float width{static_cast<float>(glyph.flipped ? glyph.rect.height : glyph.rect.width)};
@@ -846,7 +851,7 @@ text_drawer::word_width_info text_drawer::word_width(std::u32string_view word, s
     return word_width_info{greatest_x - lowest_x, current_x - lowest_x};
 }
 
-text_drawer::line_width_info text_drawer::line_width(std::u32string_view line, std::uint64_t font_size, bool embolden, float line_width)
+text_drawer::line_width_info text_drawer::line_width(std::u32string_view line, std::uint64_t base_key, float line_width)
 {
     float current_x{};
     float greatest_x{};
@@ -856,7 +861,7 @@ text_drawer::line_width_info text_drawer::line_width(std::u32string_view line, s
     for(auto&& [word, remainder] : split(line, U' '))
     {
         const float shift{current_x - std::floor(current_x)};
-        const auto word_info{word_width(word, font_size, embolden, last, shift)};
+        const auto word_info{word_width(word, base_key, last, shift)};
 
         if(current_x + word_info.width > line_width)
         {

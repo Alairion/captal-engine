@@ -21,6 +21,13 @@ constexpr std::string_view lorem_ipsum{"AV Lorem ipsum dolor sit amet, consectet
 
 namespace comp = cpt::components;
 
+/*
+    const auto left_bounds_value{drawer.bounds(lorem_ipsum, 320, cpt::text_align::left, cpt::text_style::regular)};
+    const auto left_bounds{world.create()};
+    world.emplace<comp::node>(left_bounds, cpt::vec3f{0.0f, 0.0f, 0.5f});
+    world.emplace<comp::drawable>(left_bounds, std::in_place_type<cpt::sprite>, left_bounds_value.width, left_bounds_value.height, cpt::colors::orange);
+*/
+
 static void setup(entt::registry& world)
 {
     //columns
@@ -32,37 +39,35 @@ static void setup(entt::registry& world)
     world.emplace<comp::node>(background_center, cpt::vec3f{640.0f, 0.0f, 0.0f});
     world.emplace<comp::drawable>(background_center, std::in_place_type<cpt::sprite>, 320, 800, cpt::colors::lightgray);
 
-    const auto background_right{world.create()};
-    world.emplace<comp::node>(background_right, cpt::vec3f{1280.0f, 0.0f, 0.0f});
-    world.emplace<comp::drawable>(background_right, std::in_place_type<cpt::sprite>, 320, 800, cpt::colors::lightgray);
-
     cpt::text_drawer drawer{cpt::font{/*sansation_regular_font_data*/u8"arial.ttf", 19}, cpt::text_drawer_options::none, cpt::text_subpixel_adjustment::x2};
+    drawer.set_color(cpt::colors::black);
 
     //Left aligned
     const auto text_left{world.create()};
     world.emplace<comp::node>(text_left, cpt::vec3f{0.0f, 0.0f, 1.0f});
-    world.emplace<comp::drawable>(text_left, drawer.draw(lorem_ipsum, 320, cpt::text_align::left, cpt::text_style::regular, cpt::colors::black));
-/*
-    const auto left_bounds_value{drawer.bounds(lorem_ipsum, 320, cpt::text_align::left, cpt::text_style::regular)};
-    const auto left_bounds{world.create()};
-    world.emplace<comp::node>(left_bounds, cpt::vec3f{0.0f, 0.0f, 0.5f});
-    world.emplace<comp::drawable>(left_bounds, std::in_place_type<cpt::sprite>, left_bounds_value.width, left_bounds_value.height, cpt::colors::orange);
-*/
+    world.emplace<comp::drawable>(text_left, drawer.draw(lorem_ipsum, 320));
+
     //Right aligned
+    drawer.set_align(cpt::text_align::right);
+
     const auto text_right{world.create()};
-    world.emplace<comp::drawable>(text_right, drawer.draw(lorem_ipsum, 320, cpt::text_align::right, cpt::text_style::regular, cpt::colors::black));
+    world.emplace<comp::drawable>(text_right, drawer.draw(lorem_ipsum, 320));
     const auto right_width{world.get<comp::drawable>(text_right).get<cpt::text>().width()};
     world.emplace<comp::node>(text_right, cpt::vec3f{640.0f - right_width, 0.0f, 1.0f});
 
     //Center aligned
+    drawer.set_align(cpt::text_align::center);
+
     const auto text_center{world.create()};
-    world.emplace<comp::drawable>(text_center, drawer.draw(lorem_ipsum, 320, cpt::text_align::center, cpt::text_style::regular, cpt::colors::black));
+    world.emplace<comp::drawable>(text_center, drawer.draw(lorem_ipsum, 320));
     const auto center_width{world.get<comp::drawable>(text_center).get<cpt::text>().width()};
     world.emplace<comp::node>(text_center, cpt::vec3f{std::floor(640.0f + (320.0f - center_width) / 2.0f), 0.0f, 1.0f});
 
     //Justify aligned
+    drawer.set_align(cpt::text_align::justify);
+
     const auto text_justify{world.create()};
-    world.emplace<comp::drawable>(text_justify, drawer.draw(lorem_ipsum, 320, cpt::text_align::justify, cpt::text_style::regular, cpt::colors::black));
+    world.emplace<comp::drawable>(text_justify, drawer.draw(lorem_ipsum, 320));
     world.emplace<comp::node>(text_justify, cpt::vec3f{960.0f, 0.0f, 1.0f});
 
     drawer.upload();

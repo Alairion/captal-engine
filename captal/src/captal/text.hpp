@@ -60,17 +60,18 @@ private:
 enum class text_drawer_options : std::uint32_t
 {
     none = 0x00,
+    no_kerning = 0x01
 };
 
 enum class text_subpixel_adjustment : std::uint32_t
 {
-    x1 = 0,  //1  step  of width 1
-    x2 = 1,  //2  steps of width 0.5
-    x4 = 2,  //4  steps of width 0.25
-    x8 = 3,  //8  steps of width 0.125
-    x16 = 4, //16 steps of width 0.0625
-    x32 = 5, //32 steps of width 0.03125
-    x64 = 6, //64 steps of width 0.015625
+    x1 = 0,  //1  step  of width 1.0px
+    x2 = 1,  //2  steps of width 0.5px
+    x4 = 2,  //4  steps of width 0.25px
+    x8 = 3,  //8  steps of width 0.125px
+    x16 = 4, //16 steps of width 0.0625px
+    x32 = 5, //32 steps of width 0.03125px
+    x64 = 6, //64 steps of width 0.015625px
 };
 
 enum class text_align : std::uint32_t
@@ -106,15 +107,43 @@ public:
     void set_fallback(codepoint_t codepoint);
     void resize(std::uint32_t pixels_size);
 
-    void set_subpixel_adjustement(text_subpixel_adjustment adjustment) noexcept
+    void set_option(text_drawer_options options) noexcept
+    {
+        m_options = options;
+    }
+
+    void set_adjustement(text_subpixel_adjustment adjustment) noexcept
     {
         m_adjustment = adjustment;
     }
 
-    text_bounds bounds(std::string_view string, text_style style = text_style::regular);
-    text_bounds bounds(std::string_view string, std::uint32_t line_width, text_align align = text_align::left, text_style style = text_style::regular);
-    text draw(std::string_view string, text_style style = text_style::regular, const color& color = colors::white);
-    text draw(std::string_view string, std::uint32_t line_width, text_align align = text_align::left, text_style style = text_style::regular, const color& color = colors::white);
+    void set_style(text_style style) noexcept
+    {
+        m_style = style;
+    }
+
+    void set_color(const color& color) noexcept
+    {
+        m_color = static_cast<vec4f>(color);
+    }
+
+    void set_outline_color(const color& color) noexcept
+    {
+        m_outline_color = static_cast<vec4f>(color);
+    }
+
+    void set_align(text_align align) noexcept
+    {
+        m_align = align;
+    }
+
+    void set_outline(float outline) noexcept
+    {
+        m_outline = outline;
+    }
+
+    text_bounds bounds(std::string_view string, std::uint32_t line_width = std::numeric_limits<std::uint32_t>::max());
+    text draw(std::string_view string, std::uint32_t line_width = std::numeric_limits<std::uint32_t>::max());
     void upload();
 
     cpt::font drain_font() noexcept
@@ -125,16 +154,6 @@ public:
     const cpt::font& font() const noexcept
     {
         return m_font;
-    }
-
-    text_drawer_options options() const noexcept
-    {
-        return m_options;
-    }
-
-    text_subpixel_adjustment subpixel_adjustment() const noexcept
-    {
-        return m_adjustment;
     }
 
 #ifdef CAPTAL_DEBUG
@@ -166,9 +185,7 @@ private:
         float greatest_y{};
         float line_width{};
         vec2f texture_size{};
-        text_style style{};
-        color color{};
-        std::uint64_t font_size{};
+        std::uint64_t base_key{};
         std::u32string_view codepoints{};
         std::vector<vertex> vertices{};
     };
@@ -187,26 +204,32 @@ private:
     };
 
 private:
-    void draw_line(std::u32string_view line, text_align align, draw_line_state& state);
+    void draw_line(std::u32string_view line, draw_line_state& state);
     void draw_left_aligned   (std::u32string_view line, draw_line_state& state);
     void draw_right_aligned  (std::u32string_view line, draw_line_state& state);
     void draw_center_aligned (std::u32string_view line, draw_line_state& state);
     void draw_justify_aligned(std::u32string_view line, draw_line_state& state);
 
-    void line_bounds(std::u32string_view line, text_align align, draw_line_state& state);
+    void line_bounds(std::u32string_view line, draw_line_state& state);
     void default_bounds(std::u32string_view line, draw_line_state& state);
 
-private:
     const glyph_info& load(std::uint64_t key, bool deferred = false);
-    word_width_info word_width(std::u32string_view word, std::uint64_t font_size, bool embolden, codepoint_t last, float base_shift);
-    line_width_info line_width(std::u32string_view line, std::uint64_t font_size, bool embolden, float line_width);
+    word_width_info word_width(std::u32string_view word, std::uint64_t base_key, codepoint_t last, float base_shift);
+    line_width_info line_width(std::u32string_view line, std::uint64_t base_key, float line_width);
 
 private:
     cpt::font m_font{};
+    tph::sampling_options m_sampling{};
+
     text_drawer_options m_options{};
     text_subpixel_adjustment m_adjustment{};
-    tph::sampling_options m_sampling{};
     codepoint_t m_fallback{default_fallback};
+    text_style m_style{text_style::regular};
+    vec4f m_color{1.0f, 1.0f, 1.0f, 1.0f};
+    vec4f m_outline_color{0.0f, 0.0f, 0.0f, 1.0f};
+    text_align m_align{text_align::left};
+    float m_outline{};
+
     float m_space{};
     std::shared_ptr<font_atlas> m_atlas{};
     std::unordered_map<std::uint64_t, glyph_info> m_glyphs{};
