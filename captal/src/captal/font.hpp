@@ -143,7 +143,6 @@ enum class font_features : std::uint32_t
 
 struct font_info
 {
-    glyph_format format{};
     std::string family{};
     std::uint32_t glyph_count{};
     font_category category{};
@@ -186,9 +185,9 @@ class CAPTAL_API font
 
 public:
     font() = default;
-    explicit font(const std::filesystem::path& file, std::uint32_t initial_size, glyph_format format = glyph_format::gray);
-    explicit font(std::span<const std::uint8_t> data, std::uint32_t initial_size, glyph_format format = glyph_format::gray);
-    explicit font(std::istream& stream, std::uint32_t initial_size, glyph_format format = glyph_format::gray);
+    explicit font(const std::filesystem::path& file, std::uint32_t initial_size);
+    explicit font(std::span<const std::uint8_t> data, std::uint32_t initial_size);
+    explicit font(std::istream& stream, std::uint32_t initial_size);
 
     ~font() = default;
     font(const font&) = delete;
@@ -196,9 +195,9 @@ public:
     font(font&&) noexcept = default;
     font& operator=(font&&) noexcept = default;
 
-    std::optional<glyph> load(codepoint_t codepoint, bool embolden = false, float outline = 0.0f, float lean = 0.0f, float shift = 0.0f);
     std::optional<glyph> load_no_render(codepoint_t codepoint, bool embolden = false, float outline = 0.0f, float lean = 0.0f, float shift = 0.0f);
-    std::optional<glyph> load_render(codepoint_t codepoint, bool embolden = false, float outline = 0.0f, float lean = 0.0f, float shift = 0.0f);
+    std::optional<glyph> load_render(codepoint_t codepoint, glyph_format format, bool embolden = false, float outline = 0.0f, float lean = 0.0f, float shift = 0.0f);
+    std::optional<glyph> load(codepoint_t codepoint, glyph_format format, bool embolden = false, float outline = 0.0f, float lean = 0.0f, float shift = 0.0f);
 
     void resize(std::uint32_t pixels_size);
 
@@ -211,7 +210,7 @@ public:
     }
 
 private:
-    void init(std::uint32_t initial_size, glyph_format format);
+    void init(std::uint32_t initial_size);
 
 private:
     font_engine::handle_type m_engine{};

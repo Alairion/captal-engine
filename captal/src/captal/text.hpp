@@ -19,11 +19,17 @@ enum class text_style : std::uint32_t
     strikethrough = 0x08,
 };
 
+struct alignas(std::uint64_t) text_bounds
+{
+    std::uint32_t width{};
+    std::uint32_t height{};
+};
+
 class CAPTAL_API text final : public renderable
 {
 public:
     text() = default;
-    explicit text(std::span<const std::uint32_t> indices, std::span<const vertex> vertices, std::weak_ptr<font_atlas> atlas, text_style style, std::uint32_t width, std::uint32_t height, std::size_t count);
+    explicit text(std::span<const std::uint32_t> indices, std::span<const vertex> vertices, std::weak_ptr<font_atlas> atlas, text_style style, text_bounds bounds, std::size_t count);
 
     ~text() = default;
     text(const text&) = delete;
@@ -35,22 +41,26 @@ public:
     void set_color(std::uint32_t character_index, const color& color);
     void set_color(std::uint32_t first, std::uint32_t count, const color& color);
 
+    text_bounds bounds() const noexcept
+    {
+        return m_bounds;
+    }
+
     std::uint32_t width() const noexcept
     {
-        return m_width;
+        return m_bounds.width;
     }
 
     std::uint32_t height() const noexcept
     {
-        return m_height;
+        return m_bounds.height;
     }
 
 private:
     void connect();
 
 private:
-    std::uint32_t m_width{};
-    std::uint32_t m_height{};
+    text_bounds m_bounds{};
     text_style m_style{};
     std::size_t m_count{};
     std::weak_ptr<font_atlas> m_atlas{};
@@ -82,10 +92,12 @@ enum class text_align : std::uint32_t
     justify = 3
 };
 
-struct text_bounds
+struct font_set
 {
-    std::uint32_t width{};
-    std::uint32_t height{};
+    std::optional<font> regular{};
+    std::optional<font> italic{};
+    std::optional<font> bold{};
+    std::optional<font> italic_bold{};
 };
 
 class CAPTAL_API text_drawer
@@ -95,7 +107,7 @@ public:
 
 public:
     text_drawer() = default;
-    explicit text_drawer(cpt::font font, text_drawer_options options = text_drawer_options::none, const tph::sampling_options& sampling = tph::sampling_options{});
+    explicit text_drawer(font_set&& fonts, text_drawer_options options = text_drawer_options::none, glyph_format format = glyph_format::gray, const tph::sampling_options& sampling = tph::sampling_options{});
 
     ~text_drawer() = default;
     text_drawer(const text_drawer&) = delete;
@@ -103,9 +115,12 @@ public:
     text_drawer(text_drawer&&) noexcept = default;
     text_drawer& operator=(text_drawer&&) noexcept = default;
 
-    void set_font(cpt::font font) noexcept;
-    void set_fallback(codepoint_t codepoint);
     void resize(std::uint32_t pixels_size);
+
+    void set_fallback(codepoint_t codepoint)
+    {
+        m_fallback = codepoint;
+    }
 
     void set_option(text_drawer_options options) noexcept
     {
@@ -146,14 +161,9 @@ public:
     text draw(std::string_view string, std::uint32_t line_width = std::numeric_limits<std::uint32_t>::max());
     void upload();
 
-    cpt::font drain_font() noexcept
+    const font_set& fonts() const noexcept
     {
-        return std::move(m_font);
-    }
-
-    const cpt::font& font() const noexcept
-    {
-        return m_font;
+        return m_fonts;
     }
 
 #ifdef CAPTAL_DEBUG
@@ -166,6 +176,15 @@ public:
 #endif
 
 private:
+    template<typename T>
+    struct font_data //contains a value of any type for each font
+    {
+        T regular{};
+        T italic{};
+        T bold{};
+        T italic_bold{};
+    };
+
     struct glyph_info
     {
         vec2f origin{};
@@ -177,6 +196,7 @@ private:
 
     struct draw_line_state
     {
+        cpt::font& font;
         float x{};
         float y{};
         float lowest_x{};
@@ -184,6 +204,7 @@ private:
         float greatest_x{};
         float greatest_y{};
         float line_width{};
+        float space{};
         vec2f texture_size{};
         std::uint64_t base_key{};
         std::u32string_view codepoints{};
@@ -204,6 +225,10 @@ private:
     };
 
 private:
+    font_data<float> compute_spaces();
+    cpt::font& choose_font() noexcept;
+    float choose_space() noexcept;
+
     void draw_line(std::u32string_view line, draw_line_state& state);
     void draw_left_aligned   (std::u32string_view line, draw_line_state& state);
     void draw_right_aligned  (std::u32string_view line, draw_line_state& state);
@@ -213,12 +238,14 @@ private:
     void line_bounds(std::u32string_view line, draw_line_state& state);
     void default_bounds(std::u32string_view line, draw_line_state& state);
 
-    const glyph_info& load(std::uint64_t key, bool deferred = false);
-    word_width_info word_width(std::u32string_view word, std::uint64_t base_key, codepoint_t last, float base_shift);
-    line_width_info line_width(std::u32string_view line, std::uint64_t base_key, float line_width);
+    const glyph_info& load(cpt::font& font, std::uint64_t key, bool deferred = false);
+    word_width_info word_width(cpt::font& font, std::u32string_view word, std::uint64_t base_key, codepoint_t last, float base_shift);
+    line_width_info line_width(cpt::font& font, std::u32string_view line, std::uint64_t base_key, float space, float line_width);
+    vec2f get_kerning(cpt::font& font, codepoint_t left, codepoint_t right) const noexcept;
 
 private:
-    cpt::font m_font{};
+    font_set m_fonts{};
+    glyph_format m_format{};
     tph::sampling_options m_sampling{};
 
     text_drawer_options m_options{};
@@ -230,7 +257,8 @@ private:
     text_align m_align{text_align::left};
     float m_outline{};
 
-    float m_space{};
+    font_data<float> m_spaces{};
+
     std::shared_ptr<font_atlas> m_atlas{};
     std::unordered_map<std::uint64_t, glyph_info> m_glyphs{};
 #ifdef CAPTAL_DEBUG

@@ -159,6 +159,9 @@ private:
 
 using drawable = basic_drawable<sprite, polygon, tilemap, text>;
 
+template<typename... Types>
+using define_drawable = basic_drawable<sprite, polygon, tilemap, text, Types...>;
+
 namespace impl
 {
 

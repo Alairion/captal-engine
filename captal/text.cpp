@@ -17,7 +17,11 @@
 constexpr std::string_view lorem_ipsum{"AV Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. "
                                        "Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. "
                                        "Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. "
-                                       "Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."};
+                                       "Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. 😀"};
+
+
+
+
 
 namespace comp = cpt::components;
 
@@ -39,7 +43,15 @@ static void setup(entt::registry& world)
     world.emplace<comp::node>(background_center, cpt::vec3f{640.0f, 0.0f, 0.0f});
     world.emplace<comp::drawable>(background_center, std::in_place_type<cpt::sprite>, 320, 800, cpt::colors::lightgray);
 
-    cpt::text_drawer drawer{cpt::font{/*sansation_regular_font_data*/u8"arial.ttf", 19}, cpt::text_drawer_options::none};
+    cpt::font_set fonts
+    {
+        .regular     = cpt::font{u8"LiberationSans-Regular.ttf"   , 19},
+        .italic      = cpt::font{u8"LiberationSans-Italic.ttf"    , 19},
+        .bold        = cpt::font{u8"LiberationSans-Bold.ttf"      , 19},
+        .italic_bold = cpt::font{u8"LiberationSans-BoldItalic.ttf", 19},
+    };
+
+    cpt::text_drawer drawer{std::move(fonts), cpt::text_drawer_options::none, cpt::glyph_format::color};
     drawer.set_color(cpt::colors::black);
 
     //Left aligned
@@ -49,6 +61,7 @@ static void setup(entt::registry& world)
 
     //Right aligned
     drawer.set_align(cpt::text_align::right);
+    drawer.set_style(cpt::text_style::bold);
 
     const auto text_right{world.create()};
     world.emplace<comp::drawable>(text_right, drawer.draw(lorem_ipsum, 320));
@@ -57,6 +70,7 @@ static void setup(entt::registry& world)
 
     //Center aligned
     drawer.set_align(cpt::text_align::center);
+    drawer.set_style(cpt::text_style::italic | cpt::text_style::bold);
 
     const auto text_center{world.create()};
     world.emplace<comp::drawable>(text_center, drawer.draw(lorem_ipsum, 320));
@@ -65,6 +79,7 @@ static void setup(entt::registry& world)
 
     //Justify aligned
     drawer.set_align(cpt::text_align::justify);
+    drawer.set_style(cpt::text_style::italic);
 
     const auto text_justify{world.create()};
     world.emplace<comp::drawable>(text_justify, drawer.draw(lorem_ipsum, 320));
