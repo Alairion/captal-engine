@@ -85,6 +85,11 @@ public:
         return !std::empty(m_buffers);
     }
 
+    bool has_padding() const noexcept
+    {
+        return m_sampling.magnification_filter != tph::filter::nearest || m_sampling.minification_filter != tph::filter::nearest;
+    }
+
 #ifdef CAPTAL_DEBUG
     void set_name(std::string_view name);
 #else

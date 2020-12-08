@@ -134,7 +134,6 @@ engine::~engine()
     m_instance = nullptr;
 }
 
-
 void engine::set_framerate_limit(std::uint32_t frame_per_second) noexcept
 {
     m_frame_rate_limit = frame_per_second;
@@ -224,7 +223,7 @@ void engine::init()
                 case apr::power_state::charging: return "Charging";
                 case apr::power_state::charged: return "Charged";
                 default: return "Unknown";
-            };
+            }
         };
 
         const auto format_uuid = [](const std::array<std::uint8_t, 16>& uuid)

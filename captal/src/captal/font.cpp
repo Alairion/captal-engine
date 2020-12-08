@@ -82,8 +82,7 @@ font_atlas::font_atlas(glyph_format format, const tph::sampling_options& samplin
 
 std::optional<bin_packer::rect> font_atlas::add_glyph(std::span<const uint8_t> image, std::uint32_t width, std::uint32_t height)
 {
-    const bool has_padding{m_sampling.magnification_filter != tph::filter::nearest || m_sampling.minification_filter != tph::filter::nearest};
-    const std::uint32_t padding{has_padding ? 2u : 0u};
+    const std::uint32_t padding{has_padding() ? 2u : 0u};
 
     auto rect{m_packer.append(width + padding, height + padding)};
     while(!rect.has_value())
@@ -534,7 +533,6 @@ std::optional<glyph> font::load_no_render(codepoint_t codepoint, bool embolden, 
     assert((0.0f <= lean    && lean    <= 1.0f) && "cpt::font::load called with lean not in range [0; 1]");
     assert((0.0f <= shift   && shift   <= 1.0f) && "cpt::font::load called with shift not in range [0; 1]");
 
-    const auto library{reinterpret_cast<FT_Library>(m_engine.get())};
     const auto face{reinterpret_cast<FT_Face>(m_face.get())};
     const auto stroker{reinterpret_cast<FT_Stroker>(m_stroker.get())};
 
@@ -543,6 +541,10 @@ std::optional<glyph> font::load_no_render(codepoint_t codepoint, bool embolden, 
     if(outline > 0.0f || lean > 0.0f || shift > 0.0f)
     {
         flags |= FT_LOAD_NO_BITMAP;
+    }
+    else
+    {
+        flags |= FT_LOAD_BITMAP_METRICS_ONLY;
     }
 
     if(FT_Load_Char(face, codepoint, flags))
@@ -600,13 +602,16 @@ std::optional<glyph> font::load_no_render(codepoint_t codepoint, bool embolden, 
     }
     else
     {
-        if(embolden)
-        {
-            FT_Bitmap_Embolden(library, &reinterpret_cast<FT_BitmapGlyph>(glyph)->bitmap, m_info.size, m_info.size);
-        }
-
         output.width = reinterpret_cast<FT_BitmapGlyph>(glyph)->bitmap.width;
         output.height = reinterpret_cast<FT_BitmapGlyph>(glyph)->bitmap.rows;
+
+        if(embolden)
+        {
+            const auto increase{((m_info.size + 32u) & 0xFFFFFFC0u) >> 6u};
+
+            output.width += increase;
+            output.height += increase;
+        }
     }
 
     return std::make_optional(std::move(output));
@@ -735,9 +740,9 @@ void font::resize(std::uint32_t pixels_size)
         m_info.max_glyph_height = FT_MulFix(face->bbox.yMax - face->bbox.yMin, face->size->metrics.y_scale) / 64 + 1;
         m_info.max_ascent = FT_MulFix(face->bbox.yMax, face->size->metrics.y_scale) / 64 + 1;
         m_info.line_height = std::floor(FT_MulFix(face->height, face->size->metrics.y_scale) / 64.0f);
-        m_info.underline_position = std::floor(-FT_MulFix(face->underline_position, face->size->metrics.y_scale) / 64.0f);
-        m_info.underline_thickness = std::round(-FT_MulFix(face->underline_thickness, face->size->metrics.y_scale) / 64.0f);
-        m_info.strikeout_position = static_cast<float>(m_info.max_ascent / 3);
+        m_info.underline_position = -FT_MulFix(face->underline_position, face->size->metrics.y_scale) / 64.0f;
+        m_info.underline_thickness = FT_MulFix(face->underline_thickness, face->size->metrics.y_scale) / 64.0f;
+        m_info.strikeout_position = static_cast<float>(m_info.size / 4);
     }
 }
 

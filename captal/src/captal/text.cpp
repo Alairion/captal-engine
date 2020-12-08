@@ -22,11 +22,9 @@ namespace cpt
 
 struct full_font_atlas{};
 
-text::text(std::span<const std::uint32_t> indices, std::span<const vertex> vertices, std::weak_ptr<font_atlas> atlas, text_style style, text_bounds bounds, std::size_t count)
+text::text(std::span<const std::uint32_t> indices, std::span<const vertex> vertices, std::weak_ptr<font_atlas> atlas, text_bounds bounds)
 :renderable{static_cast<std::uint32_t>(std::size(indices)), static_cast<std::uint32_t>(std::size(vertices))}
 ,m_bounds{bounds}
-,m_style{style}
-,m_count{count}
 ,m_atlas{std::move(atlas)}
 {
     set_indices(indices);
@@ -39,8 +37,6 @@ text::text(std::span<const std::uint32_t> indices, std::span<const vertex> verti
 text::text(text&& other) noexcept
 :renderable{std::move(other)}
 ,m_bounds{other.m_bounds}
-,m_style{other.m_style}
-,m_count{other.m_count}
 ,m_atlas{std::move(other.m_atlas)}
 {
     other.m_connection.disconnect();
@@ -51,8 +47,6 @@ text& text::operator=(text&& other) noexcept
 {
     renderable::operator=(std::move(other));
     m_bounds = other.m_bounds;
-    m_style = other.m_style;
-    m_count = other.m_count;
     m_atlas = std::move(other.m_atlas);
 
     other.m_connection.disconnect();
@@ -60,7 +54,7 @@ text& text::operator=(text&& other) noexcept
 
     return *this;
 }
-
+/*
 void text::set_color(const color& color)
 {
     const vec4f native_color{static_cast<vec4f>(color)};
@@ -102,16 +96,16 @@ void text::set_color(std::uint32_t first, std::uint32_t count, const color& colo
 
     update();
 }
-
+*/
 void text::connect()
 {
     if(const auto atlas{m_atlas.lock()}; atlas)
     {
         m_connection = atlas->signal().connect([this](texture_ptr new_texture)
         {
-            const auto old_width{static_cast<float>(texture()->width())};
+            const auto old_width {static_cast<float>(texture()->width())};
             const auto old_height{static_cast<float>(texture()->height())};
-            const auto new_width{static_cast<float>(new_texture->width())};
+            const auto new_width {static_cast<float>(new_texture->width())};
             const auto new_height{static_cast<float>(new_texture->height())};
 
             const vec2f factor{old_width / new_width, old_height / new_height};
@@ -195,18 +189,26 @@ static void add_glyph(std::vector<vertex>& vertices, float x, float y, float wid
 {
     if(flipped)
     {
-        vertices.emplace_back(vertex{vec3f{x, y, 0.0f}, color, texpos / texsize});
-        vertices.emplace_back(vertex{vec3f{x + width, y, 0.0f}, color, vec2f{texpos.x(), texpos.y() + width} / texsize});
-        vertices.emplace_back(vertex{vec3f{x + width, y + height, 0.0f}, color, vec2f{texpos.x() + height, texpos.y() + width} / texsize});
-        vertices.emplace_back(vertex{vec3f{x, y + height, 0.0f}, color, vec2f{texpos.x() + height, texpos.y()} / texsize});
+        vertices.emplace_back(vec3f{x, y, 0.0f}, color, texpos / texsize);
+        vertices.emplace_back(vec3f{x + width, y, 0.0f}, color, vec2f{texpos.x(), texpos.y() + width} / texsize);
+        vertices.emplace_back(vec3f{x + width, y + height, 0.0f}, color, vec2f{texpos.x() + height, texpos.y() + width} / texsize);
+        vertices.emplace_back(vec3f{x, y + height, 0.0f}, color, vec2f{texpos.x() + height, texpos.y()} / texsize);
     }
     else
     {
-        vertices.emplace_back(vertex{vec3f{x, y, 0.0f}, color, texpos / texsize});
-        vertices.emplace_back(vertex{vec3f{x + width, y, 0.0f}, color, vec2f{texpos.x() + width, texpos.y()} / texsize});
-        vertices.emplace_back(vertex{vec3f{x + width, y + height, 0.0f}, color, vec2f{texpos.x() + width, texpos.y() + height} / texsize});
-        vertices.emplace_back(vertex{vec3f{x, y + height, 0.0f}, color, vec2f{texpos.x(), texpos.y() + height} / texsize});
+        vertices.emplace_back(vec3f{x, y, 0.0f}, color, texpos / texsize);
+        vertices.emplace_back(vec3f{x + width, y, 0.0f}, color, vec2f{texpos.x() + width, texpos.y()} / texsize);
+        vertices.emplace_back(vec3f{x + width, y + height, 0.0f}, color, vec2f{texpos.x() + width, texpos.y() + height} / texsize);
+        vertices.emplace_back(vec3f{x, y + height, 0.0f}, color, vec2f{texpos.x(), texpos.y() + height} / texsize);
     }
+}
+
+static void add_quad(std::vector<vertex>& vertices, float x, float y, float width, float height, const vec4f& color, float texpos, vec2f texsize)
+{
+    vertices.emplace_back(vec3f{x, y, 0.0f}, color, vec2f{texpos, texpos} / texsize);
+    vertices.emplace_back(vec3f{x + width, y, 0.0f}, color, vec2f{texpos + 1.0f, texpos} / texsize);
+    vertices.emplace_back(vec3f{x + width, y + height, 0.0f}, color, vec2f{texpos + 1.0f, texpos + 1.0f} / texsize);
+    vertices.emplace_back(vec3f{x, y + height, 0.0f}, color, vec2f{texpos, texpos + 1.0f} / texsize);
 }
 
 static void add_placeholder(std::vector<vertex>& vertices)
@@ -243,6 +245,19 @@ text_drawer::text_drawer(font_set&& fonts, text_drawer_options options, glyph_fo
 ,m_atlas{std::make_shared<font_atlas>(m_format, m_sampling)}
 {
     assert((m_fonts.regular || m_fonts.italic || m_fonts.bold || m_fonts.italic_bold) && "You must give at least one font to cpt::text_drawer");
+
+    if(m_format == glyph_format::color)
+    {
+        const std::array<std::uint8_t, 4> pixel{255, 255, 255, 255};
+        m_atlas->add_glyph(pixel, 1, 1);
+    }
+    else
+    {
+        const std::uint8_t pixel{255};
+        m_atlas->add_glyph(std::span{&pixel, 1}, 1, 1);
+    }
+
+    m_line_filler = m_atlas->has_padding() ? 1.0f : 0.0f;
 }
 
 void text_drawer::resize(uint32_t pixels_size)
@@ -323,7 +338,12 @@ text text_drawer::draw(std::string_view string, std::uint32_t line_width)
         .codepoints = codepoints
     };
 
-    state.vertices.reserve(std::size(state.codepoints) * 4 + 4);
+    state.vertices.reserve(std::size(state.codepoints) * 4);
+
+    if(static_cast<bool>(m_style & (text_style::underlined | text_style::strikethrough)))
+    {
+        state.lines.reserve(4 * 32);
+    }
 
     for(auto&& [line, _] : split(state.codepoints, U'\n'))
     {
@@ -331,12 +351,9 @@ text text_drawer::draw(std::string_view string, std::uint32_t line_width)
 
         state.x = 0.0f;
         state.y += font.info().line_height;
-
-        add_placeholder(state.vertices);
     }
 
-    //There is an additionnal newline at the end
-    state.vertices.resize(std::size(state.vertices) - 4);
+    state.vertices.insert(std::end(state.vertices), std::begin(state.lines), std::end(state.lines));
 
     const vec3f shift{-std::floor(state.lowest_x), -std::floor(state.lowest_y), 0.0f};
     for(auto& vertex : state.vertices)
@@ -344,11 +361,11 @@ text text_drawer::draw(std::string_view string, std::uint32_t line_width)
         vertex.position += shift;
     }
 
-    const auto indices{generate_indices(std::size(state.codepoints))};
+    const auto indices{generate_indices(std::size(state.vertices) / 4u)};
     const auto text_width{static_cast<std::uint32_t>(state.greatest_x - state.lowest_x)};
     const auto text_height{static_cast<std::uint32_t>(state.greatest_y - state.lowest_y)};
 
-    return text{indices, state.vertices, m_atlas, m_style, text_bounds{text_width, text_height}, std::size(state.vertices)};
+    return text{indices, state.vertices, m_atlas, text_bounds{text_width, text_height}};
 }
 
 void text_drawer::upload()
@@ -364,7 +381,7 @@ void text_drawer::set_name(std::string_view name)
 {
     m_name = name;
 
-    m_atlas->set_name(m_name + " atlas" );
+    m_atlas->set_name(m_name + " atlas");
 }
 #endif
 
@@ -460,23 +477,43 @@ void text_drawer::draw_line(std::u32string_view line, draw_line_state& state)
         case text_align::justify:
             draw_justify_aligned(line, state);
             break;
-
-        default:
-            std::terminate();
     }
 }
 
 void text_drawer::draw_left_aligned(std::u32string_view line, draw_line_state& state)
 {
+    const bool underlined   {static_cast<bool>(m_style & text_style::underlined)};
+    const bool strikethrough{static_cast<bool>(m_style & text_style::strikethrough)};
+
+    const float line_height{state.font.info().underline_thickness};
+    const float underline_y{state.font.info().underline_position};
+    const float strike_y   {state.font.info().strikeout_position};
+
     codepoint_t last{};
+    float line_width{};
+
     for(auto&& [word, _] : split(line, U' '))
     {
         const auto shift{state.x - std::floor(state.x)};
         if(state.x + word_width(state.font, word, state.base_key, last, shift).width > state.line_width)
         {
+            if(underlined)
+            {
+                add_quad(state.lines, 0.0f, state.y + underline_y, line_width, line_height, m_underline_color, m_line_filler, state.texture_size);
+
+                state.greatest_y = std::max(state.greatest_y, state.y + underline_y + line_height);
+            }
+
+            if(strikethrough)
+            {
+                add_quad(state.lines, 0.0f, state.y - strike_y - line_height, line_width, line_height, m_color, m_line_filler, state.texture_size);
+            }
+
             state.x = 0.0f;
             state.y += state.font.info().line_height;
+
             last = 0;
+            line_width = 0.0f;
         }
 
         for(const auto codepoint : word)
@@ -502,28 +539,40 @@ void text_drawer::draw_left_aligned(std::u32string_view line, draw_line_state& s
                 state.lowest_y = std::min(state.lowest_y, y);
                 state.greatest_x = std::max(state.greatest_x, x + width);
                 state.greatest_y = std::max(state.greatest_y, y + height);
-            }
-            else
-            {
-                add_placeholder(state.vertices);
+
+                line_width = std::max(line_width, x + width);
             }
 
             state.x += glyph.advance;
             last = codepoint;
         }
 
-        add_placeholder(state.vertices);
-
         state.x += state.space;
         last = U' ';
     }
 
-    //There is an additionnal space at the end
-    state.vertices.resize(std::size(state.vertices) - 4);
+    if(underlined)
+    {
+        add_quad(state.lines, 0.0f, state.y + underline_y, line_width, line_height, m_underline_color, m_line_filler, state.texture_size);
+
+        state.greatest_y = std::max(state.greatest_y, state.y + underline_y + line_height);
+    }
+
+    if(strikethrough)
+    {
+        add_quad(state.lines, 0.0f, state.y - strike_y - line_height, line_width, line_height, m_color, m_line_filler, state.texture_size);
+    }
 }
 
 void text_drawer::draw_right_aligned(std::u32string_view line, draw_line_state& state)
 {
+    const bool underlined   {static_cast<bool>(m_style & text_style::underlined)};
+    const bool strikethrough{static_cast<bool>(m_style & text_style::strikethrough)};
+
+    const float line_height{state.font.info().underline_thickness};
+    const float underline_y{state.font.info().underline_position};
+    const float strike_y   {state.font.info().strikeout_position};
+
     state.lowest_x = state.line_width;
     state.greatest_x = state.line_width;
 
@@ -533,7 +582,7 @@ void text_drawer::draw_right_aligned(std::u32string_view line, draw_line_state& 
     float greatest_x{};
     codepoint_t last{};
 
-    auto do_shift = [&state](std::size_t begin, std::size_t count, float lowest_x, float greatest_x) mutable
+    auto do_shift = [this, &state, underlined, strikethrough, line_height, underline_y, strike_y](std::size_t begin, std::size_t count, float lowest_x, float greatest_x) mutable
     {
         const float width{std::floor(greatest_x - lowest_x)};
         const float shift{state.line_width - width};
@@ -541,6 +590,18 @@ void text_drawer::draw_right_aligned(std::u32string_view line, draw_line_state& 
         for(auto& vertex : std::span{std::begin(state.vertices) + begin, count * 4})
         {
             vertex.position.x() += shift;
+        }
+
+        if(underlined)
+        {
+            add_quad(state.lines, shift, state.y + underline_y, width, line_height, m_underline_color, m_line_filler, state.texture_size);
+
+            state.greatest_y = std::max(state.greatest_y, state.y + underline_y + line_height);
+        }
+
+        if(strikethrough)
+        {
+            add_quad(state.lines, shift, state.y - strike_y - line_height, width, line_height, m_color, m_line_filler, state.texture_size);
         }
 
         state.lowest_x = std::min(state.lowest_x, shift);
@@ -588,17 +649,11 @@ void text_drawer::draw_right_aligned(std::u32string_view line, draw_line_state& 
                 state.lowest_y = std::min(state.lowest_y, y);
                 state.greatest_y = std::max(state.greatest_y, y + height);
             }
-            else
-            {
-                add_placeholder(state.vertices);
-            }
 
             state.x += glyph.advance;
             count += 1;
             last = codepoint;
         }
-
-        add_placeholder(state.vertices);
 
         state.x += state.space;
         count += 1;
@@ -606,13 +661,17 @@ void text_drawer::draw_right_aligned(std::u32string_view line, draw_line_state& 
     }
 
     do_shift(begin, count, lowest_x, greatest_x);
-
-    //There is an additionnal space at the end
-    state.vertices.resize(std::size(state.vertices) - 4);
 }
 
 void text_drawer::draw_center_aligned(std::u32string_view line, draw_line_state& state)
 {
+    const bool underlined   {static_cast<bool>(m_style & text_style::underlined)};
+    const bool strikethrough{static_cast<bool>(m_style & text_style::strikethrough)};
+
+    const float line_height{state.font.info().underline_thickness};
+    const float underline_y{state.font.info().underline_position};
+    const float strike_y   {state.font.info().strikeout_position};
+
     state.lowest_x = static_cast<float>(state.line_width);
 
     codepoint_t last{};
@@ -622,7 +681,9 @@ void text_drawer::draw_center_aligned(std::u32string_view line, draw_line_state&
     {
         line_info = line_width(state.font, line_info.remainder, state.base_key, state.space, state.line_width);
 
-        state.x = (state.line_width - line_info.width) / 2.0f;
+        const float base_x{(state.line_width - line_info.width) / 2.0f};
+
+        state.x = base_x;
 
         for(auto&& [word, _] : split(line_info.line, U' '))
         {
@@ -650,19 +711,25 @@ void text_drawer::draw_center_aligned(std::u32string_view line, draw_line_state&
                     state.greatest_x = std::max(state.greatest_x, x + width);
                     state.greatest_y = std::max(state.greatest_y, y + height);
                 }
-                else
-                {
-                    add_placeholder(state.vertices);
-                }
 
                 state.x += glyph.advance;
                 last = codepoint;
             }
 
-            add_placeholder(state.vertices);
-
             state.x += state.space;
             last = U' ';
+        }
+
+        if(underlined)
+        {
+            add_quad(state.lines, base_x, state.y + underline_y, line_info.width, line_height, m_underline_color, m_line_filler, state.texture_size);
+
+            state.greatest_y = std::max(state.greatest_y, state.y + underline_y + line_height);
+        }
+
+        if(strikethrough)
+        {
+            add_quad(state.lines, base_x, state.y - strike_y - line_height, line_info.width, line_height, m_color, m_line_filler, state.texture_size);
         }
 
         state.y += state.font.info().line_height;
@@ -673,6 +740,13 @@ void text_drawer::draw_center_aligned(std::u32string_view line, draw_line_state&
 
 void text_drawer::draw_justify_aligned(std::u32string_view line, draw_line_state& state)
 {
+    const bool underlined   {static_cast<bool>(m_style & text_style::underlined)};
+    const bool strikethrough{static_cast<bool>(m_style & text_style::strikethrough)};
+
+    const float line_height{state.font.info().underline_thickness};
+    const float underline_y{state.font.info().underline_position};
+    const float strike_y   {state.font.info().strikeout_position};
+
     state.lowest_x = static_cast<float>(state.line_width);
 
     codepoint_t last{};
@@ -713,19 +787,27 @@ void text_drawer::draw_justify_aligned(std::u32string_view line, draw_line_state
                     state.greatest_x = std::max(state.greatest_x, x + width);
                     state.greatest_y = std::max(state.greatest_y, y + height);
                 }
-                else
-                {
-                    add_placeholder(state.vertices);
-                }
 
                 state.x += glyph.advance;
                 last = codepoint;
             }
 
-            add_placeholder(state.vertices);
-
             state.x += adjusted_space;
             last = U' ';
+        }
+
+        if(underlined)
+        {
+            const float real_width{std::empty(line_info.remainder) ? line_info.width : state.line_width};
+            add_quad(state.lines, 0.0f, state.y + underline_y, real_width, line_height, m_underline_color, m_line_filler, state.texture_size);
+
+            state.greatest_y = std::max(state.greatest_y, state.y + underline_y + line_height);
+        }
+
+        if(strikethrough)
+        {
+            const float real_width{std::empty(line_info.remainder) ? line_info.width : state.line_width};
+            add_quad(state.lines, 0.0f, state.y - strike_y - line_height, real_width, line_height, m_color, m_line_filler, state.texture_size);
         }
 
         state.y += state.font.info().line_height;
@@ -750,9 +832,6 @@ void text_drawer::line_bounds(std::u32string_view line, draw_line_state& state)
 
         case text_align::justify:
             assert(false && "cpt::text_align::justify is not supported yet");
-            [[fallthrough]];
-
-        default:
             std::terminate();
     }
 }

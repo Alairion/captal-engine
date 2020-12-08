@@ -27,19 +27,15 @@ struct alignas(std::uint64_t) text_bounds
 
 class CAPTAL_API text final : public renderable
 {
+    friend class text_drawer;
+
 public:
     text() = default;
-    explicit text(std::span<const std::uint32_t> indices, std::span<const vertex> vertices, std::weak_ptr<font_atlas> atlas, text_style style, text_bounds bounds, std::size_t count);
-
     ~text() = default;
     text(const text&) = delete;
     text& operator=(const text&) = delete;
     text(text&& other) noexcept;
     text& operator=(text&& other) noexcept;
-
-    void set_color(const color& color);
-    void set_color(std::uint32_t character_index, const color& color);
-    void set_color(std::uint32_t first, std::uint32_t count, const color& color);
 
     text_bounds bounds() const noexcept
     {
@@ -57,12 +53,12 @@ public:
     }
 
 private:
+    explicit text(std::span<const std::uint32_t> indices, std::span<const vertex> vertices, std::weak_ptr<font_atlas> atlas, text_bounds bounds);
+
     void connect();
 
 private:
     text_bounds m_bounds{};
-    text_style m_style{};
-    std::size_t m_count{};
     std::weak_ptr<font_atlas> m_atlas{};
     scoped_connection m_connection{};
 };
@@ -147,6 +143,11 @@ public:
         m_outline_color = static_cast<vec4f>(color);
     }
 
+    void set_underline_color(const color& color) noexcept
+    {
+        m_underline_color = static_cast<vec4f>(color);
+    }
+
     void set_align(text_align align) noexcept
     {
         m_align = align;
@@ -159,6 +160,7 @@ public:
 
     text_bounds bounds(std::string_view string, std::uint32_t line_width = std::numeric_limits<std::uint32_t>::max());
     text draw(std::string_view string, std::uint32_t line_width = std::numeric_limits<std::uint32_t>::max());
+
     void upload();
 
     const font_set& fonts() const noexcept
@@ -209,6 +211,7 @@ private:
         std::uint64_t base_key{};
         std::u32string_view codepoints{};
         std::vector<vertex> vertices{};
+        std::vector<vertex> lines{};
     };
 
     struct word_width_info
@@ -254,9 +257,11 @@ private:
     text_style m_style{text_style::regular};
     vec4f m_color{1.0f, 1.0f, 1.0f, 1.0f};
     vec4f m_outline_color{0.0f, 0.0f, 0.0f, 1.0f};
+    vec4f m_underline_color{0.0f, 0.0f, 0.0f, 1.0f};
     text_align m_align{text_align::left};
     float m_outline{};
 
+    float m_line_filler{};
     font_data<float> m_spaces{};
 
     std::shared_ptr<font_atlas> m_atlas{};
