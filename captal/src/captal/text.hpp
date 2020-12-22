@@ -288,7 +288,7 @@ private:
 
     text_drawer_options m_options{};
     subpixel_adjustment m_adjustment{cpt::subpixel_adjustment::x2};
-    subpixel_adjustment m_line_adjustment{cpt::subpixel_adjustment::x4};
+    subpixel_adjustment m_line_adjustment{cpt::subpixel_adjustment::x1};
     codepoint_t m_fallback{default_fallback};
     text_style m_style{text_style::regular};
     vec4f m_color{1.0f, 1.0f, 1.0f, 1.0f};
