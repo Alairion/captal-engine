@@ -12,6 +12,7 @@
 #include FT_BITMAP_H
 
 #include <captal_foundation/utility.hpp>
+#include <captal_foundation/stack_allocator.hpp>
 
 #include "engine.hpp"
 #include "texture.hpp"
@@ -54,49 +55,7 @@ text& text::operator=(text&& other) noexcept
 
     return *this;
 }
-/*
-void text::set_color(const color& color)
-{
-    const vec4f native_color{static_cast<vec4f>(color)};
-    for(auto& vertex : get_vertices())
-    {
-        vertex.color = native_color;
-    }
 
-    update();
-}
-
-void text::set_color(std::uint32_t character_index, const color& color)
-{
-    const auto current{get_vertices().subspan(character_index * 4, 4)};
-    const vec4f native_color{static_cast<vec4f>(color)};
-
-    current[0].color = native_color;
-    current[1].color = native_color;
-    current[2].color = native_color;
-    current[3].color = native_color;
-
-    update();
-}
-
-void text::set_color(std::uint32_t first, std::uint32_t count, const color& color)
-{
-    const auto vertices{get_vertices().subspan(first * 4)};
-    const vec4f native_color{static_cast<vec4f>(color)};
-
-    for(std::uint32_t i{}; i < count; ++i)
-    {
-        const auto current{vertices.subspan(i * 4, 4)};
-
-        current[0].color = native_color;
-        current[1].color = native_color;
-        current[2].color = native_color;
-        current[3].color = native_color;
-    }
-
-    update();
-}
-*/
 void text::connect()
 {
     if(const auto atlas{m_atlas.lock()}; atlas)
@@ -203,17 +162,22 @@ static void add_glyph(std::vector<vertex>& vertices, float x, float y, float wid
     }
 }
 
-static void add_quad(std::vector<vertex>& vertices, float x, float y, float width, float height, const vec4f& color, float texpos, vec2f texsize)
+static void add_line(std::vector<vertex>& vertices, float x, float y, float width, float height, const vec4f& color, vec2f texpos, vec2f texsize, bool flipped)
 {
-    vertices.emplace_back(vec3f{x, y, 0.0f}, color, vec2f{texpos, texpos} / texsize);
-    vertices.emplace_back(vec3f{x + width, y, 0.0f}, color, vec2f{texpos + 1.0f, texpos} / texsize);
-    vertices.emplace_back(vec3f{x + width, y + height, 0.0f}, color, vec2f{texpos + 1.0f, texpos + 1.0f} / texsize);
-    vertices.emplace_back(vec3f{x, y + height, 0.0f}, color, vec2f{texpos, texpos + 1.0f} / texsize);
-}
-
-static void add_placeholder(std::vector<vertex>& vertices)
-{
-    vertices.resize(std::size(vertices) + 4);
+    if(flipped)
+    {
+        vertices.emplace_back(vec3f{x, y, 0.0f}, color, texpos / texsize);
+        vertices.emplace_back(vec3f{x + width, y, 0.0f}, color, vec2f{texpos.x(), texpos.y() + width} / texsize);
+        vertices.emplace_back(vec3f{x + width, y + height, 0.0f}, color, vec2f{texpos.x() + 1.0f, texpos.y() + width} / texsize);
+        vertices.emplace_back(vec3f{x, y + height, 0.0f}, color, vec2f{texpos.x() + 1.0f, texpos.y()} / texsize);
+    }
+    else
+    {
+        vertices.emplace_back(vec3f{x, y, 0.0f}, color, texpos / texsize);
+        vertices.emplace_back(vec3f{x + width, y, 0.0f}, color, vec2f{texpos.x() + 1.0f, texpos.y()} / texsize);
+        vertices.emplace_back(vec3f{x + width, y + height, 0.0f}, color, vec2f{texpos.x() + 1.0f, texpos.y() + height} / texsize);
+        vertices.emplace_back(vec3f{x, y + height, 0.0f}, color, vec2f{texpos.x(), texpos.y() + height} / texsize);
+    }
 }
 
 static std::vector<std::uint32_t> generate_indices(std::size_t codepoint_count)
@@ -245,19 +209,6 @@ text_drawer::text_drawer(font_set&& fonts, text_drawer_options options, glyph_fo
 ,m_atlas{std::make_shared<font_atlas>(m_format, m_sampling)}
 {
     assert((m_fonts.regular || m_fonts.italic || m_fonts.bold || m_fonts.italic_bold) && "You must give at least one font to cpt::text_drawer");
-
-    if(m_format == glyph_format::color)
-    {
-        const std::array<std::uint8_t, 4> pixel{255, 255, 255, 255};
-        m_atlas->add_glyph(pixel, 1, 1);
-    }
-    else
-    {
-        const std::uint8_t pixel{255};
-        m_atlas->add_glyph(std::span{&pixel, 1}, 1, 1);
-    }
-
-    m_line_filler = m_atlas->has_padding() ? 1.0f : 0.0f;
 }
 
 void text_drawer::resize(uint32_t pixels_size)
@@ -286,35 +237,40 @@ void text_drawer::resize(uint32_t pixels_size)
 }
 
 text_bounds text_drawer::bounds(std::string_view string, std::uint32_t line_width)
-{/*
-    const bool embolden{need_embolden(m_font.info().category, style)};
+{
+    const auto outline{static_cast<std::uint64_t>(m_outline * 64.0f)};
+    const auto bold{static_cast<bool>(m_style & text_style::bold)};
+    const auto italic{static_cast<bool>(m_style & text_style::italic)};
+    const auto codepoints{convert_to<utf32>(string)};
 
-    auto& atlas{ensure(string, embolden)};
+    auto& font{choose_font()};
 
-    if(!load(atlas, U' ', m_font.info().size, embolden)) //ensure that the space glyph is loaded (in case the string doesn't contains any)
+    draw_line_state state
     {
-        throw std::runtime_error{"How did you find a font without the space character ?"};
+        .font = font,
+        .y = static_cast<float>(font.info().max_ascent),
+        .lowest_y = static_cast<float>(font.info().max_glyph_height),
+        .line_width = static_cast<float>(line_width),
+        .space = choose_space(),
+        .texture_size = vec2f{static_cast<float>(m_atlas->texture()->width()), static_cast<float>(m_atlas->texture()->height())},
+        .base_key = make_base_key(font.info().size, outline, bold, italic),
+        .codepoints = codepoints
+    };
+
+    for(auto&& [line, _] : split(state.codepoints, U'\n'))
+    {
+        bounds(line, state);
     }
 
-    draw_line_state state{};
-    state.current_y = static_cast<float>(m_font.info().max_ascent);
-    state.lowest_y = static_cast<float>(m_font.info().max_glyph_height);
-    state.line_width = line_width;
-    state.style = style;
-    state.font_size = m_font.info().size;
-
-    for(auto&& line : split(string, '\n'))
-    {
-        line_bounds(atlas, line, align, state);
-
-        state.current_x = 0.0f;
-        state.current_y += m_font.info().line_height;
-    }
+    state.lowest_x = std::floor(state.lowest_x);
+    state.lowest_y = std::floor(state.lowest_y);
+    state.greatest_x = std::ceil(state.greatest_x);
+    state.greatest_y = std::ceil(state.greatest_y);
 
     const auto text_width{static_cast<std::uint32_t>(state.greatest_x - state.lowest_x)};
     const auto text_height{static_cast<std::uint32_t>(state.greatest_y - state.lowest_y)};
 
-    return text_bounds{text_width, text_height};*/
+    return text_bounds{text_width, text_height};
 }
 
 text text_drawer::draw(std::string_view string, std::uint32_t line_width)
@@ -347,15 +303,17 @@ text text_drawer::draw(std::string_view string, std::uint32_t line_width)
 
     for(auto&& [line, _] : split(state.codepoints, U'\n'))
     {
-        draw_line(line, state);
-
-        state.x = 0.0f;
-        state.y += font.info().line_height;
+        draw(line, state);
     }
 
     state.vertices.insert(std::end(state.vertices), std::begin(state.lines), std::end(state.lines));
 
-    const vec3f shift{-std::floor(state.lowest_x), -std::floor(state.lowest_y), 0.0f};
+    state.lowest_x = std::floor(state.lowest_x);
+    state.lowest_y = std::floor(state.lowest_y);
+    state.greatest_x = std::ceil(state.greatest_x);
+    state.greatest_y = std::ceil(state.greatest_y);
+
+    const vec3f shift{-state.lowest_x, -state.lowest_y, 0.0f};
     for(auto& vertex : state.vertices)
     {
         vertex.position += shift;
@@ -458,7 +416,59 @@ float text_drawer::choose_space() noexcept
     }
 }
 
-void text_drawer::draw_line(std::u32string_view line, draw_line_state& state)
+void text_drawer::bounds(std::u32string_view line, draw_line_state& state)
+{
+    switch(m_align)
+    {
+        case text_align::left:
+            [[fallthrough]];
+
+        case text_align::right:
+            [[fallthrough]];
+
+        case text_align::center:
+            default_bounds(line, state);
+            break;
+
+        case text_align::justify:
+            assert(false && "cpt::text_align::justify is not supported yet");
+            std::terminate();
+    }
+}
+
+void text_drawer::default_bounds(std::u32string_view line, draw_line_state& state)
+{
+    const bool  underlined {static_cast<bool>(m_style & text_style::underlined)};
+    const float line_height{state.font.info().underline_thickness};
+    const float underline_y{state.font.info().underline_position};
+
+    state.lowest_x = static_cast<float>(state.line_width);
+
+    line_bbox_info bbox{.remainder = line};
+
+    do
+    {
+        bbox = line_bbox(state.font, bbox.remainder, state.base_key, state.space, state.line_width);
+
+        state.lowest_x = std::min(state.lowest_x, bbox.lowest_x);
+        state.lowest_y = std::min(state.lowest_y, state.y + bbox.lowest_y);
+        state.greatest_x = std::max(state.greatest_x, bbox.greatest_x);
+
+        if(underlined)
+        {
+            state.greatest_y = std::max(state.greatest_y, state.y + bbox.greatest_y + underline_y + line_height);
+        }
+        else
+        {
+            state.greatest_y = std::max(state.greatest_y, state.y + bbox.greatest_y);
+        }
+
+        state.y += state.font.info().line_height;
+
+    } while(!std::empty(bbox.line) && !std::empty(bbox.remainder));
+}
+
+void text_drawer::draw(std::u32string_view line, draw_line_state& state)
 {
     switch(m_align)
     {
@@ -562,6 +572,9 @@ void text_drawer::draw_left_aligned(std::u32string_view line, draw_line_state& s
     {
         add_quad(state.lines, 0.0f, state.y - strike_y - line_height, line_width, line_height, m_color, m_line_filler, state.texture_size);
     }
+
+    state.x = 0.0f;
+    state.y += state.font.info().line_height;
 }
 
 void text_drawer::draw_right_aligned(std::u32string_view line, draw_line_state& state)
@@ -605,6 +618,9 @@ void text_drawer::draw_right_aligned(std::u32string_view line, draw_line_state& 
         }
 
         state.lowest_x = std::min(state.lowest_x, shift);
+
+        state.x = 0.0f;
+        state.y += state.font.info().line_height;
     };
 
     for(auto&& [word, _] : split(line, U' '))
@@ -613,9 +629,6 @@ void text_drawer::draw_right_aligned(std::u32string_view line, draw_line_state& 
         if(state.x + word_width(state.font, word, state.base_key, last, shift).width > state.line_width)
         {
             do_shift(begin, count, lowest_x, greatest_x);
-
-            state.x = 0.0f;
-            state.y += state.font.info().line_height;
 
             begin = std::size(state.vertices);
             count = 0;
@@ -736,6 +749,8 @@ void text_drawer::draw_center_aligned(std::u32string_view line, draw_line_state&
         last = 0;
 
     } while(!std::empty(line_info.line) && !std::empty(line_info.remainder));
+
+    state.x = 0.0f;
 }
 
 void text_drawer::draw_justify_aligned(std::u32string_view line, draw_line_state& state)
@@ -814,71 +829,29 @@ void text_drawer::draw_justify_aligned(std::u32string_view line, draw_line_state
         last = 0;
 
     } while(!std::empty(line_info.line) && !std::empty(line_info.remainder));
+
+    state.x = 0.0f;
 }
 
-void text_drawer::line_bounds(std::u32string_view line, draw_line_state& state)
+void text_drawer::add_underline(float line_width, draw_line_state& state)
 {
-    switch(m_align)
-    {
-        case text_align::left:
-            [[fallthrough]];
+    const float line_height{state.font.info().underline_thickness};
+    const float underline_y{state.font.info().underline_position};
 
-        case text_align::right:
-            [[fallthrough]];
+    const float y     {state.y + underline_y};
+    const auto& glyph {load_line_filler(state.font, adjust(m_adjustment, y))};
 
-        case text_align::center:
-            default_bounds(line, state);
-            break;
+    const vec2f texpos{static_cast<float>(glyph.rect.x), static_cast<float>(glyph.rect.y)};
+    const float height{static_cast<float>(glyph.flipped ? glyph.rect.width : glyph.rect.height)};
 
-        case text_align::justify:
-            assert(false && "cpt::text_align::justify is not supported yet");
-            std::terminate();
-    }
+    add_line(state.lines, state.x, y, line_width, height, m_underline_color, texpos, state.texture_size, glyph.flipped);
+
+    state.greatest_y = std::max(state.greatest_y, state.y + underline_y + line_height);
 }
 
-void text_drawer::default_bounds(std::u32string_view line, draw_line_state& state)
-{/*
-    codepoint_t last{};
-    for(auto&& [word, _] : split(line, U' '))
-    {
-        const auto shift{state.x - std::floor(state.x)};
-        if(state.x + word_width(word, state.font_size, embolden, last, shift).width > state.line_width)
-        {
-            state.x = 0.0f;
-            state.y += m_font.info().line_height;
-            last = 0;
-        }
+void text_drawer::add_strikeline(float width, draw_line_state& state)
+{
 
-        for(const auto codepoint : word)
-        {
-            const auto  key  {make_key(codepoint, state.font_size, adjust(m_adjustment, state.x), embolden, italic)};
-            const auto& glyph{load(key, true)};
-
-            const vec2f texpos{static_cast<float>(glyph.rect.x), static_cast<float>(glyph.rect.y)};
-            const float width {static_cast<float>(glyph.flipped ? glyph.rect.height : glyph.rect.width)};
-            const float height{static_cast<float>(glyph.flipped ? glyph.rect.width : glyph.rect.height)};
-
-            if(width > 0.0f)
-            {
-                const vec2f kerning{get_kerning(last, codepoint)};
-                const float x_padding{last != 0 ? glyph.origin.x() + kerning.x() : 0.0f};
-
-                const float x{state.x + x_padding};
-                const float y{state.y + glyph.origin.y() + kerning.y()};
-
-                state.lowest_x = std::min(state.lowest_x, x);
-                state.lowest_y = std::min(state.lowest_y, y);
-                state.greatest_x = std::max(state.greatest_x, x + width);
-                state.greatest_y = std::max(state.greatest_y, y + height);
-            }
-
-            state.x += glyph.advance;
-            last = codepoint;
-        }
-
-        state.x += m_space;
-        last = U' ';
-    }*/
 }
 
 const text_drawer::glyph_info& text_drawer::load(cpt::font& font, std::uint64_t key, bool deferred)
@@ -978,6 +951,84 @@ const text_drawer::glyph_info& text_drawer::load(cpt::font& font, std::uint64_t 
     return it->second;
 }
 
+const text_drawer::glyph_info& text_drawer::load_line_filler(cpt::font& font, float shift)
+{
+    const auto outline     {static_cast<std::uint64_t>(m_outline * 64.0f)};
+    const auto adjustment  {adjust(m_adjustment, shift)};
+
+    const auto key{make_key(line_filler_codepoint, font.info().size, outline, adjustment, false, false)};
+    const auto it {m_glyphs.find(key)};
+
+    if(it == std::end(m_glyphs))
+    {
+        const auto line     {std::max(font.info().underline_thickness, 0.25f)};
+
+        const auto upshift  {adjustment / 64.0f};
+        const auto fheight  {upshift + line};
+        const auto downsifht{adjust(m_adjustment, fheight - std::floor(fheight)) / 64.0f};
+        const auto height   {static_cast<std::uint32_t>(std::ceil(fheight))};
+
+        stack_memory_pool<128> pool{};
+        auto glyph{make_stack_vector<std::uint8_t>(pool)};
+
+        //Generate line image
+        if(m_format == glyph_format::color)
+        {
+            glyph.reserve(4 * height);
+            std::fill(std::begin(glyph), std::end(glyph), 255);
+
+            glyph[3] = static_cast<std::uint8_t>((1.0f - upshift) * 255.0f); //top
+
+            const auto limit{static_cast<std::ptrdiff_t>(height) - 1};
+            for(std::ptrdiff_t i{1}; i < limit; ++i) //middle
+            {
+                glyph[4 * i + 3] = 255;
+            }
+
+            if(height > 1) //bottom
+            {
+                glyph.back() = static_cast<std::uint8_t>(downsifht * 255.0f);
+            }
+        }
+        else
+        {
+            glyph.reserve(height);
+
+            glyph.front() = static_cast<std::uint8_t>((1.0f - upshift) * 255.0f); //top
+
+            const auto limit{static_cast<std::ptrdiff_t>(height) - 1};
+            for(std::ptrdiff_t i{1}; i < limit; ++i) //middle
+            {
+                glyph[i] = 255;
+            }
+
+            if(height > 1) //bottom
+            {
+                glyph.back() = static_cast<std::uint8_t>(downsifht * 255.0f);
+            }
+        }
+
+        glyph_info info{};
+
+        const auto rect{m_atlas->add_glyph(glyph, 1, height)};
+        if(!rect)
+        {
+            throw full_font_atlas{};
+        }
+
+        info.rect = rect.value();
+
+        if(rect->width != 1)
+        {
+            info.flipped = true;
+        }
+
+        return m_glyphs.emplace(key, info).first->second;
+    }
+
+    return it->second;
+}
+
 text_drawer::word_width_info text_drawer::word_width(cpt::font& font, std::u32string_view word, std::uint64_t base_key, codepoint_t last, float base_shift)
 {
     float current_x{base_shift};
@@ -1025,10 +1076,9 @@ text_drawer::line_width_info text_drawer::line_width(cpt::font& font, std::u32st
             break;
         }
 
-        current_x += word_info.advance;
-        greatest_x = current_x;
+        greatest_x = current_x + word_info.width;
 
-        current_x += space;
+        current_x += word_info.advance + space;
         last = U' ';
         output.remainder = remainder;
     }
@@ -1043,6 +1093,81 @@ text_drawer::line_width_info text_drawer::line_width(cpt::font& font, std::u32st
     }
 
     output.width = greatest_x;
+
+    return output;
+}
+
+text_drawer::word_bbox_info text_drawer::word_bbox(cpt::font& font, std::u32string_view word, std::uint64_t base_key, codepoint_t last, float base_shift)
+{
+    float current_x{base_shift};
+    word_bbox_info output{base_shift, base_shift, base_shift, base_shift};
+
+    for(const auto codepoint : word)
+    {
+        const vec2f kerning{get_kerning(font, last, codepoint)};
+        const auto  key    {combine_keys(base_key, codepoint, adjust(m_adjustment, current_x + kerning.x()))};
+        const auto& glyph  {load(font, key, true)};
+
+        const float width {static_cast<float>(glyph.flipped ? glyph.rect.height : glyph.rect.width)};
+        const float height{static_cast<float>(glyph.flipped ? glyph.rect.width : glyph.rect.height)};
+
+        if(width > 0.0f)
+        {
+            const float x_padding{last != 0 ? glyph.origin.x() + kerning.x() : 0.0f};
+            const float x{current_x + x_padding};
+            const float y{glyph.origin.y() + kerning.y()};
+
+            output.lowest_x = std::min(output.lowest_x, x);
+            output.lowest_y = std::min(output.lowest_y, y);
+            output.greatest_x = std::max(output.greatest_x, x + width);
+            output.greatest_y = std::max(output.greatest_y, y + height);
+        }
+
+        current_x += glyph.advance;
+        last = codepoint;
+    }
+
+    output.advance = current_x - output.lowest_x;
+
+    return output;
+}
+
+text_drawer::line_bbox_info text_drawer::line_bbox(cpt::font& font, std::u32string_view line, std::uint64_t base_key, float space, float line_width)
+{
+    float current_x{};
+    codepoint_t last{};
+    line_bbox_info output{};
+
+    for(auto&& [word, remainder] : split(line, U' '))
+    {
+        const float shift{current_x - std::floor(current_x)};
+        const auto  bbox {word_bbox(font, word, base_key, last, shift)};
+        const float width{bbox.greatest_x - bbox.lowest_x};
+
+        if(current_x + width > line_width)
+        {
+            break;
+        }
+
+        //lowest_x is 0
+        output.lowest_y = std::min(bbox.lowest_y, output.lowest_y);
+        output.greatest_x = current_x + width;
+        output.greatest_y = std::max(bbox.greatest_y, output.greatest_y);
+
+        current_x += bbox.advance + space;
+
+        last = U' ';
+        output.remainder = remainder;
+    }
+
+    if(!std::empty(output.remainder))
+    {
+        output.line = line.substr(0, std::size(line) - std::size(output.remainder) - 1);
+    }
+    else
+    {
+        output.line = line;
+    }
 
     return output;
 }

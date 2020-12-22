@@ -21,13 +21,6 @@ constexpr std::string_view lorem_ipsum{"AV Lorem ipsum dolor sit amet, consectet
 
 namespace comp = cpt::components;
 
-/*
-    const auto left_bounds_value{drawer.bounds(lorem_ipsum, 320, cpt::text_align::left, cpt::text_style::regular)};
-    const auto left_bounds{world.create()};
-    world.emplace<comp::node>(left_bounds, cpt::vec3f{0.0f, 0.0f, 0.5f});
-    world.emplace<comp::drawable>(left_bounds, std::in_place_type<cpt::sprite>, left_bounds_value.width, left_bounds_value.height, cpt::colors::orange);
-*/
-
 static void setup(entt::registry& world)
 {
     //columns
@@ -52,6 +45,11 @@ static void setup(entt::registry& world)
     drawer.set_style(cpt::text_style::strikethrough | cpt::text_style::underlined);
 
     //Left aligned
+    const auto bounds_left_value{drawer.bounds(lorem_ipsum, 320)};
+    const auto bounds_left{world.create()};
+    world.emplace<comp::node>(bounds_left, cpt::vec3f{0.0f, 0.0f, 0.5f});
+    world.emplace<comp::drawable>(bounds_left, std::in_place_type<cpt::sprite>, bounds_left_value.width, bounds_left_value.height, cpt::colors::orange);
+
     const auto text_left{world.create()};
     world.emplace<comp::node>(text_left, cpt::vec3f{0.0f, 0.0f, 1.0f});
     world.emplace<comp::drawable>(text_left, drawer.draw(lorem_ipsum, 320));
@@ -59,6 +57,11 @@ static void setup(entt::registry& world)
     //Right aligned
     drawer.set_align(cpt::text_align::right);
     drawer.set_style(cpt::text_style::strikethrough | cpt::text_style::underlined | cpt::text_style::bold);
+
+    const auto bounds_right_value{drawer.bounds(lorem_ipsum, 320)};
+    const auto bounds_right{world.create()};
+    world.emplace<comp::node>(bounds_right, cpt::vec3f{640.0f - bounds_right_value.width, 0.0f, 0.5f});
+    world.emplace<comp::drawable>(bounds_right, std::in_place_type<cpt::sprite>, bounds_right_value.width, bounds_right_value.height, cpt::colors::orange);
 
     const auto text_right{world.create()};
     world.emplace<comp::drawable>(text_right, drawer.draw(lorem_ipsum, 320));
@@ -68,6 +71,11 @@ static void setup(entt::registry& world)
     //Center aligned
     drawer.set_align(cpt::text_align::center);
     drawer.set_style(cpt::text_style::strikethrough | cpt::text_style::underlined | cpt::text_style::italic | cpt::text_style::bold);
+
+    const auto bounds_center_value{drawer.bounds(lorem_ipsum, 320)};
+    const auto bounds_center{world.create()};
+    world.emplace<comp::node>(bounds_center, cpt::vec3f{std::floor(640.0f + (320.0f - bounds_center_value.width) / 2.0f), 0.0f, 0.5f});
+    world.emplace<comp::drawable>(bounds_center, std::in_place_type<cpt::sprite>, bounds_center_value.width, bounds_center_value.height, cpt::colors::orange);
 
     const auto text_center{world.create()};
     world.emplace<comp::drawable>(text_center, drawer.draw(lorem_ipsum, 320));

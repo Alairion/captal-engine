@@ -101,6 +101,9 @@ class CAPTAL_API text_drawer
 public:
     static constexpr codepoint_t default_fallback{U'?'};
 
+private:
+    static constexpr codepoint_t line_filler_codepoint{0x110000};
+
 public:
     text_drawer() = default;
     explicit text_drawer(font_set&& fonts, text_drawer_options options = text_drawer_options::none, glyph_format format = glyph_format::gray, const tph::sampling_options& sampling = tph::sampling_options{});
@@ -227,23 +230,50 @@ private:
         std::u32string_view remainder{};
     };
 
+    struct word_bbox_info
+    {
+        float lowest_x{};
+        float greatest_x{};
+        float lowest_y{};
+        float greatest_y{};
+        float advance{};
+    };
+
+    struct line_bbox_info
+    {
+        float lowest_x{};
+        float greatest_x{};
+        float lowest_y{};
+        float greatest_y{};
+        std::u32string_view line{};
+        std::u32string_view remainder{};
+    };
+
 private:
     font_data<float> compute_spaces();
     cpt::font& choose_font() noexcept;
     float choose_space() noexcept;
 
-    void draw_line(std::u32string_view line, draw_line_state& state);
+    void bounds(std::u32string_view line, draw_line_state& state);
+    void default_bounds(std::u32string_view line, draw_line_state& state);
+
+    void draw(std::u32string_view line, draw_line_state& state);
     void draw_left_aligned   (std::u32string_view line, draw_line_state& state);
     void draw_right_aligned  (std::u32string_view line, draw_line_state& state);
     void draw_center_aligned (std::u32string_view line, draw_line_state& state);
     void draw_justify_aligned(std::u32string_view line, draw_line_state& state);
 
-    void line_bounds(std::u32string_view line, draw_line_state& state);
-    void default_bounds(std::u32string_view line, draw_line_state& state);
+    void add_underline(float line_width, draw_line_state& state);
+    void add_strikeline(float line_width, draw_line_state& state);
 
     const glyph_info& load(cpt::font& font, std::uint64_t key, bool deferred = false);
+    const glyph_info& load_line_filler(cpt::font& font, float shift);
+
     word_width_info word_width(cpt::font& font, std::u32string_view word, std::uint64_t base_key, codepoint_t last, float base_shift);
     line_width_info line_width(cpt::font& font, std::u32string_view line, std::uint64_t base_key, float space, float line_width);
+    word_bbox_info  word_bbox (cpt::font& font, std::u32string_view word, std::uint64_t base_key, codepoint_t last, float base_shift);
+    line_bbox_info  line_bbox (cpt::font& font, std::u32string_view line, std::uint64_t base_key, float space, float line_width);
+
     vec2f get_kerning(cpt::font& font, codepoint_t left, codepoint_t right) const noexcept;
 
 private:
