@@ -34,10 +34,10 @@ static void setup(entt::registry& world)
 
     cpt::font_set fonts
     {
-        .regular     = cpt::font{u8"segoeui.ttf" , 32},
-        .italic      = cpt::font{u8"segoeuii.ttf", 32},
-        .bold        = cpt::font{u8"segoeuib.ttf", 32},
-        .italic_bold = cpt::font{u8"segoeuiz.ttf", 32},
+        .regular     = cpt::font{u8"segoeui.ttf" , 19},
+        .italic      = cpt::font{u8"segoeuii.ttf", 19},
+        .bold        = cpt::font{u8"segoeuib.ttf", 19},
+        .italic_bold = cpt::font{u8"segoeuiz.ttf", 19},
     };
 
     cpt::text_drawer drawer{std::move(fonts)};
@@ -85,6 +85,11 @@ static void setup(entt::registry& world)
     //Justify aligned
     drawer.set_align(cpt::text_align::justify);
     drawer.set_style(cpt::text_style::strikethrough | cpt::text_style::underlined | cpt::text_style::italic);
+
+    const auto bounds_justify_value{drawer.bounds(lorem_ipsum, 320)};
+    const auto bounds_justify{world.create()};
+    world.emplace<comp::node>(bounds_justify, cpt::vec3f{960.0f, 0.0f, 0.5f});
+    world.emplace<comp::drawable>(bounds_justify, std::in_place_type<cpt::sprite>, bounds_justify_value.width, bounds_justify_value.height, cpt::colors::orange);
 
     const auto text_justify{world.create()};
     world.emplace<comp::drawable>(text_justify, drawer.draw(lorem_ipsum, 320));

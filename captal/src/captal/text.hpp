@@ -260,7 +260,8 @@ private:
     float choose_space() noexcept;
 
     void bounds(std::u32string_view line, draw_line_state& state);
-    void default_bounds(std::u32string_view line, draw_line_state& state);
+    void bounds_default(std::u32string_view line, draw_line_state& state);
+    void bounds_justify(std::u32string_view line, draw_line_state& state);
 
     void draw(std::u32string_view line, draw_line_state& state);
     void draw_left_aligned   (std::u32string_view line, draw_line_state& state);

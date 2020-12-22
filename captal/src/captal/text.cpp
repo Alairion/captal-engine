@@ -427,20 +427,23 @@ void text_drawer::bounds(std::u32string_view line, draw_line_state& state)
             [[fallthrough]];
 
         case text_align::center:
-            default_bounds(line, state);
+            bounds_default(line, state);
             break;
 
         case text_align::justify:
-            assert(false && "cpt::text_align::justify is not supported yet");
-            std::terminate();
+            bounds_justify(line, state);
+            break;
     }
 }
 
-void text_drawer::default_bounds(std::u32string_view line, draw_line_state& state)
+void text_drawer::bounds_default(std::u32string_view line, draw_line_state& state)
 {
-    const bool  underlined {static_cast<bool>(m_style & text_style::underlined)};
+    const bool underlined   {static_cast<bool>(m_style & text_style::underlined)};
+    const bool strikethrough{static_cast<bool>(m_style & text_style::strikethrough)};
+
     const float line_height{state.font.info().underline_thickness};
     const float underline_y{state.font.info().underline_position};
+    const float strikeout_y{state.font.info().strikeout_position};
 
     state.lowest_x = static_cast<float>(state.line_width);
 
@@ -452,7 +455,61 @@ void text_drawer::default_bounds(std::u32string_view line, draw_line_state& stat
 
         state.lowest_x = std::min(state.lowest_x, bbox.lowest_x);
         state.lowest_y = std::min(state.lowest_y, state.y + bbox.lowest_y);
+
+        if(strikethrough)
+        {
+            state.lowest_y = std::min(state.lowest_y, state.y - strikeout_y - (line_height / 2.0f));
+        }
+
         state.greatest_x = std::max(state.greatest_x, bbox.greatest_x);
+
+        if(underlined)
+        {
+            state.greatest_y = std::max(state.greatest_y, state.y + bbox.greatest_y + underline_y + line_height);
+        }
+        else
+        {
+            state.greatest_y = std::max(state.greatest_y, state.y + bbox.greatest_y);
+        }
+
+        state.y += state.font.info().line_height;
+
+    } while(!std::empty(bbox.line) && !std::empty(bbox.remainder));
+}
+
+void text_drawer::bounds_justify(std::u32string_view line, draw_line_state& state)
+{
+    const bool underlined   {static_cast<bool>(m_style & text_style::underlined)};
+    const bool strikethrough{static_cast<bool>(m_style & text_style::strikethrough)};
+
+    const float line_height{state.font.info().underline_thickness};
+    const float underline_y{state.font.info().underline_position};
+    const float strikeout_y{state.font.info().strikeout_position};
+
+    state.lowest_x = static_cast<float>(state.line_width);
+
+    line_bbox_info bbox{.remainder = line};
+
+    do
+    {
+        bbox = line_bbox(state.font, bbox.remainder, state.base_key, state.space, state.line_width);
+
+        state.lowest_x = std::min(state.lowest_x, bbox.lowest_x);
+        state.lowest_y = std::min(state.lowest_y, state.y + bbox.lowest_y);
+
+        if(strikethrough)
+        {
+            state.lowest_y = std::min(state.lowest_y, state.y - strikeout_y - (line_height / 2.0f));
+        }
+
+        if(std::empty(bbox.remainder))
+        {
+            state.greatest_x = std::max(state.greatest_x, bbox.greatest_x);
+        }
+        else
+        {
+            state.greatest_x = std::max(state.greatest_x, state.line_width);
+        }
 
         if(underlined)
         {
@@ -841,7 +898,7 @@ void text_drawer::add_strikeline(float line_width, draw_line_state& state)
     const float line_height{state.font.info().underline_thickness};
     const float strikeout_y{state.font.info().strikeout_position};
 
-    const float y    {state.y - strikeout_y - line_height};
+    const float y    {state.y - strikeout_y - (line_height / 2.0f)};
     const auto& glyph{load_line_filler(state.font, state.base_key, y)};
 
     const vec2f texpos{static_cast<float>(glyph.rect.x), static_cast<float>(glyph.rect.y)};

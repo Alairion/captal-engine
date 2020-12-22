@@ -742,7 +742,17 @@ void font::resize(std::uint32_t pixels_size)
         m_info.line_height = std::floor(FT_MulFix(face->height, face->size->metrics.y_scale) / 64.0f);
         m_info.underline_position = -FT_MulFix(face->underline_position, face->size->metrics.y_scale) / 64.0f;
         m_info.underline_thickness = FT_MulFix(face->underline_thickness, face->size->metrics.y_scale) / 64.0f;
-        m_info.strikeout_position = static_cast<float>(m_info.size / 4);
+
+        const auto x_glyph{load_no_render(U'x')};
+
+        if(x_glyph)
+        {
+            m_info.strikeout_position = x_glyph->height / 2.0f;
+        }
+        else
+        {
+            m_info.strikeout_position = m_info.size / 3.0f;
+        }
     }
 }
 
