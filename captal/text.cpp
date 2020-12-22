@@ -34,10 +34,10 @@ static void setup(entt::registry& world)
 
     cpt::font_set fonts
     {
-        .regular     = cpt::font{u8"segoeui.ttf" , 19},
-        .italic      = cpt::font{u8"segoeuii.ttf", 19},
-        .bold        = cpt::font{u8"segoeuib.ttf", 19},
-        .italic_bold = cpt::font{u8"segoeuiz.ttf", 19},
+        .regular     = cpt::font{u8"segoeui.ttf" , 21},
+        .italic      = cpt::font{u8"segoeuii.ttf", 21},
+        .bold        = cpt::font{u8"segoeuib.ttf", 21},
+        .italic_bold = cpt::font{u8"segoeuiz.ttf", 21},
     };
 
     cpt::text_drawer drawer{std::move(fonts)};

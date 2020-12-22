@@ -69,7 +69,7 @@ enum class text_drawer_options : std::uint32_t
     no_kerning = 0x01
 };
 
-enum class text_subpixel_adjustment : std::uint32_t
+enum class subpixel_adjustment : std::uint32_t
 {
     x1 = 0,  //1  step  of width 1.0px
     x2 = 1,  //2  steps of width 0.5px
@@ -126,9 +126,14 @@ public:
         m_options = options;
     }
 
-    void set_adjustement(text_subpixel_adjustment adjustment) noexcept
+    void set_adjustement(subpixel_adjustment adjustment) noexcept
     {
         m_adjustment = adjustment;
+    }
+
+    void set_line_adjustement(subpixel_adjustment adjustment) noexcept
+    {
+        m_line_adjustment = adjustment;
     }
 
     void set_style(text_style style) noexcept
@@ -267,7 +272,7 @@ private:
     void add_strikeline(float line_width, draw_line_state& state);
 
     const glyph_info& load(cpt::font& font, std::uint64_t key, bool deferred = false);
-    const glyph_info& load_line_filler(cpt::font& font, float shift);
+    const glyph_info& load_line_filler(cpt::font& font, std::uint64_t base_key, float shift);
 
     word_width_info word_width(cpt::font& font, std::u32string_view word, std::uint64_t base_key, codepoint_t last, float base_shift);
     line_width_info line_width(cpt::font& font, std::u32string_view line, std::uint64_t base_key, float space, float line_width);
@@ -282,7 +287,8 @@ private:
     tph::sampling_options m_sampling{};
 
     text_drawer_options m_options{};
-    text_subpixel_adjustment m_adjustment{cpt::text_subpixel_adjustment::x2};
+    subpixel_adjustment m_adjustment{cpt::subpixel_adjustment::x2};
+    subpixel_adjustment m_line_adjustment{cpt::subpixel_adjustment::x4};
     codepoint_t m_fallback{default_fallback};
     text_style m_style{text_style::regular};
     vec4f m_color{1.0f, 1.0f, 1.0f, 1.0f};

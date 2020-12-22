@@ -134,7 +134,7 @@ static std::uint64_t combine_keys(std::uint64_t base, codepoint_t codepoint, std
 
 static constexpr std::array adjustment_steps{1.0f, 0.5f, 0.25f, 0.125f, 0.0625f, 0.03125f, 0.015625f};
 
-static std::uint64_t adjust(text_subpixel_adjustment adjustment, float x) noexcept
+static std::uint64_t adjust(subpixel_adjustment adjustment, float x) noexcept
 {
     const float padding{x - std::floor(x)};
     const float step{adjustment_steps[static_cast<std::uint32_t>(adjustment)]};
@@ -167,9 +167,9 @@ static void add_line(std::vector<vertex>& vertices, float x, float y, float widt
     if(flipped)
     {
         vertices.emplace_back(vec3f{x, y, 0.0f}, color, texpos / texsize);
-        vertices.emplace_back(vec3f{x + width, y, 0.0f}, color, vec2f{texpos.x(), texpos.y() + width} / texsize);
-        vertices.emplace_back(vec3f{x + width, y + height, 0.0f}, color, vec2f{texpos.x() + 1.0f, texpos.y() + width} / texsize);
-        vertices.emplace_back(vec3f{x, y + height, 0.0f}, color, vec2f{texpos.x() + 1.0f, texpos.y()} / texsize);
+        vertices.emplace_back(vec3f{x + width, y, 0.0f}, color, vec2f{texpos.x(), texpos.y() + 1.0f} / texsize);
+        vertices.emplace_back(vec3f{x + width, y + height, 0.0f}, color, vec2f{texpos.x() + height, texpos.y() + 1.0f} / texsize);
+        vertices.emplace_back(vec3f{x, y + height, 0.0f}, color, vec2f{texpos.x() + height, texpos.y()} / texsize);
     }
     else
     {
@@ -495,10 +495,6 @@ void text_drawer::draw_left_aligned(std::u32string_view line, draw_line_state& s
     const bool underlined   {static_cast<bool>(m_style & text_style::underlined)};
     const bool strikethrough{static_cast<bool>(m_style & text_style::strikethrough)};
 
-    const float line_height{state.font.info().underline_thickness};
-    const float underline_y{state.font.info().underline_position};
-    const float strike_y   {state.font.info().strikeout_position};
-
     codepoint_t last{};
     float line_width{};
 
@@ -507,19 +503,18 @@ void text_drawer::draw_left_aligned(std::u32string_view line, draw_line_state& s
         const auto shift{state.x - std::floor(state.x)};
         if(state.x + word_width(state.font, word, state.base_key, last, shift).width > state.line_width)
         {
+            state.x = 0.0f;
+
             if(underlined)
             {
-                add_quad(state.lines, 0.0f, state.y + underline_y, line_width, line_height, m_underline_color, m_line_filler, state.texture_size);
-
-                state.greatest_y = std::max(state.greatest_y, state.y + underline_y + line_height);
+                add_underline(line_width, state);
             }
 
             if(strikethrough)
             {
-                add_quad(state.lines, 0.0f, state.y - strike_y - line_height, line_width, line_height, m_color, m_line_filler, state.texture_size);
+                add_strikeline(line_width, state);
             }
 
-            state.x = 0.0f;
             state.y += state.font.info().line_height;
 
             last = 0;
@@ -561,19 +556,18 @@ void text_drawer::draw_left_aligned(std::u32string_view line, draw_line_state& s
         last = U' ';
     }
 
+    state.x = 0.0f;
+
     if(underlined)
     {
-        add_quad(state.lines, 0.0f, state.y + underline_y, line_width, line_height, m_underline_color, m_line_filler, state.texture_size);
-
-        state.greatest_y = std::max(state.greatest_y, state.y + underline_y + line_height);
+        add_underline(line_width, state);
     }
 
     if(strikethrough)
     {
-        add_quad(state.lines, 0.0f, state.y - strike_y - line_height, line_width, line_height, m_color, m_line_filler, state.texture_size);
+        add_strikeline(line_width, state);
     }
 
-    state.x = 0.0f;
     state.y += state.font.info().line_height;
 }
 
@@ -581,10 +575,6 @@ void text_drawer::draw_right_aligned(std::u32string_view line, draw_line_state& 
 {
     const bool underlined   {static_cast<bool>(m_style & text_style::underlined)};
     const bool strikethrough{static_cast<bool>(m_style & text_style::strikethrough)};
-
-    const float line_height{state.font.info().underline_thickness};
-    const float underline_y{state.font.info().underline_position};
-    const float strike_y   {state.font.info().strikeout_position};
 
     state.lowest_x = state.line_width;
     state.greatest_x = state.line_width;
@@ -595,7 +585,7 @@ void text_drawer::draw_right_aligned(std::u32string_view line, draw_line_state& 
     float greatest_x{};
     codepoint_t last{};
 
-    auto do_shift = [this, &state, underlined, strikethrough, line_height, underline_y, strike_y](std::size_t begin, std::size_t count, float lowest_x, float greatest_x) mutable
+    auto do_shift = [this, &state, underlined, strikethrough](std::size_t begin, std::size_t count, float lowest_x, float greatest_x) mutable
     {
         const float width{std::floor(greatest_x - lowest_x)};
         const float shift{state.line_width - width};
@@ -605,16 +595,16 @@ void text_drawer::draw_right_aligned(std::u32string_view line, draw_line_state& 
             vertex.position.x() += shift;
         }
 
+        state.x = shift;
+
         if(underlined)
         {
-            add_quad(state.lines, shift, state.y + underline_y, width, line_height, m_underline_color, m_line_filler, state.texture_size);
-
-            state.greatest_y = std::max(state.greatest_y, state.y + underline_y + line_height);
+            add_underline(width, state);
         }
 
         if(strikethrough)
         {
-            add_quad(state.lines, shift, state.y - strike_y - line_height, width, line_height, m_color, m_line_filler, state.texture_size);
+            add_strikeline(width, state);
         }
 
         state.lowest_x = std::min(state.lowest_x, shift);
@@ -681,10 +671,6 @@ void text_drawer::draw_center_aligned(std::u32string_view line, draw_line_state&
     const bool underlined   {static_cast<bool>(m_style & text_style::underlined)};
     const bool strikethrough{static_cast<bool>(m_style & text_style::strikethrough)};
 
-    const float line_height{state.font.info().underline_thickness};
-    const float underline_y{state.font.info().underline_position};
-    const float strike_y   {state.font.info().strikeout_position};
-
     state.lowest_x = static_cast<float>(state.line_width);
 
     codepoint_t last{};
@@ -733,16 +719,16 @@ void text_drawer::draw_center_aligned(std::u32string_view line, draw_line_state&
             last = U' ';
         }
 
+        state.x = base_x;
+
         if(underlined)
         {
-            add_quad(state.lines, base_x, state.y + underline_y, line_info.width, line_height, m_underline_color, m_line_filler, state.texture_size);
-
-            state.greatest_y = std::max(state.greatest_y, state.y + underline_y + line_height);
+            add_underline(line_info.width, state);
         }
 
         if(strikethrough)
         {
-            add_quad(state.lines, base_x, state.y - strike_y - line_height, line_info.width, line_height, m_color, m_line_filler, state.texture_size);
+            add_strikeline(line_info.width, state);
         }
 
         state.y += state.font.info().line_height;
@@ -758,23 +744,26 @@ void text_drawer::draw_justify_aligned(std::u32string_view line, draw_line_state
     const bool underlined   {static_cast<bool>(m_style & text_style::underlined)};
     const bool strikethrough{static_cast<bool>(m_style & text_style::strikethrough)};
 
-    const float line_height{state.font.info().underline_thickness};
-    const float underline_y{state.font.info().underline_position};
-    const float strike_y   {state.font.info().strikeout_position};
-
     state.lowest_x = static_cast<float>(state.line_width);
 
     codepoint_t last{};
     line_width_info line_info{.remainder = line};
 
+    const auto adjust_space = [&line_info, &state]
+    {
+        if(std::empty(line_info.remainder))
+        {
+            return state.space;
+        }
+
+        const float word_count{static_cast<float>(std::count(std::begin(line_info.line), std::end(line_info.line), U' '))};
+
+        return (state.line_width - line_info.width + state.space * word_count) / word_count;
+    };
+
     do
     {
         line_info = line_width(state.font, line_info.remainder, state.base_key, state.space, state.line_width);
-
-        state.x = 0.0f;
-
-        const float word_count{static_cast<float>(std::count(std::begin(line_info.line), std::end(line_info.line), U' '))};
-        const float adjusted_space{std::empty(line_info.remainder) ? state.space : (state.line_width - line_info.width + state.space * word_count) / word_count};
 
         for(auto&& [word, _] : split(line_info.line, U' '))
         {
@@ -807,30 +796,28 @@ void text_drawer::draw_justify_aligned(std::u32string_view line, draw_line_state
                 last = codepoint;
             }
 
-            state.x += adjusted_space;
+            state.x += adjust_space();
             last = U' ';
         }
+
+        state.x = 0.0f;
 
         if(underlined)
         {
             const float real_width{std::empty(line_info.remainder) ? line_info.width : state.line_width};
-            add_quad(state.lines, 0.0f, state.y + underline_y, real_width, line_height, m_underline_color, m_line_filler, state.texture_size);
-
-            state.greatest_y = std::max(state.greatest_y, state.y + underline_y + line_height);
+            add_underline(real_width, state);
         }
 
         if(strikethrough)
         {
             const float real_width{std::empty(line_info.remainder) ? line_info.width : state.line_width};
-            add_quad(state.lines, 0.0f, state.y - strike_y - line_height, real_width, line_height, m_color, m_line_filler, state.texture_size);
+            add_strikeline(real_width, state);
         }
 
         state.y += state.font.info().line_height;
         last = 0;
 
     } while(!std::empty(line_info.line) && !std::empty(line_info.remainder));
-
-    state.x = 0.0f;
 }
 
 void text_drawer::add_underline(float line_width, draw_line_state& state)
@@ -838,20 +825,31 @@ void text_drawer::add_underline(float line_width, draw_line_state& state)
     const float line_height{state.font.info().underline_thickness};
     const float underline_y{state.font.info().underline_position};
 
-    const float y     {state.y + underline_y};
-    const auto& glyph {load_line_filler(state.font, adjust(m_adjustment, y))};
+    const float y    {state.y + underline_y};
+    const auto& glyph{load_line_filler(state.font, state.base_key, y)};
 
     const vec2f texpos{static_cast<float>(glyph.rect.x), static_cast<float>(glyph.rect.y)};
     const float height{static_cast<float>(glyph.flipped ? glyph.rect.width : glyph.rect.height)};
 
-    add_line(state.lines, state.x, y, line_width, height, m_underline_color, texpos, state.texture_size, glyph.flipped);
+    add_line(state.lines, std::floor(state.x), std::floor(y), line_width, height, m_underline_color, texpos, state.texture_size, glyph.flipped);
 
     state.greatest_y = std::max(state.greatest_y, state.y + underline_y + line_height);
 }
 
-void text_drawer::add_strikeline(float width, draw_line_state& state)
+void text_drawer::add_strikeline(float line_width, draw_line_state& state)
 {
+    const float line_height{state.font.info().underline_thickness};
+    const float strikeout_y{state.font.info().strikeout_position};
 
+    const float y    {state.y - strikeout_y - line_height};
+    const auto& glyph{load_line_filler(state.font, state.base_key, y)};
+
+    const vec2f texpos{static_cast<float>(glyph.rect.x), static_cast<float>(glyph.rect.y)};
+    const float height{static_cast<float>(glyph.flipped ? glyph.rect.width : glyph.rect.height)};
+
+    add_line(state.lines, std::floor(state.x), std::floor(y), line_width, height, m_color, texpos, state.texture_size, glyph.flipped);
+
+    state.lowest_y = std::min(state.lowest_y, y);
 }
 
 const text_drawer::glyph_info& text_drawer::load(cpt::font& font, std::uint64_t key, bool deferred)
@@ -951,21 +949,20 @@ const text_drawer::glyph_info& text_drawer::load(cpt::font& font, std::uint64_t 
     return it->second;
 }
 
-const text_drawer::glyph_info& text_drawer::load_line_filler(cpt::font& font, float shift)
+const text_drawer::glyph_info& text_drawer::load_line_filler(cpt::font& font, std::uint64_t base_key, float shift)
 {
-    const auto outline     {static_cast<std::uint64_t>(m_outline * 64.0f)};
-    const auto adjustment  {adjust(m_adjustment, shift)};
+    const auto adjustment{adjust(m_line_adjustment, shift)};
 
-    const auto key{make_key(line_filler_codepoint, font.info().size, outline, adjustment, false, false)};
+    const auto key{combine_keys(base_key, line_filler_codepoint, adjustment)};
     const auto it {m_glyphs.find(key)};
 
     if(it == std::end(m_glyphs))
     {
-        const auto line     {std::max(font.info().underline_thickness, 0.25f)};
+        const auto line{std::max(font.info().underline_thickness, 0.25f)};
 
         const auto upshift  {adjustment / 64.0f};
         const auto fheight  {upshift + line};
-        const auto downsifht{adjust(m_adjustment, fheight - std::floor(fheight)) / 64.0f};
+        const auto downshift{fheight - std::floor(fheight)};
         const auto height   {static_cast<std::uint32_t>(std::ceil(fheight))};
 
         stack_memory_pool<128> pool{};
@@ -974,37 +971,26 @@ const text_drawer::glyph_info& text_drawer::load_line_filler(cpt::font& font, fl
         //Generate line image
         if(m_format == glyph_format::color)
         {
-            glyph.reserve(4 * height);
+            glyph.resize(4 * height);
             std::fill(std::begin(glyph), std::end(glyph), 255);
 
             glyph[3] = static_cast<std::uint8_t>((1.0f - upshift) * 255.0f); //top
 
-            const auto limit{static_cast<std::ptrdiff_t>(height) - 1};
-            for(std::ptrdiff_t i{1}; i < limit; ++i) //middle
-            {
-                glyph[4 * i + 3] = 255;
-            }
-
             if(height > 1) //bottom
             {
-                glyph.back() = static_cast<std::uint8_t>(downsifht * 255.0f);
+                glyph.back() = static_cast<std::uint8_t>(downshift * 255.0f);
             }
         }
         else
         {
-            glyph.reserve(height);
+            glyph.resize(height);
+            std::fill(std::begin(glyph), std::end(glyph), 255);
 
             glyph.front() = static_cast<std::uint8_t>((1.0f - upshift) * 255.0f); //top
 
-            const auto limit{static_cast<std::ptrdiff_t>(height) - 1};
-            for(std::ptrdiff_t i{1}; i < limit; ++i) //middle
-            {
-                glyph[i] = 255;
-            }
-
             if(height > 1) //bottom
             {
-                glyph.back() = static_cast<std::uint8_t>(downsifht * 255.0f);
+                glyph.back() = static_cast<std::uint8_t>(downshift * 255.0f);
             }
         }
 
