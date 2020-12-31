@@ -10,6 +10,21 @@
 namespace cpt
 {
 
+struct full_font_atlas final : std::exception
+{
+    full_font_atlas() noexcept = default;
+    ~full_font_atlas() = default;
+    full_font_atlas(const full_font_atlas&) noexcept = default;
+    full_font_atlas& operator=(const full_font_atlas&) noexcept = default;
+    full_font_atlas(full_font_atlas&& other) noexcept = default;
+    full_font_atlas& operator=(full_font_atlas&& other) noexcept = default;
+
+    const char* what() const noexcept override
+    {
+        return "cpt::font_atlas is full";
+    }
+};
+
 enum class text_style : std::uint32_t
 {
     regular = 0x00,
@@ -36,6 +51,8 @@ public:
     text& operator=(const text&) = delete;
     text(text&& other) noexcept;
     text& operator=(text&& other) noexcept;
+
+    void set_color(const cpt::color& color);
 
     text_bounds bounds() const noexcept
     {

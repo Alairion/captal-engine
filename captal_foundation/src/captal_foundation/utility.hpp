@@ -19,8 +19,8 @@ inline namespace foundation
 template<typename T>
 concept dynamic_contiguous_range = requires(T container, std::size_t count)
 {
-    std::ranges::contiguous_range<T>;
-    std::is_standard_layout_v<std::ranges::range_value_t<T>>;
+    requires std::ranges::contiguous_range<T>;
+    requires std::is_standard_layout_v<std::ranges::range_value_t<T>>;
     container.resize(count);
 };
 

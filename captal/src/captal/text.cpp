@@ -21,8 +21,6 @@
 namespace cpt
 {
 
-struct full_font_atlas{};
-
 text::text(std::span<const std::uint32_t> indices, std::span<const vertex> vertices, std::weak_ptr<font_atlas> atlas, text_bounds bounds)
 :renderable{static_cast<std::uint32_t>(std::size(indices)), static_cast<std::uint32_t>(std::size(vertices))}
 ,m_bounds{bounds}
@@ -54,6 +52,19 @@ text& text::operator=(text&& other) noexcept
     connect();
 
     return *this;
+}
+
+void text::set_color(const cpt::color& color)
+{
+    const auto vertices    {get_vertices()};
+    const auto native_color{static_cast<vec4f>(color)};
+
+    for(auto& vertex : vertices)
+    {
+        vertex.color = native_color;
+    }
+
+    update();
 }
 
 void text::connect()

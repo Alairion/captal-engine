@@ -153,4 +153,8 @@ if(CAPTAL_BUILD_CAPTAL_EXAMPLES)
     add_executable(captal_text text.cpp)
     target_link_libraries(captal_text PRIVATE captal captal_sansation)
     target_include_directories(captal_text PRIVATE ${GLOBAL_INCLUDES})
+
+    add_executable(captal_widgets widgets.cpp)
+    target_link_libraries(captal_widgets PRIVATE captal captal_sansation)
+    target_include_directories(captal_widgets PRIVATE ${GLOBAL_INCLUDES})
 endif()

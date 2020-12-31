@@ -84,7 +84,7 @@ public:
     void close();
 
     frame_time_signal& register_frame_time() override;
-    frame_render_info begin_render() override;
+    frame_render_info  begin_render() override;
     void present() override;
 
     void set_clear_color(const color& color) noexcept

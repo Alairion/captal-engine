@@ -38,8 +38,8 @@ struct window_event
 
     std::uint32_t type{};
     std::uint32_t window{};
-    std::int32_t x{};
-    std::int32_t y{};
+    std::int32_t  x{};
+    std::int32_t  y{};
     std::uint32_t width{};
     std::uint32_t height{};
 };
@@ -65,11 +65,11 @@ struct mouse_event
 
     std::uint32_t type{};
     std::uint32_t window{};
-    std::int32_t x{};
-    std::int32_t y{};
-    mouse_button button{};
+    std::int32_t  x{};
+    std::int32_t  y{};
+    mouse_button  button{};
     std::uint32_t clicks{};
-    std::int32_t wheel{};
+    std::int32_t  wheel{};
 };
 
 enum class scancode : std::uint32_t
@@ -362,7 +362,7 @@ struct keyboard_event
 
     std::uint32_t type{};
     std::uint32_t window{};
-    keycode key{};
+    keycode  key{};
     scancode scan{};
     key_modifier modifiers{};
 };
@@ -376,7 +376,7 @@ struct text_event
 
     std::uint32_t type{};
     std::uint32_t window{};
-    std::string text{};
+    std::string   text{};
 };
 
 using event = std::variant<quit_event, window_event, mouse_event, keyboard_event, text_event>;

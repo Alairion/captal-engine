@@ -44,7 +44,7 @@ static void setup(entt::registry& world)
     drawer.set_color(cpt::colors::black);
     drawer.set_style(cpt::text_style::strikethrough | cpt::text_style::underlined);
 
-    //Left aligned
+    //Left alignement
     const auto bounds_left_value{drawer.bounds(lorem_ipsum, 320)};
     const auto bounds_left{world.create()};
     world.emplace<comp::node>(bounds_left, cpt::vec3f{0.0f, 0.0f, 0.5f});
@@ -54,7 +54,7 @@ static void setup(entt::registry& world)
     world.emplace<comp::node>(text_left, cpt::vec3f{0.0f, 0.0f, 1.0f});
     world.emplace<comp::drawable>(text_left, drawer.draw(lorem_ipsum, 320));
 
-    //Right aligned
+    //Right alignement
     drawer.set_align(cpt::text_align::right);
     drawer.set_style(cpt::text_style::strikethrough | cpt::text_style::underlined | cpt::text_style::bold);
 
@@ -68,7 +68,7 @@ static void setup(entt::registry& world)
     const auto right_width{world.get<comp::drawable>(text_right).get<cpt::text>().width()};
     world.emplace<comp::node>(text_right, cpt::vec3f{640.0f - right_width, 0.0f, 1.0f});
 
-    //Center aligned
+    //Center alignement
     drawer.set_align(cpt::text_align::center);
     drawer.set_style(cpt::text_style::strikethrough | cpt::text_style::underlined | cpt::text_style::italic | cpt::text_style::bold);
 
@@ -82,7 +82,7 @@ static void setup(entt::registry& world)
     const auto center_width{world.get<comp::drawable>(text_center).get<cpt::text>().width()};
     world.emplace<comp::node>(text_center, cpt::vec3f{std::floor(640.0f + (320.0f - center_width) / 2.0f), 0.0f, 1.0f});
 
-    //Justify aligned
+    //Justify alignement
     drawer.set_align(cpt::text_align::justify);
     drawer.set_style(cpt::text_style::strikethrough | cpt::text_style::underlined | cpt::text_style::italic);
 
