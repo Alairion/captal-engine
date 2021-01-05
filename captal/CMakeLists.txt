@@ -14,6 +14,7 @@ set(CAPTAL_SOURCES
     src/captal/algorithm.hpp
     src/captal/application.hpp
     src/captal/memory_transfer.hpp
+    src/captal/buffer_pool.hpp
     src/captal/engine.hpp
     src/captal/zlib.hpp
     src/captal/translation.hpp
@@ -61,6 +62,7 @@ set(CAPTAL_SOURCES
     #Sources:
     src/captal/application.cpp
     src/captal/memory_transfer.cpp
+    src/captal/buffer_pool.cpp
     src/captal/engine.cpp
     src/captal/zlib.cpp
     src/captal/translation.cpp

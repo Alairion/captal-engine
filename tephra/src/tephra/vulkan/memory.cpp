@@ -4,6 +4,8 @@
 #include <algorithm>
 #include <functional>
 
+#include <captal_foundation/stack_allocator.hpp>
+
 #include "vulkan_functions.hpp"
 #include "helper.hpp"
 
@@ -534,7 +536,10 @@ memory_heap_chunk memory_allocator::allocate(const VkMemoryRequirements& require
 
     if(!std::empty(m_heaps))
     {
-        std::vector<std::reference_wrapper<memory_heap>> candidates{};
+        stack_memory_pool<512> pool{};
+        auto candidates{make_stack_vector<std::reference_wrapper<memory_heap>>(pool)};
+        candidates.reserve(m_heaps.size());
+
         for(auto& heap : m_heaps)
         {
             if(!heap->dedicated() && heap->type() == memory_type && heap->free_space() > align_up(requirements.size, m_granularity))

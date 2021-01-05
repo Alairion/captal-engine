@@ -20,8 +20,7 @@ enum class image_usage : std::uint32_t
     none = 0,
     transfer_source = VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
     transfer_destination = VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-    host_access = 0x10000000,
-    persistant_mapping = 0x20000000,
+    persistant_mapping = 0x80000000,
 };
 
 struct pixel

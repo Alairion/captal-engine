@@ -68,7 +68,12 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debug_messenger_callback(VkDebugUtilsMessa
     const auto objects{convert_objects(callback_data->objectCount, callback_data->pObjects)};
 
     debug_message_data data{};
-    data.message_name = callback_data->pMessageIdName;
+
+    if(callback_data->pMessageIdName)
+    {
+        data.message_name = callback_data->pMessageIdName;
+    }
+
     data.message_id = callback_data->messageIdNumber;
     data.message = callback_data->pMessage;
     data.queue_labels = std::span<const debug_label>{queues};
@@ -170,7 +175,7 @@ void debug_messenger_default_callback(debug_message_severity severity, debug_mes
             case object_type::debug_report_callback:     return "debug_report_callback";
             case object_type::debug_messenger:           return "debug_messenger";
             default: return "unknown";
-        };
+        }
     };
 
     const auto format_message = [format_color, format_object_type](const debug_message_data& data) -> std::string

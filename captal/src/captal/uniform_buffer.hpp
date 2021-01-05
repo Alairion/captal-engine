@@ -33,15 +33,7 @@ class CAPTAL_API uniform_buffer : public asynchronous_resource
 {
 public:
     uniform_buffer() = default;
-
     explicit uniform_buffer(std::vector<buffer_part> parts);
-
-    template<typename T>
-    explicit uniform_buffer(T&& data)
-    :uniform_buffer{{buffer_part{buffer_part_type::uniform, sizeof(T)}}}
-    {
-        get<T>(0) = std::forward<T>(data);
-    }
 
     ~uniform_buffer() = default;
     uniform_buffer(const uniform_buffer&) = delete;
@@ -63,25 +55,7 @@ public:
         return *std::launder(reinterpret_cast<const T*>(std::data(m_data) + compute_offset(index)));
     }
 
-    std::uint64_t compute_offset(std::size_t index) const noexcept
-    {
-        const std::uint64_t uniform_alignment{uniform_alignement()};
-
-        std::uint64_t offset{};
-        for(std::size_t i{}; i < index; ++i)
-        {
-            if(m_parts[i].type == buffer_part_type::uniform)
-            {
-                offset = align_up(offset, uniform_alignment) + m_parts[i].size;
-            }
-            else
-            {
-                offset += m_parts[i].size;
-            }
-        }
-
-        return offset;
-    }
+    std::uint64_t compute_offset(std::size_t index) const noexcept;
 
     tph::buffer& get_buffer() noexcept
     {
@@ -114,9 +88,6 @@ private:
         bool available{true};
         cpt::scoped_connection connection{};
     };
-
-private:
-    static std::uint64_t uniform_alignement();
 
 private:
     std::uint64_t m_size{};

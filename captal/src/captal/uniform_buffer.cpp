@@ -103,9 +103,24 @@ void uniform_buffer::upload(tph::command_buffer& command_buffer, transfer_ended_
     });
 }
 
-std::uint64_t uniform_buffer::uniform_alignement()
+std::uint64_t uniform_buffer::compute_offset(std::size_t index) const noexcept
 {
-    return engine::instance().graphics_device().limits().min_uniform_buffer_alignment;
+    const std::uint64_t uniform_alignment{engine::instance().graphics_device().limits().min_uniform_buffer_alignment};
+
+    std::uint64_t offset{};
+    for(std::size_t i{}; i < index; ++i)
+    {
+        if(m_parts[i].type == buffer_part_type::uniform)
+        {
+            offset = align_up(offset, uniform_alignment) + m_parts[i].size;
+        }
+        else
+        {
+            offset += m_parts[i].size;
+        }
+    }
+
+    return offset;
 }
 
 #ifdef CAPTAL_DEBUG

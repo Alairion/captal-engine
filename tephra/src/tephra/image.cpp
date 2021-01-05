@@ -24,23 +24,16 @@ namespace tph
 
 using stbi_ptr = std::unique_ptr<stbi_uc, void(*)(void*)>;
 
-static constexpr image_usage not_extension{~(image_usage::host_access | image_usage::persistant_mapping)};
+static constexpr image_usage not_extension{~image_usage::persistant_mapping};
 
 static VkMemoryPropertyFlags optimal_memory_types(image_usage usage)
 {
-    VkMemoryPropertyFlags optimal{VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT};
-
-    if(static_cast<bool>(usage & image_usage::host_access))
+    if(usage == image_usage::transfer_source)
     {
-        return optimal | VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
+        return VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
     }
 
-    if(static_cast<bool>(usage & image_usage::transfer_source) && !static_cast<bool>(usage & image_usage::transfer_destination))
-    {
-        return optimal | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
-    }
-
-    return optimal;
+    return VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
 }
 
 image::image(renderer& renderer, const std::filesystem::path& file, image_usage usage)
@@ -168,7 +161,7 @@ std::vector<std::uint8_t> image::write(image_format format, std::int32_t quality
     const void* input{};
     std::vector<pixel> local_buffer{};
 
-    if(static_cast<bool>(m_usage & image_usage::host_access))
+    if(m_usage != image_usage::transfer_source)
     {
         if(!was_mapped)
         {
