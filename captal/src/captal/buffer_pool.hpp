@@ -28,10 +28,7 @@ public:
     buffer_heap_chunk(buffer_heap_chunk&& other) noexcept;
     buffer_heap_chunk& operator=(buffer_heap_chunk&& other) noexcept;
 
-    void update() noexcept
-    {
-        m_updated = true;
-    }
+    void upload(std::uint64_t offset = 0, std::uint64_t size = std::numeric_limits<std::uint64_t>::max());
 
     void* map() noexcept;
     const void* map() const noexcept;
@@ -66,6 +63,7 @@ private:
 class CAPTAL_API buffer_heap
 {
     friend class buffer_heap_chunk;
+    friend class buffer_pool;
 
 private:
     struct range
@@ -84,9 +82,6 @@ public:
 
     std::optional<buffer_heap_chunk> try_allocate(std::uint64_t size, std::uint64_t alignment);
     buffer_heap_chunk allocate_first(std::uint64_t size);
-
-    void upload_local(tph::command_buffer& command_buffer, transfer_ended_signal& signal);
-    void upload_staging(tph::command_buffer& command_buffer, transfer_ended_signal& signal);
 
     tph::buffer& buffer() noexcept
     {
@@ -124,6 +119,10 @@ public:
     }
 
 private:
+    void upload_local_changes(tph::command_buffer& command_buffer);
+    void upload_staging(tph::command_buffer& command_buffer, transfer_ended_signal& signal);
+
+    void register_upload(std::uint64_t offset, std::uint64_t size) noexcept;
     void unregister_chunk(const buffer_heap_chunk& chunk) noexcept;
 
 private:
@@ -144,6 +143,10 @@ private:
     std::atomic<std::size_t> m_allocation_count{};
     std::vector<range> m_ranges{};
     std::mutex m_mutex{};
+
+    std::vector<tph::buffer_copy> m_upload_ranges{};
+    std::size_t m_current_staging{};
+    std::mutex m_upload_mutex{};
 };
 
 class CAPTAL_API buffer_pool

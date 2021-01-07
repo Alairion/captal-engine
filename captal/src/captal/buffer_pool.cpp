@@ -40,6 +40,11 @@ buffer_heap_chunk& buffer_heap_chunk::operator=(buffer_heap_chunk&& other) noexc
     return *this;
 }
 
+void buffer_heap_chunk::upload(std::uint64_t offset, std::uint64_t size)
+{
+    m_parent->register_upload(m_offset + offset, std::min(size, m_size - offset));
+}
+
 void* buffer_heap_chunk::map() noexcept
 {
     return reinterpret_cast<std::uint8_t*>(m_parent->map()) + m_offset;
@@ -56,7 +61,8 @@ buffer_heap::buffer_heap(std::uint64_t size, tph::buffer_usage usage)
 ,m_size{size}
 ,m_local_map{m_local_data.map()}
 {
-
+    m_ranges.reserve(64);
+    m_upload_ranges.reserve(64);
 }
 
 buffer_heap::~buffer_heap()
@@ -143,37 +149,60 @@ buffer_heap_chunk buffer_heap::allocate_first(std::uint64_t size)
     return buffer_heap_chunk{this, 0, size};
 }
 
-void buffer_heap::upload_local_changes(tph::command_buffer& command_buffer, transfer_ended_signal& signal)
+void buffer_heap::upload_local_changes(tph::command_buffer& command_buffer)
 {
-    std::size_t staging_index{std::numeric_limits<std::size_t>::max()};
+    std::unique_lock lock{m_upload_mutex};
 
-    for(std::size_t i{}; i < std::size(m_stagings); ++i)
+    if(std::size(m_upload_ranges) != 0)
     {
-        if(m_stagings[i].available)
+        m_current_staging = std::numeric_limits<std::size_t>::max();
+
+        for(std::size_t i{}; i < std::size(m_stagings); ++i)
         {
-            staging_index = i;
-            break;
+            if(m_stagings[i].available)
+            {
+                m_current_staging = i;
+                break;
+            }
         }
+
+        if(m_current_staging == std::numeric_limits<std::size_t>::max())
+        {
+            m_stagings.emplace_back(staging_buffer{tph::buffer{engine::instance().renderer(), m_size, tph::buffer_usage::transfer_source}});
+            m_current_staging = std::size(m_stagings) - 1;
+        }
+
+        staging_buffer& staging{m_stagings[m_current_staging]};
+        staging.available = false;
+
+        tph::cmd::copy(command_buffer, m_local_data, staging.buffer, m_upload_ranges);
     }
 
-    if(staging_index == std::numeric_limits<std::size_t>::max())
+    lock.release();
+}
+
+void buffer_heap::upload_staging(tph::command_buffer& command_buffer, transfer_ended_signal& signal)
+{
+    std::unique_lock lock{m_upload_mutex, std::adopt_lock};
+
+    if(std::size(m_upload_ranges) != 0)
     {
-        m_stagings.emplace_back(staging_buffer{tph::buffer{engine::instance().renderer(), m_size, tph::buffer_usage::transfer_source}});
-        staging_index = std::size(m_stagings) - 1;
+        staging_buffer& staging{m_stagings[m_current_staging]};
+
+        tph::cmd::copy(command_buffer, staging.buffer, m_device_data, m_upload_ranges);
+
+        staging.connection = signal.connect([this, index = m_current_staging]()
+        {
+            m_stagings[index].available = true;
+        });
     }
+}
 
-    staging_buffer& buffer{m_stagings[staging_index]};
-    buffer.available = false;
+void buffer_heap::register_upload(std::uint64_t offset, std::uint64_t size) noexcept
+{
+    std::lock_guard lock{m_upload_mutex};
 
-    std::memcpy(buffer.buffer.map(), std::data(m_data), m_size);
-    buffer.buffer.unmap();
-
-    tph::cmd::copy(command_buffer, buffer.buffer, m_device_buffer);
-
-    buffer.connection = signal.connect([this, staging_index]()
-    {
-        m_stagings[staging_index].available = true;
-    });
+    m_upload_ranges.emplace_back(offset, offset, size);
 }
 
 void buffer_heap::unregister_chunk(const buffer_heap_chunk& chunk) noexcept
