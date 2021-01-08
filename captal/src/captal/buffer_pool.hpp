@@ -57,7 +57,6 @@ private:
     buffer_heap* m_parent{};
     std::uint64_t m_offset{};
     std::uint64_t m_size{};
-    bool m_updated{};
 };
 
 class CAPTAL_API buffer_heap
@@ -119,8 +118,9 @@ public:
     }
 
 private:
-    void upload_local_changes(tph::command_buffer& command_buffer);
-    void upload_staging(tph::command_buffer& command_buffer, transfer_ended_signal& signal);
+    void coalesce_upload_ranges();
+    void begin_upload(tph::command_buffer& command_buffer);
+    void end_upload(tph::command_buffer& command_buffer, transfer_ended_signal& signal);
 
     void register_upload(std::uint64_t offset, std::uint64_t size) noexcept;
     void unregister_chunk(const buffer_heap_chunk& chunk) noexcept;
@@ -129,8 +129,8 @@ private:
     struct staging_buffer
     {
         tph::buffer buffer{};
-        bool available{};
-        cpt::scoped_connection connection{};
+        std::uint32_t available{}; //only 4 bits are used
+        std::array<cpt::scoped_connection, 4> connection{};
     };
 
 private:
@@ -146,6 +146,7 @@ private:
 
     std::vector<tph::buffer_copy> m_upload_ranges{};
     std::size_t m_current_staging{};
+    std::uint32_t m_current_mask{};
     std::mutex m_upload_mutex{};
 };
 
