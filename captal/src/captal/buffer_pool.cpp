@@ -281,16 +281,16 @@ void buffer_heap::end_upload(tph::command_buffer& command_buffer, transfer_ended
         std::size_t connection_index{};
         for(std::size_t i{}; i < 4; ++i)
         {
-            if((m_current_mask >> i) & 0x01u)
+            if((m_current_mask >> i) & 0x01)
             {
                 connection_index = i;
                 break;
             }
         }
 
-        staging.connection[] = signal.connect([this, index = m_current_staging, mask = m_current_mask]()
+        staging.connection[connection_index] = signal.connect([this, index = m_current_staging, mask = m_current_mask]()
         {
-            m_stagings[index].used = mask;
+            m_stagings[index].used &= ~mask;
         });
     }
 }
