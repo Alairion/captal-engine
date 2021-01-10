@@ -119,7 +119,7 @@ public:
 
 private:
     void coalesce_upload_ranges();
-    void begin_upload(tph::command_buffer& command_buffer);
+    bool begin_upload(tph::command_buffer& command_buffer);
     void end_upload(tph::command_buffer& command_buffer, transfer_ended_signal& signal);
 
     void register_upload(std::uint64_t offset, std::uint64_t size) noexcept;
@@ -129,7 +129,7 @@ private:
     struct staging_buffer
     {
         tph::buffer buffer{};
-        std::uint32_t available{}; //only 4 bits are used
+        std::uint32_t used{}; //only 4 bits are used
         std::array<cpt::scoped_connection, 4> connection{};
     };
 
@@ -147,6 +147,7 @@ private:
     std::vector<tph::buffer_copy> m_upload_ranges{};
     std::size_t m_current_staging{};
     std::uint32_t m_current_mask{};
+    std::uint32_t m_current_mask_index{};
     std::mutex m_upload_mutex{};
 };
 
@@ -161,11 +162,14 @@ public:
     buffer_pool& operator=(buffer_pool&&) noexcept = delete;
 
     buffer_heap_chunk allocate(std::uint64_t size, std::uint64_t alignment);
+    void upload(tph::command_buffer& command_buffer, transfer_ended_signal& signal);
     void clean();
 
 private:
     tph::buffer_usage m_pool_usage{};
     std::uint64_t m_pool_size{};
+
+    std::vector<bool> m_to_end{};
     std::vector<std::unique_ptr<buffer_heap>> m_heaps{};
     mutable std::mutex m_mutex{};
 };

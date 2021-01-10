@@ -179,9 +179,9 @@ ForwardIt coalesce(ForwardIt begin, ForwardIt end)
 
     while(++begin != end)
     {
-        if(last->destination_offset + last->size >= begin->destination_offset) //Overlaping or contiguous
+        if(last->source_offset + last->size >= begin->source_offset) //Overlaping or contiguous
         {
-            last->size = std::max(begin->destination_offset + begin->size - last->destination_offset, last->size);
+            last->size = std::max(begin->source_offset + begin->size - last->source_offset, last->size);
         }
         else
         {
@@ -195,112 +195,119 @@ ForwardIt coalesce(ForwardIt begin, ForwardIt end)
     return result;
 }
 
-void buffer_heap::begin_upload(tph::command_buffer& command_buffer)
+bool buffer_heap::begin_upload(tph::command_buffer& command_buffer)
 {
     std::unique_lock lock{m_upload_mutex};
 
-    if(std::size(m_upload_ranges) != 0)
+    if(std::empty(m_upload_ranges))
     {
-        const auto sort_predicate = [](const tph::buffer_copy& left, const tph::buffer_copy& right)
-        {
-            return left.destination_offset < right.destination_offset;
-        };
-
-        std::sort(std::begin(m_upload_ranges), std::end(m_upload_ranges), sort_predicate);
-        m_upload_ranges.erase(coalesce(std::begin(m_upload_ranges), std::end(m_upload_ranges)), std::end(m_upload_ranges));
-
-        const auto accumulator = [](std::uint64_t left, tph::buffer_copy& right)
-        {
-            right.source_offset = left; //Write the range offset in staging
-
-            return left + right.size;
-        };
-
-        const std::uint64_t total_size {std::accumulate(std::begin(m_upload_ranges), std::end(m_upload_ranges), 0ull, accumulator)};
-        const std::uint64_t chunk_size {m_size / 4};
-        const std::uint64_t chunk_count{(total_size + chunk_size) / chunk_size};
-        const std::uint64_t chunk_mask {(1u << chunk_count) - 1u};
-
-        const auto find_staging = [this, chunk_mask]
-        {
-            for(std::size_t i{}; i < std::size(m_stagings); ++i)
-            {
-                for(std::uint64_t mask{chunk_mask}; mask < 0x10; mask <<= 1)
-                {
-                    if((m_stagings[i].used & mask) == 0)
-                    {
-                        return std::make_pair(i, mask);
-                    }
-                }
-            }
-
-            return std::make_pair(std::numeric_limits<std::size_t>::max(), std::uint64_t{});
-        };
-
-        const auto [staging_index, mask] = find_staging();
-
-        if(staging_index != std::numeric_limits<std::size_t>::max())
-        {
-            m_current_staging = staging_index;
-            m_current_mask = mask;
-        }
-        else
-        {
-            constexpr auto usage{tph::buffer_usage::transfer_source | tph::buffer_usage::transfer_destination};
-
-            m_stagings.emplace_back(staging_buffer{tph::buffer{engine::instance().renderer(), m_size, usage}});
-
-            m_current_staging = std::size(m_stagings) - 1;
-            m_current_mask = chunk_mask;
-        }
-
-        staging_buffer& staging{m_stagings[m_current_staging]};
-        staging.used |= m_current_mask;
-
-        tph::cmd::copy(command_buffer, m_local_data, staging.buffer, m_upload_ranges);
+        return false;
     }
 
+    const auto sort_predicate = [](const tph::buffer_copy& left, const tph::buffer_copy& right)
+    {
+        return left.source_offset < right.source_offset;
+    };
+
+    std::sort(std::begin(m_upload_ranges), std::end(m_upload_ranges), sort_predicate);
+    m_upload_ranges.erase(coalesce(std::begin(m_upload_ranges), std::end(m_upload_ranges)), std::end(m_upload_ranges));
+
+    const auto accumulator = [](std::uint64_t left, tph::buffer_copy& right)
+    {
+        return left + right.size;
+    };
+
+    const std::uint64_t total_size {std::accumulate(std::begin(m_upload_ranges), std::end(m_upload_ranges), 0ull, accumulator)};
+    const std::uint64_t chunk_size {m_size / 4};
+    const std::uint64_t chunk_count{(total_size + chunk_size) / chunk_size};
+    const std::uint64_t chunk_mask {(1u << chunk_count) - 1u};
+
+    const auto find_staging = [this, chunk_mask]
+    {
+        for(std::size_t i{}; i < std::size(m_stagings); ++i)
+        {
+            for(std::uint64_t mask{chunk_mask}; mask < 0x10; mask <<= 1)
+            {
+                if((m_stagings[i].used & mask) == 0)
+                {
+                    return std::make_pair(i, mask);
+                }
+            }
+        }
+
+        return std::make_pair(std::numeric_limits<std::size_t>::max(), std::uint64_t{});
+    };
+
+    const auto [staging_index, mask] = find_staging();
+
+    if(staging_index != std::numeric_limits<std::size_t>::max())
+    {
+        m_current_staging = staging_index;
+        m_current_mask = mask;
+
+        for(std::size_t i{}; i < 4; ++i)
+        {
+            if(((m_current_mask >> i) & 0x01) != 0)
+            {
+                m_current_mask_index = i;
+                break;
+            }
+        }
+    }
+    else
+    {
+        constexpr auto usage{tph::buffer_usage::transfer_source | tph::buffer_usage::transfer_destination};
+
+        m_stagings.emplace_back(staging_buffer{tph::buffer{engine::instance().renderer(), m_size, usage}});
+
+        m_current_staging = std::size(m_stagings) - 1;
+        m_current_mask = chunk_mask;
+        m_current_mask_index = 0;
+    }
+
+    std::uint64_t current_offset{chunk_size * m_current_mask_index};
+    for(auto& range : m_upload_ranges)
+    {
+        range.destination_offset = current_offset;
+        current_offset += range.size;
+    }
+
+    staging_buffer& staging{m_stagings[m_current_staging]};
+    staging.used |= m_current_mask;
+
+    tph::cmd::copy(command_buffer, m_local_data, staging.buffer, m_upload_ranges);
+
     lock.release();
+
+    return true;
 }
 
 void buffer_heap::end_upload(tph::command_buffer& command_buffer, transfer_ended_signal& signal)
 {
     std::unique_lock lock{m_upload_mutex, std::adopt_lock};
 
-    if(std::size(m_upload_ranges) != 0)
+    staging_buffer& staging{m_stagings[m_current_staging]};
+
+    for(auto& range : m_upload_ranges)
     {
-        staging_buffer& staging{m_stagings[m_current_staging]};
-
-        for(auto& range : m_upload_ranges)
-        {
-            std::swap(range.source_offset, range.destination_offset);
-        }
-
-        tph::cmd::copy(command_buffer, staging.buffer, m_device_data, m_upload_ranges);
-
-        std::size_t connection_index{};
-        for(std::size_t i{}; i < 4; ++i)
-        {
-            if((m_current_mask >> i) & 0x01)
-            {
-                connection_index = i;
-                break;
-            }
-        }
-
-        staging.connection[connection_index] = signal.connect([this, index = m_current_staging, mask = m_current_mask]()
-        {
-            m_stagings[index].used &= ~mask;
-        });
+        std::swap(range.source_offset, range.destination_offset);
     }
+
+    tph::cmd::copy(command_buffer, staging.buffer, m_device_data, m_upload_ranges);
+
+    staging.connection[m_current_mask_index] = signal.connect([this, index = m_current_staging, mask = m_current_mask]()
+    {
+        m_stagings[index].used &= ~mask;
+    });
 }
 
 void buffer_heap::register_upload(std::uint64_t offset, std::uint64_t size) noexcept
 {
     std::lock_guard lock{m_upload_mutex};
 
-    //Always keep them sorted for fast coalescing
-    m_upload_ranges.emplace_back(0, offset, size);
+    assert(size != 0 && "cpt::buffer_heap::register_upload called with null size.");
+
+    m_upload_ranges.emplace_back(offset, 0, size);
 }
 
 void buffer_heap::unregister_chunk(const buffer_heap_chunk& chunk) noexcept
@@ -336,6 +343,7 @@ buffer_heap_chunk buffer_pool::allocate(std::uint64_t size, std::uint64_t alignm
         auto chunk{heap->allocate_first(size)};
 
         std::lock_guard lock{m_mutex};
+        m_to_end.emplace_back();
         m_heaps.emplace_back(std::move(heap));
 
         return chunk;
@@ -378,7 +386,27 @@ buffer_heap_chunk buffer_pool::allocate(std::uint64_t size, std::uint64_t alignm
         }
     }
 
+    m_to_end.emplace_back();
     return m_heaps.emplace_back(std::make_unique<buffer_heap>(size, m_pool_usage))->allocate_first(size);
+}
+
+void buffer_pool::upload(tph::command_buffer& command_buffer, transfer_ended_signal& signal)
+{
+    for(std::size_t i{}; i < std::size(m_heaps); ++i)
+    {
+        m_to_end[i] = m_heaps[i]->begin_upload(command_buffer);
+    }
+
+    tph::cmd::pipeline_barrier(command_buffer, tph::resource_access::transfer_write, tph::resource_access::transfer_read,
+                                               tph::pipeline_stage::transfer, tph::pipeline_stage::transfer);
+
+    for(std::size_t i{}; i < std::size(m_heaps); ++i)
+    {
+        if(m_to_end[i])
+        {
+            m_heaps[i]->end_upload(command_buffer, signal);
+        }
+    }
 }
 
 void buffer_pool::clean()
