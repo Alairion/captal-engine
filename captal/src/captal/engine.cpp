@@ -39,6 +39,7 @@ engine::engine(const std::string& application_name, cpt::version version)
 ,m_graphics_device{m_application.graphics_application().default_physical_device()}
 ,m_renderer{m_graphics_device, graphics_layers, graphics_extensions}
 ,m_transfer_scheduler{m_renderer}
+,m_uniform_pool{tph::buffer_usage::uniform | tph::buffer_usage::vertex | tph::buffer_usage::index}
 {
     init();
 }
@@ -120,6 +121,7 @@ engine::engine(cpt::application application, const system_parameters& system [[m
 ,m_graphics_device{default_graphics_device(m_application.graphics_application(), graphics)}
 ,m_renderer{m_graphics_device, graphics_layers | graphics.layers, graphics_extensions | graphics.extensions, graphics.features, graphics.options}
 ,m_transfer_scheduler{m_renderer}
+,m_uniform_pool{tph::buffer_usage::uniform | tph::buffer_usage::vertex | tph::buffer_usage::index}
 {
     init();
 }
@@ -213,6 +215,8 @@ void engine::init()
 
     if constexpr(debug_enabled)
     {
+        m_uniform_pool.set_name("cpt::engine's uniform pool");
+
         //Display initialization info
         const auto format_power_state = [](apr::power_state state) -> std::string_view
         {

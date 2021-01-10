@@ -413,6 +413,12 @@ buffer_heap_chunk buffer_pool::allocate(std::uint64_t size, std::uint64_t alignm
 
 void buffer_pool::upload(tph::command_buffer& command_buffer, transfer_ended_signal& signal)
 {
+    std::lock_guard lock{m_mutex};
+
+    #ifdef CAPTAL_DEBUG
+    tph::cmd::begin_label(command_buffer, m_name + " transfer", 0.961f, 0.961f, 0.863f, 1.0f);
+    #endif
+
     for(std::size_t i{}; i < std::size(m_heaps); ++i)
     {
         m_to_end[i] = m_heaps[i]->begin_upload(command_buffer);
@@ -428,6 +434,10 @@ void buffer_pool::upload(tph::command_buffer& command_buffer, transfer_ended_sig
             m_heaps[i]->end_upload(command_buffer, signal);
         }
     }
+
+    #ifdef CAPTAL_DEBUG
+    tph::cmd::end_label(command_buffer);
+    #endif
 }
 
 void buffer_pool::upload()

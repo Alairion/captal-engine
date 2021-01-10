@@ -16,9 +16,10 @@
 #include "signal.hpp"
 #include "application.hpp"
 #include "render_window.hpp"
+#include "memory_transfer.hpp"
+#include "buffer_pool.hpp"
 #include "texture.hpp"
 #include "translation.hpp"
-#include "memory_transfer.hpp"
 #include "font.hpp"
 
 namespace cpt
@@ -227,6 +228,7 @@ private:
     const tph::physical_device& m_graphics_device;
     tph::renderer m_renderer;
     memory_transfer_scheduler m_transfer_scheduler;
+    buffer_pool m_uniform_pool;
 
     std::mutex m_queue_mutex{};
     tph::shader m_default_vertex_shader{};
