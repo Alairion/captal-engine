@@ -171,6 +171,23 @@ ForwardIt unique(ForwardIt first, ForwardIt last)
 }
 */
 
+#ifdef CAPTAL_DEBUG
+void buffer_heap::set_name(std::string_view name)
+{
+    std::unique_lock lock{m_upload_mutex};
+
+    m_name = name;
+
+    tph::set_object_name(engine::instance().renderer(), m_local_data, m_name + " host buffer");
+    tph::set_object_name(engine::instance().renderer(), m_device_data, m_name + " device buffer");
+
+    for(std::size_t i{}; i < std::size(m_stagings); ++i)
+    {
+        tph::set_object_name(engine::instance().renderer(), m_stagings[i].buffer, m_name + " staging buffer #" + std::to_string(i));
+    }
+}
+#endif
+
 template<std::forward_iterator ForwardIt>
 ForwardIt coalesce(ForwardIt begin, ForwardIt end)
 {
@@ -260,6 +277,13 @@ bool buffer_heap::begin_upload(tph::command_buffer& command_buffer)
 
         m_stagings.emplace_back(staging_buffer{tph::buffer{engine::instance().renderer(), m_size, usage}});
 
+        #ifdef CAPTAL_DEBUG
+        if(!std::empty(m_name))
+        {
+            tph::set_object_name(engine::instance().renderer(), m_stagings.back().buffer, m_name + " staging buffer #" + std::to_string(std::size(m_stagings) - 1));
+        }
+        #endif
+
         m_current_staging = std::size(m_stagings) - 1;
         m_current_mask = chunk_mask;
         m_current_mask_index = 0;
@@ -342,6 +366,13 @@ buffer_heap_chunk buffer_pool::allocate(std::uint64_t size, std::uint64_t alignm
         auto heap {std::make_unique<buffer_heap>(size, m_pool_usage)};
         auto chunk{heap->allocate_first(size)};
 
+        #ifdef CAPTAL_DEBUG
+        if(!std::empty(m_name))
+        {
+            heap->set_name(m_name + " heap #" + std::to_string(std::size(m_heaps)));
+        }
+        #endif
+
         std::lock_guard lock{m_mutex};
         m_to_end.emplace_back();
         m_heaps.emplace_back(std::move(heap));
@@ -386,8 +417,20 @@ buffer_heap_chunk buffer_pool::allocate(std::uint64_t size, std::uint64_t alignm
         }
     }
 
+    auto heap {std::make_unique<buffer_heap>(size, m_pool_usage)};
+    auto chunk{heap->allocate_first(size)};
+
+    #ifdef CAPTAL_DEBUG
+    if(!std::empty(m_name))
+    {
+        heap->set_name(m_name + " heap #" + std::to_string(std::size(m_heaps)));
+    }
+    #endif
+
     m_to_end.emplace_back();
-    return m_heaps.emplace_back(std::make_unique<buffer_heap>(size, m_pool_usage))->allocate_first(size);
+    m_heaps.emplace_back(std::move(heap));
+
+    return chunk;
 }
 
 void buffer_pool::upload(tph::command_buffer& command_buffer, transfer_ended_signal& signal)
@@ -409,6 +452,13 @@ void buffer_pool::upload(tph::command_buffer& command_buffer, transfer_ended_sig
     }
 }
 
+void buffer_pool::upload()
+{
+    auto&& [buffer, signal, keeper] = cpt::engine::instance().transfer_scheduler().begin_transfer();
+
+    upload(buffer, signal);
+}
+
 void buffer_pool::clean()
 {
     std::lock_guard lock{m_mutex};
@@ -420,5 +470,19 @@ void buffer_pool::clean()
 
     m_heaps.erase(std::remove_if(std::begin(m_heaps), std::end(m_heaps), predicate), std::end(m_heaps));
 }
+
+#ifdef CAPTAL_DEBUG
+void buffer_pool::set_name(std::string_view name)
+{
+    std::lock_guard lock{m_mutex};
+
+    m_name = name;
+
+    for(std::size_t i{}; i < std::size(m_heaps); ++i)
+    {
+        m_heaps[i]->set_name(m_name + " heap #" + std::to_string(i));
+    }
+}
+#endif
 
 }

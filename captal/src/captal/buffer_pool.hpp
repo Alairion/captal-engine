@@ -117,8 +117,16 @@ public:
         return m_allocation_count;
     }
 
+#ifdef CAPTAL_DEBUG
+    void set_name(std::string_view name);
+#else
+    void set_name(std::string_view name [[maybe_unused]]) const noexcept
+    {
+
+    }
+#endif
+
 private:
-    void coalesce_upload_ranges();
     bool begin_upload(tph::command_buffer& command_buffer);
     void end_upload(tph::command_buffer& command_buffer, transfer_ended_signal& signal);
 
@@ -149,6 +157,10 @@ private:
     std::uint32_t m_current_mask{};
     std::uint32_t m_current_mask_index{};
     std::mutex m_upload_mutex{};
+
+#ifdef CAPTAL_DEBUG
+    std::string m_name{};
+#endif
 };
 
 class CAPTAL_API buffer_pool
@@ -163,7 +175,17 @@ public:
 
     buffer_heap_chunk allocate(std::uint64_t size, std::uint64_t alignment);
     void upload(tph::command_buffer& command_buffer, transfer_ended_signal& signal);
+    void upload();
     void clean();
+
+#ifdef CAPTAL_DEBUG
+    void set_name(std::string_view name);
+#else
+    void set_name(std::string_view name [[maybe_unused]]) const noexcept
+    {
+
+    }
+#endif
 
 private:
     tph::buffer_usage m_pool_usage{};
@@ -172,6 +194,10 @@ private:
     std::vector<bool> m_to_end{};
     std::vector<std::unique_ptr<buffer_heap>> m_heaps{};
     mutable std::mutex m_mutex{};
+
+#ifdef CAPTAL_DEBUG
+    std::string m_name{};
+#endif
 };
 
 }
