@@ -149,28 +149,6 @@ buffer_heap_chunk buffer_heap::allocate_first(std::uint64_t size)
     return buffer_heap_chunk{this, 0, size};
 }
 
-/*
-template<class ForwardIt>
-ForwardIt unique(ForwardIt first, ForwardIt last)
-{
-    if (first == last)
-        return last;
-
-    ForwardIt result = first;
-    while (++first != last)
-    {
-        if (!(*result == *first))
-        {
-            if(++result != first)
-            {
-                *result = std::move(*first);
-            }
-        }
-    }
-    return ++result;
-}
-*/
-
 #ifdef CAPTAL_DEBUG
 void buffer_heap::set_name(std::string_view name)
 {
@@ -189,7 +167,7 @@ void buffer_heap::set_name(std::string_view name)
 #endif
 
 template<std::forward_iterator ForwardIt>
-ForwardIt coalesce(ForwardIt begin, ForwardIt end)
+static ForwardIt coalesce(ForwardIt begin, ForwardIt end)
 {
     ForwardIt result{begin};
     ForwardIt last  {begin};
