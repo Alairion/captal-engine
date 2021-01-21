@@ -152,6 +152,16 @@ public:
         return m_transfer_scheduler;
     }
 
+    buffer_pool& uniform_pool() noexcept
+    {
+        return m_uniform_pool;
+    }
+
+    const buffer_pool& uniform_pool() const noexcept
+    {
+        return m_uniform_pool;
+    }
+
     update_signal& on_update() noexcept
     {
         return m_update_signal;

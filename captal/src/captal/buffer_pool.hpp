@@ -30,8 +30,8 @@ public:
 
     void upload(std::uint64_t offset = 0, std::uint64_t size = std::numeric_limits<std::uint64_t>::max());
 
-    void* map() noexcept;
-    const void* map() const noexcept;
+    void* map(std::uint64_t offset = 0) noexcept;
+    const void* map(std::uint64_t offset = 0) const noexcept;
 
     buffer_heap& heap() noexcept
     {

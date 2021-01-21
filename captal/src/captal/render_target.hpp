@@ -40,16 +40,6 @@ public:
     virtual frame_render_info begin_render() = 0;
     virtual void present() = 0;
 
-    tph::render_pass& get_render_pass() noexcept
-    {
-        return m_render_pass;
-    }
-
-    const tph::render_pass& get_render_pass() const noexcept
-    {
-        return m_render_pass;
-    }
-
     void disable_rendering() noexcept
     {
         m_enable = false;
@@ -58,6 +48,16 @@ public:
     void enable_rendering() noexcept
     {
         m_enable = true;
+    }
+
+    tph::render_pass& get_render_pass() noexcept
+    {
+        return m_render_pass;
+    }
+
+    const tph::render_pass& get_render_pass() const noexcept
+    {
+        return m_render_pass;
     }
 
     bool is_rendering_enable() const noexcept

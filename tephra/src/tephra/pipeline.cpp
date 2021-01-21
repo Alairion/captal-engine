@@ -17,7 +17,33 @@ using namespace tph::vulkan::functions;
 namespace tph
 {
 
-pipeline_layout::pipeline_layout(renderer& renderer, std::span<const std::reference_wrapper<descriptor_set_layout>> layouts, std::span<const push_constant_range> ranges)
+pipeline_layout::pipeline_layout(renderer& renderer, std::span<descriptor_set_layout> layouts, std::span<const push_constant_range> ranges)
+{
+    stack_memory_pool<1024> pool{};
+
+    auto native_layouts{make_stack_vector<VkDescriptorSetLayout>(pool)};
+    native_layouts.reserve(std::size(layouts));
+    for(const descriptor_set_layout& layout : layouts)
+    {
+        native_layouts.emplace_back(underlying_cast<VkDescriptorSetLayout>(layout));
+    }
+
+    auto native_ranges{make_stack_vector<VkPushConstantRange>(pool)};
+    native_ranges.reserve(std::size(ranges));
+    for(auto&& range : ranges)
+    {
+        VkPushConstantRange native_range{};
+        native_range.stageFlags = static_cast<VkShaderStageFlags>(range.stages);
+        native_range.offset = range.offset;
+        native_range.size = range.size;
+
+        native_ranges.emplace_back(native_range);
+    }
+
+    m_pipeline_layout = vulkan::pipeline_layout{underlying_cast<VkDevice>(renderer), native_layouts, native_ranges};
+}
+
+pipeline_layout::pipeline_layout(renderer& renderer, std::span<std::reference_wrapper<descriptor_set_layout> > layouts, std::span<const push_constant_range> ranges)
 {
     stack_memory_pool<1024> pool{};
 

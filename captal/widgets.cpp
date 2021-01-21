@@ -1,5 +1,6 @@
 #include <iostream>
 
+#include <captal/engine.hpp>
 #include <captal/widgets.hpp>
 
 static_assert(cpt::tuple_like<std::tuple<int, float, double>>);
@@ -30,5 +31,20 @@ static_assert(!cpt::parent_widget<widget<std::string>>);
 
 int main()
 {
+    const cpt::system_parameters system{};
+
+    const cpt::audio_parameters audio
+    {
+        .channel_count = 2,
+        .frequency = 44100
+    };
+
+    const cpt::graphics_parameters graphics
+    {
+        .options = tph::renderer_options::small_memory_heaps,
+    };
+
+    cpt::engine engine{"captal_test", cpt::version{0, 1, 0}, system, audio, graphics};
+
 
 }

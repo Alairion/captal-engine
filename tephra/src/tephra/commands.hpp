@@ -268,7 +268,8 @@ TEPHRA_API void end_render_pass(command_buffer& command_buffer) noexcept;
 TEPHRA_API void bind_pipeline(command_buffer& command_buffer, pipeline& pipeline) noexcept;
 TEPHRA_API void bind_vertex_buffer(command_buffer& command_buffer, buffer& buffer, std::uint64_t offset) noexcept;
 TEPHRA_API void bind_index_buffer(command_buffer& command_buffer, buffer& buffer, std::uint64_t offset, index_type type) noexcept;
-TEPHRA_API void bind_descriptor_set(command_buffer& command_buffer, descriptor_set& descriptor_set, pipeline_layout& layout, pipeline_type bind_point = pipeline_type::graphics) noexcept;
+TEPHRA_API void bind_descriptor_set(command_buffer& command_buffer, std::uint32_t index, descriptor_set& set, pipeline_layout& layout, pipeline_type bind_point = pipeline_type::graphics) noexcept;
+TEPHRA_API void bind_descriptor_set(command_buffer& command_buffer, std::uint32_t index, std::span<descriptor_set> sets, pipeline_layout& layout, pipeline_type bind_point = pipeline_type::graphics) noexcept;
 
 TEPHRA_API void reset_event(command_buffer& command_buffer, event& event, pipeline_stage stage) noexcept;
 TEPHRA_API void set_event(command_buffer& command_buffer, event& event, pipeline_stage stage) noexcept;

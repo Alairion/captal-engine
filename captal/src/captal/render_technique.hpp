@@ -12,18 +12,14 @@
 
 #include "asynchronous_resource.hpp"
 #include "render_target.hpp"
+#include "signal.hpp"
 
 namespace cpt
 {
 
-//reserved bindings:
-//0: view uniform
-//1: model uniform
-//2: texture sampler
-
 class render_target;
 class descriptor_pool;
-class render_technique;
+class render_layout;
 
 class CAPTAL_API descriptor_set : public asynchronous_resource
 {
@@ -58,16 +54,15 @@ private:
 };
 
 using descriptor_set_ptr = std::shared_ptr<descriptor_set>;
+using descriptor_set_weak_ptr = std::weak_ptr<descriptor_set>;
 
 class CAPTAL_API descriptor_pool
 {
 public:
-    static constexpr std::size_t pool_size{32};
+    static constexpr std::uint32_t pool_size{32};
 
 public:
-    descriptor_pool() = default;
-    explicit descriptor_pool(render_technique& parent, tph::descriptor_pool pool);
-
+    explicit descriptor_pool(render_layout& parent, std::size_t layout_index, tph::descriptor_pool pool);
     ~descriptor_pool() = default;
     descriptor_pool(const descriptor_pool&) = delete;
     descriptor_pool& operator=(const descriptor_pool&) = delete;
@@ -77,12 +72,12 @@ public:
     descriptor_set_ptr allocate() noexcept;
     bool unused() const noexcept;
 
-    render_technique& technique() noexcept
+    render_layout& layout() noexcept
     {
         return *m_parent;
     }
 
-    const render_technique& technique() const noexcept
+    const render_layout& layout() const noexcept
     {
         return *m_parent;
     }
@@ -107,16 +102,97 @@ public:
 #endif
 
 private:
-    render_technique* m_parent{};
+    render_layout* m_parent{};
     tph::descriptor_pool m_pool{};
     std::array<descriptor_set_ptr, pool_size> m_sets{};
+};
+
+struct render_layout_info
+{
+    std::vector<tph::descriptor_set_layout_binding> view_bindings{};
+    std::vector<tph::descriptor_set_layout_binding> renderable_bindings{};
+    std::vector<tph::push_constant_range> push_constant_ranges{};
+};
+
+class CAPTAL_API render_layout : public asynchronous_resource
+{
+public:
+    explicit render_layout(render_layout_info info);
+    ~render_layout() = default;
+    render_layout(const render_layout&) = delete;
+    render_layout& operator=(const render_layout&) = delete;
+    render_layout(render_layout&&) noexcept = delete;
+    render_layout& operator=(render_layout&&) noexcept = delete;
+
+    descriptor_set_ptr make_set(std::uint32_t layout_index);
+
+    const render_layout_info& info() const noexcept
+    {
+        return m_info;
+    }
+
+    tph::descriptor_set_layout& descriptor_set_layout(std::uint32_t layout_index) noexcept
+    {
+        return m_set_layouts[layout_index];
+    }
+
+    const tph::descriptor_set_layout& descriptor_set_layout(std::uint32_t layout_index) const noexcept
+    {
+        return m_set_layouts[layout_index];
+    }
+
+    tph::pipeline_layout& pipeline_layout() noexcept
+    {
+        return m_layout;
+    }
+
+    const tph::pipeline_layout& pipeline_layout() const noexcept
+    {
+        return m_layout;
+    }
+
+#ifdef CAPTAL_DEBUG
+    void set_name(std::string_view name);
+#else
+    void set_name(std::string_view name [[maybe_unused]]) const noexcept
+    {
+
+    }
+#endif
+
+private:
+    struct layout_data
+    {
+        std::vector<tph::descriptor_pool_size> sizes{};
+        std::vector<std::unique_ptr<descriptor_pool>> pools{};
+    };
+
+private:
+    render_layout_info m_info{};
+    std::vector<tph::descriptor_set_layout> m_set_layouts{};
+    std::vector<layout_data> m_set_layout_data{};
+    tph::pipeline_layout m_layout{};
+    std::mutex m_mutex{};
+
+#ifdef CAPTAL_DEBUG
+    std::string m_name{};
+#endif
+};
+
+using render_layout_ptr = std::shared_ptr<render_layout>;
+using render_layout_weak_ptr = std::weak_ptr<render_layout>;
+
+enum class render_technique_options : std::uint32_t
+{
+    none = 0x00,
+    no_default_color_blend_attachment = 0x01,
+
+    no_defaults = no_default_color_blend_attachment
 };
 
 struct render_technique_info
 {
     std::vector<tph::pipeline_shader_stage> stages{};
-    std::vector<tph::descriptor_set_layout_binding> stages_bindings{};
-    std::vector<tph::push_constant_range> push_constant_ranges{};
     tph::pipeline_tessellation tesselation{};
     tph::pipeline_rasterization rasterization{};
     tph::pipeline_multisample multisample{};
@@ -127,43 +203,14 @@ struct render_technique_info
 class CAPTAL_API render_technique : public asynchronous_resource
 {
 public:
-    render_technique() = default;
-    explicit render_technique(const render_target_ptr& target, const render_technique_info& info);
-
+    explicit render_technique(const render_target_ptr& target, const render_technique_info& info, render_layout_ptr layout = nullptr, render_technique_options options = render_technique_options::none);
     ~render_technique() = default;
     render_technique(const render_technique&) = delete;
     render_technique& operator=(const render_technique&) = delete;
     render_technique(render_technique&&) noexcept = delete;
     render_technique& operator=(render_technique&&) noexcept = delete;
 
-    descriptor_set_ptr make_set();
-
-    const std::vector<tph::descriptor_set_layout_binding>& bindings() const noexcept
-    {
-        return m_bindings;
-    }
-
-    const std::vector<tph::push_constant_range>& ranges() const noexcept
-    {
-        return m_ranges;
-    }
-
-    tph::descriptor_set_layout& descriptor_set_layout() noexcept
-    {
-        return m_descriptor_set_layout;
-    }
-
-    const tph::descriptor_set_layout& descriptor_set_layout() const noexcept
-    {
-        return m_descriptor_set_layout;
-    }
-
-    tph::pipeline_layout& pipeline_layout() noexcept
-    {
-        return m_layout;
-    }
-
-    const tph::pipeline_layout& pipeline_layout() const noexcept
+    const render_layout_ptr& layout() const noexcept
     {
         return m_layout;
     }
@@ -188,20 +235,9 @@ public:
 #endif
 
 private:
-    std::vector<tph::descriptor_set_layout_binding> m_bindings{};
-    std::vector<tph::push_constant_range> m_ranges{};
-    std::vector<tph::descriptor_pool_size> m_sizes{};
-    tph::descriptor_set_layout m_descriptor_set_layout{};
-    tph::pipeline_layout m_layout{};
+    render_layout_ptr m_layout{};
     tph::pipeline m_pipeline{};
-    std::mutex m_mutex{};
-    std::vector<std::unique_ptr<descriptor_pool>> m_pools{};
-
-#ifdef CAPTAL_DEBUG
-    std::string m_name{};
-#endif
 };
-
 
 using render_technique_ptr = std::shared_ptr<render_technique>;
 using render_technique_weak_ptr = std::weak_ptr<render_technique>;
@@ -213,5 +249,7 @@ render_technique_ptr make_render_technique(Args&&... args)
 }
 
 }
+
+template<> struct cpt::enable_enum_operations<cpt::render_technique_options> {static constexpr bool value{true};};
 
 #endif

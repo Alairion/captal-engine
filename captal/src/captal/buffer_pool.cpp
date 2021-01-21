@@ -45,14 +45,14 @@ void buffer_heap_chunk::upload(std::uint64_t offset, std::uint64_t size)
     m_parent->register_upload(m_offset + offset, std::min(size, m_size - offset));
 }
 
-void* buffer_heap_chunk::map() noexcept
+void* buffer_heap_chunk::map(std::uint64_t offset) noexcept
 {
-    return reinterpret_cast<std::uint8_t*>(m_parent->map()) + m_offset;
+    return reinterpret_cast<std::uint8_t*>(m_parent->map()) + m_offset + offset;
 }
 
-const void* buffer_heap_chunk::map() const noexcept
+const void* buffer_heap_chunk::map(std::uint64_t offset) const noexcept
 {
-    return reinterpret_cast<const std::uint8_t*>(m_parent->map()) + m_offset;
+    return reinterpret_cast<const std::uint8_t*>(m_parent->map()) + m_offset + offset;
 }
 
 buffer_heap::buffer_heap(std::uint64_t size, tph::buffer_usage usage)
@@ -296,6 +296,7 @@ void buffer_heap::end_upload(tph::command_buffer& command_buffer, transfer_ended
     }
 
     tph::cmd::copy(command_buffer, staging.buffer, m_device_data, m_upload_ranges);
+    m_upload_ranges.clear();
 
     staging.connection[m_current_mask_index] = signal.connect([this, index = m_current_staging, mask = m_current_mask]()
     {
@@ -395,7 +396,7 @@ buffer_heap_chunk buffer_pool::allocate(std::uint64_t size, std::uint64_t alignm
         }
     }
 
-    auto heap {std::make_unique<buffer_heap>(size, m_pool_usage)};
+    auto heap {std::make_unique<buffer_heap>(m_pool_size, m_pool_usage)};
     auto chunk{heap->allocate_first(size)};
 
     #ifdef CAPTAL_DEBUG

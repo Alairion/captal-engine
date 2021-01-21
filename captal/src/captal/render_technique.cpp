@@ -3,8 +3,6 @@
 #include "engine.hpp"
 #include "vertex.hpp"
 
-#include <iostream>
-
 namespace cpt
 {
 
@@ -16,13 +14,14 @@ descriptor_set::descriptor_set(descriptor_pool& parent, tph::descriptor_set set)
 }
 
 
-descriptor_pool::descriptor_pool(render_technique& parent, tph::descriptor_pool pool)
+descriptor_pool::descriptor_pool(render_layout& parent, std::size_t layout_index, tph::descriptor_pool pool)
 :m_parent{&parent}
 ,m_pool{std::move(pool)}
 {
+    auto& set_layout{m_parent->descriptor_set_layout(layout_index)};
     for(auto&& set : m_sets)
     {
-        set = std::make_shared<descriptor_set>(*this, tph::descriptor_set{engine::instance().renderer(), m_pool, m_parent->descriptor_set_layout()});
+        set = std::make_shared<descriptor_set>(*this, tph::descriptor_set{engine::instance().renderer(), m_pool, set_layout});
     }
 }
 
@@ -41,7 +40,10 @@ descriptor_set_ptr descriptor_pool::allocate() noexcept
 
 bool descriptor_pool::unused() const noexcept
 {
-    return std::all_of(std::begin(m_sets), std::end(m_sets), [](const descriptor_set_ptr& data){return data.use_count() == 1;});
+    return std::all_of(std::begin(m_sets), std::end(m_sets), [](const descriptor_set_ptr& set)
+    {
+        return set.use_count() == 1;
+    });
 }
 
 #ifdef CAPTAL_DEBUG
@@ -58,27 +60,92 @@ void descriptor_pool::set_name(std::string_view name)
 }
 #endif
 
-static std::vector<tph::descriptor_set_layout_binding> make_bindings(const std::vector<tph::descriptor_set_layout_binding>& info)
+static std::vector<tph::descriptor_set_layout> make_set_layouts(const render_layout_info& info)
 {
-    std::vector<tph::descriptor_set_layout_binding> output{};
+    std::vector<tph::descriptor_set_layout> output{};
+    output.reserve(2);
 
-    //0: view uniform
-    //1: model uniform
-    //2: texture sampler
-    output.emplace_back(tph::shader_stage::vertex, 0, tph::descriptor_type::uniform_buffer);
-    output.emplace_back(tph::shader_stage::vertex, 1, tph::descriptor_type::uniform_buffer);
-    output.emplace_back(tph::shader_stage::fragment, 2, tph::descriptor_type::image_sampler);
-
-    output.insert(std::end(output), std::begin(info), std::end(info));
+    output.emplace_back(engine::instance().renderer(), info.view_bindings);
+    output.emplace_back(engine::instance().renderer(), info.renderable_bindings);
 
     return output;
 }
 
-static tph::graphics_pipeline_info make_info(const render_technique_info& info)
+static std::vector<tph::descriptor_pool_size> make_pool_sizes(std::span<const tph::descriptor_set_layout_binding> bindings)
+{
+    std::vector<tph::descriptor_pool_size> output{};
+    output.reserve(std::size(bindings));
+
+    for(auto&& binding : bindings)
+    {
+        output.emplace_back(binding.type, binding.count * descriptor_pool::pool_size);
+    }
+
+    return output;
+}
+
+render_layout::render_layout(render_layout_info info)
+:m_info{std::move(info)}
+,m_set_layouts{make_set_layouts(m_info)}
+,m_layout{engine::instance().renderer(), m_set_layouts, m_info.push_constant_ranges}
+{
+    m_set_layout_data.reserve(2);
+
+    m_set_layout_data.emplace_back(make_pool_sizes(info.view_bindings));
+    m_set_layout_data.emplace_back(make_pool_sizes(info.renderable_bindings));
+}
+
+descriptor_set_ptr render_layout::make_set(std::uint32_t layout_index)
+{
+    std::lock_guard lock{m_mutex};
+
+    auto& data{m_set_layout_data[layout_index]};
+
+    for(auto&& pool : data.pools)
+    {
+        if(auto set{pool->allocate()}; set)
+        {
+            return set;
+        }
+    }
+
+    tph::descriptor_pool pool{engine::instance().renderer(), data.sizes, static_cast<std::uint32_t>(descriptor_pool::pool_size)};
+    data.pools.emplace_back(std::make_unique<descriptor_pool>(*this, std::move(pool)));
+
+#ifdef CAPTAL_DEBUG
+    if(!std::empty(m_name))
+    {
+        data.pools.back()->set_name(m_name + " descriptor set layout #" + std::to_string(layout_index) +  " descriptor pool #" + std::to_string(std::size(data.pools) - 1));
+    }
+#endif
+
+    return data.pools.back()->allocate();
+}
+
+#ifdef CAPTAL_DEBUG
+void render_layout::set_name(std::string_view name)
+{
+    m_name = name;
+
+    tph::set_object_name(engine::instance().renderer(), m_set_layouts[0], m_name + " view descriptor set layout");
+    tph::set_object_name(engine::instance().renderer(), m_set_layouts[1], m_name + " renderable descriptor set layout");
+    tph::set_object_name(engine::instance().renderer(), m_layout, m_name + " pipeline layout");
+
+    for(std::size_t i{}; i < std::size(m_set_layout_data); ++i)
+    {
+        for(std::size_t j{}; j < std::size(m_set_layout_data[i].pools); ++j)
+        {
+            m_set_layout_data[i].pools[j]->set_name(m_name + "descriptor set layout #" + std::to_string(i) + " descriptor pool #" + std::to_string(j));
+        }
+    }
+}
+#endif
+
+static tph::graphics_pipeline_info make_info(const render_technique_info& info, render_technique_options options)
 {
     tph::graphics_pipeline_info output{};
 
-    if(std::empty(info.color_blend.attachments))
+    if(std::empty(info.color_blend.attachments) && !static_cast<bool>(options & render_technique_options::no_default_color_blend_attachment))
     {
         output.color_blend.attachments.emplace_back();
     }
@@ -87,17 +154,26 @@ static tph::graphics_pipeline_info make_info(const render_technique_info& info)
         output.color_blend = info.color_blend;
     }
 
-    if(std::empty(info.stages))
+
+    bool has_vertex{};
+    bool has_fragment{};
+
+    for(auto&& stage : info.stages)
+    {
+        output.stages.emplace_back(stage.shader, stage.name, stage.specialisation_info);
+
+        has_vertex   = stage.shader.stage() == tph::shader_stage::vertex;
+        has_fragment = stage.shader.stage() == tph::shader_stage::fragment;
+    }
+
+    if(!has_vertex)
     {
         output.stages.emplace_back(engine::instance().default_vertex_shader());
-        output.stages.emplace_back(engine::instance().default_fragment_shader());
     }
-    else
+
+    if(!has_fragment)
     {
-        for(auto&& stage : info.stages)
-        {
-            output.stages.emplace_back(stage.shader, stage.name, stage.specialisation_info);
-        }
+        output.stages.emplace_back(engine::instance().default_fragment_shader());
     }
 
     output.vertex_input.bindings.emplace_back(0, sizeof(vertex));
@@ -115,59 +191,17 @@ static tph::graphics_pipeline_info make_info(const render_technique_info& info)
     return output;
 }
 
-render_technique::render_technique(const render_target_ptr& target, const render_technique_info& info)
-:m_bindings{make_bindings(info.stages_bindings)}
-,m_ranges{info.push_constant_ranges}
-,m_descriptor_set_layout{engine::instance().renderer(), m_bindings}
-,m_layout{engine::instance().renderer(), std::array{std::ref(m_descriptor_set_layout)}, m_ranges}
-,m_pipeline{engine::instance().renderer(), target->get_render_pass(), make_info(info), m_layout}
+render_technique::render_technique(const render_target_ptr& target, const render_technique_info& info, render_layout_ptr layout, render_technique_options options)
+:m_layout{std::move(layout)}
+,m_pipeline{engine::instance().renderer(), target->get_render_pass(), make_info(info, options), m_layout->pipeline_layout()}
 {
-    m_sizes.reserve(std::size(m_bindings));
-    for(auto&& binding : m_bindings)
-    {
-        m_sizes.emplace_back(tph::descriptor_pool_size{binding.type, static_cast<std::uint32_t>(binding.count * descriptor_pool::pool_size)});
-    }
-}
 
-descriptor_set_ptr render_technique::make_set()
-{
-    std::lock_guard lock{m_mutex};
-
-    for(auto&& pool : m_pools)
-    {
-        auto set{pool->allocate()};
-
-        if(set)
-        {
-            return set;
-        }
-    }
-
-    m_pools.emplace_back(std::make_unique<descriptor_pool>(*this, tph::descriptor_pool{engine::instance().renderer(), m_sizes, static_cast<std::uint32_t>(descriptor_pool::pool_size)}));
-
-#ifdef CAPTAL_DEBUG
-    if(!std::empty(m_name))
-    {
-        m_pools.back()->set_name(m_name + " descriptor pool #" + std::to_string(std::size(m_pools) - 1));
-    }
-#endif
-
-    return m_pools.back()->allocate();
 }
 
 #ifdef CAPTAL_DEBUG
 void render_technique::set_name(std::string_view name)
 {
-    m_name = name;
-
-    tph::set_object_name(engine::instance().renderer(), m_descriptor_set_layout, m_name + " descriptor set layout");
-    tph::set_object_name(engine::instance().renderer(), m_layout, m_name + " pipeline layout");
-    tph::set_object_name(engine::instance().renderer(), m_pipeline, m_name + " pipeline");
-
-    for(std::size_t i{}; i < std::size(m_pools); ++i)
-    {
-        m_pools[i]->set_name(m_name + " descriptor pool #" + std::to_string(std::size(m_pools) - 1));
-    }
+    tph::set_object_name(engine::instance().renderer(), m_pipeline, std::string{name} + " pipeline");
 }
 #endif
 

@@ -180,6 +180,7 @@ memory_transfer_info engine::begin_transfer()
 
 void engine::submit_transfers()
 {
+    m_uniform_pool.upload();
     m_transfer_scheduler.submit_transfers();
 }
 

@@ -772,10 +772,26 @@ void set_event(command_buffer& command_buffer, event& event, pipeline_stage stag
     vkCmdSetEvent(underlying_cast<VkCommandBuffer>(command_buffer), underlying_cast<VkEvent>(event), static_cast<VkPipelineStageFlags>(stage));
 }
 
-void bind_descriptor_set(command_buffer& command_buffer, descriptor_set& descriptor_set, pipeline_layout& layout, pipeline_type bind_point) noexcept
+void bind_descriptor_set(command_buffer& command_buffer, std::uint32_t index, descriptor_set& set, pipeline_layout& layout, pipeline_type bind_point) noexcept
 {
-    VkDescriptorSet native_descriptor_set{underlying_cast<VkDescriptorSet>(descriptor_set)};
-    vkCmdBindDescriptorSets(underlying_cast<VkCommandBuffer>(command_buffer), static_cast<VkPipelineBindPoint>(bind_point), underlying_cast<VkPipelineLayout>(layout), 0, 1, &native_descriptor_set, 0, nullptr);
+    VkDescriptorSet native_set{underlying_cast<VkDescriptorSet>(set)};
+    vkCmdBindDescriptorSets(underlying_cast<VkCommandBuffer>(command_buffer), static_cast<VkPipelineBindPoint>(bind_point), underlying_cast<VkPipelineLayout>(layout),
+                            index, 1, &native_set, 0, nullptr);
+}
+
+void bind_descriptor_set(command_buffer& command_buffer, std::uint32_t index, std::span<descriptor_set> sets, pipeline_layout& layout, pipeline_type bind_point) noexcept
+{
+    stack_memory_pool<512> pool{};
+    auto native_sets{make_stack_vector<VkDescriptorSet>(pool)};
+    native_sets.reserve(std::size(sets));
+
+    for(auto&& set : sets)
+    {
+        native_sets.emplace_back(underlying_cast<VkDescriptorSet>(set));
+    }
+
+    vkCmdBindDescriptorSets(underlying_cast<VkCommandBuffer>(command_buffer), static_cast<VkPipelineBindPoint>(bind_point), underlying_cast<VkPipelineLayout>(layout),
+                            index, static_cast<std::uint32_t>(std::size(native_sets)), std::data(native_sets), 0, nullptr);
 }
 
 void set_viewport(command_buffer& command_buffer, const viewport& viewport, std::uint32_t index) noexcept
@@ -940,7 +956,7 @@ void execute(command_buffer& buffer, command_buffer& secondary_buffer) noexcept
 
 void execute(command_buffer& buffer, std::span<const command_buffer> secondary_buffers)
 {
-    stack_memory_pool<1024 * 2> pool{};
+    stack_memory_pool<512> pool{};
     auto native_secondary_buffers{make_stack_vector<VkCommandBuffer>(pool)};
     native_secondary_buffers.reserve(std::size(secondary_buffers));
 
@@ -954,7 +970,7 @@ void execute(command_buffer& buffer, std::span<const command_buffer> secondary_b
 
 void execute(command_buffer& buffer, std::span<const std::reference_wrapper<command_buffer>> secondary_buffers)
 {
-    stack_memory_pool<1024 * 2> pool{};
+    stack_memory_pool<512> pool{};
     auto native_secondary_buffers{make_stack_vector<VkCommandBuffer>(pool)};
     native_secondary_buffers.reserve(std::size(secondary_buffers));
 

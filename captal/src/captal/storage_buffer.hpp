@@ -12,7 +12,7 @@
 namespace cpt
 {
 
-class CAPTAL_API storage_buffer : public asynchronous_resource
+class CAPTAL_API storage_buffer final : public asynchronous_resource
 {
 public:
     storage_buffer() = default;

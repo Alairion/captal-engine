@@ -34,7 +34,8 @@ class TEPHRA_API pipeline_layout
 
 public:
     constexpr pipeline_layout() = default;
-    explicit pipeline_layout(renderer& renderer, std::span<const std::reference_wrapper<descriptor_set_layout>> layouts = {}, std::span<const push_constant_range> ranges = {});
+    explicit pipeline_layout(renderer& renderer, std::span<descriptor_set_layout> layouts = {}, std::span<const push_constant_range> ranges = {});
+    explicit pipeline_layout(renderer& renderer, std::span<std::reference_wrapper<descriptor_set_layout>> layouts = {}, std::span<const push_constant_range> ranges = {});
 
     explicit pipeline_layout(vulkan::pipeline_layout pipeline_layout) noexcept
     :m_pipeline_layout{std::move(pipeline_layout)}

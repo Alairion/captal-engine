@@ -11,7 +11,7 @@
 
 #include "asynchronous_resource.hpp"
 #include "signal.hpp"
-#include "memory_transfer.hpp"
+#include "buffer_pool.hpp"
 
 namespace cpt
 {
@@ -29,11 +29,25 @@ struct buffer_part
     std::uint64_t size{};
 };
 
-class CAPTAL_API uniform_buffer : public asynchronous_resource
+class CAPTAL_API uniform_buffer final : public asynchronous_resource
 {
 public:
+    struct buffer_info
+    {
+        tph::buffer&  buffer;
+        std::uint64_t offset{};
+    };
+
+private:
+    struct buffer_part_info
+    {
+        std::uint64_t offset{};
+        std::uint64_t size{};
+    };
+
+public:
     uniform_buffer() = default;
-    explicit uniform_buffer(std::vector<buffer_part> parts);
+    explicit uniform_buffer(std::span<const buffer_part> parts);
 
     ~uniform_buffer() = default;
     uniform_buffer(const uniform_buffer&) = delete;
@@ -41,64 +55,47 @@ public:
     uniform_buffer(uniform_buffer&&) noexcept = default;
     uniform_buffer& operator=(uniform_buffer&&) noexcept = default;
 
-    void upload(tph::command_buffer& command_buffer, transfer_ended_signal& signal);
+    void upload();
+    void upload(std::size_t index);
 
     template<typename T>
     T& get(std::size_t index) noexcept
     {
-        return *std::launder(reinterpret_cast<T*>(std::data(m_data) + compute_offset(index)));
+        return *std::launder(reinterpret_cast<T*>(m_buffer.map(m_parts[index].offset)));
     }
 
     template<typename T>
     const T& get(std::size_t index) const noexcept
     {
-        return *std::launder(reinterpret_cast<const T*>(std::data(m_data) + compute_offset(index)));
+        return *std::launder(reinterpret_cast<const T*>(m_buffer.map(m_parts[index].offset)));
     }
 
-    std::uint64_t compute_offset(std::size_t index) const noexcept;
-
-    tph::buffer& get_buffer() noexcept
+    std::uint64_t part_offset(std::size_t index) const noexcept
     {
-        return m_device_buffer;
+        return m_parts[index].offset;
     }
 
-    const tph::buffer& get_buffer() const noexcept
+    std::uint64_t part_size(std::size_t index) const noexcept
     {
-        return m_device_buffer;
+        return m_parts[index].size;
+    }
+
+    buffer_info get_buffer() noexcept
+    {
+        return buffer_info{m_buffer.heap().buffer(), m_buffer.offset()};
     }
 
     std::uint64_t size() const noexcept
     {
-        return m_size;
+        return m_buffer.size();
     }
 
-#ifdef CAPTAL_DEBUG
-    void set_name(std::string_view name);
-#else
-    void set_name(std::string_view name [[maybe_unused]]) const noexcept
-    {
-
-    }
-#endif
+private:
+    static std::vector<buffer_part_info> compute_part_info(std::span<const buffer_part> parts);
 
 private:
-    struct staging_buffer
-    {
-        tph::buffer buffer{};
-        bool available{true};
-        cpt::scoped_connection connection{};
-    };
-
-private:
-    std::uint64_t m_size{};
-    std::vector<buffer_part> m_parts{};
-    std::vector<std::uint8_t> m_data{}; //cpu local copy for host manipulation
-    std::vector<staging_buffer> m_stagings{}; //cpu-gpu-shared buffers, stay alive waiting for transfers
-    tph::buffer m_device_buffer{}; //the gpu buffer
-
-#ifdef CAPTAL_DEBUG
-    std::string m_name{};
-#endif
+    std::vector<buffer_part_info> m_parts{};
+    buffer_heap_chunk m_buffer{};
 };
 
 using uniform_buffer_ptr = std::shared_ptr<uniform_buffer>;

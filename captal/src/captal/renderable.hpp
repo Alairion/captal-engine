@@ -5,6 +5,7 @@
 
 #include <unordered_map>
 #include <span>
+#include <concepts>
 #include <numbers>
 
 #include "asynchronous_resource.hpp"
@@ -18,7 +19,53 @@
 namespace cpt
 {
 
-class CAPTAL_API renderable
+template<typename T>
+concept renderable = requires(T r, const T cr,
+                              cpt::view view, const cpt::view cview,
+                              std::uint32_t i, vec3f vec, float f, cpt::binding bind,
+                              memory_transfer_info info, tph::command_buffer cb, asynchronous_resource_keeper keeper)
+{
+    {r.bind(view)};
+    {r.draw(cb)};
+    {r.upload(info)};
+    {r.keep(keeper)};
+
+    {r.add_binding(i, bind)} -> std::convertible_to<cpt::binding&>;
+    {r.set_binding(i, bind)};
+
+    {r.move(vec)};
+    {r.move_to(vec)};
+    {r.set_origin(vec)};
+    {r.move_origin(vec)};
+    {r.rotate(f)};
+    {r.set_rotation(f)};
+    {r.scale(vec)};
+    {r.set_scale(vec)};
+    {r.hide()};
+    {r.show()};
+
+    {cr.position()} -> std::convertible_to<const vec3f&>;
+    {cr.origin()}   -> std::convertible_to<const vec3f&>;
+    {cr.scale()}    -> std::convertible_to<const vec3f&>;
+    {cr.rotation()} -> std::convertible_to<float>;
+    {cr.hidden()}   -> std::convertible_to<bool>;
+
+    {r.vertices()}   -> std::convertible_to<std::span<vertex>>;
+    {cr.vertices()}  -> std::convertible_to<std::span<const vertex>>;
+    {cr.cvertices()} -> std::convertible_to<std::span<const vertex>>;
+
+    {r.indices()}   -> std::convertible_to<std::span<std::uint32_t>>;
+    {cr.indices()}  -> std::convertible_to<std::span<const std::uint32_t>>;
+    {cr.cindices()} -> std::convertible_to<std::span<const std::uint32_t>>;
+
+    {cr.binding(i)}     -> std::convertible_to<const cpt::binding&>;
+    {cr.has_binding(i)} -> std::convertible_to<bool>;
+    {cr.bindings()}     -> std::convertible_to<const std::unordered_map<std::uint32_t, cpt::binding>&>;
+
+    {cr.set()} -> std::convertible_to<const descriptor_set_ptr&>;
+};
+
+class CAPTAL_API basic_renderable
 {
 public:
     struct uniform_data
@@ -26,68 +73,75 @@ public:
         mat4f model{};
     };
 
-public:
-    renderable() = default;
-    explicit renderable(std::uint32_t vertex_count);
-    explicit renderable(std::uint32_t index_count, std::uint32_t vertex_count);
+protected:
+    basic_renderable() = default;
+    explicit basic_renderable(std::uint32_t vertex_count);
+    explicit basic_renderable(std::uint32_t vertex_count, std::uint32_t index_count);
 
-    virtual ~renderable() = default;
-    renderable(const renderable&) = delete;
-    renderable& operator=(const renderable&) = delete;
-    renderable(renderable&&) noexcept = default;
-    renderable& operator=(renderable&&) noexcept = default;
+    ~basic_renderable() = default;
+    basic_renderable(const basic_renderable&) = delete;
+    basic_renderable& operator=(const basic_renderable&) = delete;
+    basic_renderable(basic_renderable&&) noexcept = default;
+    basic_renderable& operator=(basic_renderable&&) noexcept = default;
 
-    void set_indices(std::span<const std::uint32_t> indices) noexcept;
     void set_vertices(std::span<const vertex> vertices) noexcept;
-    void set_texture(texture_ptr texture) noexcept;
-    void set_view(cpt::view& view);
+    void set_indices(std::span<const std::uint32_t> indices) noexcept;
+
+public:
+    void bind(cpt::view& view);
+    void draw(tph::command_buffer& command_buffer);
+    void upload(memory_transfer_info& info);
+    void keep(asynchronous_resource_keeper& keeper);
+
+    cpt::binding& add_binding(std::uint32_t index, cpt::binding binding);
+    void set_binding(std::uint32_t index, cpt::binding new_binding);
 
     void move(const vec3f& relative) noexcept
     {
         m_position += relative;
-        update();
+        m_upload_model = true;
     }
 
     void move_to(const vec3f& position) noexcept
     {
         m_position = position;
-        update();
+        m_upload_model = true;
     }
 
     void set_origin(const vec3f& origin) noexcept
     {
         m_origin = origin;
-        update();
+        m_upload_model = true;
     }
 
     void move_origin(const vec3f& relative) noexcept
     {
         m_origin += relative;
-        update();
+        m_upload_model = true;
     }
 
     void rotate(float angle) noexcept
     {
         m_rotation = std::fmod(m_rotation + angle, std::numbers::pi_v<float> * 2.0f);
-        update();
+        m_upload_model = true;
     }
 
     void set_rotation(float angle) noexcept
     {
         m_rotation = std::fmod(angle, std::numbers::pi_v<float> * 2.0f);
-        update();
+        m_upload_model = true;
     }
 
     void scale(const vec3f& scale) noexcept
     {
         m_scale *= scale;
-        update();
+        m_upload_model = true;
     }
 
     void set_scale(const vec3f& scale) noexcept
     {
         m_scale = scale;
-        update();
+        m_upload_model = true;
     }
 
     void hide() noexcept
@@ -99,17 +153,6 @@ public:
     {
         m_hidden = false;
     }
-
-    void update() noexcept
-    {
-        m_need_upload = true;
-    }
-
-    void upload(memory_transfer_info& info);
-    void draw(tph::command_buffer& buffer);
-
-    cpt::binding& add_binding(std::uint32_t index, cpt::binding binding);
-    void set_binding(std::uint32_t index, cpt::binding new_binding);
 
     const vec3f& position() const noexcept
     {
@@ -136,43 +179,44 @@ public:
         return m_hidden;
     }
 
-    std::span<std::uint32_t> get_indices() noexcept
+    std::span<vertex> vertices() noexcept
     {
-        assert(m_index_count > 0 && "cpt::renderable::get_indices called on renderable with no index buffer");
+        m_upload_vertices = true;
 
-        return std::span{&m_buffer->get<std::uint32_t>(1), static_cast<std::size_t>(m_index_count)};
+        return std::span{&m_buffer->get<vertex>(1), static_cast<std::size_t>(m_vertex_count)};
     }
 
-    std::span<const std::uint32_t> get_indices() const noexcept
+    std::span<const vertex> vertices() const noexcept
     {
-        assert(m_index_count > 0 && "cpt::renderable::get_indices called on renderable with no index buffer");
-
-        return std::span{&m_buffer->get<std::uint32_t>(1), static_cast<std::size_t>(m_index_count)};
+        return std::span{&m_buffer->get<const vertex>(1), static_cast<std::size_t>(m_vertex_count)};
     }
 
-    std::span<vertex> get_vertices() noexcept
+    std::span<const vertex> cvertices() const noexcept
     {
-        return std::span{&m_buffer->get<vertex>(m_index_count > 0 ? 2 : 1), static_cast<std::size_t>(m_vertex_count)};
+        return std::span{&m_buffer->get<const vertex>(1), static_cast<std::size_t>(m_vertex_count)};
     }
 
-    std::span<const vertex> get_vertices() const noexcept
+    std::span<std::uint32_t> indices() noexcept
     {
-        return std::span{&m_buffer->get<vertex>(m_index_count > 0 ? 2 : 1), static_cast<std::size_t>(m_vertex_count)};
+        assert(m_index_count > 0 && "cpt::basic_renderable::get_indices called on basic_renderable with no index buffer");
+
+        m_upload_indices = true;
+
+        return std::span{&m_buffer->get<std::uint32_t>(2), static_cast<std::size_t>(m_index_count)};
     }
 
-    const descriptor_set_ptr& set() const noexcept
+    std::span<const std::uint32_t> indices() const noexcept
     {
-        return m_current_set;
+        assert(m_index_count > 0 && "cpt::basic_renderable::get_indices called on basic_renderable with no index buffer");
+
+        return std::span{&m_buffer->get<const std::uint32_t>(2), static_cast<std::size_t>(m_index_count)};
     }
 
-    const descriptor_set_ptr& set(const cpt::view& view) const noexcept
+    std::span<const std::uint32_t> cindices() const noexcept
     {
-        return m_descriptor_sets.at(view.resource().get());
-    }
+        assert(m_index_count > 0 && "cpt::basic_renderable::get_indices called on basic_renderable with no index buffer");
 
-    const texture_ptr& texture() const noexcept
-    {
-        return m_texture;
+        return std::span{&m_buffer->get<const std::uint32_t>(2), static_cast<std::size_t>(m_index_count)};
     }
 
     const cpt::binding& binding(std::uint32_t index) const
@@ -190,44 +234,30 @@ public:
         return m_bindings;
     }
 
-    asynchronous_resource_ptr resource() const noexcept
+    const descriptor_set_ptr& set() const noexcept
     {
-        return m_buffer;
+        return m_set;
     }
-
-#ifdef CAPTAL_DEBUG
-    void set_name(std::string_view name);
-#else
-    void set_name(std::string_view name [[maybe_unused]]) const noexcept
-    {
-
-    }
-#endif
 
 private:
-    uniform_buffer_ptr m_buffer{};
-    texture_ptr m_texture{};
     std::unordered_map<std::uint32_t, cpt::binding> m_bindings{};
-    std::unordered_map<const void*, descriptor_set_ptr> m_descriptor_sets{};
-    descriptor_set_ptr m_current_set{};
+    std::unordered_map<const void*, descriptor_set_ptr> m_set{};
+    uniform_buffer* m_buffer{};
+    tph::pipeline_layout* m_layout{};
 
-    std::uint32_t m_index_count{};
     std::uint32_t m_vertex_count{};
-    std::uint64_t m_index_offset{};
-    std::uint64_t m_vertex_offset{};
+    std::uint32_t m_index_count{};
 
     vec3f m_position{};
     vec3f m_origin{};
     vec3f m_scale{1.0f};
     float m_rotation{};
+    bool  m_hidden{};
 
-    bool m_hidden{};
-    bool m_need_upload{true};
+    bool m_upload_model{true};
+    bool m_upload_indices{true};
+    bool m_upload_vertices{true};
     bool m_need_descriptor_update{};
-
-#ifdef CAPTAL_DEBUG
-    std::string m_name{};
-#endif
 };
 
 class CAPTAL_API sprite final : public renderable
@@ -244,6 +274,7 @@ public:
     sprite(sprite&&) noexcept = default;
     sprite& operator=(sprite&&) noexcept = default;
 
+    void set_texture(texture_ptr texture) noexcept;
     void set_color(const color& color) noexcept;
 
     void set_texture_coords(std::int32_t x1, std::int32_t y1, std::int32_t x2, std::int32_t y2) noexcept;

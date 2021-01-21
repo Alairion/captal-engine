@@ -91,7 +91,7 @@ void render(entt::registry& world)
                         renderable.upload(transfer);
                         renderable.draw(buffer);
 
-                        keeper.keep(renderable.set());
+                        keeper.keep(renderable.set(*camera));
                         keeper.keep(renderable.resource());
                         keeper.keep(renderable.texture());
 

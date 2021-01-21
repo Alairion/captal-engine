@@ -25,12 +25,9 @@ enum class view_type
 
 class CAPTAL_API view
 {
-    friend class renderable;
-
 public:
     struct uniform_data
     {
-        vec4f position{};
         mat4f view{identity};
         mat4f projection{identity};
     };
@@ -255,12 +252,12 @@ public:
         return m_bindings;
     }
 
-    bool need_descriptor_update(bool new_value = false) noexcept
+    bool need_descriptor_update() noexcept
     {
-        return std::exchange(m_need_descriptor_update, new_value);
+        return m_need_descriptor_update;
     }
 
-    const std::vector<std::uint32_t>& push_constant_buffer() const noexcept
+    std::span<const std::uint32_t> push_constant_buffer() const noexcept
     {
         return m_push_constant_buffer;
     }
