@@ -39,7 +39,7 @@ public:
         const auto range{m_render_technique->ranges()[index]};
         assert(range.size == sizeof(T) && "Size of T does not match range size.");
 
-        return *std::launder(reinterpret_cast<T*>(std::data(m_push_constant_buffer) + range.offset / 4u));
+        return *std::launder(reinterpret_cast<T*>(data() + range.offset / 4u));
     }
 
     template<typename T>
@@ -48,11 +48,25 @@ public:
         const auto range{m_render_technique->ranges()[index]};
         assert(range.size == sizeof(T) && "Size of T does not match range size.");
 
-        return *std::launder(reinterpret_cast<const T*>(std::data(m_push_constant_buffer) + range.offset / 4u));
+        return *std::launder(reinterpret_cast<const T*>(data() + range.offset / 4u));
     }
 
 private:
-    std::uint32_t*
+    std::uint32_t* data() noexcept
+    {
+        return std::visit([](auto& data)
+        {
+            return std::data(data);
+        }, m_data);
+    }
+
+    const std::uint32_t* data() const noexcept
+    {
+        return std::visit([](const auto& data)
+        {
+            return std::data(data);
+        }, m_data);
+    }
 
 private:
     std::variant<static_buffer_type, dynamic_buffer_type> m_data{};
