@@ -111,7 +111,8 @@ struct render_layout_info
 {
     std::vector<tph::descriptor_set_layout_binding> view_bindings{};
     std::vector<tph::descriptor_set_layout_binding> renderable_bindings{};
-    std::vector<tph::push_constant_range> push_constant_ranges{};
+    std::vector<tph::push_constant_range> view_push_constants{};
+    std::vector<tph::push_constant_range> renderable_push_constants{};
 };
 
 class CAPTAL_API render_layout : public asynchronous_resource

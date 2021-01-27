@@ -19,6 +19,7 @@ set(CAPTAL_SOURCES
     src/captal/zlib.hpp
     src/captal/translation.hpp
     src/captal/asynchronous_resource.hpp
+    src/captal/push_constant_buffer.hpp
     src/captal/render_technique.hpp
     src/captal/render_target.hpp
     src/captal/render_window.hpp

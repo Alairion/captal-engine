@@ -84,10 +84,21 @@ static std::vector<tph::descriptor_pool_size> make_pool_sizes(std::span<const tp
     return output;
 }
 
+static std::vector<tph::push_constant_range> make_push_constant_ranges(const render_layout_info& info)
+{
+    std::vector<tph::push_constant_range> output{};
+    output.reserve(std::size(info.view_push_constants) + std::size(info.renderable_push_constants));
+
+    output.insert(std::end(output), std::begin(info.view_push_constants), std::end(info.view_push_constants));
+    output.insert(std::end(output), std::begin(info.renderable_push_constants), std::end(info.renderable_push_constants));
+
+    return output;
+}
+
 render_layout::render_layout(render_layout_info info)
 :m_info{std::move(info)}
 ,m_set_layouts{make_set_layouts(m_info)}
-,m_layout{engine::instance().renderer(), m_set_layouts, m_info.push_constant_ranges}
+,m_layout{engine::instance().renderer(), m_set_layouts, make_push_constant_ranges(m_info)}
 {
     m_set_layout_data.reserve(2);
 

@@ -31,10 +31,6 @@ public:
     explicit render_target(const tph::render_pass_info& info);
 
     virtual ~render_target() = default;
-    render_target(const render_target&) = delete;
-    render_target& operator=(const render_target&) = delete;
-    render_target(render_target&&) noexcept = default;
-    render_target& operator=(render_target&&) noexcept = default;
 
     virtual frame_time_signal& register_frame_time() = 0;
     virtual frame_render_info begin_render() = 0;
@@ -64,6 +60,12 @@ public:
     {
         return m_enable;
     }
+
+protected:
+    render_target(const render_target&) = delete;
+    render_target& operator=(const render_target&) = delete;
+    render_target(render_target&&) noexcept = default;
+    render_target& operator=(render_target&&) noexcept = default;
 
 private:
     tph::render_pass m_render_pass{};

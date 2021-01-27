@@ -14,6 +14,8 @@ class CAPTAL_API asynchronous_resource
 public:
     asynchronous_resource() noexcept = default;
     virtual ~asynchronous_resource() = default;
+
+protected:
     asynchronous_resource(const asynchronous_resource&) = default;
     asynchronous_resource& operator=(const asynchronous_resource&) = default;
     asynchronous_resource(asynchronous_resource&& other) noexcept = default;
@@ -41,7 +43,7 @@ public:
 
     void reserve(std::size_t size)
     {
-        m_resources.reserve(size);
+        m_resources.reserve(std::size(m_resources) + size);
     }
 
     void clear() noexcept
