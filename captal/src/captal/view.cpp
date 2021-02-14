@@ -9,79 +9,141 @@ namespace cpt
 
 view::view(const render_target_ptr& target, const render_technique_info& info)
 :m_target{target.get()}
-,m_need_upload{true}
 ,m_render_technique{make_render_technique(target, info)}
-,m_buffer{make_uniform_buffer(std::vector{buffer_part{buffer_part_type::uniform, sizeof(view::uniform_data)}})}
+,m_need_upload{true}
 {
-    m_push_constant_buffer.resize(static_cast<std::size_t>(engine::instance().graphics_device().limits().max_push_constants_size / 4u));
+
 }
 
 view::view(const render_target_ptr& target, render_technique_ptr technique)
 :m_target{target.get()}
-,m_need_upload{true}
 ,m_render_technique{std::move(technique)}
-,m_buffer{make_uniform_buffer(std::vector{buffer_part{buffer_part_type::uniform, sizeof(view::uniform_data)}})}
+,m_need_upload{true}
 {
-    m_push_constant_buffer.resize(static_cast<std::size_t>(engine::instance().graphics_device().limits().max_push_constants_size / 4u));
-}
-
-void view::fit_to(const render_window_ptr& window)
-{
-    m_viewport = tph::viewport{0.0f, 0.0f, static_cast<float>(window->width()), static_cast<float>(window->height()), 0.0f, 1.0f};
-    m_scissor = tph::scissor{0, 0, window->width(), window->height()};
-    m_size = vec2f{static_cast<float>(window->width()), static_cast<float>(window->height())};
-
-    m_need_upload = true;
-}
-
-void view::fit_to(const render_texture_ptr& texture)
-{
-    m_viewport = tph::viewport{0.0f, 0.0f, static_cast<float>(texture->width()), static_cast<float>(texture->height()), 0.0f, 1.0f};
-    m_scissor = tph::scissor{0, 0, texture->width(), texture->height()};
-    m_size = vec2f{static_cast<float>(texture->width()), static_cast<float>(texture->height())};
-
-    m_need_upload = true;
+    m_bindings.emplace(0, make_uniform_buffer(std::array{buffer_part{buffer_part_type::uniform, sizeof(view::uniform_data)}}));
 }
 
 void view::upload(memory_transfer_info& info)
 {
     if(std::exchange(m_need_upload, false))
     {
-        m_buffer->get<uniform_data>(0).position = vec4f{m_position, 0.0f};
-        m_buffer->get<uniform_data>(0).view = look_at(m_position - (m_origin * m_scale), m_position - (m_origin * m_scale) - vec3f{0.0f, 0.0f, 1.0f}, vec3f{0.0f, 1.0f, 0.0f});
-        m_buffer->get<uniform_data>(0).projection = orthographic(0.0f, m_size.x() * m_scale.x(), 0.0f, m_size.y() * m_scale.y(), m_z_near * m_scale.z(), m_z_far * m_scale.z());
+        auto buffer{std::get<uniform_buffer_ptr>(m_bindings.at(0))};
 
-        m_buffer->upload(info.buffer, info.signal);
-        info.keeper.keep(m_buffer);
+        buffer->get<uniform_data>(0).view = look_at(m_position - (m_origin * m_scale), m_position - (m_origin * m_scale) - vec3f{0.0f, 0.0f, 1.0f}, vec3f{0.0f, 1.0f, 0.0f});
+        buffer->get<uniform_data>(0).projection = orthographic(0.0f, m_size.x() * m_scale.x(), 0.0f, m_size.y() * m_scale.y(), m_z_near * m_scale.z(), m_z_far * m_scale.z());
+
+        buffer->upload();
+        info.keeper.keep(std::move(buffer));
     }
 }
 
 void view::bind(tph::command_buffer& buffer)
 {
+    if(std::exchange(m_need_descriptor_update, false))
+    {
+        m_set.reset();
+        m_set = m_render_technique->layout()->make_set(0);
+
+        std::vector<tph::descriptor_write> writes{};
+        writes.reserve(std::size(m_render_technique->layout()->info().view_bindings));
+
+        for(auto&& binding : m_render_technique->layout()->info().view_bindings)
+        {
+            const auto it{m_bindings.find(binding.binding)};
+
+            if(it == std::end(m_bindings))
+            {
+                const auto fallback{m_render_technique->layout()->binding(0, binding.binding)};
+                assert(fallback && "cpt::view::bind can not find any suitable binding, neither the view nor the render layout have a binding for specified index.");
+
+                writes.emplace_back(make_descriptor_write(m_set->set(), binding.binding, fallback));
+            }
+            else
+            {
+                writes.emplace_back(make_descriptor_write(m_set->set(), binding.binding, it->second));
+            }
+        }
+
+        tph::write_descriptors(engine::instance().renderer(), writes);
+    }
+
     tph::cmd::set_viewport(buffer, m_viewport);
     tph::cmd::set_scissor(buffer, m_scissor);
-    tph::cmd::bind_pipeline(buffer, m_render_technique->pipeline());
 
-    for(auto&& range : m_render_technique->ranges())
+    tph::cmd::bind_pipeline(buffer, m_render_technique->pipeline());
+    tph::cmd::bind_descriptor_set(buffer, 0, m_set->set(), m_render_technique->layout()->pipeline_layout());
+
+    m_push_constants.push(buffer, m_render_technique->layout()->pipeline_layout(), m_render_technique->layout()->info().view_push_constants);
+}
+
+void view::keep(asynchronous_resource_keeper& keeper) const
+{
+    keeper.keep(m_render_technique);
+    keeper.keep(m_set);
+
+    for(auto&& [index, binding] : m_bindings)
     {
-        tph::cmd::push_constants(buffer, m_render_technique->pipeline_layout(), range.stages, range.offset, range.size, std::data(m_push_constant_buffer) + range.offset / 4u);
+        keeper.keep(get_binding_resource(binding));
     }
 }
 
-cpt::binding& view::add_binding(std::uint32_t index, cpt::binding binding)
+void view::fit(std::uint32_t width, std::uint32_t height)
 {
+    m_viewport = tph::viewport{0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f};
+    m_scissor = tph::scissor{0, 0, width, height};
+    m_size = vec2f{static_cast<float>(width), static_cast<float>(height)};
+
+    m_need_upload = true;
+}
+
+void view::fit(const render_window_ptr& window)
+{
+    fit(window->width(), window->height());
+}
+
+void view::fit(const render_texture_ptr& texture)
+{
+    fit(texture->width(), texture->height());
+}
+
+void view::add_binding(std::uint32_t index, cpt::binding binding)
+{
+#ifndef NDEBUG
+    {
+        const auto predicate = [index](auto&& other)
+        {
+            return other.binding == index;
+        };
+
+        const auto convert_binding_type = [](binding_type type)
+        {
+            switch(type)
+            {
+                case binding_type::texture:        return tph::descriptor_type::image_sampler;
+                case binding_type::uniform_buffer: return tph::descriptor_type::uniform_buffer;
+                case binding_type::storage_buffer: return tph::descriptor_type::storage_buffer;
+            }
+        };
+
+        const auto& bindings{m_render_technique->layout()->info().view_bindings};
+        const auto  it      {std::find_if(std::begin(bindings), std::end(bindings), predicate)};
+
+        assert(it != std::end(bindings) && "cpt::view::add_binding index must correspond to one of the render layout's bindings.");
+        assert(it->type == convert_binding_type(get_binding_type(binding)) && "cpt::view::add_binding binding's type does not correspond to the layout binding's type at index.");
+    }
+#endif
+
     auto [it, success] = m_bindings.try_emplace(index, std::move(binding));
-    assert(success && "cpt::view::add_binding called with already used binding.");
+    assert(success && "cpt::view::add_binding called with already set binding.");
 
-    update_uniforms();
-
-    return it->second;
+    m_need_descriptor_update = true;
 }
 
 void view::set_binding(std::uint32_t index, cpt::binding new_binding)
 {
     m_bindings.at(index) = std::move(new_binding);
-    update_uniforms();
+
+    m_need_descriptor_update = true;
 }
 
 

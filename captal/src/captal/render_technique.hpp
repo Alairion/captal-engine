@@ -13,6 +13,7 @@
 #include "asynchronous_resource.hpp"
 #include "render_target.hpp"
 #include "signal.hpp"
+#include "binding.hpp"
 
 namespace cpt
 {
@@ -127,9 +128,29 @@ public:
 
     descriptor_set_ptr make_set(std::uint32_t layout_index);
 
+    void add_binding(std::uint32_t layout_index, std::uint32_t binding_index, cpt::binding binding);
+    void set_binding(std::uint32_t layout_index, std::uint32_t binding_index, cpt::binding new_binding);
+
     const render_layout_info& info() const noexcept
     {
         return m_info;
+    }
+
+    optional_ref<const cpt::binding> binding(std::uint32_t layout_index, std::uint32_t binding_index) const
+    {
+        const auto it{m_bindings.find(make_binding_key(layout_index, binding_index))};
+
+        if(it != std::end(m_bindings))
+        {
+            return it->second;
+        }
+
+        return nullref;
+    }
+
+    bool has_binding(std::uint32_t layout_index, std::uint32_t binding_index) const
+    {
+        return m_bindings.find(make_binding_key(layout_index, binding_index)) != std::end(m_bindings);
     }
 
     tph::descriptor_set_layout& descriptor_set_layout(std::uint32_t layout_index) noexcept
@@ -168,8 +189,14 @@ private:
         std::vector<std::unique_ptr<descriptor_pool>> pools{};
     };
 
+    static std::uint64_t make_binding_key(std::uint32_t layout_index, std::uint32_t binding_index) noexcept
+    {
+        return static_cast<std::uint64_t>(layout_index) << 32 | binding_index;
+    }
+
 private:
     render_layout_info m_info{};
+    std::unordered_map<std::uint64_t, cpt::binding> m_bindings{};
     std::vector<tph::descriptor_set_layout> m_set_layouts{};
     std::vector<layout_data> m_set_layout_data{};
     tph::pipeline_layout m_layout{};

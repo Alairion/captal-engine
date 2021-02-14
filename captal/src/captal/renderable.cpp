@@ -32,8 +32,8 @@ basic_renderable::basic_renderable(std::uint32_t vertex_count)
 :m_vertex_count{vertex_count}
 {
     auto buffer{make_uniform_buffer(compute_buffer_parts(vertex_count))};
-    m_buffer = buffer.get();
 
+    m_buffer = buffer.get();
     m_bindings.emplace(0, std::move(buffer));
 }
 
@@ -42,8 +42,8 @@ basic_renderable::basic_renderable(std::uint32_t vertex_count, std::uint32_t ind
 ,m_index_count{index_count}
 {
     auto buffer{make_uniform_buffer(compute_buffer_parts(vertex_count, index_count))};
-    m_buffer = buffer.get();
 
+    m_buffer = buffer.get();
     m_bindings.emplace(0, std::move(buffer));
 }
 
@@ -52,6 +52,7 @@ void basic_renderable::set_vertices(std::span<const vertex> vertices) noexcept
     assert(std::size(vertices) == m_vertex_count && "cpt::basic_renderable::set_vertices called with a wrong number of vertices.");
 
     std::memcpy(&m_buffer->get<vertex>(1), std::data(vertices), std::size(vertices) * sizeof(vertex));
+
     m_upload_vertices = true;
 }
 
@@ -61,103 +62,80 @@ void basic_renderable::set_indices(std::span<const std::uint32_t> indices) noexc
     assert(std::size(indices) == m_index_count && "cpt::basic_renderable::set_indices called with a wrong number of indices.");
 
     std::memcpy(&m_buffer->get<std::uint32_t>(2), std::data(indices), std::size(indices) * sizeof(std::uint32_t));
+
     m_upload_indices = true;
 }
 
-void basic_renderable::bind_view(cpt::view& view)
+void basic_renderable::bind(tph::command_buffer& command_buffer, cpt::view& view)
 {
-    const auto write_set = [this](cpt::view& view, const descriptor_set_ptr& set)
+    const auto& layout{view.render_technique()->layout()};
+
+    const auto write_set = [this, &layout](const descriptor_set_ptr& set)
     {
-        const auto has_binding = [](cpt::view& view, std::uint32_t binding)
+        std::vector<tph::descriptor_write> writes{};
+        writes.reserve(std::size(layout->info().renderable_bindings));
+
+        for(auto&& binding : layout->info().renderable_bindings)
         {
-            for(auto&& layout_binding : view.render_technique()->bindings())
+            const auto it{m_bindings.find(binding.binding)};
+
+            if(it == std::end(m_bindings))
             {
-                if(layout_binding.binding == binding)
-                {
-                    return true;
-                }
-            }
+                const auto fallback{layout->binding(0, binding.binding)};
+                assert(fallback && "cpt::basic_renderable::bind can not find any suitable binding, neither the renderable nor the render layout have a binding for specified index.");
 
-            return false;
-        };
-
-        const auto write = [](const descriptor_set_ptr& set, std::uint32_t binding, cpt::binding& data)
-        {
-            if(get_binding_type(data) == binding_type::uniform_buffer)
-            {
-                auto buffer{std::get<uniform_buffer_ptr>(data)->get_buffer()};
-                const tph::descriptor_buffer_info info{buffer.buffer, buffer.offset, std::get<uniform_buffer_ptr>(data)->size()};
-
-                return tph::descriptor_write{set->set(), binding, 0, tph::descriptor_type::uniform_buffer, info};
-            }
-            else if(get_binding_type(data) == binding_type::texture)
-            {
-                const tph::descriptor_texture_info info{std::get<texture_ptr>(data)->get_texture(), tph::texture_layout::shader_read_only_optimal};
-
-                return tph::descriptor_write{set->set(), binding, 0, tph::descriptor_type::image_sampler, info};
+                writes.emplace_back(make_descriptor_write(set->set(), binding.binding, fallback));
             }
             else
             {
-                const tph::descriptor_buffer_info info{std::get<storage_buffer_ptr>(data)->get_buffer(), 0, std::get<storage_buffer_ptr>(data)->size()};
-
-                return tph::descriptor_write{set->set(), binding, 0, tph::descriptor_type::storage_buffer, info};
-            }
-        };
-
-        auto  buffer {m_buffer->get_buffer()};
-        auto& texture{m_texture->get_texture()};
-
-        std::vector<tph::descriptor_write> writes{};
-        writes.reserve(3 + std::size(m_bindings) + std::size(view.bindings()));
-
-        writes.emplace_back(set->set(), 0, 0, tph::descriptor_type::uniform_buffer, tph::descriptor_buffer_info {view.get_buffer(), 0, sizeof(view::uniform_data)});
-        writes.emplace_back(set->set(), 1, 0, tph::descriptor_type::uniform_buffer, tph::descriptor_buffer_info {buffer.buffer, buffer.offset, sizeof(uniform_data)});
-        writes.emplace_back(set->set(), 2, 0, tph::descriptor_type::image_sampler,  tph::descriptor_texture_info{texture, tph::texture_layout::shader_read_only_optimal});
-
-        for(auto&& [binding, data] : m_bindings)
-        {
-            if(has_binding(view, binding))
-            {
-                writes.emplace_back(write(set, binding, data));
-            }
-        }
-
-        for(auto&& [binding, data] : view.m_bindings)
-        {
-            if(has_binding(view, binding))
-            {
-                writes.emplace_back(write(set, binding, data));
+                writes.emplace_back(make_descriptor_write(set->set(), binding.binding, it->second));
             }
         }
 
         tph::write_descriptors(engine::instance().renderer(), writes);
     };
 
-    auto it{m_descriptor_sets.find(view.resource().get())};
+    auto it{m_sets.find(layout)};
 
-    if(it == std::end(m_descriptor_sets)) //New view
+    if(it == std::end(m_sets)) //New layout
     {
-        const auto [new_item, success] = m_descriptor_sets.emplace(view.resource().get(), view.render_technique()->make_set());
+        it = m_sets.emplace(layout, descriptor_set_data{layout->make_set(1), m_descriptors_epoch}).first;
 
-        it = new_item;
-        write_set(view, it->second);
+        write_set(it->second.set);
     }
-    else if(m_need_descriptor_update || view.need_descriptor_update()) //Already known view check
+    else if(it->second.epoch < m_descriptors_epoch) //Already known layout but not up to date
     {
-        it->second = view.render_technique()->make_set();
-        write_set(view, it->second);
+        it->second.set.reset();
+        it->second.set = layout->make_set(1);
+        it->second.epoch = m_descriptors_epoch;
+
+        write_set(it->second.set);
     }
 
-    m_current_set = it->second;
-    m_need_descriptor_update = false;
+    auto buffer{m_buffer->get_buffer()};
+
+    if(m_index_count > 0)
+    {
+        tph::cmd::bind_index_buffer(command_buffer, buffer.buffer, buffer.offset + m_buffer->part_offset(2), tph::index_type::uint32);
+    }
+
+    tph::cmd::bind_vertex_buffer (command_buffer, buffer.buffer, buffer.offset + m_buffer->part_offset(1));
+    tph::cmd::bind_descriptor_set(command_buffer, 1, it->second.set->set(), layout->pipeline_layout());
+
+    m_push_constants.push(command_buffer, layout->pipeline_layout(), layout->info().renderable_push_constants);
 }
 
-/* this is a cool effect :)
-template<arithmetic T>
-mat<T, 4, 4> rotate_and_scale(const vec<T, 3>& translation, T angle, const vec<T, 3>& axis, const vec<T, 3>& factor, const vec<T, 3>& origin)
+void basic_renderable::draw(tph::command_buffer& command_buffer)
 {
-    return translate(translation - origin) * (rotate(angle, axis) + translate(origin)) * scale(factor);
-}*/
+    if(m_index_count > 0)
+    {
+        tph::cmd::draw_indexed(command_buffer, m_index_count, 1, 0, 0, 0);
+    }
+    else
+    {
+        tph::cmd::draw(command_buffer, m_vertex_count, 1, 0, 0);
+    }
+}
 
 void basic_renderable::upload(memory_transfer_info& info)
 {
@@ -191,27 +169,6 @@ void basic_renderable::upload(memory_transfer_info& info)
     }
 }
 
-void basic_renderable::draw(tph::command_buffer& command_buffer)
-{
-    const auto buffer{m_buffer->get_buffer()};
-
-    if(m_index_count > 0)
-    {
-        tph::cmd::bind_vertex_buffer (command_buffer, buffer.buffer, buffer.offset + m_buffer->part_offset(1));
-        tph::cmd::bind_index_buffer  (command_buffer, buffer.buffer, buffer.offset + m_buffer->part_offset(2), tph::index_type::uint32);
-        tph::cmd::bind_descriptor_set(command_buffer, 1, m_set->set(), m_set->pool().technique().pipeline_layout());
-
-        tph::cmd::draw_indexed(command_buffer, m_index_count, 1, 0, 0, 0);
-    }
-    else
-    {
-        tph::cmd::bind_vertex_buffer (command_buffer, buffer.buffer, buffer.offset + m_buffer->part_offset(1));
-        tph::cmd::bind_descriptor_set(command_buffer, 1, m_set->set(), m_set->pool().technique().pipeline_layout());
-
-        tph::cmd::draw(command_buffer, m_vertex_count, 1, 0, 0);
-    }
-}
-
 void basic_renderable::keep(asynchronous_resource_keeper& keeper)
 {
     for(const auto& [index, binding] : m_bindings)
@@ -220,57 +177,62 @@ void basic_renderable::keep(asynchronous_resource_keeper& keeper)
     }
 }
 
-cpt::binding& basic_renderable::add_binding(std::uint32_t index, cpt::binding binding)
+void basic_renderable::add_binding(std::uint32_t index, cpt::binding binding)
 {
     auto [it, success] = m_bindings.try_emplace(index, std::move(binding));
-    assert(success && "cpt::view::add_binding called with already used binding.");
+    assert(success && "cpt::basic_renderable::add_binding called with already used binding.");
 
-    m_need_descriptor_update = true;
-
-    return it->second;
+    ++m_descriptors_epoch;
 }
 
 void basic_renderable::set_binding(std::uint32_t index, cpt::binding new_binding)
 {
     m_bindings.at(index) = std::move(new_binding);
-    m_need_descriptor_update = true;
+
+    ++m_descriptors_epoch;
 }
 
 sprite::sprite(std::uint32_t width, std::uint32_t height, const color& color)
-:renderable{4, 6}
+:basic_renderable{4, 6}
 ,m_width{width}
 ,m_height{height}
 {
     init(color);
 }
 
-sprite::sprite(texture_ptr texture)
-:renderable{4, 6}
+sprite::sprite(texture_ptr texture, const color& color)
+:basic_renderable{4, 6}
 ,m_width{texture->width()}
 ,m_height{texture->height()}
 {
-    init(colors::white);
+    init(color);
     set_texture(std::move(texture));
 }
 
-sprite::sprite(std::uint32_t width, std::uint32_t height, texture_ptr texture)
-:renderable{4, 6}
+sprite::sprite(std::uint32_t width, std::uint32_t height, texture_ptr texture, const color& color)
+:basic_renderable{4, 6}
 ,m_width{width}
 ,m_height{height}
 {
-    init(colors::white);
+    init(color);
     set_texture(std::move(texture));
 }
 
 void sprite::set_texture(texture_ptr texture) noexcept
 {
-    m_texture = std::move(texture);
-    m_need_descriptor_update = true;
+    if(has_binding(1))
+    {
+        set_binding(1, std::move(texture));
+    }
+    else
+    {
+        add_binding(1, std::move(texture));
+    }
 }
 
 void sprite::set_color(const color& color) noexcept
 {
-    const auto vertices{renderable::vertices()};
+    const auto vertices{basic_renderable::vertices()};
 
     vertices[0].color = static_cast<vec4f>(color);
     vertices[1].color = static_cast<vec4f>(color);
@@ -293,7 +255,7 @@ void sprite::set_texture_rect(std::int32_t x, std::int32_t y, std::uint32_t widt
 
 void sprite::set_relative_texture_coords(float x1, float y1, float x2, float y2) noexcept
 {
-    const auto vertices{renderable::vertices()};
+    const auto vertices{basic_renderable::vertices()};
 
     vertices[0].texture_coord = vec2f{x1, y1};
     vertices[1].texture_coord = vec2f{x2, y1};
@@ -316,7 +278,7 @@ void sprite::resize(std::uint32_t width, std::uint32_t height) noexcept
     m_width = width;
     m_height = height;
 
-    const auto vertices{renderable::vertices()};
+    const auto vertices{basic_renderable::vertices()};
 
     vertices[0].position = vec3f{0.0f, 0.0f, 0.0f};
     vertices[1].position = vec3f{static_cast<float>(m_width), 0.0f, 0.0f};
@@ -333,7 +295,7 @@ void sprite::init(const color& color)
 }
 
 polygon::polygon(std::vector<vec2f> points, const color& color)
-:renderable{static_cast<std::uint32_t>(std::size(points) + 1), static_cast<std::uint32_t>(std::size(points) * 3)}
+:basic_renderable{static_cast<std::uint32_t>(std::size(points) + 1), static_cast<std::uint32_t>(std::size(points) * 3)}
 {
     assert(std::size(points) > 2 && "cpt::polygon created with less than 3 points.");
 
@@ -368,7 +330,7 @@ void polygon::init(std::vector<vec2f> points, const color& color)
 {
     m_points = std::move(points);
 
-    const auto indices{renderable::indices()};
+    const auto indices{basic_renderable::indices()};
     for(std::uint32_t i{1}; i < std::size(m_points); ++i)
     {
         const auto current{indices.subspan((i - 1) * 3)};
@@ -384,7 +346,7 @@ void polygon::init(std::vector<vec2f> points, const color& color)
     last_triangle[2] = static_cast<std::uint32_t>(std::size(m_points));
 
     const vec4f native_color{color};
-    const auto  vertices    {renderable::vertices()};
+    const auto  vertices    {basic_renderable::vertices()};
 
     vertices[0].color = native_color;
     for(std::uint32_t i{}; i < std::size(m_points); ++i)
@@ -395,7 +357,7 @@ void polygon::init(std::vector<vec2f> points, const color& color)
 }
 
 tilemap::tilemap(std::uint32_t width, std::uint32_t height, std::uint32_t tile_width, std::uint32_t tile_height)
-:renderable{width * height * 4, width * height * 6}
+:basic_renderable{width * height * 4, width * height * 6}
 ,m_width{width}
 ,m_height{height}
 ,m_tile_width{tile_width}
@@ -405,7 +367,7 @@ tilemap::tilemap(std::uint32_t width, std::uint32_t height, std::uint32_t tile_w
 }
 
 tilemap::tilemap(std::uint32_t width, std::uint32_t height, const tileset& tileset)
-:renderable{width * height * 4, width * height * 6}
+:basic_renderable{width * height * 4, width * height * 6}
 ,m_width{width}
 ,m_height{height}
 ,m_tile_width{tileset.tile_width()}
@@ -417,7 +379,7 @@ tilemap::tilemap(std::uint32_t width, std::uint32_t height, const tileset& tiles
 
 void tilemap::set_color(std::uint32_t row, std::uint32_t col, const color& color) noexcept
 {
-    const auto vertices{renderable::vertices().subspan((row * m_width + col) * 4)};
+    const auto vertices{basic_renderable::vertices().subspan((row * m_width + col) * 4)};
 
     vertices[0].color = static_cast<vec4f>(color);
     vertices[1].color = static_cast<vec4f>(color);
@@ -441,7 +403,7 @@ void tilemap::set_texture_rect(std::uint32_t row, std::uint32_t col, std::int32_
 
 void tilemap::set_texture_rect(std::uint32_t row, std::uint32_t col, const tileset::texture_rect& rect) noexcept
 {
-    const auto vertices{renderable::vertices().subspan((row * m_width + col) * 4)};
+    const auto vertices{basic_renderable::vertices().subspan((row * m_width + col) * 4)};
 
     vertices[0].texture_coord = rect.top_left;
     vertices[1].texture_coord = vec2f{rect.bottom_right.x(), rect.top_left.y()};
@@ -451,7 +413,7 @@ void tilemap::set_texture_rect(std::uint32_t row, std::uint32_t col, const tiles
 
 void tilemap::set_relative_texture_coords(std::uint32_t row, std::uint32_t col, float x1, float y1, float x2, float y2) noexcept
 {
-    const auto vertices{renderable::vertices().subspan((row * m_width + col) * 4)};
+    const auto vertices{basic_renderable::vertices().subspan((row * m_width + col) * 4)};
 
     vertices[0].texture_coord = vec2f{x1, y1};
     vertices[1].texture_coord = vec2f{x2, y1};
@@ -466,8 +428,8 @@ void tilemap::set_relative_texture_rect(std::uint32_t row, std::uint32_t col, fl
 
 void tilemap::init()
 {
-    const auto vertices{renderable::vertices()};
-    const auto indices {renderable::indices()};
+    const auto vertices{basic_renderable::vertices()};
+    const auto indices {basic_renderable::indices()};
 
     for(std::uint32_t j{}; j < m_height; ++j)
     {

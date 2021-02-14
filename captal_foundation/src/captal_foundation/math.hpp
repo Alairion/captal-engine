@@ -1069,6 +1069,13 @@ mat<T, 4, 4> model(const vec<T, 3>& translation, T angle, const vec<T, 3>& axis,
     return scale(factor) * translate(translation) * rotate(angle, axis) * translate(-origin);
 }
 
+/* this is a cool effect :)
+template<arithmetic T>
+mat<T, 4, 4> rotate_and_scale(const vec<T, 3>& translation, T angle, const vec<T, 3>& axis, const vec<T, 3>& factor, const vec<T, 3>& origin)
+{
+    return translate(translation - origin) * (rotate(angle, axis) + translate(origin)) * scale(factor);
+}*/
+
 template<arithmetic T>
 constexpr mat<T, 4, 4> orthographic(T left, T right, T bottom, T top, T near, T far) noexcept
 {

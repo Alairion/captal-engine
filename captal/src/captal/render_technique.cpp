@@ -101,13 +101,14 @@ render_layout::render_layout(render_layout_info info)
 ,m_layout{engine::instance().renderer(), m_set_layouts, make_push_constant_ranges(m_info)}
 {
     m_set_layout_data.reserve(2);
-
-    m_set_layout_data.emplace_back(make_pool_sizes(info.view_bindings));
-    m_set_layout_data.emplace_back(make_pool_sizes(info.renderable_bindings));
+    m_set_layout_data.emplace_back(make_pool_sizes(m_info.view_bindings));
+    m_set_layout_data.emplace_back(make_pool_sizes(m_info.renderable_bindings));
 }
 
 descriptor_set_ptr render_layout::make_set(std::uint32_t layout_index)
 {
+    assert(layout_index < 2 && "cpt::render_layout does not support custom descriptor set layouts yet.");
+
     std::lock_guard lock{m_mutex};
 
     auto& data{m_set_layout_data[layout_index]};
@@ -131,6 +132,61 @@ descriptor_set_ptr render_layout::make_set(std::uint32_t layout_index)
 #endif
 
     return data.pools.back()->allocate();
+}
+
+void render_layout::add_binding(std::uint32_t layout_index, std::uint32_t binding_index, cpt::binding binding)
+{
+    const auto key{make_binding_key(layout_index, binding_index)};
+
+#ifndef NDEBUG
+    {
+        const auto get_bindings = [this, layout_index]() -> std::span<const tph::descriptor_set_layout_binding>
+        {
+            if(layout_index == 0)
+            {
+                return m_info.view_bindings;
+            }
+            else if(layout_index == 1)
+            {
+                return m_info.renderable_bindings;
+            }
+
+            assert(layout_index < 2 && "cpt::render_layout does not support custom descriptor set layouts yet.");
+            std::terminate();
+        };
+
+        const auto predicate = [binding_index](auto&& other)
+        {
+            return other.binding == binding_index;
+        };
+
+        const auto convert_binding_type = [](binding_type type)
+        {
+            switch(type)
+            {
+                case binding_type::texture:        return tph::descriptor_type::image_sampler;
+                case binding_type::uniform_buffer: return tph::descriptor_type::uniform_buffer;
+                case binding_type::storage_buffer: return tph::descriptor_type::storage_buffer;
+            }
+        };
+
+        const auto bindings{get_bindings()};
+        const auto it      {std::find_if(std::begin(bindings), std::end(bindings), predicate)};
+
+        assert(it != std::end(bindings) && "cpt::render_layout::add_binding index must correspond to one of the descriptor set layout's bindings.");
+        assert(it->type == convert_binding_type(get_binding_type(binding)) && "cpt::render_layout::add_binding binding's type does not correspond to the descriptor set layout binding's type.");
+    }
+#endif
+
+    auto [it, success] = m_bindings.try_emplace(key, std::move(binding));
+    assert(success && "cpt::render_layout::add_binding called with already set binding.");
+}
+
+void render_layout::set_binding(uint32_t layout_index, uint32_t binding_index, cpt::binding new_binding)
+{
+    assert(layout_index < 2 && "cpt::render_layout does not support custom descriptor set layouts yet.");
+
+    m_bindings.at(make_binding_key(layout_index, binding_index)) = std::move(new_binding);
 }
 
 #ifdef CAPTAL_DEBUG

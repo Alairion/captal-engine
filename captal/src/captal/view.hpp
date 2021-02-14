@@ -9,6 +9,7 @@
 #include <captal_foundation/math.hpp>
 
 #include "asynchronous_resource.hpp"
+#include "push_constant_buffer.hpp"
 #include "uniform_buffer.hpp"
 #include "binding.hpp"
 #include "render_technique.hpp"
@@ -42,6 +43,23 @@ public:
     view& operator=(const view&) = delete;
     view(view&&) noexcept = default;
     view& operator=(view&&) noexcept = default;
+
+    void upload(memory_transfer_info& info);
+    void bind(tph::command_buffer& buffer);
+    void keep(asynchronous_resource_keeper& keeper) const;
+
+    void fit(std::uint32_t width, std::uint32_t height);
+    void fit(const render_texture_ptr& window);
+    void fit(const render_window_ptr& texture);
+
+    void add_binding(std::uint32_t index, cpt::binding binding);
+    void set_binding(std::uint32_t index, cpt::binding new_binding);
+
+    template<typename T>
+    void set_push_constant(tph::shader_stage stages, std::uint32_t offset, T&& value)
+    {
+        return m_push_constants.set(stages, offset, std::forward<T>(value));
+    }
 
     void set_viewport(const tph::viewport& viewport) noexcept
     {
@@ -119,30 +137,46 @@ public:
         update();
     }
 
-    void fit_to(const render_texture_ptr& window);
-    void fit_to(const render_window_ptr& texture);
-
-    template<typename T>
-    void set_push_constant(std::size_t index, T&& value) noexcept
-    {
-        get_push_constant<T>(index) = std::forward<T>(value);
-    }
-
-    cpt::binding& add_binding(std::uint32_t index, cpt::binding binding);
-    void set_binding(std::uint32_t index, cpt::binding new_binding);
-
     void update() noexcept
     {
         m_need_upload = true;
     }
 
-    void update_uniforms() noexcept
+    render_target& target() const noexcept
     {
-        m_need_descriptor_update = true;
+        return *m_target;
     }
 
-    void upload(memory_transfer_info& info);
-    void bind(tph::command_buffer& buffer);
+    const render_technique_ptr& render_technique() const noexcept
+    {
+        return m_render_technique;
+    }
+
+    const cpt::binding& binding(std::uint32_t index) const
+    {
+        return m_bindings.at(index);
+    }
+
+    bool has_binding(std::uint32_t index) const
+    {
+        return m_bindings.find(index) != std::end(m_bindings);
+    }
+
+    const std::unordered_map<std::uint32_t, cpt::binding>& bindings() const noexcept
+    {
+        return m_bindings;
+    }
+
+    template<typename T>
+    const T& get_push_constant(tph::shader_stage stages, std::uint32_t offset) const
+    {
+        return m_push_constants.get<T>(stages, offset);
+    }
+
+    bool has_push_constant(tph::shader_stage stages, std::uint32_t offset) const
+    {
+        return m_push_constants.has(stages, offset);
+    }
 
     const tph::viewport& viewport() const noexcept
     {
@@ -199,74 +233,6 @@ public:
         return m_type;
     }
 
-    const render_technique_ptr& render_technique() const noexcept
-    {
-        return m_render_technique;
-    }
-
-    render_target& target() const noexcept
-    {
-        return *m_target;
-    }
-
-    tph::buffer& get_buffer() noexcept
-    {
-        return m_buffer->get_buffer();
-    }
-
-    const tph::buffer& get_buffer() const noexcept
-    {
-        return m_buffer->get_buffer();
-    }
-
-    template<typename T>
-    T& get_push_constant(std::size_t index) noexcept
-    {
-        const auto range{m_render_technique->ranges()[index]};
-        assert(range.size == sizeof(T) && "Size of T does not match range size.");
-
-        return *std::launder(reinterpret_cast<T*>(std::data(m_push_constant_buffer) + range.offset / 4u));
-    }
-
-    template<typename T>
-    const T& get_push_constant(std::size_t index) const noexcept
-    {
-        const auto range{m_render_technique->ranges()[index]};
-        assert(range.size == sizeof(T) && "Size of T does not match range size.");
-
-        return *std::launder(reinterpret_cast<const T*>(std::data(m_push_constant_buffer) + range.offset / 4u));
-    }
-
-    const cpt::binding& binding(std::uint32_t index) const
-    {
-        return m_bindings.at(index);
-    }
-
-    bool has_binding(std::uint32_t index) const
-    {
-        return m_bindings.find(index) != std::end(m_bindings);
-    }
-
-    const std::unordered_map<std::uint32_t, cpt::binding>& bindings() const noexcept
-    {
-        return m_bindings;
-    }
-
-    bool need_descriptor_update() noexcept
-    {
-        return m_need_descriptor_update;
-    }
-
-    std::span<const std::uint32_t> push_constant_buffer() const noexcept
-    {
-        return m_push_constant_buffer;
-    }
-
-    asynchronous_resource_ptr resource() const noexcept
-    {
-        return m_buffer;
-    }
-
 #ifdef CAPTAL_DEBUG
     void set_name(std::string_view name);
 #else
@@ -278,6 +244,10 @@ public:
 
 private:
     render_target* m_target{};
+    render_technique_ptr m_render_technique{};
+    std::unordered_map<std::uint32_t, cpt::binding> m_bindings{};
+    push_constants_buffer m_push_constants{};
+    descriptor_set_ptr m_set{};
 
     tph::viewport m_viewport{};
     tph::scissor m_scissor{};
@@ -291,12 +261,7 @@ private:
     view_type m_type{};
 
     bool m_need_upload{true};
-    bool m_need_descriptor_update{};
-
-    std::vector<std::uint32_t> m_push_constant_buffer{};
-    std::unordered_map<std::uint32_t, cpt::binding> m_bindings{};
-    render_technique_ptr m_render_technique{};
-    uniform_buffer_ptr m_buffer{};
+    bool m_need_descriptor_update{true};
 };
 
 }

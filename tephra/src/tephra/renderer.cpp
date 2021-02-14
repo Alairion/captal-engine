@@ -539,7 +539,7 @@ void set_object_name(renderer& renderer, const std::string& name)
         throw vulkan::error{result};
 }
 
-void set_queue_label(renderer& renderer, queue queue, const std::string& name, float red, float green, float blue, float alpha) noexcept
+void begin_queue_label(renderer& renderer, queue queue, const std::string& name, float red, float green, float blue, float alpha) noexcept
 {
     VkDebugUtilsLabelEXT label{};
     label.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;

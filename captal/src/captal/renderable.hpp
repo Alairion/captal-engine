@@ -4,6 +4,7 @@
 #include "config.hpp"
 
 #include <unordered_map>
+#include <map>
 #include <span>
 #include <concepts>
 #include <numbers>
@@ -22,27 +23,36 @@ namespace cpt
 template<typename T>
 concept renderable = requires(T r, const T cr,
                               cpt::view view, const cpt::view cview,
-                              std::uint32_t i, vec3f vec, float f, cpt::binding bind,
+                              std::uint32_t i, vec3f vec, float f, cpt::binding bind, tph::shader_stage stages,
                               memory_transfer_info info, tph::command_buffer cb, asynchronous_resource_keeper keeper)
 {
-    {r.bind(view)};
-    {r.draw(cb)};
-    {r.upload(info)};
-    {r.keep(keeper)};
+    r.bind(cb, view);
+    r.draw(cb);
+    r.upload(info);
+    r.keep(keeper);
 
-    {r.add_binding(i, bind)} -> std::convertible_to<cpt::binding&>;
-    {r.set_binding(i, bind)};
+    r.add_binding(i, bind);
+    r.set_binding(i, bind);
 
-    {r.move(vec)};
-    {r.move_to(vec)};
-    {r.set_origin(vec)};
-    {r.move_origin(vec)};
-    {r.rotate(f)};
-    {r.set_rotation(f)};
-    {r.scale(vec)};
-    {r.set_scale(vec)};
-    {r.hide()};
-    {r.show()};
+    r.set_push_constant(stages, i, f);
+
+    r.move(vec);
+    r.move_to(vec);
+    r.set_origin(vec);
+    r.move_origin(vec);
+    r.rotate(f);
+    r.set_rotation(f);
+    r.scale(vec);
+    r.set_scale(vec);
+    r.hide();
+    r.show();
+
+    {cr.binding(i)}     -> std::convertible_to<const cpt::binding&>;
+    {cr.has_binding(i)} -> std::convertible_to<bool>;
+    {cr.bindings()}     -> std::convertible_to<const std::unordered_map<std::uint32_t, cpt::binding>&>;
+
+    {cr. template get_push_constant<float>(stages, i)} -> std::convertible_to<float>;
+    {cr.has_push_constant(stages, i)} -> std::convertible_to<bool>;
 
     {cr.position()} -> std::convertible_to<const vec3f&>;
     {cr.origin()}   -> std::convertible_to<const vec3f&>;
@@ -57,12 +67,6 @@ concept renderable = requires(T r, const T cr,
     {r.indices()}   -> std::convertible_to<std::span<std::uint32_t>>;
     {cr.indices()}  -> std::convertible_to<std::span<const std::uint32_t>>;
     {cr.cindices()} -> std::convertible_to<std::span<const std::uint32_t>>;
-
-    {cr.binding(i)}     -> std::convertible_to<const cpt::binding&>;
-    {cr.has_binding(i)} -> std::convertible_to<bool>;
-    {cr.bindings()}     -> std::convertible_to<const std::unordered_map<std::uint32_t, cpt::binding>&>;
-
-    {cr.set()} -> std::convertible_to<const descriptor_set_ptr&>;
 };
 
 class CAPTAL_API basic_renderable
@@ -88,13 +92,19 @@ protected:
     void set_indices(std::span<const std::uint32_t> indices) noexcept;
 
 public:
-    void bind(cpt::view& view);
+    void bind(tph::command_buffer& command_buffer, cpt::view& view);
     void draw(tph::command_buffer& command_buffer);
     void upload(memory_transfer_info& info);
     void keep(asynchronous_resource_keeper& keeper);
 
-    cpt::binding& add_binding(std::uint32_t index, cpt::binding binding);
+    void add_binding(std::uint32_t index, cpt::binding binding);
     void set_binding(std::uint32_t index, cpt::binding new_binding);
+
+    template<typename T>
+    void set_push_constant(tph::shader_stage stages, std::uint32_t offset, T&& value)
+    {
+        return m_push_constants.set(stages, offset, std::forward<T>(value));
+    }
 
     void move(const vec3f& relative) noexcept
     {
@@ -152,6 +162,32 @@ public:
     void show() noexcept
     {
         m_hidden = false;
+    }
+
+    const cpt::binding& binding(std::uint32_t index) const
+    {
+        return m_bindings.at(index);
+    }
+
+    bool has_binding(std::uint32_t index) const
+    {
+        return m_bindings.find(index) != std::end(m_bindings);
+    }
+
+    const std::unordered_map<std::uint32_t, cpt::binding>& bindings() const noexcept
+    {
+        return m_bindings;
+    }
+
+    template<typename T>
+    const T& get_push_constant(tph::shader_stage stages, std::uint32_t offset) const
+    {
+        return m_push_constants.get<T>(stages, offset);
+    }
+
+    bool has_push_constant(tph::shader_stage stages, std::uint32_t offset) const
+    {
+        return m_push_constants.has(stages, offset);
     }
 
     const vec3f& position() const noexcept
@@ -219,34 +255,24 @@ public:
         return std::span{&m_buffer->get<const std::uint32_t>(2), static_cast<std::size_t>(m_index_count)};
     }
 
-    const cpt::binding& binding(std::uint32_t index) const
+private:
+    struct descriptor_set_data
     {
-        return m_bindings.at(index);
-    }
+        descriptor_set_ptr set{};
+        std::uint32_t epoch{};
+    };
 
-    bool has_binding(std::uint32_t index) const
-    {
-        return m_bindings.find(index) != std::end(m_bindings);
-    }
-
-    const std::unordered_map<std::uint32_t, cpt::binding>& bindings() const noexcept
-    {
-        return m_bindings;
-    }
-
-    const descriptor_set_ptr& set() const noexcept
-    {
-        return m_set;
-    }
+    using descriptor_set_map = std::map<render_layout_weak_ptr, descriptor_set_data, std::owner_less<render_layout_weak_ptr>>;
 
 private:
     std::unordered_map<std::uint32_t, cpt::binding> m_bindings{};
-    std::unordered_map<const void*, descriptor_set_ptr> m_set{};
+    push_constants_buffer m_push_constants{};
+    descriptor_set_map m_sets{};
     uniform_buffer* m_buffer{};
-    tph::pipeline_layout* m_layout{};
 
     std::uint32_t m_vertex_count{};
     std::uint32_t m_index_count{};
+    std::uint32_t m_descriptors_epoch{};
 
     vec3f m_position{};
     vec3f m_origin{};
@@ -257,16 +283,15 @@ private:
     bool m_upload_model{true};
     bool m_upload_indices{true};
     bool m_upload_vertices{true};
-    bool m_need_descriptor_update{};
 };
 
-class CAPTAL_API sprite final : public renderable
+class CAPTAL_API sprite final : public basic_renderable
 {
 public:
     sprite() = default;
     explicit sprite(std::uint32_t width, std::uint32_t height, const color& color = colors::white);
-    explicit sprite(texture_ptr texture);
-    explicit sprite(std::uint32_t width, std::uint32_t height, texture_ptr texture);
+    explicit sprite(texture_ptr texture, const color& color = colors::white);
+    explicit sprite(std::uint32_t width, std::uint32_t height, texture_ptr texture, const color& color = colors::white);
 
     ~sprite() = default;
     sprite(const sprite&) = delete;
@@ -284,6 +309,11 @@ public:
     void set_spritesheet_coords(std::uint32_t x, std::uint32_t y) noexcept;
 
     void resize(std::uint32_t width, std::uint32_t height) noexcept;
+
+    const texture_ptr& texture() const
+    {
+        return std::get<texture_ptr>(binding(1));
+    }
 
     std::uint32_t width() const noexcept
     {
@@ -303,7 +333,7 @@ private:
     std::uint32_t m_height{};
 };
 
-class CAPTAL_API polygon final : public renderable
+class CAPTAL_API polygon final : public basic_renderable
 {
 public:
     polygon() = default;
@@ -338,7 +368,7 @@ private:
     std::vector<vec2f> m_points{};
 };
 
-class CAPTAL_API tilemap final : public renderable
+class CAPTAL_API tilemap final : public basic_renderable
 {
 public:
     tilemap() = default;
@@ -359,6 +389,11 @@ public:
 
     void set_relative_texture_coords(std::uint32_t row, std::uint32_t col, float x1, float y1, float x2, float y2) noexcept;
     void set_relative_texture_rect(std::uint32_t row, std::uint32_t col, float x, float y, float width, float height) noexcept;
+
+    const texture_ptr& texture() const
+    {
+        return std::get<texture_ptr>(binding(1));
+    }
 
     std::uint32_t width() const noexcept
     {

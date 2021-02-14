@@ -5,20 +5,18 @@
 
 #include <array>
 #include <vector>
+#include <span>
 #include <variant>
+#include <cassert>
+
+#include <tephra/pipeline.hpp>
+#include <tephra/commands.hpp>
 
 namespace cpt
 {
 
 class push_constants_buffer
 {
-public:
-    static constexpr std::size_t sbo_size{24};
-
-private:
-    using static_buffer_type = std::array<std::uint32_t, sbo_size / 4>;
-    using dynamic_buffer_type = std::vector<std::uint32_t>;
-
 public:
     push_constants_buffer() = default;
     ~push_constants_buffer() = default;
@@ -28,48 +26,74 @@ public:
     push_constants_buffer& operator=(push_constants_buffer&& other) noexcept = default;
 
     template<typename T>
-    void set_push_constant(std::size_t index, T&& value) noexcept
+    void set(tph::shader_stage stages, std::uint32_t offset, T&& value)
     {
-        get_push_constant<T>(index) = std::forward<T>(value);
+        static_assert(alignof(T) <= 4, "cpt::push_constants_buffer::set called with a T having an alignement > 4, which may lead to UB.");
+        assert(offset % 4 == 0 && "cpt::push_constants_buffer::set called with invalid offset (offset must be a multiple of 4)");
+
+        const auto index{assure(stages, offset, sizeof(T) / 4)};
+
+        *std::launder(reinterpret_cast<T*>(std::data(m_data) + index)) = std::forward<T>(value);
     }
 
     template<typename T>
-    T& get_push_constant(std::size_t index) noexcept
+    const T& get(tph::shader_stage stages, std::uint32_t offset) const
     {
-        const auto range{m_render_technique->ranges()[index]};
-        assert(range.size == sizeof(T) && "Size of T does not match range size.");
+        static_assert(alignof(T) <= 4, "cpt::push_constants_buffer::get_push_constant called with a T having an alignement > 4, which may lead to UB.");
 
-        return *std::launder(reinterpret_cast<T*>(data() + range.offset / 4u));
+        const auto key{make_key(stages, offset)};
+        const auto it {m_offsets.find(key)};
+
+        assert(it != std::end(m_offsets) && "cpt::push_constants_buffer::get object doesn't exist at specified offset and stages.");
+
+        return *std::launder(reinterpret_cast<const T*>(std::data(m_data) + it->second));
     }
 
-    template<typename T>
-    const T& get_push_constant(std::size_t index) const noexcept
+    bool has(tph::shader_stage stages, std::uint32_t offset) const
     {
-        const auto range{m_render_technique->ranges()[index]};
-        assert(range.size == sizeof(T) && "Size of T does not match range size.");
+        return m_offsets.find(make_key(stages, offset)) != std::end(m_offsets);
+    }
 
-        return *std::launder(reinterpret_cast<const T*>(data() + range.offset / 4u));
+    void push(tph::command_buffer& buffer, tph::pipeline_layout& layout, std::span<const tph::push_constant_range> ranges) const
+    {
+        for(auto&& range : ranges)
+        {
+            const auto key{make_key(range.stages, range.offset)};
+            const auto it {m_offsets.find(key)};
+
+            assert(it != std::end(m_offsets) && "cpt::push_constants_buffer::push object doesn't exist at specified offset and stages, which results in UB.");
+
+            tph::cmd::push_constants(buffer, layout, range.stages, range.offset, range.size, std::data(m_data) + it->second);
+        }
     }
 
 private:
-    std::uint32_t* data() noexcept
+    std::size_t assure(tph::shader_stage stages, std::uint32_t offset, std::size_t size)
     {
-        return std::visit([](auto& data)
+        const auto key{make_key(stages, offset)};
+        const auto it {m_offsets.find(key)};
+
+        if(it == std::end(m_offsets))
         {
-            return std::data(data);
-        }, m_data);
+            const auto index{std::size(m_data)};
+
+            m_offsets.emplace(key, index);
+            m_data.resize(index + size);
+
+            return index;
+        }
+
+        return it->second;
     }
 
-    const std::uint32_t* data() const noexcept
+    static std::uint64_t make_key(tph::shader_stage stages, std::uint32_t offset) noexcept
     {
-        return std::visit([](const auto& data)
-        {
-            return std::data(data);
-        }, m_data);
+        return static_cast<std::uint64_t>(stages) << 32 | offset;
     }
 
 private:
-    std::variant<static_buffer_type, dynamic_buffer_type> m_data{};
+    std::vector<std::uint32_t> m_data{};
+    std::unordered_map<std::uint64_t, std::size_t> m_offsets{};
 };
 
 }
