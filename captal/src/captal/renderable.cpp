@@ -286,6 +286,16 @@ void sprite::resize(std::uint32_t width, std::uint32_t height) noexcept
     vertices[3].position = vec3f{0.0f, static_cast<float>(m_height), 0.0f};
 }
 
+const texture_ptr& sprite::texture() const
+{
+    if(has_binding(1))
+    {
+        return std::get<texture_ptr>(binding(1));
+    }
+
+    return engine::instance().defa
+}
+
 void sprite::init(const color& color)
 {
     set_indices(std::array<std::uint32_t, 6>{0, 1, 2, 2, 3, 0});

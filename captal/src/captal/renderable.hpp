@@ -310,10 +310,7 @@ public:
 
     void resize(std::uint32_t width, std::uint32_t height) noexcept;
 
-    const texture_ptr& texture() const
-    {
-        return std::get<texture_ptr>(binding(1));
-    }
+    const texture_ptr& texture() const;
 
     std::uint32_t width() const noexcept
     {
