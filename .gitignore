@@ -1,6 +1,7 @@
 *.user
 *.bat
 *.autosave
+*.spv
 bin
 test
 libs
