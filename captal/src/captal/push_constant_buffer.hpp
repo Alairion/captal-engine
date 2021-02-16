@@ -39,7 +39,7 @@ public:
     template<typename T>
     const T& get(tph::shader_stage stages, std::uint32_t offset) const
     {
-        static_assert(alignof(T) <= 4, "cpt::push_constants_buffer::get_push_constant called with a T having an alignement > 4, which may lead to UB.");
+        static_assert(alignof(T) <= 4, "cpt::push_constants_buffer::get called with a T having an alignement > 4, which may lead to UB.");
 
         const auto key{make_key(stages, offset)};
         const auto it {m_offsets.find(key)};
@@ -48,6 +48,23 @@ public:
 
         return *std::launder(reinterpret_cast<const T*>(std::data(m_data) + it->second));
     }
+
+    template<typename T>
+    optional_ref<const T> try_get(tph::shader_stage stages, std::uint32_t offset) const
+    {
+        static_assert(alignof(T) <= 4, "cpt::push_constants_buffer::try_get called with a T having an alignement > 4, which may lead to UB.");
+
+        const auto key{make_key(stages, offset)};
+        const auto it {m_offsets.find(key)};
+
+        if(it != std::end(m_offsets))
+        {
+            return *std::launder(reinterpret_cast<const T*>(std::data(m_data) + it->second));
+        }
+
+        return nullref;
+    }
+
 
     bool has(tph::shader_stage stages, std::uint32_t offset) const
     {

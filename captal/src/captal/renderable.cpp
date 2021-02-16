@@ -177,17 +177,18 @@ void basic_renderable::keep(asynchronous_resource_keeper& keeper)
     }
 }
 
-void basic_renderable::add_binding(std::uint32_t index, cpt::binding binding)
+void basic_renderable::set_binding(std::uint32_t index, cpt::binding binding)
 {
-    auto [it, success] = m_bindings.try_emplace(index, std::move(binding));
-    assert(success && "cpt::basic_renderable::add_binding called with already used binding.");
+    const auto it{m_bindings.find(index)};
 
-    ++m_descriptors_epoch;
-}
-
-void basic_renderable::set_binding(std::uint32_t index, cpt::binding new_binding)
-{
-    m_bindings.at(index) = std::move(new_binding);
+    if(it != std::end(m_bindings))
+    {
+        it->second = std::move(binding);
+    }
+    else
+    {
+        m_bindings.emplace(index, std::move(binding));
+    }
 
     ++m_descriptors_epoch;
 }
@@ -218,7 +219,7 @@ sprite::sprite(std::uint32_t width, std::uint32_t height, texture_ptr texture, c
     set_texture(std::move(texture));
 }
 
-void sprite::set_texture(texture_ptr texture) noexcept
+void sprite::set_texture(texture_ptr texture)
 {
     if(has_binding(1))
     {
@@ -281,19 +282,9 @@ void sprite::resize(std::uint32_t width, std::uint32_t height) noexcept
     const auto vertices{basic_renderable::vertices()};
 
     vertices[0].position = vec3f{0.0f, 0.0f, 0.0f};
-    vertices[1].position = vec3f{static_cast<float>(m_width), 0.0f, 0.0f};
-    vertices[2].position = vec3f{static_cast<float>(m_width), static_cast<float>(m_height), 0.0f};
-    vertices[3].position = vec3f{0.0f, static_cast<float>(m_height), 0.0f};
-}
-
-const texture_ptr& sprite::texture() const
-{
-    if(has_binding(1))
-    {
-        return std::get<texture_ptr>(binding(1));
-    }
-
-    return engine::instance().defa
+    vertices[1].position = vec3f{static_cast<float>(width), 0.0f, 0.0f};
+    vertices[2].position = vec3f{static_cast<float>(width), static_cast<float>(height), 0.0f};
+    vertices[3].position = vec3f{0.0f, static_cast<float>(height), 0.0f};
 }
 
 void sprite::init(const color& color)
@@ -385,6 +376,18 @@ tilemap::tilemap(std::uint32_t width, std::uint32_t height, const tileset& tiles
 {
     init();
     set_texture(tileset.texture());
+}
+
+void tilemap::set_texture(texture_ptr texture)
+{
+    if(has_binding(1))
+    {
+        set_binding(1, std::move(texture));
+    }
+    else
+    {
+        add_binding(1, std::move(texture));
+    }
 }
 
 void tilemap::set_color(std::uint32_t row, std::uint32_t col, const color& color) noexcept

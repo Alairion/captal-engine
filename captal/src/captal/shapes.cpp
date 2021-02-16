@@ -16,7 +16,7 @@ static std::uint32_t compute_circle_point_count(float radius) noexcept
 
 std::vector<vec2f> circle(float radius, std::uint32_t point_count)
 {
-    assert(point_count > 2 && "cpt::polygon created with less than 3 points.");
+    assert(point_count > 2 && "cpt::circle called with less than 3 points.");
 
     std::vector<vec2f> points{};
     points.reserve(point_count);
@@ -45,7 +45,7 @@ static std::uint32_t compute_ellipse_point_count(float width, float height) noex
 
 std::vector<vec2f> ellipse(float width, float height, std::uint32_t point_count)
 {
-    assert(point_count > 2 && "cpt::polygon created with less than 3 points.");
+    assert(point_count > 2 && "cpt::circle called with less than 3 points.");
 
     std::vector<vec2f> points{};
     points.reserve(point_count);

@@ -106,10 +106,17 @@ void view::fit(const render_texture_ptr& texture)
     fit(texture->width(), texture->height());
 }
 
-void view::add_binding(std::uint32_t index, cpt::binding binding)
+void view::set_binding(std::uint32_t index, cpt::binding binding)
 {
-#ifndef NDEBUG
+    const auto to_set{m_bindings.find(index)};
+
+    if(to_set != std::end(m_bindings))
     {
+        to_set->second = std::move(binding);
+    }
+    else
+    {
+    #ifndef NDEBUG
         const auto predicate = [index](auto&& other)
         {
             return other.binding == index;
@@ -128,20 +135,12 @@ void view::add_binding(std::uint32_t index, cpt::binding binding)
         const auto& bindings{m_render_technique->layout()->info().view_bindings};
         const auto  it      {std::find_if(std::begin(bindings), std::end(bindings), predicate)};
 
-        assert(it != std::end(bindings) && "cpt::view::add_binding index must correspond to one of the render layout's bindings.");
-        assert(it->type == convert_binding_type(get_binding_type(binding)) && "cpt::view::add_binding binding's type does not correspond to the layout binding's type at index.");
+        assert(it != std::end(bindings) && "cpt::view::set_binding index must correspond to one of the render layout's bindings.");
+        assert(it->type == convert_binding_type(get_binding_type(binding)) && "cpt::view::set_binding binding's type does not correspond to the layout binding's type at index.");
+    #endif
+
+        m_bindings.emplace(index, std::move(binding));
     }
-#endif
-
-    auto [it, success] = m_bindings.try_emplace(index, std::move(binding));
-    assert(success && "cpt::view::add_binding called with already set binding.");
-
-    m_need_descriptor_update = true;
-}
-
-void view::set_binding(std::uint32_t index, cpt::binding new_binding)
-{
-    m_bindings.at(index) = std::move(new_binding);
 
     m_need_descriptor_update = true;
 }

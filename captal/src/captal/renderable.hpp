@@ -31,7 +31,6 @@ concept renderable = requires(T r, const T cr,
     r.upload(info);
     r.keep(keeper);
 
-    r.add_binding(i, bind);
     r.set_binding(i, bind);
 
     r.set_push_constant(stages, i, f);
@@ -97,8 +96,7 @@ public:
     void upload(memory_transfer_info& info);
     void keep(asynchronous_resource_keeper& keeper);
 
-    void add_binding(std::uint32_t index, cpt::binding binding);
-    void set_binding(std::uint32_t index, cpt::binding new_binding);
+    void set_binding(std::uint32_t index, cpt::binding binding);
 
     template<typename T>
     void set_push_constant(tph::shader_stage stages, std::uint32_t offset, T&& value)
@@ -299,18 +297,23 @@ public:
     sprite(sprite&&) noexcept = default;
     sprite& operator=(sprite&&) noexcept = default;
 
-    void set_texture(texture_ptr texture) noexcept;
+    void set_texture(texture_ptr texture);
     void set_color(const color& color) noexcept;
 
     void set_texture_coords(std::int32_t x1, std::int32_t y1, std::int32_t x2, std::int32_t y2) noexcept;
     void set_texture_rect(std::int32_t x, std::int32_t y, std::uint32_t width, std::uint32_t height) noexcept;
+
     void set_relative_texture_coords(float x1, float y1, float x2, float y2) noexcept;
     void set_relative_texture_rect(float x, float y, float width, float height) noexcept;
+
     void set_spritesheet_coords(std::uint32_t x, std::uint32_t y) noexcept;
 
     void resize(std::uint32_t width, std::uint32_t height) noexcept;
 
-    const texture_ptr& texture() const;
+    const texture_ptr& texture() const
+    {
+        return std::get<texture_ptr>(binding(1));
+    }
 
     std::uint32_t width() const noexcept
     {
@@ -378,6 +381,7 @@ public:
     tilemap(tilemap&&) noexcept = default;
     tilemap& operator=(tilemap&&) noexcept = default;
 
+    void set_texture(texture_ptr texture);
     void set_color(std::uint32_t row, std::uint32_t col, const color& color) noexcept;
 
     void set_texture_coords(std::uint32_t row, std::uint32_t col, std::int32_t x1, std::int32_t y1, std::int32_t x2, std::int32_t y2) noexcept;

@@ -52,8 +52,7 @@ public:
     void fit(const render_texture_ptr& window);
     void fit(const render_window_ptr& texture);
 
-    void add_binding(std::uint32_t index, cpt::binding binding);
-    void set_binding(std::uint32_t index, cpt::binding new_binding);
+    void set_binding(std::uint32_t index, cpt::binding binding);
 
     template<typename T>
     void set_push_constant(tph::shader_stage stages, std::uint32_t offset, T&& value)

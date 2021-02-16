@@ -128,8 +128,7 @@ public:
 
     descriptor_set_ptr make_set(std::uint32_t layout_index);
 
-    void add_binding(std::uint32_t layout_index, std::uint32_t binding_index, cpt::binding binding);
-    void set_binding(std::uint32_t layout_index, std::uint32_t binding_index, cpt::binding new_binding);
+    void set_binding(std::uint32_t layout_index, std::uint32_t binding_index, cpt::binding binding);
 
     const render_layout_info& info() const noexcept
     {

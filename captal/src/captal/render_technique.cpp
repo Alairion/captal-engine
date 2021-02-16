@@ -134,25 +134,30 @@ descriptor_set_ptr render_layout::make_set(std::uint32_t layout_index)
     return data.pools.back()->allocate();
 }
 
-void render_layout::add_binding(std::uint32_t layout_index, std::uint32_t binding_index, cpt::binding binding)
+void render_layout::set_binding(std::uint32_t layout_index, std::uint32_t binding_index, cpt::binding binding)
 {
-    const auto key{make_binding_key(layout_index, binding_index)};
+    assert(layout_index < 2 && "cpt::render_layout does not support custom descriptor set layouts yet.");
 
-#ifndef NDEBUG
+    const auto key   {make_binding_key(layout_index, binding_index)};
+    const auto to_set{m_bindings.find(key)};
+
+    if(to_set != std::end(m_bindings))
     {
+        to_set->second = std::move(binding);
+    }
+    else
+    {
+    #ifndef NDEBUG
         const auto get_bindings = [this, layout_index]() -> std::span<const tph::descriptor_set_layout_binding>
         {
             if(layout_index == 0)
             {
                 return m_info.view_bindings;
             }
-            else if(layout_index == 1)
+            else
             {
                 return m_info.renderable_bindings;
             }
-
-            assert(layout_index < 2 && "cpt::render_layout does not support custom descriptor set layouts yet.");
-            std::terminate();
         };
 
         const auto predicate = [binding_index](auto&& other)
@@ -175,18 +180,10 @@ void render_layout::add_binding(std::uint32_t layout_index, std::uint32_t bindin
 
         assert(it != std::end(bindings) && "cpt::render_layout::add_binding index must correspond to one of the descriptor set layout's bindings.");
         assert(it->type == convert_binding_type(get_binding_type(binding)) && "cpt::render_layout::add_binding binding's type does not correspond to the descriptor set layout binding's type.");
+    #endif
+
+        m_bindings.emplace(key, std::move(binding));
     }
-#endif
-
-    auto [it, success] = m_bindings.try_emplace(key, std::move(binding));
-    assert(success && "cpt::render_layout::add_binding called with already set binding.");
-}
-
-void render_layout::set_binding(uint32_t layout_index, uint32_t binding_index, cpt::binding new_binding)
-{
-    assert(layout_index < 2 && "cpt::render_layout does not support custom descriptor set layouts yet.");
-
-    m_bindings.at(make_binding_key(layout_index, binding_index)) = std::move(new_binding);
 }
 
 #ifdef CAPTAL_DEBUG
@@ -220,7 +217,6 @@ static tph::graphics_pipeline_info make_info(const render_technique_info& info, 
     {
         output.color_blend = info.color_blend;
     }
-
 
     bool has_vertex{};
     bool has_fragment{};
