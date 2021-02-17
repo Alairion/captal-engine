@@ -46,12 +46,13 @@ concept renderable = requires(T r, const T cr,
     r.hide();
     r.show();
 
-    {cr.binding(i)}     -> std::convertible_to<const cpt::binding&>;
-    {cr.has_binding(i)} -> std::convertible_to<bool>;
-    {cr.bindings()}     -> std::convertible_to<const std::unordered_map<std::uint32_t, cpt::binding>&>;
+    {cr.binding(i)}         -> std::convertible_to<const cpt::binding&>;
+    {cr.try_get_binding(i)} -> std::convertible_to<optional_ref<const cpt::binding>>;
+    {cr.has_binding(i)}     -> std::convertible_to<bool>;
 
-    {cr. template get_push_constant<float>(stages, i)} -> std::convertible_to<float>;
-    {cr.has_push_constant(stages, i)} -> std::convertible_to<bool>;
+    {cr. template get_push_constant<float>(stages, i)}     -> std::convertible_to<const float&>;
+    {cr. template try_get_push_constant<float>(stages, i)} -> std::convertible_to<optional_ref<const float>>;
+    {cr.has_push_constant(stages, i)}                      -> std::convertible_to<bool>;
 
     {cr.position()} -> std::convertible_to<const vec3f&>;
     {cr.origin()}   -> std::convertible_to<const vec3f&>;
@@ -167,20 +168,33 @@ public:
         return m_bindings.at(index);
     }
 
+    optional_ref<const cpt::binding> try_get_binding(std::uint32_t index) const
+    {
+        const auto it{m_bindings.find(index)};
+
+        if(it != std::end(m_bindings))
+        {
+            return it->second;
+        }
+
+        return nullref;
+    }
+
     bool has_binding(std::uint32_t index) const
     {
         return m_bindings.find(index) != std::end(m_bindings);
-    }
-
-    const std::unordered_map<std::uint32_t, cpt::binding>& bindings() const noexcept
-    {
-        return m_bindings;
     }
 
     template<typename T>
     const T& get_push_constant(tph::shader_stage stages, std::uint32_t offset) const
     {
         return m_push_constants.get<T>(stages, offset);
+    }
+
+    template<typename T>
+    optional_ref<const T> try_get_push_constant(tph::shader_stage stages, std::uint32_t offset) const
+    {
+        return m_push_constants.try_get<T>(stages, offset);
     }
 
     bool has_push_constant(tph::shader_stage stages, std::uint32_t offset) const

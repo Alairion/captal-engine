@@ -151,9 +151,21 @@ public:
         return m_render_technique;
     }
 
-    const cpt::binding& binding(std::uint32_t index) const
+    const cpt::binding& get_binding(std::uint32_t index) const
     {
         return m_bindings.at(index);
+    }
+
+    optional_ref<const cpt::binding> try_get_binding(std::uint32_t index) const
+    {
+        const auto it{m_bindings.find(index)};
+
+        if(it != std::end(m_bindings))
+        {
+            return it->second;
+        }
+
+        return nullref;
     }
 
     bool has_binding(std::uint32_t index) const
@@ -161,15 +173,16 @@ public:
         return m_bindings.find(index) != std::end(m_bindings);
     }
 
-    const std::unordered_map<std::uint32_t, cpt::binding>& bindings() const noexcept
-    {
-        return m_bindings;
-    }
-
     template<typename T>
     const T& get_push_constant(tph::shader_stage stages, std::uint32_t offset) const
     {
         return m_push_constants.get<T>(stages, offset);
+    }
+
+    template<typename T>
+    optional_ref<const T> try_get_push_constant(tph::shader_stage stages, std::uint32_t offset) const
+    {
+        return m_push_constants.try_get<T>(stages, offset);
     }
 
     bool has_push_constant(tph::shader_stage stages, std::uint32_t offset) const

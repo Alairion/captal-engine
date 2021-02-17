@@ -2,6 +2,7 @@
 
 #include <captal/engine.hpp>
 #include <captal/widgets.hpp>
+#include <captal/renderable.hpp>
 
 static_assert(cpt::tuple_like<std::tuple<int, float, double>>);
 static_assert(cpt::tuple_like<std::array<int, 42>>);
@@ -28,6 +29,8 @@ static_assert(!cpt::widget_tuple<std::tuple<std::string>>);
 
 static_assert(cpt::parent_widget<widget<simple_widget>>);
 static_assert(!cpt::parent_widget<widget<std::string>>);
+
+static_assert(cpt::renderable<cpt::basic_renderable>);
 
 int main()
 {
