@@ -22,19 +22,19 @@ namespace cpt
 {
 
 text::text(std::span<const std::uint32_t> indices, std::span<const vertex> vertices, std::weak_ptr<font_atlas> atlas, text_bounds bounds)
-:renderable{static_cast<std::uint32_t>(std::size(indices)), static_cast<std::uint32_t>(std::size(vertices))}
+:basic_renderable{static_cast<std::uint32_t>(std::size(indices)), static_cast<std::uint32_t>(std::size(vertices))}
 ,m_bounds{bounds}
 ,m_atlas{std::move(atlas)}
 {
     set_indices(indices);
     set_vertices(vertices);
-    set_texture(m_atlas.lock()->texture());
+    set_binding(1, m_atlas.lock()->texture());
 
     connect();
 }
 
 text::text(text&& other) noexcept
-:renderable{std::move(other)}
+:basic_renderable{std::move(other)}
 ,m_bounds{other.m_bounds}
 ,m_atlas{std::move(other.m_atlas)}
 {
@@ -44,7 +44,7 @@ text::text(text&& other) noexcept
 
 text& text::operator=(text&& other) noexcept
 {
-    renderable::operator=(std::move(other));
+    basic_renderable::operator=(std::move(other));
     m_bounds = other.m_bounds;
     m_atlas = std::move(other.m_atlas);
 
@@ -56,15 +56,13 @@ text& text::operator=(text&& other) noexcept
 
 void text::set_color(const cpt::color& color)
 {
-    const auto vertices    {get_vertices()};
+    const auto vertices    {basic_renderable::vertices()};
     const auto native_color{static_cast<vec4f>(color)};
 
     for(auto& vertex : vertices)
     {
         vertex.color = native_color;
     }
-
-    update();
 }
 
 void text::connect()
@@ -73,18 +71,20 @@ void text::connect()
     {
         m_connection = atlas->signal().connect([this](texture_ptr new_texture)
         {
-            const auto old_width {static_cast<float>(texture()->width())};
-            const auto old_height{static_cast<float>(texture()->height())};
+            const auto old_texture{std::get<texture_ptr>(get_binding(1))};
+
+            const auto old_width {static_cast<float>(old_texture->width())};
+            const auto old_height{static_cast<float>(old_texture->height())};
             const auto new_width {static_cast<float>(new_texture->width())};
             const auto new_height{static_cast<float>(new_texture->height())};
 
             const vec2f factor{old_width / new_width, old_height / new_height};
-            for(auto& vertex : get_vertices())
+            for(auto& vertex : basic_renderable::vertices())
             {
                 vertex.texture_coord *= factor;
             }
 
-            set_texture(new_texture);
+            set_binding(1, new_texture);
         });
     }
 }
@@ -148,8 +148,8 @@ static constexpr std::array adjustment_steps{1.0f, 0.5f, 0.25f, 0.125f, 0.0625f,
 static std::uint64_t adjust(subpixel_adjustment adjustment, float x) noexcept
 {
     const float padding{x - std::floor(x)};
-    const float step{adjustment_steps[static_cast<std::uint32_t>(adjustment)]};
-    const float shift{std::round(padding / step) * step * 64.0f};
+    const float step   {adjustment_steps[static_cast<std::uint32_t>(adjustment)]};
+    const float shift  {std::round(padding / step) * step * 64.0f};
 
     //modulo so 64 == 0 (otherwise it break text rendering by adding 1px padding)
     return static_cast<std::uint64_t>(shift) % 64;
@@ -249,9 +249,9 @@ void text_drawer::resize(uint32_t pixels_size)
 
 text_bounds text_drawer::bounds(std::string_view string, std::uint32_t line_width)
 {
-    const auto outline{static_cast<std::uint64_t>(m_outline * 64.0f)};
-    const auto bold{static_cast<bool>(m_style & text_style::bold)};
-    const auto italic{static_cast<bool>(m_style & text_style::italic)};
+    const auto outline   {static_cast<std::uint64_t>(m_outline * 64.0f)};
+    const auto bold      {static_cast<bool>(m_style & text_style::bold)};
+    const auto italic    {static_cast<bool>(m_style & text_style::italic)};
     const auto codepoints{convert_to<utf32>(string)};
 
     auto& font{choose_font()};
@@ -383,7 +383,7 @@ text_drawer::font_data<float> text_drawer::compute_spaces()
 
 cpt::font& text_drawer::choose_font() noexcept
 {
-    const auto bold{static_cast<bool>(m_style & text_style::bold)};
+    const auto bold  {static_cast<bool>(m_style & text_style::bold)};
     const auto italic{static_cast<bool>(m_style & text_style::italic)};
 
     if(bold && italic && m_fonts.italic_bold)
@@ -406,7 +406,7 @@ cpt::font& text_drawer::choose_font() noexcept
 
 float text_drawer::choose_space() noexcept
 {
-    const auto bold{static_cast<bool>(m_style & text_style::bold)};
+    const auto bold  {static_cast<bool>(m_style & text_style::bold)};
     const auto italic{static_cast<bool>(m_style & text_style::italic)};
 
     if(bold && italic && m_fonts.italic_bold)
@@ -922,12 +922,12 @@ void text_drawer::add_strikeline(float line_width, draw_line_state& state)
 
 const text_drawer::glyph_info& text_drawer::load(cpt::font& font, std::uint64_t key, bool deferred)
 {
-    const auto codepoint{static_cast<codepoint_t>(key & 0x00FFFFFF)};
+    const auto codepoint{static_cast<codepoint_t>(key & 0x00FFFFFFu)};
 
-    const auto outline{(key >> 40) & 0xFFFF};
-    const auto adjust {(key >> 56) & 0x3F};
-    const auto bold   {(key >> 62) & 0x01};
-    const auto italic {(key >> 63) & 0x01};
+    const auto outline{(key >> 40u) & 0xFFFFu};
+    const auto adjust {(key >> 56u) & 0x3Fu};
+    const auto bold   {(key >> 62u) & 0x01u};
+    const auto italic {(key >> 63u) & 0x01u};
 
     const auto need_embolden{!static_cast<bool>(font.info().category & font_category::bold)   && bold};
     const auto need_italic  {!static_cast<bool>(font.info().category & font_category::italic) && italic};
@@ -1085,8 +1085,8 @@ const text_drawer::glyph_info& text_drawer::load_line_filler(cpt::font& font, st
 
 text_drawer::word_width_info text_drawer::word_width(cpt::font& font, std::u32string_view word, std::uint64_t base_key, codepoint_t last, float base_shift)
 {
-    float current_x{base_shift};
-    float lowest_x{base_shift};
+    float current_x {base_shift};
+    float lowest_x  {base_shift};
     float greatest_x{base_shift};
 
     for(const auto codepoint : word)
@@ -1118,6 +1118,7 @@ text_drawer::line_width_info text_drawer::line_width(cpt::font& font, std::u32st
     float current_x{};
     float greatest_x{};
     codepoint_t last{};
+
     line_width_info output{};
 
     for(auto&& [word, remainder] : split(line, U' '))
@@ -1154,6 +1155,7 @@ text_drawer::line_width_info text_drawer::line_width(cpt::font& font, std::u32st
 text_drawer::word_bbox_info text_drawer::word_bbox(cpt::font& font, std::u32string_view word, std::uint64_t base_key, codepoint_t last, float base_shift)
 {
     float current_x{base_shift};
+
     word_bbox_info output{base_shift, base_shift, base_shift, base_shift};
 
     for(const auto codepoint : word)
@@ -1190,6 +1192,7 @@ text_drawer::line_bbox_info text_drawer::line_bbox(cpt::font& font, std::u32stri
 {
     float current_x{};
     codepoint_t last{};
+
     line_bbox_info output{};
 
     for(auto&& [word, remainder] : split(line, U' '))

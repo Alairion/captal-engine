@@ -40,7 +40,7 @@ struct alignas(std::uint64_t) text_bounds
     std::uint32_t height{};
 };
 
-class CAPTAL_API text final : public renderable
+class CAPTAL_API text final : public basic_renderable
 {
     friend class text_drawer;
 

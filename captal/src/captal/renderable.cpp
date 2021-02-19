@@ -81,7 +81,7 @@ void basic_renderable::bind(tph::command_buffer& command_buffer, cpt::view& view
 
             if(it == std::end(m_bindings))
             {
-                const auto fallback{layout->binding(0, binding.binding)};
+                const auto fallback{layout->try_get_binding(1, binding.binding)};
                 assert(fallback && "cpt::basic_renderable::bind can not find any suitable binding, neither the renderable nor the render layout have a binding for specified index.");
 
                 writes.emplace_back(make_descriptor_write(set->set(), binding.binding, fallback));
@@ -221,14 +221,7 @@ sprite::sprite(std::uint32_t width, std::uint32_t height, texture_ptr texture, c
 
 void sprite::set_texture(texture_ptr texture)
 {
-    if(has_binding(1))
-    {
-        set_binding(1, std::move(texture));
-    }
-    else
-    {
-        add_binding(1, std::move(texture));
-    }
+    set_binding(1, std::move(texture));
 }
 
 void sprite::set_color(const color& color) noexcept
@@ -380,14 +373,7 @@ tilemap::tilemap(std::uint32_t width, std::uint32_t height, const tileset& tiles
 
 void tilemap::set_texture(texture_ptr texture)
 {
-    if(has_binding(1))
-    {
-        set_binding(1, std::move(texture));
-    }
-    else
-    {
-        add_binding(1, std::move(texture));
-    }
+    set_binding(1, std::move(texture));
 }
 
 void tilemap::set_color(std::uint32_t row, std::uint32_t col, const color& color) noexcept

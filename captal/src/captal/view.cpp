@@ -53,7 +53,7 @@ void view::bind(tph::command_buffer& buffer)
 
             if(it == std::end(m_bindings))
             {
-                const auto fallback{m_render_technique->layout()->binding(0, binding.binding)};
+                const auto fallback{m_render_technique->layout()->try_get_binding(0, binding.binding)};
                 assert(fallback && "cpt::view::bind can not find any suitable binding, neither the view nor the render layout have a binding for specified index.");
 
                 writes.emplace_back(make_descriptor_write(m_set->set(), binding.binding, fallback));

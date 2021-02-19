@@ -135,7 +135,12 @@ public:
         return m_info;
     }
 
-    optional_ref<const cpt::binding> binding(std::uint32_t layout_index, std::uint32_t binding_index) const
+    const cpt::binding& get_binding(std::uint32_t layout_index, std::uint32_t binding_index) const
+    {
+        return m_bindings.at(make_binding_key(layout_index, binding_index));
+    }
+
+    optional_ref<const cpt::binding> try_get_binding(std::uint32_t layout_index, std::uint32_t binding_index) const
     {
         const auto it{m_bindings.find(make_binding_key(layout_index, binding_index))};
 

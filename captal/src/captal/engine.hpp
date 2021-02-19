@@ -18,7 +18,7 @@
 #include "render_window.hpp"
 #include "memory_transfer.hpp"
 #include "buffer_pool.hpp"
-#include "texture.hpp"
+#include "render_technique.hpp"
 #include "translation.hpp"
 #include "font.hpp"
 

@@ -46,7 +46,7 @@ concept renderable = requires(T r, const T cr,
     r.hide();
     r.show();
 
-    {cr.binding(i)}         -> std::convertible_to<const cpt::binding&>;
+    {cr.get_binding(i)}     -> std::convertible_to<const cpt::binding&>;
     {cr.try_get_binding(i)} -> std::convertible_to<optional_ref<const cpt::binding>>;
     {cr.has_binding(i)}     -> std::convertible_to<bool>;
 
@@ -163,7 +163,7 @@ public:
         m_hidden = false;
     }
 
-    const cpt::binding& binding(std::uint32_t index) const
+    const cpt::binding& get_binding(std::uint32_t index) const
     {
         return m_bindings.at(index);
     }
@@ -324,9 +324,15 @@ public:
 
     void resize(std::uint32_t width, std::uint32_t height) noexcept;
 
-    const texture_ptr& texture() const
+    texture_ptr texture() const
     {
-        return std::get<texture_ptr>(binding(1));
+        auto output{try_get_binding(1)};
+        if(output)
+        {
+            return std::get<texture_ptr>(output.value());
+        }
+
+        return nullptr;
     }
 
     std::uint32_t width() const noexcept
@@ -405,9 +411,15 @@ public:
     void set_relative_texture_coords(std::uint32_t row, std::uint32_t col, float x1, float y1, float x2, float y2) noexcept;
     void set_relative_texture_rect(std::uint32_t row, std::uint32_t col, float x, float y, float width, float height) noexcept;
 
-    const texture_ptr& texture() const
+    texture_ptr texture() const
     {
-        return std::get<texture_ptr>(binding(1));
+        auto output{try_get_binding(1)};
+        if(output)
+        {
+            return std::get<texture_ptr>(output.value());
+        }
+
+        return nullptr;
     }
 
     std::uint32_t width() const noexcept
