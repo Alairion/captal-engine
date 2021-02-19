@@ -14,14 +14,13 @@ descriptor_set::descriptor_set(descriptor_pool& parent, tph::descriptor_set set)
 }
 
 
-descriptor_pool::descriptor_pool(render_layout& parent, std::size_t layout_index, tph::descriptor_pool pool)
+descriptor_pool::descriptor_pool(render_layout& parent, tph::descriptor_set_layout& layout, tph::descriptor_pool pool)
 :m_parent{&parent}
 ,m_pool{std::move(pool)}
 {
-    auto& set_layout{m_parent->descriptor_set_layout(layout_index)};
     for(auto&& set : m_sets)
     {
-        set = std::make_shared<descriptor_set>(*this, tph::descriptor_set{engine::instance().renderer(), m_pool, set_layout});
+        set = std::make_shared<descriptor_set>(*this, tph::descriptor_set{engine::instance().renderer(), m_pool, layout});
     }
 }
 
@@ -122,7 +121,7 @@ descriptor_set_ptr render_layout::make_set(std::uint32_t layout_index)
     }
 
     tph::descriptor_pool pool{engine::instance().renderer(), data.sizes, static_cast<std::uint32_t>(descriptor_pool::pool_size)};
-    data.pools.emplace_back(std::make_unique<descriptor_pool>(*this, std::move(pool)));
+    data.pools.emplace_back(std::make_unique<descriptor_pool>(*this, m_set_layouts[layout_index], std::move(pool)));
 
 #ifdef CAPTAL_DEBUG
     if(!std::empty(m_name))
@@ -172,6 +171,7 @@ void render_layout::set_binding(std::uint32_t layout_index, std::uint32_t bindin
                 case binding_type::texture:        return tph::descriptor_type::image_sampler;
                 case binding_type::uniform_buffer: return tph::descriptor_type::uniform_buffer;
                 case binding_type::storage_buffer: return tph::descriptor_type::storage_buffer;
+                default: std::terminate();
             }
         };
 
@@ -255,7 +255,7 @@ static tph::graphics_pipeline_info make_info(const render_technique_info& info, 
 }
 
 render_technique::render_technique(const render_target_ptr& target, const render_technique_info& info, render_layout_ptr layout, render_technique_options options)
-:m_layout{std::move(layout)}
+:m_layout{layout ? std::move(layout) : engine::instance().default_render_layout()}
 ,m_pipeline{engine::instance().renderer(), target->get_render_pass(), make_info(info, options), m_layout->pipeline_layout()}
 {
 

@@ -63,7 +63,7 @@ public:
     static constexpr std::uint32_t pool_size{32};
 
 public:
-    explicit descriptor_pool(render_layout& parent, std::size_t layout_index, tph::descriptor_pool pool);
+    explicit descriptor_pool(render_layout& parent, tph::descriptor_set_layout& layout, tph::descriptor_pool pool);
     ~descriptor_pool() = default;
     descriptor_pool(const descriptor_pool&) = delete;
     descriptor_pool& operator=(const descriptor_pool&) = delete;
@@ -213,6 +213,12 @@ private:
 
 using render_layout_ptr = std::shared_ptr<render_layout>;
 using render_layout_weak_ptr = std::weak_ptr<render_layout>;
+
+template<typename... Args>
+render_layout_ptr make_render_layout(Args&&... args)
+{
+    return std::make_shared<render_layout>(std::forward<Args>(args)...);
+}
 
 enum class render_technique_options : std::uint32_t
 {

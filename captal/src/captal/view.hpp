@@ -35,7 +35,7 @@ public:
 
 public:
     view() = default;
-    explicit view(const render_target_ptr& target, const render_technique_info& info = render_technique_info{});
+    explicit view(const render_target_ptr& target, const render_technique_info& info = render_technique_info{}, render_layout_ptr layout = nullptr, render_technique_options options = render_technique_options::none);
     explicit view(const render_target_ptr& target, render_technique_ptr technique);
 
     ~view() = default;

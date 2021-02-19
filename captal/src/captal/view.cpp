@@ -7,10 +7,8 @@
 namespace cpt
 {
 
-view::view(const render_target_ptr& target, const render_technique_info& info)
-:m_target{target.get()}
-,m_render_technique{make_render_technique(target, info)}
-,m_need_upload{true}
+view::view(const render_target_ptr& target, const render_technique_info& info, render_layout_ptr layout, render_technique_options options)
+:view{target, make_render_technique(target, info, layout, options)}
 {
 
 }
@@ -129,6 +127,7 @@ void view::set_binding(std::uint32_t index, cpt::binding binding)
                 case binding_type::texture:        return tph::descriptor_type::image_sampler;
                 case binding_type::uniform_buffer: return tph::descriptor_type::uniform_buffer;
                 case binding_type::storage_buffer: return tph::descriptor_type::storage_buffer;
+                default: std::terminate();
             }
         };
 

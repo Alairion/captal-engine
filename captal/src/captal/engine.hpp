@@ -69,7 +69,7 @@ public:
 
     void set_framerate_limit(std::uint32_t frame_per_second) noexcept;
     void set_translator(cpt::translator new_translator);
-    void set_default_texture(texture_ptr new_default_texture) noexcept;
+    void set_default_render_layout(render_layout_ptr new_default_render_layout) noexcept;
     void set_default_vertex_shader(tph::shader new_default_vertex_shader) noexcept;
     void set_default_fragment_shader(tph::shader new_default_fragment_shader) noexcept;
 
@@ -182,9 +182,9 @@ public:
         return m_default_fragment_shader;
     }
 
-    texture_ptr& default_texture() noexcept
+    const render_layout_ptr& default_render_layout() noexcept
     {
-        return m_default_texture;
+        return m_default_layout;
     }
 
     const cpt::translator& translator() const noexcept
@@ -237,13 +237,14 @@ private:
 
     const tph::physical_device& m_graphics_device;
     tph::renderer m_renderer;
+
     memory_transfer_scheduler m_transfer_scheduler;
     buffer_pool m_uniform_pool;
 
     std::mutex m_queue_mutex{};
     tph::shader m_default_vertex_shader{};
     tph::shader m_default_fragment_shader{};
-    texture_ptr m_default_texture{};
+    render_layout_ptr m_default_layout{};
 
     cpt::translator m_translator{};
     cpt::font_engine m_font_engine{};

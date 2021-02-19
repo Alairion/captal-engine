@@ -146,12 +146,12 @@ void engine::set_translator(cpt::translator new_translator)
     m_translator = std::move(new_translator);
 }
 
-void engine::set_default_texture(texture_ptr new_default_texture) noexcept
+void engine::set_default_render_layout(render_layout_ptr new_default_render_layout) noexcept
 {
-    m_default_texture = std::move(new_default_texture);
+    m_default_layout = std::move(new_default_render_layout);
 
     #ifdef CAPTAL_DEBUG
-    tph::set_object_name(m_renderer, m_default_texture->get_texture(), "cpt::engine's default texture");
+    m_default_layout->set_name("cpt::engine's default render layout");
     #endif
 }
 
@@ -212,7 +212,18 @@ void engine::init()
 
     set_default_vertex_shader(tph::shader{m_renderer, tph::shader_stage::vertex, default_vertex_shader_spv});
     set_default_fragment_shader(tph::shader{m_renderer, tph::shader_stage::fragment, default_fragment_shader_spv});
-    set_default_texture(make_texture(1, 1, std::data(default_texture_data), tph::sampling_options{tph::filter::nearest, tph::filter::nearest, tph::address_mode::repeat}));
+
+    render_layout_info layout_info{};
+    layout_info.view_bindings.reserve(1);
+    layout_info.view_bindings.emplace_back(tph::shader_stage::vertex, 0, tph::descriptor_type::uniform_buffer);
+    layout_info.renderable_bindings.reserve(2);
+    layout_info.renderable_bindings.emplace_back(tph::shader_stage::vertex, 0, tph::descriptor_type::uniform_buffer);
+    layout_info.renderable_bindings.emplace_back(tph::shader_stage::fragment, 1, tph::descriptor_type::image_sampler);
+
+    constexpr tph::sampling_options default_sampling{tph::filter::nearest, tph::filter::nearest, tph::address_mode::repeat};
+
+    set_default_render_layout(make_render_layout(std::move(layout_info)));
+    m_default_layout->set_binding(1, 1, make_texture(1, 1, std::data(default_texture_data), default_sampling));
 
     if constexpr(debug_enabled)
     {

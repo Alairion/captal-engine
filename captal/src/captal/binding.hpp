@@ -58,7 +58,7 @@ inline tph::descriptor_write make_descriptor_write(tph::descriptor_set& set, std
 
         return tph::descriptor_write{set, binding, 0, tph::descriptor_type::storage_buffer, info};
     }
-};
+}
 
 }
 
