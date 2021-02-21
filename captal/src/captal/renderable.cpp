@@ -28,25 +28,26 @@ static std::array<buffer_part, 3> compute_buffer_parts(std::uint32_t vertex_coun
     };
 }
 
-basic_renderable::basic_renderable(std::uint32_t vertex_count)
+basic_renderable::basic_renderable(std::uint32_t vertex_count, std::uint32_t uniform_index)
 :m_vertex_count{vertex_count}
+,m_uniform_index{uniform_index}
 {
     auto buffer{make_uniform_buffer(compute_buffer_parts(vertex_count))};
-
     m_buffer = buffer.get();
-    m_bindings.emplace(0, std::move(buffer));
+
+    m_bindings.emplace(m_uniform_index, std::move(buffer));
 }
 
-basic_renderable::basic_renderable(std::uint32_t vertex_count, std::uint32_t index_count)
+basic_renderable::basic_renderable(std::uint32_t vertex_count, std::uint32_t index_count, std::uint32_t uniform_index)
 :m_vertex_count{vertex_count}
 ,m_index_count{index_count}
+,m_uniform_index{uniform_index}
 {
     auto buffer{make_uniform_buffer(compute_buffer_parts(vertex_count, index_count))};
-
     m_buffer = buffer.get();
-    m_bindings.emplace(0, std::move(buffer));
-}
 
+    m_bindings.emplace(m_uniform_index, std::move(buffer));
+}
 void basic_renderable::set_vertices(std::span<const vertex> vertices) noexcept
 {
     assert(std::size(vertices) == m_vertex_count && "cpt::basic_renderable::set_vertices called with a wrong number of vertices.");
@@ -165,7 +166,7 @@ void basic_renderable::upload(memory_transfer_info& info)
 
     if(keep)
     {
-        info.keeper.keep(m_buffer);
+        info.keeper.keep(get_binding_resource(m_bindings.at(m_uniform_index)));
     }
 }
 
@@ -179,6 +180,8 @@ void basic_renderable::keep(asynchronous_resource_keeper& keeper)
 
 void basic_renderable::set_binding(std::uint32_t index, cpt::binding binding)
 {
+    assert(index != m_uniform_index && "cpt::basic_renderable::set_binding must never be called with index == uniform_index.");
+
     const auto it{m_bindings.find(index)};
 
     if(it != std::end(m_bindings))
@@ -194,7 +197,7 @@ void basic_renderable::set_binding(std::uint32_t index, cpt::binding binding)
 }
 
 sprite::sprite(std::uint32_t width, std::uint32_t height, const color& color)
-:basic_renderable{4, 6}
+:basic_renderable{4, 6, 0}
 ,m_width{width}
 ,m_height{height}
 {
@@ -202,7 +205,7 @@ sprite::sprite(std::uint32_t width, std::uint32_t height, const color& color)
 }
 
 sprite::sprite(texture_ptr texture, const color& color)
-:basic_renderable{4, 6}
+:basic_renderable{4, 6, 0}
 ,m_width{texture->width()}
 ,m_height{texture->height()}
 {
@@ -211,7 +214,7 @@ sprite::sprite(texture_ptr texture, const color& color)
 }
 
 sprite::sprite(std::uint32_t width, std::uint32_t height, texture_ptr texture, const color& color)
-:basic_renderable{4, 6}
+:basic_renderable{4, 6, 0}
 ,m_width{width}
 ,m_height{height}
 {
@@ -289,7 +292,7 @@ void sprite::init(const color& color)
 }
 
 polygon::polygon(std::vector<vec2f> points, const color& color)
-:basic_renderable{static_cast<std::uint32_t>(std::size(points) + 1), static_cast<std::uint32_t>(std::size(points) * 3)}
+:basic_renderable{static_cast<std::uint32_t>(std::size(points) + 1), static_cast<std::uint32_t>(std::size(points) * 3), 0}
 {
     assert(std::size(points) > 2 && "cpt::polygon created with less than 3 points.");
 
@@ -351,7 +354,7 @@ void polygon::init(std::vector<vec2f> points, const color& color)
 }
 
 tilemap::tilemap(std::uint32_t width, std::uint32_t height, std::uint32_t tile_width, std::uint32_t tile_height)
-:basic_renderable{width * height * 4, width * height * 6}
+:basic_renderable{width * height * 4, width * height * 6, 0}
 ,m_width{width}
 ,m_height{height}
 ,m_tile_width{tile_width}
@@ -361,7 +364,7 @@ tilemap::tilemap(std::uint32_t width, std::uint32_t height, std::uint32_t tile_w
 }
 
 tilemap::tilemap(std::uint32_t width, std::uint32_t height, const tileset& tileset)
-:basic_renderable{width * height * 4, width * height * 6}
+:basic_renderable{width * height * 4, width * height * 6, 0}
 ,m_width{width}
 ,m_height{height}
 ,m_tile_width{tileset.tile_width()}

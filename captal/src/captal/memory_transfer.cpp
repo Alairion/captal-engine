@@ -28,6 +28,11 @@ memory_transfer_scheduler::memory_transfer_scheduler(tph::renderer& renderer) no
     m_buffers.reserve(4);
 }
 
+memory_transfer_scheduler::~memory_transfer_scheduler()
+{
+
+}
+
 memory_transfer_info memory_transfer_scheduler::begin_transfer()
 {
     return begin_transfer(std::this_thread::get_id());

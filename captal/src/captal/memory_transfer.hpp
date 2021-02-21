@@ -31,7 +31,7 @@ class CAPTAL_API memory_transfer_scheduler
 
 public:
     explicit memory_transfer_scheduler(tph::renderer& renderer) noexcept;
-    ~memory_transfer_scheduler() = default;
+    ~memory_transfer_scheduler();
     memory_transfer_scheduler(const memory_transfer_scheduler&) = delete;
     memory_transfer_scheduler& operator=(const memory_transfer_scheduler&) = delete;
     memory_transfer_scheduler(memory_transfer_scheduler&& other) noexcept = delete;

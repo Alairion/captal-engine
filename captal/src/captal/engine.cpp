@@ -8,10 +8,10 @@ namespace cpt
 {
 
 #ifdef CAPTAL_DEBUG
-static constexpr auto graphics_layers{tph::renderer_layer::validation};
+static constexpr auto graphics_layers    {tph::renderer_layer::validation};
 static constexpr auto graphics_extensions{tph::renderer_extension::swapchain};
 #else
-static constexpr auto graphics_layers{tph::renderer_layer::none};
+static constexpr auto graphics_layers    {tph::renderer_layer::none};
 static constexpr auto graphics_extensions{tph::renderer_extension::swapchain};
 #endif
 
@@ -38,8 +38,8 @@ engine::engine(const std::string& application_name, cpt::version version)
 ,m_audio_stream{m_application.audio_application(), m_audio_device, m_audio_mixer}
 ,m_graphics_device{m_application.graphics_application().default_physical_device()}
 ,m_renderer{m_graphics_device, graphics_layers, graphics_extensions}
-,m_transfer_scheduler{m_renderer}
 ,m_uniform_pool{tph::buffer_usage::uniform | tph::buffer_usage::vertex | tph::buffer_usage::index}
+,m_transfer_scheduler{m_renderer}
 {
     init();
 }
@@ -120,8 +120,8 @@ engine::engine(cpt::application application, const system_parameters& system [[m
 ,m_audio_stream{m_application.audio_application(), m_audio_device, m_audio_mixer}
 ,m_graphics_device{default_graphics_device(m_application.graphics_application(), graphics)}
 ,m_renderer{m_graphics_device, graphics_layers | graphics.layers, graphics_extensions | graphics.extensions, graphics.features, graphics.options}
-,m_transfer_scheduler{m_renderer}
 ,m_uniform_pool{tph::buffer_usage::uniform | tph::buffer_usage::vertex | tph::buffer_usage::index}
+,m_transfer_scheduler{m_renderer}
 {
     init();
 }

@@ -79,8 +79,8 @@ public:
 
 protected:
     basic_renderable() = default;
-    explicit basic_renderable(std::uint32_t vertex_count);
-    explicit basic_renderable(std::uint32_t vertex_count, std::uint32_t index_count);
+    explicit basic_renderable(std::uint32_t vertex_count, std::uint32_t uniform_index);
+    explicit basic_renderable(std::uint32_t vertex_count, std::uint32_t index_count, std::uint32_t uniform_index);
 
     ~basic_renderable() = default;
     basic_renderable(const basic_renderable&) = delete;
@@ -236,7 +236,7 @@ public:
 
     std::span<const vertex> vertices() const noexcept
     {
-        return std::span{&m_buffer->get<const vertex>(1), static_cast<std::size_t>(m_vertex_count)};
+        return cvertices();
     }
 
     std::span<const vertex> cvertices() const noexcept
@@ -255,9 +255,7 @@ public:
 
     std::span<const std::uint32_t> indices() const noexcept
     {
-        assert(m_index_count > 0 && "cpt::basic_renderable::get_indices called on basic_renderable with no index buffer");
-
-        return std::span{&m_buffer->get<const std::uint32_t>(2), static_cast<std::size_t>(m_index_count)};
+        return cindices();
     }
 
     std::span<const std::uint32_t> cindices() const noexcept
@@ -274,6 +272,7 @@ private:
         std::uint32_t epoch{};
     };
 
+private:
     using descriptor_set_map = std::map<render_layout_weak_ptr, descriptor_set_data, std::owner_less<render_layout_weak_ptr>>;
 
 private:
@@ -284,6 +283,7 @@ private:
 
     std::uint32_t m_vertex_count{};
     std::uint32_t m_index_count{};
+    std::uint32_t m_uniform_index{};
     std::uint32_t m_descriptors_epoch{};
 
     vec3f m_position{};

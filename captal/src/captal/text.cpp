@@ -22,7 +22,7 @@ namespace cpt
 {
 
 text::text(std::span<const std::uint32_t> indices, std::span<const vertex> vertices, std::weak_ptr<font_atlas> atlas, text_bounds bounds)
-:basic_renderable{static_cast<std::uint32_t>(std::size(indices)), static_cast<std::uint32_t>(std::size(vertices))}
+:basic_renderable{static_cast<std::uint32_t>(std::size(indices)), static_cast<std::uint32_t>(std::size(vertices)), 0}
 ,m_bounds{bounds}
 ,m_atlas{std::move(atlas)}
 {
