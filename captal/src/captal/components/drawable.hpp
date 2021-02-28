@@ -17,7 +17,7 @@ namespace components
 template<typename... Types>
 class basic_drawable
 {
-    static_assert(sizeof...(Types) != 0 && (std::is_base_of_v<renderable, Types> && ...), "All Types must derive from cpt::renderable");
+    static_assert(sizeof...(Types) != 0 && (renderable<Types> && ...), "All Types must fulfill cpt::renderable concept.");
 
 public:
     using attachment_type = std::variant<std::monostate, Types...>;
@@ -53,6 +53,12 @@ public:
 
     template<typename T, typename... Args>
     T& attach(Args&&... args) noexcept(std::is_nothrow_constructible_v<attachment_type, Args...>)
+    {
+        return m_attachment. template emplace<T>(std::forward<Args>(args)...);
+    }
+
+    template<typename T, typename... Args>
+    T& attach(std::in_place_type_t<T>, Args&&... args) noexcept(std::is_nothrow_constructible_v<attachment_type, Args...>)
     {
         return m_attachment. template emplace<T>(std::forward<Args>(args)...);
     }
@@ -97,16 +103,6 @@ public:
         return m_attachment;
     }
 
-    attachment_type* operator->() noexcept
-    {
-        return &m_attachment;
-    }
-
-    const attachment_type* operator->() const noexcept
-    {
-        return &m_attachment;
-    }
-
     template<typename T>
     T& get()
     {
@@ -119,11 +115,12 @@ public:
         return std::get<T>(m_attachment);
     }
 
-    cpt::renderable& renderable() noexcept
+    template<typename Func>
+    decltype(auto) apply(Func&& func)
     {
-        assert(has_attachment() && "cpt::basic_drawable::renderable called on empty drawable");
+        assert(has_attachment() && "cpt::basic_drawable::apply called on empty drawable");
 
-        return std::visit([](auto&& alternative) -> cpt::renderable&
+        return std::visit([func = std::forward<Func>(func)](auto&& alternative)
         {
             if constexpr(std::is_same_v<std::decay_t<decltype(alternative)>, std::monostate>)
             {
@@ -131,16 +128,17 @@ public:
             }
             else
             {
-                return static_cast<cpt::renderable&>(alternative);
+                return func(alternative);
             }
         }, m_attachment);
     }
 
-    const cpt::renderable& renderable() const noexcept
+    template<typename Func>
+    decltype(auto) apply(Func&& func) const
     {
-        assert(has_attachment() && "cpt::basic_drawable::renderable called on empty drawable");
+        assert(has_attachment() && "cpt::basic_drawable::apply called on empty drawable");
 
-        return std::visit([](auto&& alternative) -> const cpt::renderable&
+        return std::visit([func = std::forward<Func>(func)](auto&& alternative)
         {
             if constexpr(std::is_same_v<std::decay_t<decltype(alternative)>, std::monostate>)
             {
@@ -148,7 +146,7 @@ public:
             }
             else
             {
-                return static_cast<const cpt::renderable&>(alternative);
+                return func(alternative);
             }
         }, m_attachment);
     }

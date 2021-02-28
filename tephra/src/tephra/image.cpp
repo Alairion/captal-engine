@@ -22,7 +22,15 @@ using namespace tph::vulkan::functions;
 namespace tph
 {
 
-using stbi_ptr = std::unique_ptr<stbi_uc, void(*)(void*)>;
+struct stbi_deleter
+{
+    void operator()(void* ptr) const noexcept
+    {
+        stbi_image_free(ptr);
+    }
+};
+
+using stbi_ptr = std::unique_ptr<stbi_uc, stbi_deleter>;
 
 static constexpr image_usage not_extension{~image_usage::persistant_mapping};
 
@@ -49,7 +57,7 @@ image::image(renderer& renderer, std::span<const std::uint8_t> data, image_usage
     int height{};
     int channels{};
 
-    stbi_ptr pixels{stbi_load_from_memory(std::data(data), static_cast<int>(std::size(data)), &width, &height, &channels, STBI_rgb_alpha), &stbi_image_free};
+    stbi_ptr pixels{stbi_load_from_memory(std::data(data), static_cast<int>(std::size(data)), &width, &height, &channels, STBI_rgb_alpha)};
     if(!pixels)
         throw std::runtime_error{"Can not load image. " + std::string{stbi_failure_reason()}};
 
@@ -78,7 +86,7 @@ image::image(renderer& renderer, std::istream& stream, image_usage usage)
     int width{};
     int height{};
     int channels{};
-    std::unique_ptr<stbi_uc, void(*)(void*)> pixels{stbi_load_from_memory(reinterpret_cast<const stbi_uc*>(std::data(data)), static_cast<int>(std::size(data)), &width, &height, &channels, STBI_rgb_alpha), &stbi_image_free};
+    stbi_ptr pixels{stbi_load_from_memory(reinterpret_cast<const stbi_uc*>(std::data(data)), static_cast<int>(std::size(data)), &width, &height, &channels, STBI_rgb_alpha)};
     if(!pixels)
         throw std::runtime_error{"Can not load image. " + std::string{stbi_failure_reason()}};
 

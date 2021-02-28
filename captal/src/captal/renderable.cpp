@@ -48,6 +48,7 @@ basic_renderable::basic_renderable(std::uint32_t vertex_count, std::uint32_t ind
 
     m_bindings.emplace(m_uniform_index, std::move(buffer));
 }
+
 void basic_renderable::set_vertices(std::span<const vertex> vertices) noexcept
 {
     assert(std::size(vertices) == m_vertex_count && "cpt::basic_renderable::set_vertices called with a wrong number of vertices.");
@@ -65,6 +66,29 @@ void basic_renderable::set_indices(std::span<const std::uint32_t> indices) noexc
     std::memcpy(&m_buffer->get<std::uint32_t>(2), std::data(indices), std::size(indices) * sizeof(std::uint32_t));
 
     m_upload_indices = true;
+}
+
+void basic_renderable::reset(std::uint32_t vertex_count)
+{
+    auto buffer{make_uniform_buffer(compute_buffer_parts(vertex_count))};
+
+    m_buffer = buffer.get();
+    m_vertex_count = vertex_count;
+    m_upload_model = true;
+
+    m_bindings.at(m_uniform_index) = std::move(buffer);
+}
+
+void basic_renderable::reset(std::uint32_t vertex_count, std::uint32_t index_count)
+{
+    auto buffer{make_uniform_buffer(compute_buffer_parts(vertex_count, index_count))};
+
+    m_buffer = buffer.get();
+    m_vertex_count = vertex_count;
+    m_index_count = index_count;
+    m_upload_model = true;
+
+    m_bindings.at(m_uniform_index) = std::move(buffer);
 }
 
 void basic_renderable::bind(tph::command_buffer& command_buffer, cpt::view& view)

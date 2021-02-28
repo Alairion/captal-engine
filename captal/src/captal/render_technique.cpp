@@ -94,7 +94,7 @@ static std::vector<tph::push_constant_range> make_push_constant_ranges(const ren
     return output;
 }
 
-render_layout::render_layout(render_layout_info info)
+render_layout::render_layout(render_layout_info view_info, render_layout_info renderable_info)
 :m_info{std::move(info)}
 ,m_set_layouts{make_set_layouts(m_info)}
 ,m_layout{engine::instance().renderer(), m_set_layouts, make_push_constant_ranges(m_info)}

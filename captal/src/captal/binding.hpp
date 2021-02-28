@@ -4,6 +4,8 @@
 #include "config.hpp"
 
 #include <variant>
+#include <vector>
+#include <cassert>
 
 #include <tephra/descriptor.hpp>
 
@@ -59,6 +61,58 @@ inline tph::descriptor_write make_descriptor_write(tph::descriptor_set& set, std
         return tph::descriptor_write{set, binding, 0, tph::descriptor_type::storage_buffer, info};
     }
 }
+
+class binding_buffer
+{
+public:
+    binding_buffer() = default;
+    ~binding_buffer() = default;
+    binding_buffer(const binding_buffer&) = delete;
+    binding_buffer& operator=(const binding_buffer&) = delete;
+    binding_buffer(binding_buffer&& other) noexcept = default;
+    binding_buffer& operator=(binding_buffer&& other) noexcept = default;
+
+    void set(std::uint32_t index, binding value)
+    {
+        assure(index);
+
+        m_bindings[index] = std::move(value);
+    }
+
+    const binding& get(std::uint32_t index) const noexcept
+    {
+        assert(has(index) && "cpt::binding_buffer::get index out of range.");
+
+        return m_bindings[index];
+    }
+
+    optional_ref<const binding> try_get(std::uint32_t index) const noexcept
+    {
+        if(has(index))
+        {
+            return m_bindings[index];
+        }
+
+        return nullref;
+    }
+
+    bool has(std::uint32_t index) const noexcept
+    {
+        return index < std::size(m_bindings) || get_binding_resource(m_bindings[index]) != nullptr;
+    }
+
+private:
+    void assure(std::size_t index)
+    {
+        if(index >= std::size(m_bindings))
+        {
+            m_bindings.resize(index + 1);
+        }
+    }
+
+private:
+    std::vector<binding> m_bindings{};
+};
 
 }
 

@@ -110,16 +110,15 @@ private:
 
 struct render_layout_info
 {
-    std::vector<tph::descriptor_set_layout_binding> view_bindings{};
-    std::vector<tph::descriptor_set_layout_binding> renderable_bindings{};
-    std::vector<tph::push_constant_range> view_push_constants{};
-    std::vector<tph::push_constant_range> renderable_push_constants{};
+    std::vector<tph::descriptor_set_layout_binding> bindings{};
+    std::vector<tph::push_constant_range> push_constants{};
+    std::unordered_map<std::uint32_t, cpt::binding> default_bindings{};
 };
 
 class CAPTAL_API render_layout : public asynchronous_resource
 {
 public:
-    explicit render_layout(render_layout_info info);
+    explicit render_layout(render_layout_info view_info, render_layout_info renderable_info);
     ~render_layout() = default;
     render_layout(const render_layout&) = delete;
     render_layout& operator=(const render_layout&) = delete;
@@ -127,13 +126,6 @@ public:
     render_layout& operator=(render_layout&&) noexcept = delete;
 
     descriptor_set_ptr make_set(std::uint32_t layout_index);
-
-    void set_binding(std::uint32_t layout_index, std::uint32_t binding_index, cpt::binding binding);
-
-    const render_layout_info& info() const noexcept
-    {
-        return m_info;
-    }
 
     const cpt::binding& get_binding(std::uint32_t layout_index, std::uint32_t binding_index) const
     {
@@ -159,12 +151,12 @@ public:
 
     tph::descriptor_set_layout& descriptor_set_layout(std::uint32_t layout_index) noexcept
     {
-        return m_set_layouts[layout_index];
+        return m_layout_data[layout_index].layout;
     }
 
     const tph::descriptor_set_layout& descriptor_set_layout(std::uint32_t layout_index) const noexcept
     {
-        return m_set_layouts[layout_index];
+        return m_layout_data[layout_index].layout;
     }
 
     tph::pipeline_layout& pipeline_layout() noexcept
@@ -189,20 +181,15 @@ public:
 private:
     struct layout_data
     {
+        render_layout_info info{};
+        tph::descriptor_set_layout layout{};
+        binding_buffer bingings{};
         std::vector<tph::descriptor_pool_size> sizes{};
         std::vector<std::unique_ptr<descriptor_pool>> pools{};
     };
 
-    static std::uint64_t make_binding_key(std::uint32_t layout_index, std::uint32_t binding_index) noexcept
-    {
-        return static_cast<std::uint64_t>(layout_index) << 32 | binding_index;
-    }
-
 private:
-    render_layout_info m_info{};
-    std::unordered_map<std::uint64_t, cpt::binding> m_bindings{};
-    std::vector<tph::descriptor_set_layout> m_set_layouts{};
-    std::vector<layout_data> m_set_layout_data{};
+    std::vector<layout_data> m_layout_data{};
     tph::pipeline_layout m_layout{};
     std::mutex m_mutex{};
 

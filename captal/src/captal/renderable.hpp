@@ -91,6 +91,9 @@ protected:
     void set_vertices(std::span<const vertex> vertices) noexcept;
     void set_indices(std::span<const std::uint32_t> indices) noexcept;
 
+    void reset(std::uint32_t vertex_count);
+    void reset(std::uint32_t vertex_count, std::uint32_t index_count);
+
 public:
     void bind(tph::command_buffer& command_buffer, cpt::view& view);
     void draw(tph::command_buffer& command_buffer);
@@ -293,8 +296,8 @@ private:
     bool  m_hidden{};
 
     bool m_upload_model{true};
-    bool m_upload_indices{true};
-    bool m_upload_vertices{true};
+    bool m_upload_indices{false};
+    bool m_upload_vertices{false};
 };
 
 class CAPTAL_API sprite final : public basic_renderable

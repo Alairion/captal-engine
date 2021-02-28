@@ -65,7 +65,6 @@ public:
         return nullref;
     }
 
-
     bool has(tph::shader_stage stages, std::uint32_t offset) const
     {
         return m_offsets.find(make_key(stages, offset)) != std::end(m_offsets);
