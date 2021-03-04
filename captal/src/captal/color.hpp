@@ -14,7 +14,7 @@
 namespace cpt
 {
 
-struct color
+struct CAPTAL_API color
 {
     constexpr color() noexcept = default;
 

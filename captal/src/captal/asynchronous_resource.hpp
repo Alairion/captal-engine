@@ -41,6 +41,12 @@ public:
         m_resources.emplace_back(std::forward<T>(resource));
     }
 
+    template<std::input_iterator InputIt>
+    void keep(InputIt begin, InputIt end)
+    {
+        m_resources.insert(std::end(m_resources), begin, end);
+    }
+
     void reserve(std::size_t size)
     {
         m_resources.reserve(std::size(m_resources) + size);

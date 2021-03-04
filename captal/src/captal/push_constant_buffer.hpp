@@ -12,6 +12,8 @@
 #include <tephra/pipeline.hpp>
 #include <tephra/commands.hpp>
 
+#include "render_technique.hpp"
+
 namespace cpt
 {
 
@@ -81,6 +83,11 @@ public:
 
             tph::cmd::push_constants(buffer, layout, range.stages, range.offset, range.size, std::data(m_data) + it->second);
         }
+    }
+
+    void push(tph::command_buffer& buffer, const render_layout_ptr& layout, std::uint32_t layout_index) const
+    {
+        push(buffer, layout->pipeline_layout(), layout->push_constants(layout_index));
     }
 
 private:

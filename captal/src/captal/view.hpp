@@ -45,8 +45,7 @@ public:
     view& operator=(view&&) noexcept = default;
 
     void upload(memory_transfer_info& info);
-    void bind(tph::command_buffer& buffer);
-    void keep(asynchronous_resource_keeper& keeper) const;
+    void bind(frame_render_info& info);
 
     void fit(std::uint32_t width, std::uint32_t height);
     void fit(const render_texture_ptr& window);
@@ -151,26 +150,19 @@ public:
         return m_render_technique;
     }
 
-    const cpt::binding& get_binding(std::uint32_t index) const
+    const cpt::binding& get_binding(std::uint32_t index) const noexcept
     {
-        return m_bindings.at(index);
+        return m_bindings.get(index);
     }
 
-    optional_ref<const cpt::binding> try_get_binding(std::uint32_t index) const
+    optional_ref<const cpt::binding> try_get_binding(std::uint32_t index) const noexcept
     {
-        const auto it{m_bindings.find(index)};
-
-        if(it != std::end(m_bindings))
-        {
-            return it->second;
-        }
-
-        return nullref;
+        return m_bindings.try_get(index);
     }
 
-    bool has_binding(std::uint32_t index) const
+    bool has_binding(std::uint32_t index) const noexcept
     {
-        return m_bindings.find(index) != std::end(m_bindings);
+        return m_bindings.has(index);
     }
 
     template<typename T>
@@ -257,9 +249,10 @@ public:
 private:
     render_target* m_target{};
     render_technique_ptr m_render_technique{};
-    std::unordered_map<std::uint32_t, cpt::binding> m_bindings{};
+    binding_buffer m_bindings{};
     push_constants_buffer m_push_constants{};
     descriptor_set_ptr m_set{};
+    std::vector<asynchronous_resource_ptr> m_to_keep{};
 
     tph::viewport m_viewport{};
     tph::scissor m_scissor{};

@@ -10,7 +10,7 @@
 namespace cpt
 {
 
-class bin_packer
+class CAPTAL_API bin_packer
 {
 public:
     struct rect

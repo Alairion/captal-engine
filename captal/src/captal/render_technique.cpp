@@ -59,17 +59,6 @@ void descriptor_pool::set_name(std::string_view name)
 }
 #endif
 
-static std::vector<tph::descriptor_set_layout> make_set_layouts(const render_layout_info& info)
-{
-    std::vector<tph::descriptor_set_layout> output{};
-    output.reserve(2);
-
-    output.emplace_back(engine::instance().renderer(), info.view_bindings);
-    output.emplace_back(engine::instance().renderer(), info.renderable_bindings);
-
-    return output;
-}
-
 static std::vector<tph::descriptor_pool_size> make_pool_sizes(std::span<const tph::descriptor_set_layout_binding> bindings)
 {
     std::vector<tph::descriptor_pool_size> output{};
@@ -83,25 +72,70 @@ static std::vector<tph::descriptor_pool_size> make_pool_sizes(std::span<const tp
     return output;
 }
 
-static std::vector<tph::push_constant_range> make_push_constant_ranges(const render_layout_info& info)
+render_layout::layout_data render_layout::make_layout_data(const render_layout_info& info)
 {
-    std::vector<tph::push_constant_range> output{};
-    output.reserve(std::size(info.view_push_constants) + std::size(info.renderable_push_constants));
+    layout_data output{};
+    output.layout = tph::descriptor_set_layout{engine::instance().renderer(), info.bindings};
+    output.sizes = make_pool_sizes(info.bindings);
 
-    output.insert(std::end(output), std::begin(info.view_push_constants), std::end(info.view_push_constants));
-    output.insert(std::end(output), std::begin(info.renderable_push_constants), std::end(info.renderable_push_constants));
+    output.bindings = info.bindings;
+    output.push_constants = info.push_constants;
+
+    for(auto&& [index, binding] : info.default_bindings)
+    {
+        output.default_bindings.set(index, binding);
+    }
 
     return output;
 }
 
-render_layout::render_layout(render_layout_info view_info, render_layout_info renderable_info)
-:m_info{std::move(info)}
-,m_set_layouts{make_set_layouts(m_info)}
-,m_layout{engine::instance().renderer(), m_set_layouts, make_push_constant_ranges(m_info)}
+std::vector<std::reference_wrapper<tph::descriptor_set_layout>> render_layout::make_layout_refs(std::span<layout_data> layouts)
 {
-    m_set_layout_data.reserve(2);
-    m_set_layout_data.emplace_back(make_pool_sizes(m_info.view_bindings));
-    m_set_layout_data.emplace_back(make_pool_sizes(m_info.renderable_bindings));
+    std::vector<std::reference_wrapper<tph::descriptor_set_layout>> output{};
+    output.reserve(std::size(layouts));
+
+    for(auto&& layout : layouts)
+    {
+        output.emplace_back(layout.layout);
+    }
+
+    return output;
+}
+
+std::vector<tph::push_constant_range> render_layout::make_push_constant_ranges(std::span<const layout_data> layouts)
+{
+    std::size_t ranges_count{};
+    for(auto&& layout : layouts)
+    {
+        ranges_count += std::size(layout.push_constants);
+    }
+
+    std::vector<tph::push_constant_range> output{};
+    output.reserve(ranges_count);
+
+    for(auto&& layout : layouts)
+    {
+        output.insert(std::end(output), std::begin(layout.push_constants), std::end(layout.push_constants));
+    }
+
+    return output;
+}
+
+render_layout::render_layout(const render_layout_info& view_info, const render_layout_info& renderable_info, std::span<const render_layout_info> user_info)
+{
+    m_layout_data.reserve(2 + std::size(user_info));
+    m_layout_data.emplace_back(make_layout_data(view_info));
+    m_layout_data.emplace_back(make_layout_data(renderable_info));
+
+    for(auto&& user : user_info)
+    {
+        m_layout_data.emplace_back(make_layout_data(user));
+    }
+
+    auto descriptor_set_layouts{make_layout_refs(m_layout_data)};
+    auto push_constant_ranges  {make_push_constant_ranges(m_layout_data)};
+
+    m_layout = tph::pipeline_layout{engine::instance().renderer(), descriptor_set_layouts, push_constant_ranges};
 }
 
 descriptor_set_ptr render_layout::make_set(std::uint32_t layout_index)
@@ -110,7 +144,7 @@ descriptor_set_ptr render_layout::make_set(std::uint32_t layout_index)
 
     std::lock_guard lock{m_mutex};
 
-    auto& data{m_set_layout_data[layout_index]};
+    auto& data{m_layout_data[layout_index]};
 
     for(auto&& pool : data.pools)
     {
@@ -121,69 +155,27 @@ descriptor_set_ptr render_layout::make_set(std::uint32_t layout_index)
     }
 
     tph::descriptor_pool pool{engine::instance().renderer(), data.sizes, static_cast<std::uint32_t>(descriptor_pool::pool_size)};
-    data.pools.emplace_back(std::make_unique<descriptor_pool>(*this, m_set_layouts[layout_index], std::move(pool)));
+    data.pools.emplace_back(std::make_unique<descriptor_pool>(*this, data.layout, std::move(pool)));
 
 #ifdef CAPTAL_DEBUG
     if(!std::empty(m_name))
     {
-        data.pools.back()->set_name(m_name + " descriptor set layout #" + std::to_string(layout_index) +  " descriptor pool #" + std::to_string(std::size(data.pools) - 1));
+        if(layout_index == view_index)
+        {
+            data.pools.back()->set_name(m_name + " view descriptor set layout descriptor pool #" + std::to_string(std::size(data.pools) - 1));
+        }
+        else if(layout_index == renderable_index)
+        {
+            data.pools.back()->set_name(m_name + " renderable descriptor set layout descriptor pool #" + std::to_string(std::size(data.pools) - 1));
+        }
+        else
+        {
+            data.pools.back()->set_name(m_name + " user descriptor set layout #" + std::to_string(layout_index - 2) + " descriptor pool #" + std::to_string(std::size(data.pools) - 1));
+        }
     }
 #endif
 
     return data.pools.back()->allocate();
-}
-
-void render_layout::set_binding(std::uint32_t layout_index, std::uint32_t binding_index, cpt::binding binding)
-{
-    assert(layout_index < 2 && "cpt::render_layout does not support custom descriptor set layouts yet.");
-
-    const auto key   {make_binding_key(layout_index, binding_index)};
-    const auto to_set{m_bindings.find(key)};
-
-    if(to_set != std::end(m_bindings))
-    {
-        to_set->second = std::move(binding);
-    }
-    else
-    {
-    #ifndef NDEBUG
-        const auto get_bindings = [this, layout_index]() -> std::span<const tph::descriptor_set_layout_binding>
-        {
-            if(layout_index == 0)
-            {
-                return m_info.view_bindings;
-            }
-            else
-            {
-                return m_info.renderable_bindings;
-            }
-        };
-
-        const auto predicate = [binding_index](auto&& other)
-        {
-            return other.binding == binding_index;
-        };
-
-        const auto convert_binding_type = [](binding_type type)
-        {
-            switch(type)
-            {
-                case binding_type::texture:        return tph::descriptor_type::image_sampler;
-                case binding_type::uniform_buffer: return tph::descriptor_type::uniform_buffer;
-                case binding_type::storage_buffer: return tph::descriptor_type::storage_buffer;
-                default: std::terminate();
-            }
-        };
-
-        const auto bindings{get_bindings()};
-        const auto it      {std::find_if(std::begin(bindings), std::end(bindings), predicate)};
-
-        assert(it != std::end(bindings) && "cpt::render_layout::add_binding index must correspond to one of the descriptor set layout's bindings.");
-        assert(it->type == convert_binding_type(get_binding_type(binding)) && "cpt::render_layout::add_binding binding's type does not correspond to the descriptor set layout binding's type.");
-    #endif
-
-        m_bindings.emplace(key, std::move(binding));
-    }
 }
 
 #ifdef CAPTAL_DEBUG
@@ -191,15 +183,30 @@ void render_layout::set_name(std::string_view name)
 {
     m_name = name;
 
-    tph::set_object_name(engine::instance().renderer(), m_set_layouts[0], m_name + " view descriptor set layout");
-    tph::set_object_name(engine::instance().renderer(), m_set_layouts[1], m_name + " renderable descriptor set layout");
+    tph::set_object_name(engine::instance().renderer(), m_layout_data[0].layout, m_name + " view descriptor set layout");
+    tph::set_object_name(engine::instance().renderer(), m_layout_data[1].layout, m_name + " renderable descriptor set layout");
     tph::set_object_name(engine::instance().renderer(), m_layout, m_name + " pipeline layout");
 
-    for(std::size_t i{}; i < std::size(m_set_layout_data); ++i)
+    for(std::size_t i{}; i < std::size(m_layout_data[0].pools); ++i)
     {
-        for(std::size_t j{}; j < std::size(m_set_layout_data[i].pools); ++j)
+        m_layout_data[view_index].pools[i]->set_name(m_name + " view descriptor set layout descriptor pool #" + std::to_string(i));
+    }
+
+    for(std::size_t i{}; i < std::size(m_layout_data[1].pools); ++i)
+    {
+        m_layout_data[renderable_index].pools[i]->set_name(m_name + " renderable descriptor set layout descriptor pool #" + std::to_string(i));
+    }
+
+    if(std::size(m_layout_data) > 2)
+    {
+        for(std::size_t i{}; i < std::size(m_layout_data) - 2; ++i)
         {
-            m_set_layout_data[i].pools[j]->set_name(m_name + "descriptor set layout #" + std::to_string(i) + " descriptor pool #" + std::to_string(j));
+            auto& layout{m_layout_data[i + 2]};
+
+            for(std::size_t j{}; j < std::size(m_layout_data[1].pools); ++j)
+            {
+                layout.pools[i]->set_name(m_name + " user descriptor set layout #" + std::to_string(i) + " descriptor pool #" + std::to_string(j));
+            }
         }
     }
 }

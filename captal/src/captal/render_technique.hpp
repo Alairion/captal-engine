@@ -118,7 +118,12 @@ struct render_layout_info
 class CAPTAL_API render_layout : public asynchronous_resource
 {
 public:
-    explicit render_layout(render_layout_info view_info, render_layout_info renderable_info);
+    static constexpr std::uint32_t view_index{0};
+    static constexpr std::uint32_t renderable_index{1};
+    static constexpr std::uint32_t user_index{2};
+
+public:
+    explicit render_layout(const render_layout_info& view_info, const render_layout_info& renderable_info, std::span<const render_layout_info> user_info = {});
     ~render_layout() = default;
     render_layout(const render_layout&) = delete;
     render_layout& operator=(const render_layout&) = delete;
@@ -126,28 +131,6 @@ public:
     render_layout& operator=(render_layout&&) noexcept = delete;
 
     descriptor_set_ptr make_set(std::uint32_t layout_index);
-
-    const cpt::binding& get_binding(std::uint32_t layout_index, std::uint32_t binding_index) const
-    {
-        return m_bindings.at(make_binding_key(layout_index, binding_index));
-    }
-
-    optional_ref<const cpt::binding> try_get_binding(std::uint32_t layout_index, std::uint32_t binding_index) const
-    {
-        const auto it{m_bindings.find(make_binding_key(layout_index, binding_index))};
-
-        if(it != std::end(m_bindings))
-        {
-            return it->second;
-        }
-
-        return nullref;
-    }
-
-    bool has_binding(std::uint32_t layout_index, std::uint32_t binding_index) const
-    {
-        return m_bindings.find(make_binding_key(layout_index, binding_index)) != std::end(m_bindings);
-    }
 
     tph::descriptor_set_layout& descriptor_set_layout(std::uint32_t layout_index) noexcept
     {
@@ -157,6 +140,21 @@ public:
     const tph::descriptor_set_layout& descriptor_set_layout(std::uint32_t layout_index) const noexcept
     {
         return m_layout_data[layout_index].layout;
+    }
+
+    std::span<const tph::descriptor_set_layout_binding> bindings(std::uint32_t layout_index) const noexcept
+    {
+        return m_layout_data[layout_index].bindings;
+    }
+
+    optional_ref<const cpt::binding> default_binding(std::uint32_t layout_index, std::uint32_t binding_index) const noexcept
+    {
+        return m_layout_data[layout_index].default_bindings.try_get(binding_index);
+    }
+
+    std::span<const tph::push_constant_range> push_constants(std::uint32_t layout_index) const noexcept
+    {
+        return m_layout_data[layout_index].push_constants;
     }
 
     tph::pipeline_layout& pipeline_layout() noexcept
@@ -181,12 +179,17 @@ public:
 private:
     struct layout_data
     {
-        render_layout_info info{};
         tph::descriptor_set_layout layout{};
-        binding_buffer bingings{};
+        std::vector<tph::descriptor_set_layout_binding> bindings{};
+        binding_buffer default_bindings{};
+        std::vector<tph::push_constant_range> push_constants{};
         std::vector<tph::descriptor_pool_size> sizes{};
         std::vector<std::unique_ptr<descriptor_pool>> pools{};
     };
+
+    static layout_data make_layout_data(const render_layout_info& info);
+    static std::vector<tph::push_constant_range> make_push_constant_ranges(std::span<const layout_data> layouts);
+    static std::vector<std::reference_wrapper<tph::descriptor_set_layout>> make_layout_refs(std::span<layout_data> layouts);
 
 private:
     std::vector<layout_data> m_layout_data{};

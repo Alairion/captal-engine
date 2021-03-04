@@ -62,7 +62,7 @@ inline tph::descriptor_write make_descriptor_write(tph::descriptor_set& set, std
     }
 }
 
-class binding_buffer
+class CAPTAL_API binding_buffer
 {
 public:
     binding_buffer() = default;

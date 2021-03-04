@@ -98,7 +98,6 @@ public:
     void bind(tph::command_buffer& command_buffer, cpt::view& view);
     void draw(tph::command_buffer& command_buffer);
     void upload(memory_transfer_info& info);
-    void keep(asynchronous_resource_keeper& keeper);
 
     void set_binding(std::uint32_t index, cpt::binding binding);
 
@@ -168,24 +167,17 @@ public:
 
     const cpt::binding& get_binding(std::uint32_t index) const
     {
-        return m_bindings.at(index);
+        return m_bindings.get(index);
     }
 
     optional_ref<const cpt::binding> try_get_binding(std::uint32_t index) const
     {
-        const auto it{m_bindings.find(index)};
-
-        if(it != std::end(m_bindings))
-        {
-            return it->second;
-        }
-
-        return nullref;
+        return m_bindings.try_get(index);
     }
 
     bool has_binding(std::uint32_t index) const
     {
-        return m_bindings.find(index) != std::end(m_bindings);
+        return m_bindings.has(index);
     }
 
     template<typename T>
@@ -279,7 +271,7 @@ private:
     using descriptor_set_map = std::map<render_layout_weak_ptr, descriptor_set_data, std::owner_less<render_layout_weak_ptr>>;
 
 private:
-    std::unordered_map<std::uint32_t, cpt::binding> m_bindings{};
+    binding_buffer m_bindings{};
     push_constants_buffer m_push_constants{};
     descriptor_set_map m_sets{};
     uniform_buffer* m_buffer{};

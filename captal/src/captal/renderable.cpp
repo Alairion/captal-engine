@@ -35,7 +35,7 @@ basic_renderable::basic_renderable(std::uint32_t vertex_count, std::uint32_t uni
     auto buffer{make_uniform_buffer(compute_buffer_parts(vertex_count))};
     m_buffer = buffer.get();
 
-    m_bindings.emplace(m_uniform_index, std::move(buffer));
+    m_bindings.set(m_uniform_index, std::move(buffer));
 }
 
 basic_renderable::basic_renderable(std::uint32_t vertex_count, std::uint32_t index_count, std::uint32_t uniform_index)
@@ -46,7 +46,7 @@ basic_renderable::basic_renderable(std::uint32_t vertex_count, std::uint32_t ind
     auto buffer{make_uniform_buffer(compute_buffer_parts(vertex_count, index_count))};
     m_buffer = buffer.get();
 
-    m_bindings.emplace(m_uniform_index, std::move(buffer));
+    m_bindings.set(m_uniform_index, std::move(buffer));
 }
 
 void basic_renderable::set_vertices(std::span<const vertex> vertices) noexcept
@@ -76,7 +76,7 @@ void basic_renderable::reset(std::uint32_t vertex_count)
     m_vertex_count = vertex_count;
     m_upload_model = true;
 
-    m_bindings.at(m_uniform_index) = std::move(buffer);
+    m_bindings.set(m_uniform_index, std::move(buffer));
 }
 
 void basic_renderable::reset(std::uint32_t vertex_count, std::uint32_t index_count)
@@ -88,7 +88,7 @@ void basic_renderable::reset(std::uint32_t vertex_count, std::uint32_t index_cou
     m_index_count = index_count;
     m_upload_model = true;
 
-    m_bindings.at(m_uniform_index) = std::move(buffer);
+    m_bindings.set(m_uniform_index, std::move(buffer));
 }
 
 void basic_renderable::bind(tph::command_buffer& command_buffer, cpt::view& view)
@@ -190,15 +190,7 @@ void basic_renderable::upload(memory_transfer_info& info)
 
     if(keep)
     {
-        info.keeper.keep(get_binding_resource(m_bindings.at(m_uniform_index)));
-    }
-}
-
-void basic_renderable::keep(asynchronous_resource_keeper& keeper)
-{
-    for(const auto& [index, binding] : m_bindings)
-    {
-        keeper.keep(get_binding_resource(binding));
+        info.keeper.keep(get_binding_resource(m_bindings.get(m_uniform_index)));
     }
 }
 
@@ -206,17 +198,7 @@ void basic_renderable::set_binding(std::uint32_t index, cpt::binding binding)
 {
     assert(index != m_uniform_index && "cpt::basic_renderable::set_binding must never be called with index == uniform_index.");
 
-    const auto it{m_bindings.find(index)};
-
-    if(it != std::end(m_bindings))
-    {
-        it->second = std::move(binding);
-    }
-    else
-    {
-        m_bindings.emplace(index, std::move(binding));
-    }
-
+    m_bindings.set(index, std::move(binding));
     ++m_descriptors_epoch;
 }
 
