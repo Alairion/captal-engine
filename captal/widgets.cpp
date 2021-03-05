@@ -58,12 +58,8 @@ static void run()
         {
             auto render_info{window->begin_render()};
 
-            view.bind(render_info.buffer);
-            view.keep(render_info.keeper);
-
-            sprite.bind(render_info.buffer, view);
-            sprite.draw(render_info.buffer);
-            sprite.keep(render_info.keeper);
+            view.bind(render_info);
+            sprite.draw(render_info, view);
 
             window->present();
         }

@@ -98,7 +98,7 @@ public:
 
     bool has(std::uint32_t index) const noexcept
     {
-        return index < std::size(m_bindings) || get_binding_resource(m_bindings[index]) != nullptr;
+        return index < std::size(m_bindings) && get_binding_resource(m_bindings[index]) != nullptr;
     }
 
 private:

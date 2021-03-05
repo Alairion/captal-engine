@@ -91,29 +91,33 @@ void basic_renderable::reset(std::uint32_t vertex_count, std::uint32_t index_cou
     m_bindings.set(m_uniform_index, std::move(buffer));
 }
 
-void basic_renderable::bind(tph::command_buffer& command_buffer, cpt::view& view)
+void basic_renderable::bind(frame_render_info& info, cpt::view& view)
 {
     const auto& layout{view.render_technique()->layout()};
 
-    const auto write_set = [this, &layout](const descriptor_set_ptr& set)
+    const auto write_set = [this, &layout](descriptor_set_data& data)
     {
+        const auto to_bind{layout->bindings(render_layout::renderable_index)};
+
         std::vector<tph::descriptor_write> writes{};
-        writes.reserve(std::size(layout->info().renderable_bindings));
+        writes.reserve(std::size(to_bind));
 
-        for(auto&& binding : layout->info().renderable_bindings)
+        for(auto&& binding : to_bind)
         {
-            const auto it{m_bindings.find(binding.binding)};
+            const auto local{m_bindings.try_get(binding.binding)};
 
-            if(it == std::end(m_bindings))
+            if(local)
             {
-                const auto fallback{layout->try_get_binding(1, binding.binding)};
-                assert(fallback && "cpt::basic_renderable::bind can not find any suitable binding, neither the renderable nor the render layout have a binding for specified index.");
-
-                writes.emplace_back(make_descriptor_write(set->set(), binding.binding, fallback));
+                writes.emplace_back(make_descriptor_write(data.set->set(), binding.binding, local.value()));
+                data.to_keep.emplace_back(get_binding_resource(local.value()));
             }
             else
             {
-                writes.emplace_back(make_descriptor_write(set->set(), binding.binding, it->second));
+                const auto fallback{layout->default_binding(render_layout::renderable_index, binding.binding)};
+                assert(fallback && "cpt::basic_renderable::bind can not find any suitable binding, neither the renderable nor the render layout have a binding for specified index.");
+
+                writes.emplace_back(make_descriptor_write(data.set->set(), binding.binding, fallback.value()));
+                data.to_keep.emplace_back(get_binding_resource(fallback.value()));
             }
         }
 
@@ -124,42 +128,52 @@ void basic_renderable::bind(tph::command_buffer& command_buffer, cpt::view& view
 
     if(it == std::end(m_sets)) //New layout
     {
-        it = m_sets.emplace(layout, descriptor_set_data{layout->make_set(1), m_descriptors_epoch}).first;
+        it = m_sets.emplace(layout, descriptor_set_data{layout->make_set(render_layout::renderable_index), std::vector<asynchronous_resource_ptr>{}, m_descriptors_epoch}).first;
 
-        write_set(it->second.set);
+        write_set(it->second);
     }
     else if(it->second.epoch < m_descriptors_epoch) //Already known layout but not up to date
     {
         it->second.set.reset();
         it->second.set = layout->make_set(1);
+        it->second.to_keep.clear();
         it->second.epoch = m_descriptors_epoch;
 
-        write_set(it->second.set);
+        write_set(it->second);
     }
 
     auto buffer{m_buffer->get_buffer()};
 
     if(m_index_count > 0)
     {
-        tph::cmd::bind_index_buffer(command_buffer, buffer.buffer, buffer.offset + m_buffer->part_offset(2), tph::index_type::uint32);
+        tph::cmd::bind_index_buffer(info.buffer, buffer.buffer, buffer.offset + m_buffer->part_offset(2), tph::index_type::uint32);
     }
 
-    tph::cmd::bind_vertex_buffer (command_buffer, buffer.buffer, buffer.offset + m_buffer->part_offset(1));
-    tph::cmd::bind_descriptor_set(command_buffer, 1, it->second.set->set(), layout->pipeline_layout());
+    tph::cmd::bind_vertex_buffer (info.buffer, buffer.buffer, buffer.offset + m_buffer->part_offset(1));
+    tph::cmd::bind_descriptor_set(info.buffer, 1, it->second.set->set(), layout->pipeline_layout());
 
-    m_push_constants.push(command_buffer, layout->pipeline_layout(), layout->info().renderable_push_constants);
+    m_push_constants.push(info.buffer, layout, render_layout::renderable_index);
+
+    info.keeper.keep(std::begin(it->second.to_keep), std::end(it->second.to_keep));
+    info.keeper.keep(it->second.set);
 }
 
-void basic_renderable::draw(tph::command_buffer& command_buffer)
+void basic_renderable::draw(frame_render_info& info)
 {
     if(m_index_count > 0)
     {
-        tph::cmd::draw_indexed(command_buffer, m_index_count, 1, 0, 0, 0);
+        tph::cmd::draw_indexed(info.buffer, m_index_count, 1, 0, 0, 0);
     }
     else
     {
-        tph::cmd::draw(command_buffer, m_vertex_count, 1, 0, 0);
+        tph::cmd::draw(info.buffer, m_vertex_count, 1, 0, 0);
     }
+}
+
+void basic_renderable::draw(frame_render_info& info, cpt::view& view)
+{
+    bind(info, view);
+    draw(info);
 }
 
 void basic_renderable::upload(memory_transfer_info& info)

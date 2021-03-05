@@ -24,12 +24,12 @@ template<typename T>
 concept renderable = requires(T r, const T cr,
                               cpt::view view, const cpt::view cview,
                               std::uint32_t i, vec3f vec, float f, cpt::binding bind, tph::shader_stage stages,
-                              memory_transfer_info info, tph::command_buffer cb, asynchronous_resource_keeper keeper)
+                              memory_transfer_info memory, frame_render_info render)
 {
-    r.bind(cb, view);
-    r.draw(cb);
-    r.upload(info);
-    r.keep(keeper);
+    r.bind(render, view);
+    r.draw(render);
+    r.draw(render, view);
+    r.upload(memory);
 
     r.set_binding(i, bind);
 
@@ -95,8 +95,9 @@ protected:
     void reset(std::uint32_t vertex_count, std::uint32_t index_count);
 
 public:
-    void bind(tph::command_buffer& command_buffer, cpt::view& view);
-    void draw(tph::command_buffer& command_buffer);
+    void bind(frame_render_info& info, cpt::view& view);
+    void draw(frame_render_info& info);
+    void draw(frame_render_info& info, cpt::view& view);
     void upload(memory_transfer_info& info);
 
     void set_binding(std::uint32_t index, cpt::binding binding);
@@ -264,6 +265,7 @@ private:
     struct descriptor_set_data
     {
         descriptor_set_ptr set{};
+        std::vector<asynchronous_resource_ptr> to_keep{};
         std::uint32_t epoch{};
     };
 

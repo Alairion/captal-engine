@@ -56,7 +56,7 @@ void view::bind(frame_render_info& info)
             if(local)
             {
                 writes.emplace_back(make_descriptor_write(m_set->set(), binding.binding, local.value()));
-                m_to_keep.emplace_back(local.value());
+                m_to_keep.emplace_back(get_binding_resource(local.value()));
             }
             else
             {
@@ -64,7 +64,7 @@ void view::bind(frame_render_info& info)
                 assert(fallback && "cpt::view::bind can not find any suitable binding, neither the view nor the render layout have a binding for specified index.");
 
                 writes.emplace_back(make_descriptor_write(m_set->set(), binding.binding, fallback));
-                m_to_keep.emplace_back(fallback.value());
+                m_to_keep.emplace_back(get_binding_resource(fallback.value()));
             }
         }
 
@@ -78,6 +78,10 @@ void view::bind(frame_render_info& info)
     tph::cmd::bind_descriptor_set(info.buffer, 0, m_set->set(), m_render_technique->layout()->pipeline_layout());
 
     m_push_constants.push(info.buffer, m_render_technique->layout(), render_layout::view_index);
+
+    info.keeper.keep(std::begin(m_to_keep), std::end(m_to_keep));
+    info.keeper.keep(m_set);
+    info.keeper.keep(m_render_technique);
 }
 
 void view::fit(std::uint32_t width, std::uint32_t height)

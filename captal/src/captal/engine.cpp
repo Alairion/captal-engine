@@ -213,17 +213,18 @@ void engine::init()
     set_default_vertex_shader(tph::shader{m_renderer, tph::shader_stage::vertex, default_vertex_shader_spv});
     set_default_fragment_shader(tph::shader{m_renderer, tph::shader_stage::fragment, default_fragment_shader_spv});
 
-    render_layout_info layout_info{};
-    layout_info.view_bindings.reserve(1);
-    layout_info.view_bindings.emplace_back(tph::shader_stage::vertex, 0, tph::descriptor_type::uniform_buffer);
-    layout_info.renderable_bindings.reserve(2);
-    layout_info.renderable_bindings.emplace_back(tph::shader_stage::vertex, 0, tph::descriptor_type::uniform_buffer);
-    layout_info.renderable_bindings.emplace_back(tph::shader_stage::fragment, 1, tph::descriptor_type::image_sampler);
+    render_layout_info view_info{};
+    view_info.bindings.emplace_back(tph::shader_stage::vertex, 0, tph::descriptor_type::uniform_buffer);
 
     constexpr tph::sampling_options default_sampling{tph::filter::nearest, tph::filter::nearest, tph::address_mode::repeat};
 
-    set_default_render_layout(make_render_layout(std::move(layout_info)));
-    m_default_layout->set_binding(1, 1, make_texture(1, 1, std::data(default_texture_data), default_sampling));
+    render_layout_info renderable_info{};
+    renderable_info.bindings.reserve(2);
+    renderable_info.bindings.emplace_back(tph::shader_stage::vertex, 0, tph::descriptor_type::uniform_buffer);
+    renderable_info.bindings.emplace_back(tph::shader_stage::fragment, 1, tph::descriptor_type::image_sampler);
+    renderable_info.default_bindings.emplace(1, make_texture(1, 1, std::data(default_texture_data), default_sampling));
+
+    set_default_render_layout(make_render_layout(view_info, renderable_info));
 
     if constexpr(debug_enabled)
     {
