@@ -1,0 +1,8 @@
+cpt::render_target:
+    frame_render_info begin_render(begin_render_options options) = 0:
+        returns a b
+    std::optional<frame_render_info> begin_static_render(begin_render_options options) = 0:
+
+    void reset_static_render() = 0:
+
+    void present() = 0:

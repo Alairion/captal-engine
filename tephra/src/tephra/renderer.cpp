@@ -137,9 +137,14 @@ static std::vector<const char*> filter_device_extensions(VkPhysicalDevice physic
     return extensions;
 }
 
-static std::vector<const char*> required_device_extensions(VkPhysicalDevice physical_device, const std::vector<const char*>& layers, renderer_extension& extensions)
+static std::vector<const char*> required_device_extensions(VkPhysicalDevice physical_device, const std::vector<const char*>& layers, renderer_extension extensions)
 {
-    std::vector<const char*> output{"VK_KHR_swapchain"};
+    std::vector<const char*> output{};
+
+    if(static_cast<bool>(extensions & renderer_extension::swapchain))
+    {
+        output.emplace_back("VK_KHR_swapchain");
+    }
 
     return filter_device_extensions(physical_device, layers, std::move(output), extensions);
 }
@@ -320,7 +325,7 @@ static std::uint32_t choose_compute_family(const std::vector<VkQueueFamilyProper
     return choose_generic_family(queue_families);
 }
 
-static renderer::queue_families_t choose_queue_families(VkPhysicalDevice physical_device, renderer_options options, renderer::transfer_granularity& granularity)
+static renderer::queue_families_t choose_queue_families(VkPhysicalDevice physical_device, renderer_options options, renderer_extension extensions, renderer::transfer_granularity& granularity)
 {
     std::uint32_t count{};
     vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &count, nullptr);
@@ -331,7 +336,11 @@ static renderer::queue_families_t choose_queue_families(VkPhysicalDevice physica
 
     renderer::queue_families_t output{};
     output[static_cast<std::size_t>(queue::graphics)] = choose_generic_family(queue_family_properties);
-    output[static_cast<std::size_t>(queue::present)] = choose_present_family(physical_device, queue_family_properties);
+
+    if(static_cast<bool>(extensions & renderer_extension::swapchain))
+    {
+        output[static_cast<std::size_t>(queue::present)] = choose_present_family(physical_device, queue_family_properties);
+    }
 
     if(static_cast<bool>(options & renderer_options::standalone_transfer_queue))
     {
@@ -460,9 +469,9 @@ static vulkan::memory_allocator::heap_sizes compute_heap_sizes(const physical_de
 renderer::renderer(const physical_device& physical_device, renderer_layer layers, renderer_extension extensions, const physical_device_features& enabled_features, renderer_options options)
 {
     m_physical_device = underlying_cast<VkPhysicalDevice>(physical_device);
-    m_queue_families = choose_queue_families(m_physical_device, options, m_transfer_queue_granularity);
+    m_queue_families = choose_queue_families(m_physical_device, options, extensions, m_transfer_queue_granularity);
 
-    const std::vector<const char*> layer_names{required_device_layers(m_physical_device, layers)};
+    const std::vector<const char*> layer_names    {required_device_layers(m_physical_device, layers)};
     const std::vector<const char*> extension_names{required_device_extensions(m_physical_device, layer_names, extensions)};
     const VkPhysicalDeviceFeatures features{parse_enabled_features(enabled_features)};
 

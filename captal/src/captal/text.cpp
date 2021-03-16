@@ -22,7 +22,7 @@ namespace cpt
 {
 
 text::text(std::span<const std::uint32_t> indices, std::span<const vertex> vertices, std::weak_ptr<font_atlas> atlas, text_bounds bounds)
-:basic_renderable{static_cast<std::uint32_t>(std::size(indices)), static_cast<std::uint32_t>(std::size(vertices)), 0}
+:basic_renderable{static_cast<std::uint32_t>(std::size(vertices)), static_cast<std::uint32_t>(std::size(indices)), 0}
 ,m_bounds{bounds}
 ,m_atlas{std::move(atlas)}
 {
@@ -278,7 +278,7 @@ text_bounds text_drawer::bounds(std::string_view string, std::uint32_t line_widt
     state.greatest_x = std::ceil(state.greatest_x);
     state.greatest_y = std::ceil(state.greatest_y);
 
-    const auto text_width{static_cast<std::uint32_t>(state.greatest_x - state.lowest_x)};
+    const auto text_width {static_cast<std::uint32_t>(state.greatest_x - state.lowest_x)};
     const auto text_height{static_cast<std::uint32_t>(state.greatest_y - state.lowest_y)};
 
     return text_bounds{text_width, text_height};
@@ -286,9 +286,9 @@ text_bounds text_drawer::bounds(std::string_view string, std::uint32_t line_widt
 
 text text_drawer::draw(std::string_view string, std::uint32_t line_width)
 {
-    const auto outline{static_cast<std::uint64_t>(m_outline * 64.0f)};
-    const auto bold{static_cast<bool>(m_style & text_style::bold)};
-    const auto italic{static_cast<bool>(m_style & text_style::italic)};
+    const auto outline   {static_cast<std::uint64_t>(m_outline * 64.0f)};
+    const auto bold      {static_cast<bool>(m_style & text_style::bold)};
+    const auto italic    {static_cast<bool>(m_style & text_style::italic)};
     const auto codepoints{convert_to<utf32>(string)};
 
     auto& font{choose_font()};
@@ -331,7 +331,8 @@ text text_drawer::draw(std::string_view string, std::uint32_t line_width)
     }
 
     const auto indices{generate_indices(std::size(state.vertices) / 4u)};
-    const auto text_width{static_cast<std::uint32_t>(state.greatest_x - state.lowest_x)};
+
+    const auto text_width {static_cast<std::uint32_t>(state.greatest_x - state.lowest_x)};
     const auto text_height{static_cast<std::uint32_t>(state.greatest_y - state.lowest_y)};
 
     return text{indices, state.vertices, m_atlas, text_bounds{text_width, text_height}};

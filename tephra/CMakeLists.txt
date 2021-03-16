@@ -120,8 +120,18 @@ if(WIN32)
 endif()
 
 if(CAPTAL_BUILD_TEPHRA_EXAMPLES)
-    add_executable(tephra_test "main.cpp")
-    target_link_libraries(tephra_test PRIVATE tephra apyre)
+    add_executable(tephra_example "example.cpp")
+    target_link_libraries(tephra_example PRIVATE tephra)
+
+    install(TARGETS tephra tephra_example
+            RUNTIME DESTINATION ${PROJECT_SOURCE_DIR}/example
+            ARCHIVE DESTINATION ${PROJECT_SOURCE_DIR}/example
+            COMPONENT executable)
+endif()
+
+if(CAPTAL_BUILD_TEPHRA_TESTS)
+    add_executable(tephra_test "test.cpp")
+    target_link_libraries(tephra_test PRIVATE tephra apyre Catch2)
 endif()
 
 install(TARGETS tephra

@@ -41,9 +41,10 @@ public:
     render_texture(render_texture&&) = delete;
     render_texture& operator=(render_texture&&) = delete;
 
-    frame_time_signal& register_frame_time() override;
-    frame_render_info begin_render() override;
+    frame_render_info begin_render(begin_render_options options) override;
+    std::optional<frame_render_info> begin_static_render(begin_render_options options) override;
     void present() override;
+    void reset() override;
 
     tph::framebuffer& framebuffer() noexcept
     {

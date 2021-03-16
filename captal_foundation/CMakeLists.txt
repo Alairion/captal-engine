@@ -22,7 +22,7 @@ target_sources(captal_foundation INTERFACE
 
 if(CAPTAL_BUILD_FOUNDATION_TESTS)
     add_executable(captal_foundation_test ${PROJECT_SOURCE_DIR}/test.cpp)
-    target_link_libraries(captal_foundation_test captal_foundation)
+    target_link_libraries(captal_foundation_test captal_foundation Catch2)
 endif()
 
 install(TARGETS captal_foundation

@@ -16,7 +16,7 @@
 namespace cpt
 {
 
-using transfer_ended_signal = cpt::signal_st<>;
+using transfer_ended_signal = cpt::signal<>;
 
 struct memory_transfer_info
 {

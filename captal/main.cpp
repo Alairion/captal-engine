@@ -363,7 +363,7 @@ static void run()
     //Our camera, it will hold the cpt::view for our scene.
     const auto camera{world.create()};
     world.emplace<cpt::components::node>(camera, cpt::vec3f{320.0f, 240.0f, 1.0f}, cpt::vec3f{320.0f, 240.0f, 0.0f});
-    world.emplace<cpt::components::camera>(camera, window, technique_info)->fit_to(window);
+    world.emplace<cpt::components::camera>(camera, window, technique_info)->fit(window);
 
     //See above.
     auto time_ptr{std::make_shared<cpt::frame_time_t>()};
@@ -377,7 +377,7 @@ static void run()
     while(cpt::engine::instance().run())
     {
         //Process window events
-        window->update();
+        window->dispatch_events();
 
         //Physics system will update objects' nodes based on value given by the physical world.
         //Will call this system first so other systems will have the newest positions data.

@@ -22,6 +22,13 @@ struct frame_render_info
     tph::command_buffer& buffer;
     frame_presented_signal& signal;
     asynchronous_resource_keeper& keeper;
+    optional_ref<frame_time_signal> time_signal{};
+};
+
+enum class begin_render_options : std::uint32_t
+{
+    none = 0x00,
+    timed = 0x01
 };
 
 class CAPTAL_API render_target
@@ -32,9 +39,10 @@ public:
 
     virtual ~render_target() = default;
 
-    virtual frame_time_signal& register_frame_time() = 0;
-    virtual frame_render_info begin_render() = 0;
+    virtual frame_render_info begin_render(begin_render_options options) = 0;
+    virtual std::optional<frame_render_info> begin_static_render(begin_render_options options) = 0;
     virtual void present() = 0;
+    virtual void reset() = 0;
 
     void disable_rendering() noexcept
     {

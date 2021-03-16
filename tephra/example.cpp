@@ -20,11 +20,6 @@
 
 #include <captal_foundation/math.hpp>
 
-#define CATCH_CONFIG_ENABLE_BENCHMARKING
-#define CATCH_CONFIG_MAIN
-#define CATCH_CONFIG_CONSOLE_WIDTH 120
-#include <catch2/catch.hpp>
-
 struct vertex
 {
     tph::vec2f position{};
@@ -58,19 +53,20 @@ static uniform_buffer_object ubo
 
 inline constexpr auto color_format{tph::texture_format::r8g8b8a8_srgb};
 
-TEST_CASE("command buffer bench", "[cmdbuf_test]")
+static void run()
 {
     //Enable use of the bitwise ops on enabled enumerations
     using namespace cpt::foundation::enum_operations;
 
     //Register our application to the driver
-    tph::application application{"tephra_test", tph::version{1, 0, 0}, tph::application_layer::none, tph::application_extension::none};
+    tph::application application{"tephra_test", tph::version{1, 0, 0}, tph::application_layer::validation, tph::application_extension::debug_utils};
 
     //Select a physical device, a GPU
     const tph::physical_device& physical_device{application.default_physical_device()};
+    tph::debug_messenger messenger{application, tph::debug_messenger_default_callback, tph::debug_message_severity::error, tph::debug_message_type::validation};
 
     //Creates the renderer, a virtual link to the physical device
-    tph::renderer renderer{physical_device, tph::renderer_layer::none, tph::renderer_extension::none};
+    tph::renderer renderer{physical_device, tph::renderer_layer::validation, tph::renderer_extension::none};
 
     //Create the render pass, it describes the operations done between each subpasses.
     tph::render_pass_info render_pass_info{};
@@ -151,119 +147,8 @@ TEST_CASE("command buffer bench", "[cmdbuf_test]")
     const std::array attachments{std::ref(target)};
     tph::framebuffer framebuffer{renderer, render_pass, attachments, 640, 480, 1};
 
-    BENCHMARK("Single record time + command pool alloc")
-    {
-        tph::command_pool   command_pool  {renderer};
-        tph::command_buffer command_buffer{tph::cmd::begin(command_pool, tph::command_buffer_level::primary, tph::command_buffer_options::one_time_submit)};
-
-        tph::cmd::copy(command_buffer, staging_buffer, buffer);
-
-        tph::cmd::transition(command_buffer, texture,
-                             tph::resource_access::none, tph::resource_access::transfer_write,
-                             tph::pipeline_stage::top_of_pipe, tph::pipeline_stage::transfer,
-                             tph::texture_layout::undefined, tph::texture_layout::transfer_destination_optimal);
-
-        tph::cmd::copy(command_buffer, image, texture);
-
-        tph::cmd::transition(command_buffer, texture,
-                             tph::resource_access::transfer_write, tph::resource_access::shader_read,
-                             tph::pipeline_stage::transfer, tph::pipeline_stage::fragment_shader,
-                             tph::texture_layout::transfer_destination_optimal, tph::texture_layout::shader_read_only_optimal);
-
-        tph::cmd::begin_render_pass(command_buffer, render_pass, framebuffer);
-        tph::cmd::bind_pipeline(command_buffer, pipeline);
-        tph::cmd::bind_vertex_buffer(command_buffer, buffer, sizeof(ubo));
-        tph::cmd::bind_descriptor_set(command_buffer, 0, descriptor_set, pipeline_layout);
-
-        for(std::size_t i{}; i < 10000; ++i)
-        {
-            tph::cmd::draw(command_buffer, std::size(vertices), 1, 0, 0);
-        }
-
-        tph::cmd::end_render_pass(command_buffer);
-
-        tph::cmd::copy(command_buffer, target, output);
-
-        tph::cmd::end(command_buffer);
-    };
-
-    tph::command_pool command_pool{renderer, tph::command_pool_options::transient};
-
-    BENCHMARK("Single record time + command pool reuse (and reset)")
-    {
-        command_pool.reset();
-        tph::command_buffer command_buffer{tph::cmd::begin(command_pool, tph::command_buffer_level::primary, tph::command_buffer_options::one_time_submit)};
-
-        tph::cmd::copy(command_buffer, staging_buffer, buffer);
-
-        tph::cmd::transition(command_buffer, texture,
-                             tph::resource_access::none, tph::resource_access::transfer_write,
-                             tph::pipeline_stage::top_of_pipe, tph::pipeline_stage::transfer,
-                             tph::texture_layout::undefined, tph::texture_layout::transfer_destination_optimal);
-
-        tph::cmd::copy(command_buffer, image, texture);
-
-        tph::cmd::transition(command_buffer, texture,
-                             tph::resource_access::transfer_write, tph::resource_access::shader_read,
-                             tph::pipeline_stage::transfer, tph::pipeline_stage::fragment_shader,
-                             tph::texture_layout::transfer_destination_optimal, tph::texture_layout::shader_read_only_optimal);
-
-        tph::cmd::begin_render_pass(command_buffer, render_pass, framebuffer);
-        tph::cmd::bind_pipeline(command_buffer, pipeline);
-        tph::cmd::bind_vertex_buffer(command_buffer, buffer, sizeof(ubo));
-        tph::cmd::bind_descriptor_set(command_buffer, 0, descriptor_set, pipeline_layout);
-
-        for(std::size_t i{}; i < 10000; ++i)
-        {
-            tph::cmd::draw(command_buffer, std::size(vertices), 1, 0, 0);
-        }
-
-        tph::cmd::end_render_pass(command_buffer);
-
-        tph::cmd::copy(command_buffer, target, output);
-
-        tph::cmd::end(command_buffer);
-    };
-
-    command_pool = tph::command_pool{renderer, tph::command_pool_options::transient | tph::command_pool_options::reset};
+    tph::command_pool   command_pool  {renderer};
     tph::command_buffer command_buffer{tph::cmd::begin(command_pool, tph::command_buffer_level::primary, tph::command_buffer_options::one_time_submit)};
-
-    BENCHMARK("Multiple record time (reset the same buffer) + command pool reuse")
-    {
-        tph::cmd::begin(command_buffer, tph::command_buffer_reset_options::none, tph::command_buffer_options::one_time_submit);
-
-        tph::cmd::copy(command_buffer, staging_buffer, buffer);
-
-        tph::cmd::transition(command_buffer, texture,
-                             tph::resource_access::none, tph::resource_access::transfer_write,
-                             tph::pipeline_stage::top_of_pipe, tph::pipeline_stage::transfer,
-                             tph::texture_layout::undefined, tph::texture_layout::transfer_destination_optimal);
-
-        tph::cmd::copy(command_buffer, image, texture);
-
-        tph::cmd::transition(command_buffer, texture,
-                             tph::resource_access::transfer_write, tph::resource_access::shader_read,
-                             tph::pipeline_stage::transfer, tph::pipeline_stage::fragment_shader,
-                             tph::texture_layout::transfer_destination_optimal, tph::texture_layout::shader_read_only_optimal);
-
-        tph::cmd::begin_render_pass(command_buffer, render_pass, framebuffer);
-        tph::cmd::bind_pipeline(command_buffer, pipeline);
-        tph::cmd::bind_vertex_buffer(command_buffer, buffer, sizeof(ubo));
-        tph::cmd::bind_descriptor_set(command_buffer, 0, descriptor_set, pipeline_layout);
-
-        for(std::size_t i{}; i < 10000; ++i)
-        {
-            tph::cmd::draw(command_buffer, std::size(vertices), 1, 0, 0);
-        }
-
-        tph::cmd::end_render_pass(command_buffer);
-
-        tph::cmd::copy(command_buffer, target, output);
-
-        tph::cmd::end(command_buffer);
-    };
-
-    tph::cmd::begin(command_buffer, tph::command_buffer_reset_options::none, tph::command_buffer_options::one_time_submit);
 
     tph::cmd::copy(command_buffer, staging_buffer, buffer);
 
@@ -283,77 +168,31 @@ TEST_CASE("command buffer bench", "[cmdbuf_test]")
     tph::cmd::bind_pipeline(command_buffer, pipeline);
     tph::cmd::bind_vertex_buffer(command_buffer, buffer, sizeof(ubo));
     tph::cmd::bind_descriptor_set(command_buffer, 0, descriptor_set, pipeline_layout);
-
-    BENCHMARK("Draw call")
-    {
-        tph::cmd::draw(command_buffer, std::size(vertices), 1, 0, 0);
-    };
-
+    tph::cmd::draw(command_buffer, std::size(vertices), 1, 0, 0);
     tph::cmd::end_render_pass(command_buffer);
 
     tph::cmd::copy(command_buffer, target, output);
 
     tph::cmd::end(command_buffer);
+
+    tph::submit_info submit{};
+    submit.command_buffers.push_back(command_buffer);
+
+    tph::fence fence{renderer};
+    tph::submit(renderer, submit, fence);
+    fence.wait();
+
+    output.write("test.png", tph::image_format::png);
 }
 
-/*
-    std::minstd_rand engine{static_cast<std::uint32_t>(std::chrono::system_clock::now().time_since_epoch().count())};
-
-    const auto tp1{std::chrono::system_clock::now()};
-
-    std::vector<tph::vulkan::memory_heap_chunk> chunks{};
-
-    chunks.reserve((1 << 17));
-    for(std::size_t i{}; i < (1 << 17); ++i)
+int main()
+{
+    try
     {
-        VkMemoryRequirements requirements{};
-        tph::vulkan::memory_ressource_type ressource_type{};
-        VkMemoryPropertyFlags required{};
-        VkMemoryPropertyFlags optimal{};
-
-        if(i % 5 == 0 || i % 5 == 3)
-        {
-            requirements.size = 128 << (i % 4);
-            requirements.alignment = 256;
-            requirements.memoryTypeBits = 0xFFFFFFFF;
-            ressource_type = tph::vulkan::memory_ressource_type::linear;
-            required = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
-        }
-        else if(i % 5 == 1)
-        {
-            requirements.size = 1024 << (i % 4);
-            requirements.alignment = 128;
-            requirements.memoryTypeBits = 0xFFFFFFFF;
-            ressource_type = tph::vulkan::memory_ressource_type::linear;
-            required = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
-            optimal = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
-        }
-        else
-        {
-            requirements.size = 512 << (i % 4);
-            requirements.alignment = 1024;
-            requirements.memoryTypeBits = 0xFFFFFFFF;
-            ressource_type = tph::vulkan::memory_ressource_type::non_linear;
-            required = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
-        }
-
-        chunks.push_back(renderer.allocator().allocate(requirements, ressource_type, required, optimal));
-
-        if(i % 1024 == 1023)
-        {
-            for(std::size_t i{}; i < 512; ++i)
-            {
-                std::uniform_int_distribution<std::size_t> dist{0, std::size(chunks) - 1};
-                chunks.erase(std::begin(chunks) + dist(engine));
-            }
-        }
+        run();
     }
-
-    std::cout << std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(std::chrono::system_clock::now() - tp1).count() << "ms" << std::endl;
-
-    chunks.clear();
-    renderer.free_memory();
-
-    std::cout << std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(std::chrono::system_clock::now() - tp1).count() << "ms" << std::endl;
-*/
-
+    catch(const std::exception& e)
+    {
+        std::cerr << "An error has occured: " << e.what() << std::endl;
+    }
+}

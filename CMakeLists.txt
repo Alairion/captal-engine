@@ -51,26 +51,30 @@ add_subdirectory(captal_foundation)
 
 if(CAPTAL_BUILD_APYRE)
     add_subdirectory(apyre)
+    list(APPEND TO_EXPORT apyre)
 endif()
 
 if(CAPTAL_BUILD_TEPHRA)
     add_subdirectory(tephra)
+    list(APPEND TO_EXPORT tephra)
 endif()
 
 if(CAPTAL_BUILD_SWELL)
     add_subdirectory(swell)
+    list(APPEND TO_EXPORT swell)
 endif()
 
 if(CAPTAL_BUILD_CAPTAL)
     add_subdirectory(captal)
+    list(APPEND TO_EXPORT captal)
 endif()
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    export(TARGETS captal_foundation apyre tephra swell captal
+    export(TARGETS captal_foundation ${TO_EXPORT}
            NAMESPACE captal::
            FILE ${PROJECT_SOURCE_DIR}/captal_debug.cmake)
 else()
-    export(TARGETS captal_foundation apyre tephra swell captal
+    export(TARGETS captal_foundation ${TO_EXPORT}
            NAMESPACE captal::
            FILE ${PROJECT_SOURCE_DIR}/captal_release.cmake)
 endif()

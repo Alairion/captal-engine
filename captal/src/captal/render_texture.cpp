@@ -219,7 +219,7 @@ frame_time_signal& render_texture::register_frame_time()
     return data.time_signal;
 }
 
-frame_render_info render_texture::begin_render()
+frame_render_info render_texture::begin_render(begin_render_options options)
 {
     for(auto&& data : m_frames_data)
     {
@@ -234,6 +234,16 @@ frame_render_info render_texture::begin_render()
     tph::cmd::begin_render_pass(data.buffer, get_render_pass(), m_framebuffer);
 
     return frame_render_info{data.buffer, data.signal, data.keeper};
+}
+
+std::optional<frame_render_info> begin_static_render(begin_render_options options)
+{
+
+}
+
+void reset_static_render()
+{
+
 }
 
 void render_texture::present()

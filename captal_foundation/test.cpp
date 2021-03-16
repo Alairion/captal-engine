@@ -11,8 +11,8 @@
 #define CATCH_CONFIG_ENABLE_BENCHMARKING
 #define CATCH_CONFIG_MAIN
 #define CATCH_CONFIG_CONSOLE_WIDTH 120
-#include "catch.hpp"
-/*
+#include <catch2/catch.hpp>
+
 TEST_CASE("Version check", "[version]")
 {
     const cpt::version lowest{1, 4, 12};
@@ -39,7 +39,7 @@ TEST_CASE("Version check", "[version]")
         REQUIRE(cpt::foundation::unpack_version(cpt::foundation::pack_version(highest)) == highest);
     }
 }
-*//*
+
 enum class test_enum : std::uint32_t
 {
     none   = 0x00,
@@ -80,7 +80,7 @@ TEST_CASE("Enum operations test", "[enums_ops]")
         value &= ~test_enum::second;
         REQUIRE(value == test_enum::first);
     }
-}*//*
+}
 
 TEST_CASE("Stack allocator test", "[stack_alloc]")
 {
@@ -168,7 +168,7 @@ TEST_CASE("Encoding test", "[encoding]")
     REQUIRE(count.operator()<cpt::narrow>() == codepoint_count);
     REQUIRE(count.operator()<cpt::wide>() == codepoint_count);
 }
-*/
+
 /*
 static constexpr std::size_t pool_size{1024};
 

@@ -26,12 +26,13 @@ void prepare_render(entt::registry& world)
     {
         if(drawable && node.is_updated())
         {
-            cpt::renderable& renderable{drawable.renderable()};
-
-            renderable.move_to(node.position());
-            renderable.set_origin(node.origin());
-            renderable.set_rotation(node.rotation());
-            renderable.set_scale(node.scale());
+            drawable.apply([&node](auto& renderable)
+            {
+                renderable.move_to(node.position());
+                renderable.set_origin(node.origin());
+                renderable.set_rotation(node.rotation());
+                renderable.set_scale(node.scale());
+            });
         }
     };
 
@@ -59,47 +60,24 @@ void render(entt::registry& world)
     {
         if(camera && camera->target().is_rendering_enable())
         {
-            auto&& [buffer, signal, keeper] = camera->target().begin_render();
+            auto render  {camera->target().begin_render()};
             auto transfer{engine::instance().begin_transfer()};
 
-            camera->bind(buffer);
             camera->upload(transfer);
+            camera->bind(render);
 
-            const std::size_t camera_binding_count{std::size(camera->bindings()) + 1}; //one more for view/projection matrices uniform
-            const std::size_t camera_resource_count{camera_binding_count + 1}; //one more for the render technique
-            const std::size_t drawable_binding_count{std::size(camera->render_technique()->bindings()) - camera_binding_count};
-            const std::size_t drawable_resource_count{world.size<Drawable>() * (drawable_binding_count + 2)};
-
-            keeper.reserve(camera_resource_count + drawable_resource_count);
-
-            keeper.keep(camera->render_technique());
-            keeper.keep(camera->resource());
-            for(const auto& [index, binding] : camera->bindings())
-            {
-                keeper.keep(get_binding_resource(binding));
-            }
-
-            world.view<Drawable>().each([&camera, &buffer = buffer, &keeper = keeper, &transfer](Drawable& drawable)
+            world.view<Drawable>().each([&camera, &transfer, &render](Drawable& drawable)
             {
                 if(drawable)
                 {
-                    cpt::renderable& renderable{drawable.renderable()};
-
-                    if(!renderable.hidden())
+                    drawable.apply([&camera, &transfer, &render](auto& renderable)
                     {
-                        renderable.set_view(*camera);
-                        renderable.upload(transfer);
-                        renderable.draw(buffer);
-
-                        keeper.keep(renderable.set(*camera));
-                        keeper.keep(renderable.resource());
-                        keeper.keep(renderable.texture());
-
-                        for(const auto& [index, binding] : renderable.bindings())
+                        if(!renderable.hidden())
                         {
-                            keeper.keep(get_binding_resource(binding));
+                            renderable.upload(transfer);
+                            renderable.draw(render, *camera);
                         }
-                    }
+                    });
                 }
             });
         }

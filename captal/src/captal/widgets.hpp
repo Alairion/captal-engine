@@ -133,8 +133,8 @@ struct basic_widget
 {
     std::int32_t  x{};
     std::int32_t  y{};
-    std::uint32_t width{16};
-    std::uint32_t height{16};
+    std::uint32_t width{1};
+    std::uint32_t height{1};
     std::uint32_t min_width{1};
     std::uint32_t min_height{1};
     std::uint32_t max_width{std::numeric_limits<std::uint32_t>::max()};
@@ -232,10 +232,28 @@ struct box_layout : basic_widget
     }
 };
 
-template<widget Widget>
 struct form
 {
+public:
+    form(render_window_ptr window)
+    :m_window{std::move(window)}
+    {
 
+    }
+
+    ~form() = default;
+    form(const form&) = delete;
+    form& operator=(const form&) = delete;
+    form(form&&) noexcept = default;
+    form& operator=(form&&) noexcept = default;
+
+    void dispatch_event(const apr::event& event)
+    {
+
+    }
+
+private:
+    render_window_ptr m_window{};
 };
 
 }

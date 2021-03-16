@@ -52,7 +52,7 @@ static void run()
 
     while(cpt::engine::instance().run())
     {
-        window->update();
+        window->discard_events();
 
         if(window->is_rendering_enable())
         {

@@ -157,6 +157,11 @@ public:
         return m_layout_data[layout_index].push_constants;
     }
 
+    std::size_t user_layout_count() const noexcept
+    {
+        return std::size(m_layout_data) - 2;
+    }
+
     tph::pipeline_layout& pipeline_layout() noexcept
     {
         return m_layout;

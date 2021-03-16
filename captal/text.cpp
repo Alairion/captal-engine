@@ -107,13 +107,13 @@ static void run()
 
     const auto camera{world.create()};
     world.emplace<comp::node>(camera, cpt::vec3f{0.0f, 0.0f, 1.0f});
-    world.emplace<comp::camera>(camera, window)->fit_to(window);
+    world.emplace<comp::camera>(camera, window)->fit(window);
 
     setup(world);
 
     while(cpt::engine::instance().run())
     {
-        window->update();
+        window->discard_events();
 
         if(window->is_rendering_enable())
         {

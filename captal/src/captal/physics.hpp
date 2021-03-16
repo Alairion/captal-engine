@@ -28,10 +28,10 @@ using collision_type_t = std::uint64_t;
 using group_t = std::uint64_t;
 using collision_id_t = std::uint64_t;
 
-static constexpr group_t no_group{};
-static constexpr group_t all_groups{std::numeric_limits<collision_id_t>::max()};
-static constexpr collision_id_t no_collision_id{};
-static constexpr collision_id_t all_collision_ids{std::numeric_limits<collision_id_t>::max()};
+inline constexpr group_t no_group{};
+inline constexpr group_t all_groups{std::numeric_limits<group_t>::max()};
+inline constexpr collision_id_t no_collision_id{};
+inline constexpr collision_id_t all_collision_ids{std::numeric_limits<collision_id_t>::max()};
 
 class CAPTAL_API physical_collision_arbiter
 {
@@ -81,10 +81,10 @@ private:
 class CAPTAL_API physical_world
 {
 public:
-    using collision_begin_callback_type = std::function<bool(physical_world& world, physical_body& first, physical_body& second, physical_collision_arbiter arbiter, void* userdata)>;
-    using collision_pre_solve_callback_type = std::function<bool(physical_world& world, physical_body& first, physical_body& second, physical_collision_arbiter arbiter, void* userdata)>;
+    using collision_begin_callback_type      = std::function<bool(physical_world& world, physical_body& first, physical_body& second, physical_collision_arbiter arbiter, void* userdata)>;
+    using collision_pre_solve_callback_type  = std::function<bool(physical_world& world, physical_body& first, physical_body& second, physical_collision_arbiter arbiter, void* userdata)>;
     using collision_post_solve_callback_type = std::function<void(physical_world& world, physical_body& first, physical_body& second, physical_collision_arbiter arbiter, void* userdata)>;
-    using collision_end_callback_type = std::function<void(physical_world& world, physical_body& first, physical_body& second, physical_collision_arbiter arbiter, void* userdata)>;
+    using collision_end_callback_type        = std::function<void(physical_world& world, physical_body& first, physical_body& second, physical_collision_arbiter arbiter, void* userdata)>;
 
 public:
     struct collision_handler

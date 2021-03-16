@@ -217,7 +217,6 @@ render_window::render_window(const apr::monitor& monitor, const std::string& tit
 ,m_pool{engine::instance().renderer(), tph::command_pool_options::reset | tph::command_pool_options::transient}
 {
     setup_frame_data();
-    setup_signals();
 }
 
 render_window::~render_window()
@@ -231,99 +230,115 @@ render_window::~render_window()
     }
 }
 
-void render_window::update()
+render_window::event_iterator render_window::poll_events()
 {
-    for(auto&& event : apr::event_iterator{engine::instance().application().system_application(), *this})
+    return event_iterator{this, apr::event_iterator{engine::instance().application().system_application(), *this}};
+}
+
+void render_window::dispatch_events()
+{
+    for(auto&& event : poll_events())
     {
-        if(std::holds_alternative<apr::window_event>(event))
-        {
-            const auto& window_event{std::get<apr::window_event>(event)};
+        dispatch_event(event);
+    }
+}
 
-            if(window_event.type == apr::window_event::gained_focus)
-            {
-                m_gained_focus(window_event);
-            }
-            else if(window_event.type == apr::window_event::lost_focus)
-            {
-                m_lost_focus(window_event);
-            }
-            else if(window_event.type == apr::window_event::mouse_entered)
-            {
-                m_mouse_entered(window_event);
-            }
-            else if(window_event.type == apr::window_event::mouse_left)
-            {
-                m_mouse_left(window_event);
-            }
-            else if(window_event.type == apr::window_event::moved)
-            {
-                m_moved(window_event);
-            }
-            else if(window_event.type == apr::window_event::resized)
-            {
-                m_resized(window_event);
-            }
-            else if(window_event.type == apr::window_event::minimized)
-            {
-                m_minimized(window_event);
-            }
-            else if(window_event.type == apr::window_event::maximized)
-            {
-                m_maximized(window_event);
-            }
-            else if(window_event.type == apr::window_event::restored)
-            {
-                m_restored(window_event);
-            }
-            else if(window_event.type == apr::window_event::closed)
-            {
-                m_closed = true;
-                m_close(window_event);
-                break;
-            }
+void render_window::discard_events()
+{
+    for(auto&& event [[maybe_unused]] : poll_events())
+    {
+
+    }
+}
+
+void render_window::dispatch_event(const apr::event& event)
+{
+    if(std::holds_alternative<apr::window_event>(event))
+    {
+        const auto& window_event{std::get<apr::window_event>(event)};
+
+        if(window_event.type == apr::window_event::gained_focus)
+        {
+            m_gained_focus(window_event);
         }
-        else if(std::holds_alternative<apr::mouse_event>(event))
+        else if(window_event.type == apr::window_event::lost_focus)
         {
-            const auto& mouse_event{std::get<apr::mouse_event>(event)};
-
-            if(mouse_event.type == apr::mouse_event::button_pressed)
-            {
-                m_mouse_button_pressed(mouse_event);
-            }
-            else if(mouse_event.type == apr::mouse_event::button_released)
-            {
-                m_mouse_button_released(mouse_event);
-            }
-            else if(mouse_event.type == apr::mouse_event::moved)
-            {
-                m_mouse_moved(mouse_event);
-            }
-            else if(mouse_event.type == apr::mouse_event::wheel_scroll)
-            {
-                m_mouse_wheel_scroll(mouse_event);
-            }
+            m_lost_focus(window_event);
         }
-        else if(std::holds_alternative<apr::keyboard_event>(event))
+        else if(window_event.type == apr::window_event::mouse_entered)
         {
-            const auto& keyboard_event{std::get<apr::keyboard_event>(event)};
-
-            if(keyboard_event.type == apr::keyboard_event::key_pressed)
-            {
-                m_key_pressed(keyboard_event);
-            }
-            else if(keyboard_event.type == apr::keyboard_event::key_released)
-            {
-                m_key_released(keyboard_event);
-            }
+            m_mouse_entered(window_event);
         }
-        else if(std::holds_alternative<apr::text_event>(event))
+        else if(window_event.type == apr::window_event::mouse_left)
         {
-            const auto& text_event{std::get<apr::text_event>(event)};
+            m_mouse_left(window_event);
+        }
+        else if(window_event.type == apr::window_event::moved)
+        {
+            m_moved(window_event);
+        }
+        else if(window_event.type == apr::window_event::resized)
+        {
+            m_resized(window_event);
+        }
+        else if(window_event.type == apr::window_event::minimized)
+        {
+            m_minimized(window_event);
+        }
+        else if(window_event.type == apr::window_event::maximized)
+        {
+            m_maximized(window_event);
+        }
+        else if(window_event.type == apr::window_event::restored)
+        {
+            m_restored(window_event);
+        }
+        else if(window_event.type == apr::window_event::closed)
+        {
+            m_close(window_event);
+        }
+    }
+    else if(std::holds_alternative<apr::mouse_event>(event))
+    {
+        const auto& mouse_event{std::get<apr::mouse_event>(event)};
 
-            if(text_event.type == apr::text_event::text_entered)
-            {
-                m_text_entered(text_event);
-            }
+        if(mouse_event.type == apr::mouse_event::button_pressed)
+        {
+            m_mouse_button_pressed(mouse_event);
+        }
+        else if(mouse_event.type == apr::mouse_event::button_released)
+        {
+            m_mouse_button_released(mouse_event);
+        }
+        else if(mouse_event.type == apr::mouse_event::moved)
+        {
+            m_mouse_moved(mouse_event);
+        }
+        else if(mouse_event.type == apr::mouse_event::wheel_scroll)
+        {
+            m_mouse_wheel_scroll(mouse_event);
+        }
+    }
+    else if(std::holds_alternative<apr::keyboard_event>(event))
+    {
+        const auto& keyboard_event{std::get<apr::keyboard_event>(event)};
+
+        if(keyboard_event.type == apr::keyboard_event::key_pressed)
+        {
+            m_key_pressed(keyboard_event);
+        }
+        else if(keyboard_event.type == apr::keyboard_event::key_released)
+        {
+            m_key_released(keyboard_event);
+        }
+    }
+    else if(std::holds_alternative<apr::text_event>(event))
+    {
+        const auto& text_event{std::get<apr::text_event>(event)};
+
+        if(text_event.type == apr::text_event::text_entered)
+        {
+            m_text_entered(text_event);
         }
     }
 }
@@ -331,7 +346,7 @@ void render_window::update()
 void render_window::close()
 {
      m_closed = true;
-     m_close(apr::window_event{apr::window_event::closed, id()});
+
      disable_rendering();
 }
 
@@ -473,19 +488,6 @@ void render_window::setup_frame_data()
 
         m_frames_data.emplace_back(std::move(data));
     }
-}
-
-void render_window::setup_signals()
-{
-    m_minimized.connect([this](const apr::window_event&)
-    {
-        disable_rendering();
-    });
-
-    m_restored.connect([this](const apr::window_event&)
-    {
-        enable_rendering();
-    });
 }
 
 void render_window::update_clear_values(tph::framebuffer& framebuffer)
@@ -668,5 +670,6 @@ void render_window::recreate(const tph::surface_capabilities& capabilities)
         }
     }
 }
+
 
 }

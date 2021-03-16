@@ -97,9 +97,9 @@ private:
 };
 
 template<>
-inline VkInstance underlying_cast(const application& initializer) noexcept
+inline VkInstance underlying_cast(const application& application) noexcept
 {
-    return initializer.m_instance;
+    return application.m_instance;
 }
 
 }

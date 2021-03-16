@@ -37,6 +37,92 @@ using text_event_signal = cpt::signal<const apr::text_event&>;
 class CAPTAL_API render_window : apr::window, tph::surface, public render_target
 {
 public:
+    class CAPTAL_API event_iterator
+    {
+    public:
+        using value_type        = apr::event_iterator::value_type;
+        using difference_type   = apr::event_iterator::difference_type;
+        using pointer           = apr::event_iterator::pointer;
+        using reference         = apr::event_iterator::reference;
+        using iterator_category = apr::event_iterator::iterator_category;
+
+    public:
+        constexpr event_iterator() = default;
+
+        event_iterator(render_window* window, apr::event_iterator iterator)
+        :m_window{window}
+        ,m_iterator{std::move(iterator)}
+        {
+
+        }
+
+        ~event_iterator() = default;
+        event_iterator(const event_iterator&) = default;
+        event_iterator& operator=(const event_iterator&) = default;
+        event_iterator(event_iterator&& other) noexcept = default;
+        event_iterator& operator=(event_iterator&& other) noexcept = default;
+
+        reference operator*() const noexcept
+        {
+            return *m_iterator;
+        }
+
+        pointer operator->() const noexcept
+        {
+            return &(*m_iterator);
+        }
+
+        event_iterator& operator++()
+        {
+            ++m_iterator;
+
+            if(m_iterator != apr::event_iterator{})
+            {
+                const apr::event event{*m_iterator};
+
+                if(std::holds_alternative<apr::window_event>(event))
+                {
+                    const auto& window_event{std::get<apr::window_event>(event)};
+
+                    if(window_event.type == apr::window_event::minimized)
+                    {
+                        m_window->disable_rendering();
+                    }
+                    else if(window_event.type == apr::window_event::restored)
+                    {
+                        m_window->enable_rendering();
+                    }
+                    else if(window_event.type == apr::window_event::closed)
+                    {
+                        m_window->close();
+                    }
+                }
+            }
+
+            return *this;
+        }
+
+        event_iterator begin() const noexcept
+        {
+            return *this;
+        }
+
+        event_iterator end() const noexcept
+        {
+            return event_iterator{};
+        }
+
+        bool operator!=(const event_iterator& other) const noexcept
+        {
+            return m_iterator != other.m_iterator;
+        }
+
+    private:
+        render_window* m_window{};
+        apr::event_iterator m_iterator{};
+    };
+
+public:
     render_window() = default;
     explicit render_window(const std::string& title, const cpt::video_mode& mode, apr::window_options options = apr::window_options::none);
     explicit render_window(const apr::monitor& monitor, const std::string& title, const cpt::video_mode& mode, apr::window_options options = apr::window_options::none);
@@ -80,11 +166,18 @@ public:
     using apr::window::is_maximized;
     using apr::window::current_monitor;
 
-    void update();
     void close();
+
+    event_iterator poll_events();
+    void dispatch_events();
+    void discard_events();
+
+    void dispatch_event(const apr::event& event);
 
     frame_time_signal& register_frame_time() override;
     frame_render_info  begin_render() override;
+    std::optional<frame_render_info> begin_static_render() override;
+    void reset_static_render() override;
     void present() override;
 
     void set_clear_color(const color& color) noexcept
@@ -196,7 +289,6 @@ private:
 
 private:
     void setup_frame_data();
-    void setup_signals();
     void update_clear_values(tph::framebuffer& framebuffer);
 
     void begin_render_impl(frame_data& data);
@@ -219,23 +311,23 @@ private:
     tph::command_pool m_pool{};
     std::vector<frame_data> m_frames_data{};
 
-    window_event_signal m_gained_focus{};
-    window_event_signal m_lost_focus{};
-    window_event_signal m_mouse_entered{};
-    window_event_signal m_mouse_left{};
-    window_event_signal m_moved{};
-    window_event_signal m_resized{};
-    window_event_signal m_minimized{};
-    window_event_signal m_maximized{};
-    window_event_signal m_restored{};
-    window_event_signal m_close{};
-    mouse_event_signal m_mouse_button_pressed{};
-    mouse_event_signal m_mouse_button_released{};
-    mouse_event_signal m_mouse_moved{};
-    mouse_event_signal m_mouse_wheel_scroll{};
+    window_event_signal   m_gained_focus{};
+    window_event_signal   m_lost_focus{};
+    window_event_signal   m_mouse_entered{};
+    window_event_signal   m_mouse_left{};
+    window_event_signal   m_moved{};
+    window_event_signal   m_resized{};
+    window_event_signal   m_minimized{};
+    window_event_signal   m_maximized{};
+    window_event_signal   m_restored{};
+    window_event_signal   m_close{};
+    mouse_event_signal    m_mouse_button_pressed{};
+    mouse_event_signal    m_mouse_button_released{};
+    mouse_event_signal    m_mouse_moved{};
+    mouse_event_signal    m_mouse_wheel_scroll{};
     keyboard_event_signal m_key_pressed{};
     keyboard_event_signal m_key_released{};
-    text_event_signal m_text_entered{};
+    text_event_signal     m_text_entered{};
 
 #ifdef CAPTAL_DEBUG
     std::string m_name{};
