@@ -175,7 +175,7 @@ TEST_CASE("command buffer bench", "[cmdbuf_test]")
         tph::cmd::bind_vertex_buffer(command_buffer, buffer, sizeof(ubo));
         tph::cmd::bind_descriptor_set(command_buffer, 0, descriptor_set, pipeline_layout);
 
-        for(std::size_t i{}; i < 10000; ++i)
+        for(std::size_t i{}; i < 100000; ++i)
         {
             tph::cmd::draw(command_buffer, std::size(vertices), 1, 0, 0);
         }
@@ -213,7 +213,7 @@ TEST_CASE("command buffer bench", "[cmdbuf_test]")
         tph::cmd::bind_vertex_buffer(command_buffer, buffer, sizeof(ubo));
         tph::cmd::bind_descriptor_set(command_buffer, 0, descriptor_set, pipeline_layout);
 
-        for(std::size_t i{}; i < 10000; ++i)
+        for(std::size_t i{}; i < 100000; ++i)
         {
             tph::cmd::draw(command_buffer, std::size(vertices), 1, 0, 0);
         }
@@ -251,7 +251,7 @@ TEST_CASE("command buffer bench", "[cmdbuf_test]")
         tph::cmd::bind_vertex_buffer(command_buffer, buffer, sizeof(ubo));
         tph::cmd::bind_descriptor_set(command_buffer, 0, descriptor_set, pipeline_layout);
 
-        for(std::size_t i{}; i < 10000; ++i)
+        for(std::size_t i{}; i < 100000; ++i)
         {
             tph::cmd::draw(command_buffer, std::size(vertices), 1, 0, 0);
         }

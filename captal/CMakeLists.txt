@@ -88,9 +88,11 @@ set(CAPTAL_SOURCES
 
 if(CAPTAL_BUILD_CAPTAL_STATIC)
     add_library(captal STATIC ${CAPTAL_SOURCES})
+    set(TO_EXPORT ${TO_EXPORT} captal freetype chipmunk_static zlib not_enough_standards PARENT_SCOPE)
 else()
     add_library(captal SHARED ${CAPTAL_SOURCES})
     target_compile_definitions(captal PUBLIC CAPTAL_FOUNDATION_SHARED_BUILD)
+    set(TO_EXPORT ${TO_EXPORT} captal PARENT_SCOPE)
 endif()
 
 set_target_properties(captal PROPERTIES PREFIX "")

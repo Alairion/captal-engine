@@ -6,6 +6,15 @@ project(captal_engine VERSION 0.1.0
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+include(CheckIPOSupported)
+
+check_ipo_supported(RESULT result OUTPUT output)
+if(result AND NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(set CMAKE_INTERPROCEDURAL_OPTIMIZATION ON CACHE BOOL "" FORCE)
+else()
+    message(WARNING "IPO is not supported: ${output}")
+endif()
+
 option(CAPTAL_BUILD_FOUNDATION_EXAMPLES "Build Captal Foundation's examples if ON" OFF)
 option(CAPTAL_BUILD_FOUNDATION_TESTS "Build Captal Foundation's unit tests if ON" OFF)
 
@@ -47,27 +56,28 @@ endif()
 
 include(cmake/buildnes.cmake)
 
+set(TO_EXPORT "")
+
 add_subdirectory(captal_foundation)
 
 if(CAPTAL_BUILD_APYRE)
     add_subdirectory(apyre)
-    list(APPEND TO_EXPORT apyre)
 endif()
 
 if(CAPTAL_BUILD_TEPHRA)
     add_subdirectory(tephra)
-    list(APPEND TO_EXPORT tephra)
 endif()
 
 if(CAPTAL_BUILD_SWELL)
     add_subdirectory(swell)
-    list(APPEND TO_EXPORT swell)
 endif()
 
 if(CAPTAL_BUILD_CAPTAL)
     add_subdirectory(captal)
-    list(APPEND TO_EXPORT captal)
 endif()
+
+list(REMOVE_DUPLICATES TO_EXPORT)
+message("Exporting: ${TO_EXPORT}")
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     export(TARGETS captal_foundation ${TO_EXPORT}

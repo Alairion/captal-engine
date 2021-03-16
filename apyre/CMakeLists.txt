@@ -24,9 +24,11 @@ set(APYRE_SOURCES
 
 if(CAPTAL_BUILD_APYRE_STATIC)
     add_library(apyre STATIC ${APYRE_SOURCES})
+    set(TO_EXPORT ${TO_EXPORT} apyre SDL2main SDL2-static PARENT_SCOPE)
 else()
     add_library(apyre SHARED ${APYRE_SOURCES})
     target_compile_definitions(apyre PUBLIC CAPTAL_FOUNDATION_SHARED_BUILD)
+    set(TO_EXPORT ${TO_EXPORT} apyre PARENT_SCOPE)
 endif()
 
 set_target_properties(apyre PROPERTIES PREFIX "")

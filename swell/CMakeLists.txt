@@ -29,9 +29,11 @@ set(SWELL_SOURCES
 
 if(CAPTAL_BUILD_SWELL_STATIC)
     add_library(swell STATIC ${SWELL_SOURCES})
+    set(TO_EXPORT ${TO_EXPORT} swell portaudio_static vorbisfile vorbis ogg PARENT_SCOPE)
 else()
     add_library(swell SHARED ${SWELL_SOURCES})
     target_compile_definitions(swell PUBLIC CAPTAL_FOUNDATION_SHARED_BUILD)
+    set(TO_EXPORT ${TO_EXPORT} swell PARENT_SCOPE)
 endif()
 
 set_target_properties(swell PROPERTIES PREFIX "")
