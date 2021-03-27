@@ -5,6 +5,43 @@
 namespace cpt
 {
 
+event_iterator::event_iterator(window& window, apr::event_mode mode)
+:m_window{&window}
+,m_iterator{engine::instance().application().system_application(), window.get_window(), mode}
+{
+
+}
+
+event_iterator& event_iterator::operator++()
+{
+    ++m_iterator;
+
+    if(m_iterator != apr::event_iterator{})
+    {
+        const apr::event event{*m_iterator};
+
+        if(std::holds_alternative<apr::window_event>(event))
+        {
+            const auto& window_event{std::get<apr::window_event>(event)};
+
+            if(window_event.type == apr::window_event::minimized)
+            {
+                m_window->m_renderable = false;
+            }
+            else if(window_event.type == apr::window_event::restored)
+            {
+                m_window->m_renderable = true;
+            }
+            else if(window_event.type == apr::window_event::closed)
+            {
+                m_window->close();
+            }
+        }
+    }
+
+    return *this;
+}
+
 static void check_presentation_support(tph::surface& surface)
 {
     if(!engine::instance().graphics_device().support_presentation(surface))
@@ -57,84 +94,7 @@ static tph::texture_format choose_surface_format(tph::surface& surface)
     return formats[0];
 }
 
-static tph::render_pass_info make_render_pass_info(const video_mode& info, tph::texture_format color_format)
-{
-    const bool has_multisampling{info.sample_count != tph::sample_count::msaa_x1};
-    const bool has_depth_stencil{info.depth_format != tph::texture_format::undefined};
-
-    tph::render_pass_info output{};
-    auto& subpass{output.subpasses.emplace_back()};
-
-    auto& color_attachement{output.attachments.emplace_back()};
-    color_attachement.format = color_format;
-    color_attachement.sample_count = info.sample_count;
-    color_attachement.load_op = tph::attachment_load_op::clear;
-
-    if(has_multisampling)
-    {
-        color_attachement.store_op = tph::attachment_store_op::dont_care;
-    }
-    else
-    {
-        color_attachement.store_op = tph::attachment_store_op::store;
-    }
-
-    color_attachement.stencil_load_op = tph::attachment_load_op::clear;
-    color_attachement.stencil_store_op = tph::attachment_store_op::dont_care;
-    color_attachement.initial_layout = tph::texture_layout::undefined;
-
-    if(has_multisampling)
-    {
-        color_attachement.final_layout = tph::texture_layout::color_attachment_optimal;
-    }
-    else
-    {
-        color_attachement.final_layout = tph::texture_layout::present_source;
-    }
-
-    subpass.color_attachments.emplace_back(tph::attachment_reference{0, tph::texture_layout::color_attachment_optimal});
-
-    if(has_depth_stencil)
-    {
-        auto& depth_attachement{output.attachments.emplace_back()};
-        depth_attachement.format = info.depth_format;
-        depth_attachement.sample_count = info.sample_count;
-        depth_attachement.load_op = tph::attachment_load_op::clear;
-        depth_attachement.store_op = tph::attachment_store_op::dont_care;
-        depth_attachement.stencil_load_op = tph::attachment_load_op::clear;
-        depth_attachement.stencil_store_op = tph::attachment_store_op::dont_care;
-        depth_attachement.initial_layout = tph::texture_layout::undefined;
-        depth_attachement.final_layout = tph::texture_layout::depth_stencil_attachment_optimal;
-
-        subpass.depth_attachment.emplace(tph::attachment_reference{1, tph::texture_layout::depth_stencil_attachment_optimal});
-    }
-
-    if(has_multisampling)
-    {
-        auto& resolve_attachement{output.attachments.emplace_back()};
-        resolve_attachement.format = color_format;
-        resolve_attachement.sample_count = tph::sample_count::msaa_x1;
-        resolve_attachement.load_op = tph::attachment_load_op::clear;
-        resolve_attachement.store_op = tph::attachment_store_op::store;
-        resolve_attachement.stencil_load_op = tph::attachment_load_op::clear;
-        resolve_attachement.stencil_store_op = tph::attachment_store_op::dont_care;
-        resolve_attachement.initial_layout = tph::texture_layout::undefined;
-        resolve_attachement.final_layout = tph::texture_layout::present_source;
-
-        if(has_depth_stencil)
-        {
-            subpass.resolve_attachments.emplace_back(tph::attachment_reference{2, tph::texture_layout::color_attachment_optimal});
-        }
-        else
-        {
-            subpass.resolve_attachments.emplace_back(tph::attachment_reference{1, tph::texture_layout::color_attachment_optimal});
-        }
-    }
-
-    return output;
-}
-
-static tph::swapchain_info make_swapchain_info(const video_mode& info, const tph::surface_capabilities& capabilities, tph::texture_format surface_format)
+static tph::swapchain_info make_swapchain_info(const cpt::video_mode& info, const tph::surface_capabilities& capabilities, tph::texture_format surface_format)
 {
     tph::swapchain_info output{};
     output.image_count = info.image_count;
@@ -148,110 +108,39 @@ static tph::swapchain_info make_swapchain_info(const video_mode& info, const tph
     return output;
 }
 
-static tph::texture make_multisampling_texture(const video_mode& info, tph::texture_format surface_format)
-{
-    if(info.sample_count == tph::sample_count::msaa_x1)
-    {
-        return tph::texture{};
-    }
-
-    return tph::texture{engine::instance().renderer(), info.width, info.height, tph::texture_info{surface_format, tph::texture_usage::color_attachment, {}, info.sample_count}};
-}
-
-static tph::texture make_depth_texture(const video_mode& info)
-{
-    if(info.depth_format == tph::texture_format::undefined)
-    {
-        return tph::texture{};
-    }
-
-    return tph::texture{engine::instance().renderer(), info.width, info.height, tph::texture_info{info.depth_format, tph::texture_usage::depth_stencil_attachment, {}, info.sample_count}};
-}
-
-static std::vector<std::reference_wrapper<tph::texture>> make_attachments(const video_mode& info, tph::texture& color, tph::texture& multisampling, tph::texture& depth)
-{
-    const bool has_multisampling{info.sample_count != tph::sample_count::msaa_x1};
-    const bool has_depth_stencil{info.depth_format != tph::texture_format::undefined};
-
-    std::vector<std::reference_wrapper<tph::texture>> output{};
-
-    if(has_multisampling)
-    {
-        output.emplace_back(multisampling);
-
-        if(has_depth_stencil)
-        {
-            output.emplace_back(depth);
-        }
-
-        output.emplace_back(color);
-    }
-    else
-    {
-        output.emplace_back(color);
-
-        if(has_depth_stencil)
-        {
-            output.emplace_back(depth);
-        }
-    }
-
-    return output;
-}
-
-render_window::render_window(const std::string& title, const cpt::video_mode& mode, apr::window_options options)
-:render_window{engine::instance().application().system_application().main_monitor(), title, mode, options}
+window::window(const std::string& title, std::uint32_t width, std::uint32_t height, const cpt::video_mode& mode, apr::window_options options)
+:window{engine::instance().application().system_application().main_monitor(), title, width, height, mode, options}
 {
 
 }
 
-render_window::render_window(const apr::monitor& monitor, const std::string& title, const cpt::video_mode& mode, apr::window_options options)
-:apr::window{engine::instance().application().system_application(), monitor, title, mode.width, mode.height, options}
-,tph::surface{make_window_surface(get_window())}
-,render_target{make_render_pass_info(mode, choose_surface_format(get_surface()))}
-,m_surface_format{choose_surface_format(get_surface())}
-,m_swapchain{engine::instance().renderer(), get_surface(), make_swapchain_info(mode, tph::surface::capabilities(engine::instance().renderer()), m_surface_format)}
-,m_multisampling_texture{make_multisampling_texture(mode, m_surface_format)}
-,m_depth_texture{make_depth_texture(mode)}
+window::window(const apr::monitor& monitor, const std::string& title, std::uint32_t width, std::uint32_t height, const cpt::video_mode& mode, apr::window_options options)
+:apr::window{engine::instance().application().system_application(), monitor, title, width, height, options}
 ,m_video_mode{mode}
-,m_pool{engine::instance().renderer(), tph::command_pool_options::reset | tph::command_pool_options::transient}
+,m_surface_format{choose_surface_format(m_surface)}
+,m_surface{make_window_surface(get_window())}
+,m_swapchain{engine::instance().renderer(), m_surface, make_swapchain_info(mode, m_surface.capabilities(engine::instance().renderer()), m_surface_format)}
 {
-    setup_frame_data();
+
 }
 
-render_window::~render_window()
+void window::dispatch_events()
 {
-    for(frame_data& data : m_frames_data)
-    {
-        if(data.submitted)
-        {
-            data.fence.wait();
-        }
-    }
-}
-
-render_window::event_iterator render_window::poll_events()
-{
-    return event_iterator{this, apr::event_iterator{engine::instance().application().system_application(), *this}};
-}
-
-void render_window::dispatch_events()
-{
-    for(auto&& event : poll_events())
+    for(auto&& event : event_iterator{*this})
     {
         dispatch_event(event);
     }
 }
 
-void render_window::discard_events()
+void window::discard_events()
 {
-    for(auto&& event [[maybe_unused]] : poll_events())
+    for(auto&& event [[maybe_unused]] : event_iterator{*this})
     {
 
     }
 }
 
-void render_window::dispatch_event(const apr::event& event)
+void window::dispatch_event(const apr::event& event)
 {
     if(std::holds_alternative<apr::window_event>(event))
     {
@@ -343,59 +232,233 @@ void render_window::dispatch_event(const apr::event& event)
     }
 }
 
-void render_window::close()
+void window::close()
 {
      m_closed = true;
-
-     disable_rendering();
+     m_renderable = false;
 }
 
-frame_time_signal& render_window::register_frame_time()
+static tph::render_pass_info make_render_pass_info(const video_mode& info, tph::texture_format color_format)
 {
-    frame_data& data{m_frames_data[m_frame_index]};
+    const bool has_multisampling{info.sample_count != tph::sample_count::msaa_x1};
+    const bool has_depth_stencil{info.depth_format != tph::texture_format::undefined};
 
-    if(data.begin)
+    tph::render_pass_info output{};
+    auto& subpass{output.subpasses.emplace_back()};
+
+    auto& color_attachement{output.attachments.emplace_back()};
+    color_attachement.format = color_format;
+    color_attachement.sample_count = info.sample_count;
+    color_attachement.load_op = tph::attachment_load_op::clear;
+
+    if(has_multisampling)
     {
-        if(data.timed)
+        color_attachement.store_op = tph::attachment_store_op::dont_care;
+    }
+    else
+    {
+        color_attachement.store_op = tph::attachment_store_op::store;
+    }
+
+    color_attachement.stencil_load_op = tph::attachment_load_op::clear;
+    color_attachement.stencil_store_op = tph::attachment_store_op::dont_care;
+    color_attachement.initial_layout = tph::texture_layout::undefined;
+
+    if(has_multisampling)
+    {
+        color_attachement.final_layout = tph::texture_layout::color_attachment_optimal;
+    }
+    else
+    {
+        color_attachement.final_layout = tph::texture_layout::present_source;
+    }
+
+    subpass.color_attachments.emplace_back(tph::attachment_reference{0, tph::texture_layout::color_attachment_optimal});
+
+    if(has_depth_stencil)
+    {
+        auto& depth_attachement{output.attachments.emplace_back()};
+        depth_attachement.format = info.depth_format;
+        depth_attachement.sample_count = info.sample_count;
+        depth_attachement.load_op = tph::attachment_load_op::clear;
+        depth_attachement.store_op = tph::attachment_store_op::dont_care;
+        depth_attachement.stencil_load_op = tph::attachment_load_op::clear;
+        depth_attachement.stencil_store_op = tph::attachment_store_op::dont_care;
+        depth_attachement.initial_layout = tph::texture_layout::undefined;
+        depth_attachement.final_layout = tph::texture_layout::depth_stencil_attachment_optimal;
+
+        subpass.depth_attachment.emplace(tph::attachment_reference{1, tph::texture_layout::depth_stencil_attachment_optimal});
+    }
+
+    if(has_multisampling)
+    {
+        auto& resolve_attachement{output.attachments.emplace_back()};
+        resolve_attachement.format = color_format;
+        resolve_attachement.sample_count = tph::sample_count::msaa_x1;
+        resolve_attachement.load_op = tph::attachment_load_op::clear;
+        resolve_attachement.store_op = tph::attachment_store_op::store;
+        resolve_attachement.stencil_load_op = tph::attachment_load_op::clear;
+        resolve_attachement.stencil_store_op = tph::attachment_store_op::dont_care;
+        resolve_attachement.initial_layout = tph::texture_layout::undefined;
+        resolve_attachement.final_layout = tph::texture_layout::present_source;
+
+        if(has_depth_stencil)
         {
-            return data.time_signal;
+            subpass.resolve_attachments.emplace_back(tph::attachment_reference{2, tph::texture_layout::color_attachment_optimal});
         }
         else
         {
-            throw std::runtime_error{"cpt::render_window::register_frame_time first call is done after a call of cpt::render_window::begin_render"};
+            subpass.resolve_attachments.emplace_back(tph::attachment_reference{1, tph::texture_layout::color_attachment_optimal});
         }
     }
 
-    reset(data);
-
-    data.timed = true;
-
-    tph::cmd::reset_query_pool(data.buffer, data.query_pool, 0, 2);
-    tph::cmd::write_timestamp(data.buffer, data.query_pool, 0, tph::pipeline_stage::top_of_pipe);
-
-    begin_render_impl(data);
-
-    return data.time_signal;
+    return output;
 }
 
-frame_render_info render_window::begin_render()
+static tph::texture make_multisampling_texture(const video_mode& info, tph::texture_format surface_format)
+{
+    if(info.sample_count == tph::sample_count::msaa_x1)
+    {
+        return tph::texture{};
+    }
+
+    return tph::texture{engine::instance().renderer(), info.width, info.height, tph::texture_info{surface_format, tph::texture_usage::color_attachment, {}, info.sample_count}};
+}
+
+static tph::texture make_depth_texture(const video_mode& info)
+{
+    if(info.depth_format == tph::texture_format::undefined)
+    {
+        return tph::texture{};
+    }
+
+    return tph::texture{engine::instance().renderer(), info.width, info.height, tph::texture_info{info.depth_format, tph::texture_usage::depth_stencil_attachment, {}, info.sample_count}};
+}
+
+static std::vector<std::reference_wrapper<tph::texture>> make_attachments(const video_mode& info, tph::texture& color, tph::texture& multisampling, tph::texture& depth)
+{
+    const bool has_multisampling{info.sample_count != tph::sample_count::msaa_x1};
+    const bool has_depth_stencil{info.depth_format != tph::texture_format::undefined};
+
+    std::vector<std::reference_wrapper<tph::texture>> output{};
+
+    if(has_multisampling)
+    {
+        output.emplace_back(multisampling);
+
+        if(has_depth_stencil)
+        {
+            output.emplace_back(depth);
+        }
+
+        output.emplace_back(color);
+    }
+    else
+    {
+        output.emplace_back(color);
+
+        if(has_depth_stencil)
+        {
+            output.emplace_back(depth);
+        }
+    }
+
+    return output;
+}
+
+render_window::render_window(const std::string& title, const cpt::video_mode& mode, apr::window_options options)
+:render_window{engine::instance().application().system_application().main_monitor(), title, mode, options}
+{
+
+}
+
+render_window::render_window(const apr::monitor& monitor, const std::string& title, const cpt::video_mode& mode, apr::window_options options)
+:apr::window{engine::instance().application().system_application(), monitor, title, mode.width, mode.height, options}
+,tph::surface{make_window_surface(get_window())}
+,render_target{make_render_pass_info(mode, choose_surface_format(get_surface()))}
+,m_surface_format{choose_surface_format(get_surface())}
+,m_swapchain{engine::instance().renderer(), get_surface(), make_swapchain_info(mode, tph::surface::capabilities(engine::instance().renderer()), m_surface_format)}
+,m_multisampling_texture{make_multisampling_texture(mode, m_surface_format)}
+,m_depth_texture{make_depth_texture(mode)}
+,m_video_mode{mode}
+,m_pool{engine::instance().renderer(), tph::command_pool_options::reset | tph::command_pool_options::transient}
+{
+    setup_frame_data();
+}
+
+render_window::~render_window()
+{
+    for(frame_data& data : m_frames_data)
+    {
+        if(data.submitted)
+        {
+            data.fence.wait();
+        }
+    }
+}
+
+
+std::optional<frame_render_info> render_window::begin_render(begin_render_options options)
 {
     frame_data& data{m_frames_data[m_frame_index]};
 
     if(data.begin)
     {
-        return frame_render_info{data.buffer, data.signal, data.keeper};
+        if(data.epoch == m_epoch)
+        {
+            return std::nullopt;
+        }
+
+        if(static_cast<bool>(options & begin_render_options::timed))
+        {
+            assert(data.timed && "cpt::render_window::begin_render must not be called with begin_render_options::timed flag if initial call was made without.");
+
+            return frame_render_info{data.buffer, data.signal, data.keeper, data.time_signal};
+        }
+        else
+        {
+            return frame_render_info{data.buffer, data.signal, data.keeper};
+        }
     }
 
-    reset(data);
-    begin_render_impl(data);
+    if(static_cast<bool>(options & begin_render_options::reset))
+    {
+        ++m_epoch;
+    }
 
-    return frame_render_info{data.buffer, data.signal, data.keeper};
+    data.begin = true;
+
+    if(data.epoch == m_epoch)
+    {
+        return std::nullopt;
+    }
+
+    reset_frame_data(data);
+
+    if(static_cast<bool>(options & begin_render_options::timed))
+    {
+        data.timed = true;
+
+        tph::cmd::reset_query_pool(data.buffer, data.query_pool, 0, 2);
+        tph::cmd::write_timestamp(data.buffer, data.query_pool, 0, tph::pipeline_stage::top_of_pipe);
+
+        begin_render_impl(data);
+
+        return frame_render_info{data.buffer, data.signal, data.keeper, data.time_signal};
+    }
+    else
+    {
+        begin_render_impl(data);
+
+        return frame_render_info{data.buffer, data.signal, data.keeper};
+    }
 }
 
 void render_window::present()
 {
     frame_data& data{m_frames_data[m_frame_index]};
+
+    assert(data.begin && "cpt::render_window::present called before cpt:render_window::begin_render.");
 
     m_frame_index = (m_frame_index + 1) % m_swapchain.info().image_count;
 
@@ -426,7 +489,7 @@ void render_window::present()
     if(m_swapchain.present(data.image_presentable) != tph::swapchain_status::valid)
     {
         const auto capabilities{tph::surface::capabilities(engine::instance().renderer())};
-        if(capabilities.current_width == 0 && capabilities.current_height == 0)
+        if(capabilities.current_width == 0 || capabilities.current_height == 0)
         {
             disable_rendering();
             return;
@@ -461,9 +524,9 @@ void render_window::set_name(std::string_view name)
     for(std::size_t i{}; i < std::size(m_frames_data); ++i)
     {
         tph::set_object_name(engine::instance().renderer(), m_swapchain.textures()[i], m_name + " swapchain image #" + std::to_string(i));
+        tph::set_object_name(engine::instance().renderer(), m_framebuffers[i],         m_name + " swapchain framebuffer #" + std::to_string(i));
 
         tph::set_object_name(engine::instance().renderer(), m_frames_data[i].buffer,            m_name + " frame #" + std::to_string(i) + " command buffer");
-        tph::set_object_name(engine::instance().renderer(), m_frames_data[i].framebuffer,       m_name + " frame #" + std::to_string(i) + " framebuffer");
         tph::set_object_name(engine::instance().renderer(), m_frames_data[i].image_available,   m_name + " frame #" + std::to_string(i) + " available semaphore");
         tph::set_object_name(engine::instance().renderer(), m_frames_data[i].image_presentable, m_name + " frame #" + std::to_string(i) + " presentable semaphore");
         tph::set_object_name(engine::instance().renderer(), m_frames_data[i].fence,             m_name + " frame #" + std::to_string(i) + " fence");
@@ -476,17 +539,17 @@ void render_window::setup_frame_data()
 {
     for(std::uint32_t i{}; i < m_swapchain.info().image_count; ++i)
     {
-        const auto attachments{make_attachments(m_video_mode, m_swapchain.textures()[i], m_multisampling_texture, m_depth_texture)};
-
         frame_data data{};
         data.buffer = tph::cmd::begin(m_pool, tph::command_buffer_level::primary, tph::command_buffer_options::one_time_submit);
-        data.framebuffer = tph::framebuffer{engine::instance().renderer(), get_render_pass(), attachments, m_swapchain.info().width, m_swapchain.info().height, 1};
         data.image_available = tph::semaphore{engine::instance().renderer()};
         data.image_presentable = tph::semaphore{engine::instance().renderer()};
         data.fence = tph::fence{engine::instance().renderer(), true};
         data.query_pool = tph::query_pool{engine::instance().renderer(), 2, tph::query_type::timestamp};
 
         m_frames_data.emplace_back(std::move(data));
+
+        const auto attachments{make_attachments(m_video_mode, m_swapchain.textures()[i], m_multisampling_texture, m_depth_texture)};
+        m_framebuffers.emplace_back(engine::instance().renderer(), get_render_pass(), attachments, m_swapchain.info().width, m_swapchain.info().height, 1);
     }
 }
 
@@ -512,7 +575,7 @@ void render_window::update_clear_values(tph::framebuffer& framebuffer)
     }
 }
 
-void render_window::begin_render_impl(frame_data& data)
+void render_window::acquire()
 {
     update_clear_values(data.framebuffer);
     tph::cmd::begin_render_pass(data.buffer, get_render_pass(), data.framebuffer);
@@ -524,7 +587,7 @@ void render_window::begin_render_impl(frame_data& data)
     while(status == tph::swapchain_status::out_of_date)
     {
         const auto capabilities{tph::surface::capabilities(engine::instance().renderer())};
-        if(capabilities.current_width == 0 && capabilities.current_height == 0)
+        if(capabilities.current_width == 0 || capabilities.current_height == 0)
         {
             disable_rendering();
             return;
@@ -558,9 +621,10 @@ void render_window::time_results(frame_data& data)
     data.time_signal.disconnect_all();
 }
 
-void render_window::reset(frame_data& data)
+void render_window::reset_frame_data(frame_data& data)
 {
     data.fence.wait();
+
     data.submitted = false;
 
     if(data.timed)
@@ -592,10 +656,9 @@ void render_window::wait_all()
             data.signal();
             data.signal.disconnect_all();
             data.keeper.clear();
+            data.begin = false;
+            data.submitted = false;
         }
-
-        data.begin = false;
-        data.submitted = false;
     }
 }
 

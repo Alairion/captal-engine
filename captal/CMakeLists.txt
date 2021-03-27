@@ -28,6 +28,7 @@ set(CAPTAL_SOURCES
     src/captal/color.hpp
     src/captal/vertex.hpp
     src/captal/texture.hpp
+    src/captal/window.hpp
     src/captal/uniform_buffer.hpp
     src/captal/storage_buffer.hpp
     src/captal/binding.hpp
@@ -72,6 +73,7 @@ set(CAPTAL_SOURCES
     src/captal/render_window.cpp
     src/captal/render_texture.cpp
     src/captal/texture.cpp
+    src/captal/window.cpp
     src/captal/uniform_buffer.cpp
     src/captal/storage_buffer.cpp
     src/captal/shapes.cpp
@@ -88,10 +90,11 @@ set(CAPTAL_SOURCES
 
 if(CAPTAL_BUILD_CAPTAL_STATIC)
     add_library(captal STATIC ${CAPTAL_SOURCES})
+    target_compile_definitions(captal PUBLIC CAPTAL_STATIC_BUILD)
     set(TO_EXPORT ${TO_EXPORT} captal freetype chipmunk_static zlib not_enough_standards PARENT_SCOPE)
 else()
     add_library(captal SHARED ${CAPTAL_SOURCES})
-    target_compile_definitions(captal PUBLIC CAPTAL_FOUNDATION_SHARED_BUILD)
+    target_compile_definitions(captal PUBLIC CAPTAL_SHARED_BUILD)
     set(TO_EXPORT ${TO_EXPORT} captal PARENT_SCOPE)
 endif()
 

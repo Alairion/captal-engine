@@ -95,10 +95,10 @@ protected:
     void reset(std::uint32_t vertex_count, std::uint32_t index_count);
 
 public:
-    void bind(frame_render_info& info, cpt::view& view);
-    void draw(frame_render_info& info);
-    void draw(frame_render_info& info, cpt::view& view);
-    void upload(memory_transfer_info& info);
+    void bind(frame_render_info info, cpt::view& view);
+    void draw(frame_render_info info);
+    void draw(frame_render_info info, cpt::view& view);
+    void upload(memory_transfer_info info);
 
     void set_binding(std::uint32_t index, cpt::binding binding);
 

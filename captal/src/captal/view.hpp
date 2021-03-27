@@ -44,8 +44,8 @@ public:
     view(view&&) noexcept = default;
     view& operator=(view&&) noexcept = default;
 
-    void upload(memory_transfer_info& info);
-    void bind(frame_render_info& info);
+    void upload(memory_transfer_info info);
+    void bind(frame_render_info info);
 
     void fit(std::uint32_t width, std::uint32_t height);
     void fit(const render_texture_ptr& window);

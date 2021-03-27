@@ -21,7 +21,7 @@ view::view(const render_target_ptr& target, render_technique_ptr technique)
     m_bindings.set(0, make_uniform_buffer(std::array{buffer_part{buffer_part_type::uniform, sizeof(view::uniform_data)}}));
 }
 
-void view::upload(memory_transfer_info& info)
+void view::upload(memory_transfer_info info)
 {
     if(std::exchange(m_need_upload, false))
     {
@@ -35,7 +35,7 @@ void view::upload(memory_transfer_info& info)
     }
 }
 
-void view::bind(frame_render_info& info)
+void view::bind(frame_render_info info)
 {
     if(std::exchange(m_need_descriptor_update, false))
     {

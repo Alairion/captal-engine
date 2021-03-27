@@ -5,7 +5,17 @@
 #include <captal_foundation/enum_operations.hpp>
 #include <captal_foundation/version.hpp>
 
-#define CAPTAL_API CAPTAL_FOUNDATION_API
+#ifdef _WIN32
+    #if defined(CAPTAL_SHARED_BUILD)
+        #define CAPTAL_API __declspec(dllexport)
+    #elif !defined(CAPTAL_STATIC_BUILD)
+        #define CAPTAL_API __declspec(dllimport)
+    #else
+        #define CAPTAL_API
+    #endif
+#else
+    #define CAPTAL_API
+#endif
 
 namespace cpt
 {

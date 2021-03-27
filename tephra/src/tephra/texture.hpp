@@ -94,7 +94,6 @@ class TEPHRA_API texture
     template<typename VulkanObject, typename... Args>
     friend VulkanObject underlying_cast(const Args&...) noexcept;
 
-    friend class render_target;
     friend class swapchain;
 
 public:

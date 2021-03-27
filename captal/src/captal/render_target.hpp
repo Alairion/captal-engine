@@ -9,6 +9,7 @@
 
 #include "signal.hpp"
 #include "texture.hpp"
+#include "window.hpp"
 
 namespace cpt
 {
@@ -16,6 +17,11 @@ namespace cpt
 using frame_time_t = std::chrono::duration<std::uint64_t, std::nano>;
 using frame_presented_signal = cpt::signal<>;
 using frame_time_signal = cpt::signal<frame_time_t>;
+
+struct current_target_t{};
+inline constexpr current_target_t current_target{};
+
+using render_target_attachment = std::variant<texture_ptr, current_target_t>;
 
 struct frame_render_info
 {
@@ -28,7 +34,8 @@ struct frame_render_info
 enum class begin_render_options : std::uint32_t
 {
     none = 0x00,
-    timed = 0x01
+    timed = 0x01,
+    reset = 0x02
 };
 
 class CAPTAL_API render_target
@@ -39,20 +46,9 @@ public:
 
     virtual ~render_target() = default;
 
-    virtual frame_render_info begin_render(begin_render_options options) = 0;
-    virtual std::optional<frame_render_info> begin_static_render(begin_render_options options) = 0;
+    virtual std::optional<frame_render_info> begin_render(begin_render_options options) = 0;
     virtual void present() = 0;
-    virtual void reset() = 0;
-
-    void disable_rendering() noexcept
-    {
-        m_enable = false;
-    }
-
-    void enable_rendering() noexcept
-    {
-        m_enable = true;
-    }
+    virtual void wait() = 0;
 
     tph::render_pass& get_render_pass() noexcept
     {
@@ -64,11 +60,6 @@ public:
         return m_render_pass;
     }
 
-    bool is_rendering_enable() const noexcept
-    {
-        return m_enable;
-    }
-
 protected:
     render_target(const render_target&) = delete;
     render_target& operator=(const render_target&) = delete;
@@ -77,12 +68,13 @@ protected:
 
 private:
     tph::render_pass m_render_pass{};
-    bool m_enable{true};
 };
 
 using render_target_ptr = std::shared_ptr<render_target>;
 using render_target_weak_ptr = std::weak_ptr<render_target>;
 
 }
+
+template<> struct cpt::enable_enum_operations<cpt::begin_render_options> {static constexpr bool value{true};};
 
 #endif

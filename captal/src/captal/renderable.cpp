@@ -91,7 +91,7 @@ void basic_renderable::reset(std::uint32_t vertex_count, std::uint32_t index_cou
     m_bindings.set(m_uniform_index, std::move(buffer));
 }
 
-void basic_renderable::bind(frame_render_info& info, cpt::view& view)
+void basic_renderable::bind(frame_render_info info, cpt::view& view)
 {
     const auto& layout{view.render_technique()->layout()};
 
@@ -158,7 +158,7 @@ void basic_renderable::bind(frame_render_info& info, cpt::view& view)
     info.keeper.keep(it->second.set);
 }
 
-void basic_renderable::draw(frame_render_info& info)
+void basic_renderable::draw(frame_render_info info)
 {
     if(m_index_count > 0)
     {
@@ -170,13 +170,13 @@ void basic_renderable::draw(frame_render_info& info)
     }
 }
 
-void basic_renderable::draw(frame_render_info& info, cpt::view& view)
+void basic_renderable::draw(frame_render_info info, cpt::view& view)
 {
     bind(info, view);
     draw(info);
 }
 
-void basic_renderable::upload(memory_transfer_info& info)
+void basic_renderable::upload(memory_transfer_info info)
 {
     bool keep{};
 

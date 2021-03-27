@@ -4,16 +4,6 @@
 #include <cstdint>
 #include <type_traits>
 
-#ifdef _WIN32
-    #ifdef CAPTAL_FOUNDATION_SHARED_BUILD
-        #define CAPTAL_FOUNDATION_API __declspec(dllexport)
-    #else
-        #define CAPTAL_FOUNDATION_API __declspec(dllimport)
-    #endif
-#else
-    #define CAPTAL_FOUNDATION_API
-#endif
-
 namespace cpt
 {
 

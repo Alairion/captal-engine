@@ -65,10 +65,11 @@ set(TEPHRA_SOURCES
 
 if(CAPTAL_BUILD_TEPHRA_STATIC)
     add_library(tephra STATIC ${TEPHRA_SOURCES})
+    target_compile_definitions(tephra PUBLIC TEPHRA_STATIC_BUILD)
     set(TO_EXPORT ${TO_EXPORT} tephra not_enough_standards PARENT_SCOPE)
 else()
     add_library(tephra SHARED ${TEPHRA_SOURCES})
-    target_compile_definitions(tephra PUBLIC CAPTAL_FOUNDATION_SHARED_BUILD)
+    target_compile_definitions(tephra PUBLIC TEPHRA_SHARED_BUILD)
     set(TO_EXPORT ${TO_EXPORT} tephra PARENT_SCOPE)
 endif()
 

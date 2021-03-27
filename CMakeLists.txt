@@ -5,15 +5,9 @@ project(captal_engine VERSION 0.1.0
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_POLICY_DEFAULT_CMP0069 NEW)
 
-include(CheckIPOSupported)
-
-check_ipo_supported(RESULT result OUTPUT output)
-if(result AND NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
-    set(set CMAKE_INTERPROCEDURAL_OPTIMIZATION ON CACHE BOOL "" FORCE)
-else()
-    message(WARNING "IPO is not supported: ${output}")
-endif()
+option(CAPTAL_USE_LTO "Build Captal and its submodules with LTO enabled, if supported" OFF)
 
 option(CAPTAL_BUILD_FOUNDATION_EXAMPLES "Build Captal Foundation's examples if ON" OFF)
 option(CAPTAL_BUILD_FOUNDATION_TESTS "Build Captal Foundation's unit tests if ON" OFF)
@@ -46,6 +40,21 @@ endif()
 
 if(CAPTAL_BUILD_TEPHRA AND (CAPTAL_BUILD_TEPHRA_EXAMPLES OR CAPTAL_BUILD_TEPHRA_TESTS))
     set(CAPTAL_BUILD_APYRE ON CACHE BOOL "Build Apyre if ON" FORCE)
+endif()
+
+if(CAPTAL_USE_LTO)
+    include(CheckIPOSupported)
+    check_ipo_supported(RESULT LTO_SUPPORT OUTPUT LTO_OUTPUT)
+
+    if(LTO_SUPPORT)
+        set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON CACHE BOOL "" FORCE)
+        message("LTO is enabled.")
+    else()
+        set(CMAKE_INTERPROCEDURAL_OPTIMIZATION OFF CACHE BOOL "" FORCE)
+        message("LTO is not supported: ${LTO_OUTPUT}")
+    endif()
+else()
+    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION OFF CACHE BOOL "" FORCE)
 endif()
 
 include(cmake/download_submodule.cmake)

@@ -92,9 +92,9 @@ class CAPTAL_API window : apr::window
 
 public:
     window() = default;
-    explicit window(const std::string& title, std::uint32_t width, std::uint32_t height, const video_mode& mode, apr::window_options options = apr::window_options::none);
-    explicit window(const apr::monitor& monitor, const std::string& title, std::uint32_t width, std::uint32_t height, const video_mode& mode, apr::window_options options = apr::window_options::none);
-    explicit window(apr::window window, const video_mode& mode);
+    explicit window(const std::string& title, std::uint32_t width, std::uint32_t height, const cpt::video_mode& mode, apr::window_options options = apr::window_options::none);
+    explicit window(const apr::monitor& monitor, const std::string& title, std::uint32_t width, std::uint32_t height, const cpt::video_mode& mode, apr::window_options options = apr::window_options::none);
+    explicit window(apr::window window, const cpt::video_mode& mode);
 
     virtual ~window();
     window(const window&) = delete;
@@ -261,101 +261,6 @@ window_ptr make_window(Args&&... args)
 {
     return std::make_shared<window>(std::forward<Args>(args)...);
 }
-/*
-class CAPTAL_API render_window final : public window, public render_target
-{
-public:
-    render_window() = default;
-    explicit render_window(window_ptr window, const tph::render_pass_info& render_pass, std::vector<render_target_attachment> attachments);
-    explicit render_window(window_ptr window, tph::sample_count sample_count = tph::sample_count::msaa_x1, tph::texture_format depth_format = tph::texture_format::undefined);
-
-    ~render_window();
-    render_window(const render_window&) = delete;
-    render_window& operator=(const render_window&) = delete;
-    render_window(render_window&&) = default;
-    render_window& operator=(render_window&&) = default;
-
-    std::optional<frame_render_info> begin_render(begin_render_options options) override;
-    void present() override;
-    void wait() override;
-
-    void set_clear_color(const color& color) noexcept
-    {
-        m_clear_color = tph::clear_color_value{color.red, color.green, color.blue, color.alpha};
-    }
-
-    void set_clear_color(const tph::clear_color_value& color) noexcept
-    {
-        m_clear_color = color;
-    }
-
-    void set_clear_depth_stencil(float depth, std::uint32_t stencil) noexcept
-    {
-        m_clear_depth_stencil = tph::clear_depth_stencil_value{depth, stencil};
-    }
-
-#ifdef CAPTAL_DEBUG
-    void set_name(std::string_view name);
-#else
-    void set_name(std::string_view name [[maybe_unused]]) const noexcept
-    {
-
-    }
-#endif
-
-private:
-    struct frame_data
-    {
-        tph::command_buffer buffer{};
-        tph::semaphore image_available{};
-        tph::semaphore image_presentable{};
-        tph::fence fence{};
-        tph::query_pool query_pool{};
-        asynchronous_resource_keeper keeper{};
-        frame_presented_signal signal{};
-        frame_time_signal time_signal{};
-        std::uint32_t epoch{};
-        bool begin{}; //true if register_frame_time or begin_render has been called, false after present
-        bool timed{}; //true if register_frame_time has been called, false after frame data reset
-        bool submitted{}; //true after present, false after frame data reset
-    };
-
-private:
-    void setup_frame_data();
-    void update_clear_values(tph::framebuffer& framebuffer);
-
-    void begin_render_impl(frame_data& data);
-    void reset_frame_data(frame_data& data);
-    void time_results(frame_data& data);
-    void wait_all();
-    void recreate(const tph::surface_capabilities& capabilities);
-
-private:
-    tph::texture m_multisampling_texture{};
-    tph::texture m_depth_texture{};
-    cpt::video_mode m_video_mode{};
-    tph::clear_color_value m_clear_color{};
-    tph::clear_depth_stencil_value m_clear_depth_stencil{};
-    std::uint32_t m_frame_index{};
-    std::uint32_t m_epoch{};
-
-    tph::command_pool m_pool{};
-    std::vector<frame_data> m_frames_data{};
-    std::vector<tph::framebuffer> m_framebuffers{};
-
-#ifdef CAPTAL_DEBUG
-    std::string m_name{};
-#endif
-};
-
-using render_window_ptr = std::shared_ptr<render_window>;
-using render_window_weak_ptr = std::weak_ptr<render_window>;
-
-template<typename... Args>
-render_window_ptr make_render_window(Args&&... args)
-{
-    return std::make_shared<render_window>(std::forward<Args>(args)...);
-}*/
 
 }
 

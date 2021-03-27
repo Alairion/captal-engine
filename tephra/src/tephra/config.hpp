@@ -6,7 +6,17 @@
 #include <captal_foundation/enum_operations.hpp>
 #include <captal_foundation/optional_ref.hpp>
 
-#define TEPHRA_API CAPTAL_FOUNDATION_API
+#ifdef _WIN32
+    #if defined(TEPHRA_SHARED_BUILD)
+        #define TEPHRA_API __declspec(dllexport)
+    #elif !defined(TEPHRA_STATIC_BUILD)
+        #define TEPHRA_API __declspec(dllimport)
+    #else
+        #define TEPHRA_API
+    #endif
+#else
+    #define TEPHRA_API
+#endif
 
 namespace tph
 {

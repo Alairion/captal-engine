@@ -21,17 +21,12 @@ struct render_texture_info
     tph::texture_usage usage{};
 };
 
-struct current_target_t{};
-inline constexpr current_target_t current_target{};
-
-using render_texture_attachment = std::variant<texture_ptr, current_target_t>;
-
-class CAPTAL_API render_texture : public texture, public render_target
+class CAPTAL_API render_texture final : public texture, public render_target
 {
 public:
     render_texture() = default;
-    explicit render_texture(const render_texture_info& info, const tph::render_pass_info& render_pass, std::vector<render_texture_attachment> attachments);
-    explicit render_texture(const render_texture_info& info, const tph::sampling_options& sampling, const tph::render_pass_info& render_pass, std::vector<render_texture_attachment> attachments);
+    explicit render_texture(const render_texture_info& info, const tph::render_pass_info& render_pass, std::vector<render_target_attachment> attachments);
+    explicit render_texture(const render_texture_info& info, const tph::sampling_options& sampling, const tph::render_pass_info& render_pass, std::vector<render_target_attachment> attachments);
     explicit render_texture(const render_texture_info& info, tph::sample_count sample_count = tph::sample_count::msaa_x1, tph::texture_format depth_format = tph::texture_format::undefined);
     explicit render_texture(const render_texture_info& info, const tph::sampling_options& sampling, tph::sample_count sample_count = tph::sample_count::msaa_x1, tph::texture_format depth_format = tph::texture_format::undefined);
 
@@ -41,10 +36,9 @@ public:
     render_texture(render_texture&&) = delete;
     render_texture& operator=(render_texture&&) = delete;
 
-    frame_render_info begin_render(begin_render_options options) override;
-    std::optional<frame_render_info> begin_static_render(begin_render_options options) override;
+    std::optional<frame_render_info> begin_render(begin_render_options options) override;
     void present() override;
-    void reset() override;
+    void wait() override;
 
     tph::framebuffer& framebuffer() noexcept
     {
@@ -86,7 +80,7 @@ public:
         }, m_attachments[index]);
     }
 
-    std::span<const render_texture_attachment> attachements() const noexcept
+    std::span<const render_target_attachment> attachements() const noexcept
     {
         return m_attachments;
     }
@@ -109,7 +103,7 @@ private:
         asynchronous_resource_keeper keeper{};
         frame_presented_signal signal{};
         frame_time_signal time_signal{};
-        bool begin{}; //true if register_frame_time or begin_render has been called, false after present
+        std::uint32_t epoch{};
         bool timed{}; //true if register_frame_time has been called, false after frame data reset
         bool submitted{}; //true after present, false after frame data reset
     };
@@ -117,15 +111,16 @@ private:
 private:
     frame_data& next_frame();
     frame_data& add_frame_data();
-    void reset(frame_data& data);
+    void reset_frame_data(frame_data& data);
     void time_results(frame_data& data);
-    void wait_all();
 
 private:
-    std::vector<render_texture_attachment> m_attachments{};
+    std::uint32_t m_epoch{};
+    std::vector<render_target_attachment> m_attachments{};
     tph::framebuffer m_framebuffer{};
     tph::command_pool m_pool{};
     std::vector<frame_data> m_frames_data{};
+    frame_data* m_current{};
 
 #ifdef CAPTAL_DEBUG
     std::string m_name{};

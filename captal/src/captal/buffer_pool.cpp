@@ -412,40 +412,38 @@ buffer_heap_chunk buffer_pool::allocate(std::uint64_t size, std::uint64_t alignm
     return chunk;
 }
 
-void buffer_pool::upload(tph::command_buffer& command_buffer, transfer_ended_signal& signal)
+void buffer_pool::upload(memory_transfer_info info)
 {
     std::lock_guard lock{m_mutex};
 
     #ifdef CAPTAL_DEBUG
-    tph::cmd::begin_label(command_buffer, m_name + " transfer", 0.961f, 0.961f, 0.863f, 1.0f);
+    tph::cmd::begin_label(info.buffer, m_name + " transfer", 0.961f, 0.961f, 0.863f, 1.0f);
     #endif
 
     for(std::size_t i{}; i < std::size(m_heaps); ++i)
     {
-        m_to_end[i] = m_heaps[i]->begin_upload(command_buffer);
+        m_to_end[i] = m_heaps[i]->begin_upload(info.buffer);
     }
 
-    tph::cmd::pipeline_barrier(command_buffer, tph::resource_access::transfer_write, tph::resource_access::transfer_read,
+    tph::cmd::pipeline_barrier(info.buffer, tph::resource_access::transfer_write, tph::resource_access::transfer_read,
                                                tph::pipeline_stage::transfer, tph::pipeline_stage::transfer);
 
     for(std::size_t i{}; i < std::size(m_heaps); ++i)
     {
         if(m_to_end[i])
         {
-            m_heaps[i]->end_upload(command_buffer, signal);
+            m_heaps[i]->end_upload(info.buffer, info.signal);
         }
     }
 
     #ifdef CAPTAL_DEBUG
-    tph::cmd::end_label(command_buffer);
+    tph::cmd::end_label(info.buffer);
     #endif
 }
 
 void buffer_pool::upload()
 {
-    auto&& [buffer, signal, keeper] = cpt::engine::instance().transfer_scheduler().begin_transfer();
-
-    upload(buffer, signal);
+    upload(cpt::engine::instance().transfer_scheduler().begin_transfer());
 }
 
 void buffer_pool::clean()

@@ -174,7 +174,7 @@ public:
     buffer_pool& operator=(buffer_pool&&) noexcept = delete;
 
     buffer_heap_chunk allocate(std::uint64_t size, std::uint64_t alignment);
-    void upload(tph::command_buffer& command_buffer, transfer_ended_signal& signal);
+    void upload(memory_transfer_info info);
     void upload();
     void clean();
 

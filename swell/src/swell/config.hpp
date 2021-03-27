@@ -6,7 +6,17 @@
 #include <captal_foundation/base.hpp>
 #include <captal_foundation/enum_operations.hpp>
 
-#define SWELL_API CAPTAL_FOUNDATION_API
+#ifdef _WIN32
+    #if defined(SWELL_SHARED_BUILD)
+        #define SWELL_API __declspec(dllexport)
+    #elif !defined(SWELL_STATIC_BUILD)
+        #define SWELL_API __declspec(dllimport)
+    #else
+        #define SWELL_API
+    #endif
+#else
+    #define SWELL_API
+#endif
 
 namespace swl
 {

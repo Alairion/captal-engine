@@ -92,7 +92,8 @@ public:
         return acquire_impl(std::chrono::duration_cast<std::chrono::nanoseconds>(time - current_time).count(), semaphore, fence);
     }
 
-    swapchain_status present(const std::vector<std::reference_wrapper<semaphore>>& wait_semaphores);
+    swapchain_status present(std::span<const std::reference_wrapper<semaphore>> wait_semaphores);
+    swapchain_status present(std::span<semaphore> wait_semaphores);
     swapchain_status present(semaphore& wait_semaphore);
 
     const swapchain_info& info() const noexcept

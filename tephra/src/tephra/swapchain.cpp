@@ -67,7 +67,39 @@ swapchain::swapchain(renderer& renderer, surface& surface, const swapchain_info&
     }
 }
 
-swapchain_status swapchain::present(const std::vector<std::reference_wrapper<semaphore>>& wait_semaphores)
+swapchain_status swapchain::present(std::span<const std::reference_wrapper<semaphore>> wait_semaphores)
+{
+    VkSwapchainKHR native_swapchain{m_swapchain};
+
+    std::vector<VkSemaphore> native_semaphores{};
+    native_semaphores.reserve(std::size(wait_semaphores));
+
+    for(semaphore& semaphore : wait_semaphores)
+    {
+        native_semaphores.emplace_back(underlying_cast<VkSemaphore>(semaphore));
+    }
+
+    VkPresentInfoKHR present_info{};
+    present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    present_info.swapchainCount = 1;
+    present_info.pSwapchains = &native_swapchain;
+    present_info.pImageIndices = &m_image_index;
+    present_info.waitSemaphoreCount = static_cast<std::uint32_t>(std::size(native_semaphores));
+    present_info.pWaitSemaphores = std::data(native_semaphores);
+
+    const auto result{vkQueuePresentKHR(m_queue, &present_info)};
+
+    switch(result)
+    {
+        case VK_SUCCESS:                return swapchain_status::valid;
+        case VK_SUBOPTIMAL_KHR:         return swapchain_status::suboptimal;
+        case VK_ERROR_OUT_OF_DATE_KHR:  return swapchain_status::out_of_date;
+        case VK_ERROR_SURFACE_LOST_KHR: return swapchain_status::surface_lost;
+        default:                        throw vulkan::error{result};
+    }
+}
+
+swapchain_status swapchain::present(std::span<semaphore> wait_semaphores)
 {
     VkSwapchainKHR native_swapchain{m_swapchain};
 
@@ -102,7 +134,7 @@ swapchain_status swapchain::present(const std::vector<std::reference_wrapper<sem
 swapchain_status swapchain::present(semaphore& wait_semaphore)
 {
     VkSwapchainKHR native_swapchain{m_swapchain};
-    VkSemaphore native_semaphore{underlying_cast<VkSemaphore>(wait_semaphore)};
+    VkSemaphore    native_semaphore{underlying_cast<VkSemaphore>(wait_semaphore)};
 
     VkPresentInfoKHR present_info{};
     present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -127,7 +159,7 @@ swapchain_status swapchain::present(semaphore& wait_semaphore)
 swapchain_status swapchain::acquire_impl(std::uint64_t timeout, optional_ref<semaphore> semaphore, optional_ref<fence> fence)
 {
     VkSemaphore native_semaphore{semaphore.has_value() ? underlying_cast<VkSemaphore>(*semaphore) : VkSemaphore{}};
-    VkFence native_fence{fence.has_value() ? underlying_cast<VkFence>(*fence) : VkFence{}};
+    VkFence     native_fence    {fence.has_value() ? underlying_cast<VkFence>(*fence) : VkFence{}};
 
     const auto result{vkAcquireNextImageKHR(m_swapchain.device(), m_swapchain, timeout, native_semaphore, native_fence, &m_image_index)};
 

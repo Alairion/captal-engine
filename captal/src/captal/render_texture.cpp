@@ -94,12 +94,12 @@ static tph::render_pass_info make_render_pass_info(tph::texture_format color_for
     return output;
 }
 
-static std::vector<render_texture_attachment> make_attachments(const render_texture_info& info, tph::sample_count sample_count, tph::texture_format depth_format)
+static std::vector<render_target_attachment> make_attachments(const render_texture_info& info, tph::sample_count sample_count, tph::texture_format depth_format)
 {
     const bool has_multisampling{sample_count != tph::sample_count::msaa_x1};
     const bool has_depth_stencil{depth_format != tph::texture_format::undefined};
 
-    std::vector<render_texture_attachment> output{};
+    std::vector<render_target_attachment> output{};
 
     if(has_multisampling)
     {
@@ -125,7 +125,7 @@ static std::vector<render_texture_attachment> make_attachments(const render_text
     return output;
 }
 
-static std::vector<std::reference_wrapper<tph::texture>> convert_framebuffer_attachments(std::span<const render_texture_attachment> attachments, tph::texture& current)
+static std::vector<std::reference_wrapper<tph::texture>> convert_framebuffer_attachments(std::span<const render_target_attachment> attachments, tph::texture& current)
 {
     std::vector<std::reference_wrapper<tph::texture>> output{};
     output.reserve(std::size(attachments));
@@ -145,7 +145,7 @@ static std::vector<std::reference_wrapper<tph::texture>> convert_framebuffer_att
     return output;
 }
 
-render_texture::render_texture(const render_texture_info& info, const tph::render_pass_info& render_pass, std::vector<render_texture_attachment> attachments)
+render_texture::render_texture(const render_texture_info& info, const tph::render_pass_info& render_pass, std::vector<render_target_attachment> attachments)
 :texture{info.width, info.height, tph::texture_info{info.format, info.usage | tph::texture_usage::color_attachment | tph::texture_usage::sampled}}
 ,render_target{render_pass}
 ,m_attachments{std::move(attachments)}
@@ -155,7 +155,7 @@ render_texture::render_texture(const render_texture_info& info, const tph::rende
     m_frames_data.reserve(4);
 }
 
-render_texture::render_texture(const render_texture_info& info, const tph::sampling_options& sampling, const tph::render_pass_info& render_pass, std::vector<render_texture_attachment> attachments)
+render_texture::render_texture(const render_texture_info& info, const tph::sampling_options& sampling, const tph::render_pass_info& render_pass, std::vector<render_target_attachment> attachments)
 :texture{info.width, info.height, tph::texture_info{info.format, info.usage | tph::texture_usage::color_attachment | tph::texture_usage::sampled}, sampling}
 ,render_target{render_pass}
 ,m_attachments{std::move(attachments)}
@@ -187,81 +187,69 @@ render_texture::render_texture(const render_texture_info& info, const tph::sampl
 
 render_texture::~render_texture()
 {
-    wait_all();
+    wait();
 }
 
-frame_time_signal& render_texture::register_frame_time()
+std::optional<frame_render_info> render_texture::begin_render(begin_render_options options)
 {
-    for(auto&& data : m_frames_data)
+    if(m_current)
     {
-        if(data.begin)
+        if(m_current->epoch == m_epoch)
         {
-            if(data.timed)
-            {
-                return data.time_signal;
-            }
-            else
-            {
-                throw std::runtime_error{"cpt::render_texture::register_frame_time first call is done after a call of cpt::render_texture::begin_render"};
-            }
+            return std::nullopt;
+        }
+
+        if(static_cast<bool>(options & begin_render_options::timed))
+        {
+            assert(m_current->timed && "cpt::render_texture::begin_render must not be called with begin_render_options::timed flag if initial call was made without.");
+
+            return frame_render_info{m_current->buffer, m_current->signal, m_current->keeper, m_current->time_signal};
+        }
+        else
+        {
+            return frame_render_info{m_current->buffer, m_current->signal, m_current->keeper};
         }
     }
 
-    auto& data{next_frame()};
-
-    data.timed = true;
-
-    tph::cmd::reset_query_pool(data.buffer, data.query_pool, 0, 2);
-    tph::cmd::write_timestamp(data.buffer, data.query_pool, 0, tph::pipeline_stage::top_of_pipe);
-
-    tph::cmd::begin_render_pass(data.buffer, get_render_pass(), m_framebuffer);
-
-    return data.time_signal;
-}
-
-frame_render_info render_texture::begin_render(begin_render_options options)
-{
-    for(auto&& data : m_frames_data)
+    if(static_cast<bool>(options & begin_render_options::reset))
     {
-        if(data.begin)
-        {
-            return frame_render_info{data.buffer, data.signal, data.keeper};
-        }
+        ++m_epoch;
     }
 
     auto& data{next_frame()};
+    m_current = &data;
 
-    tph::cmd::begin_render_pass(data.buffer, get_render_pass(), m_framebuffer);
+    if(data.epoch == m_epoch)
+    {
+        return std::nullopt;
+    }
 
-    return frame_render_info{data.buffer, data.signal, data.keeper};
-}
+    reset_frame_data(data);
 
-std::optional<frame_render_info> begin_static_render(begin_render_options options)
-{
+    if(static_cast<bool>(options & begin_render_options::timed))
+    {
+        data.timed = true;
 
-}
+        tph::cmd::reset_query_pool(data.buffer, data.query_pool, 0, 2);
+        tph::cmd::write_timestamp(data.buffer, data.query_pool, 0, tph::pipeline_stage::top_of_pipe);
 
-void reset_static_render()
-{
+        tph::cmd::begin_render_pass(data.buffer, get_render_pass(), m_framebuffer);
 
+        return frame_render_info{data.buffer, data.signal, data.keeper, data.time_signal};
+    }
+    else
+    {
+        tph::cmd::begin_render_pass(data.buffer, get_render_pass(), m_framebuffer);
+
+        return frame_render_info{data.buffer, data.signal, data.keeper};
+    }
 }
 
 void render_texture::present()
 {
-    const auto find_data = [this]() -> frame_data&
-    {
-        for(auto& data : m_frames_data)
-        {
-            if(data.begin)
-            {
-                return data;
-            }
-        }
+    assert(m_current && "cpt::render_texture::present called without prior call to cpt::render_texture::begin_render.");
 
-        throw std::runtime_error{"cpt::render_texture::present called before cpt::render_texture::begin_render"};
-    };
-
-    auto& data{find_data()};
+    auto& data{*m_current};
 
     tph::cmd::end_render_pass(data.buffer);
 
@@ -271,7 +259,6 @@ void render_texture::present()
     }
 
     tph::cmd::end(data.buffer);
-    data.begin = false;
 
     data.fence.reset();
 
@@ -282,7 +269,31 @@ void render_texture::present()
     tph::submit(engine::instance().renderer(), submit_info, data.fence);
     lock.unlock();
 
+    data.epoch = m_epoch;
     data.submitted = true;
+
+    m_current = nullptr;
+}
+
+void render_texture::wait()
+{
+    for(frame_data& data : m_frames_data)
+    {
+        if(data.submitted)
+        {
+            data.fence.wait();
+
+            if(data.timed)
+            {
+                time_results(data);
+            }
+
+            data.signal();
+            data.signal.disconnect_all();
+            data.keeper.clear();
+            data.submitted = false;
+        }
+    }
 }
 
 #ifdef CAPTAL_DEBUG
@@ -315,8 +326,6 @@ render_texture::frame_data& render_texture::next_frame()
     {
         if(data.fence.try_wait())
         {
-            reset(data);
-
             return data;
         }
     }
@@ -330,7 +339,7 @@ render_texture::frame_data& render_texture::add_frame_data()
     data.buffer = tph::cmd::begin(m_pool, tph::command_buffer_level::primary, tph::command_buffer_options::one_time_submit);
     data.fence = tph::fence{engine::instance().renderer(), true};
     data.query_pool = tph::query_pool{engine::instance().renderer(), 2, tph::query_type::timestamp};
-    data.begin = true;
+    data.epoch = m_epoch;
 
 #ifdef CAPTAL_DEBUG
     const std::size_t i{std::size(m_frames_data)};
@@ -342,9 +351,8 @@ render_texture::frame_data& render_texture::add_frame_data()
     return m_frames_data.emplace_back(std::move(data));
 }
 
-void render_texture::reset(frame_data& data)
+void render_texture::reset_frame_data(frame_data& data)
 {
-    data.begin = false;
     data.submitted = false;
 
     if(data.timed)
@@ -357,7 +365,6 @@ void render_texture::reset(frame_data& data)
     data.keeper.clear();
 
     tph::cmd::begin(data.buffer, tph::command_buffer_reset_options::none, tph::command_buffer_options::one_time_submit);
-    data.begin = true;
 }
 
 void render_texture::time_results(frame_data& data)
@@ -365,24 +372,12 @@ void render_texture::time_results(frame_data& data)
     std::array<std::uint64_t, 2> results;
     data.query_pool.results(0, 2, std::size(results) * sizeof(std::uint64_t), std::data(results), sizeof(std::uint64_t), tph::query_results::uint64 | tph::query_results::wait);
 
-    const auto period{static_cast<double>(cpt::engine::instance().graphics_device().limits().timestamp_period)};
-    const frame_time_t time{static_cast<std::uint64_t>((results[1] - results[0]) * period)};
-
-    data.timed = false;
+    const auto         period{static_cast<double>(cpt::engine::instance().graphics_device().limits().timestamp_period)};
+    const frame_time_t time  {static_cast<std::uint64_t>((results[1] - results[0]) * period)};
 
     data.time_signal(time);
     data.time_signal.disconnect_all();
-}
-
-void render_texture::wait_all()
-{
-    for(frame_data& data : m_frames_data)
-    {
-        if(data.submitted)
-        {
-            data.fence.wait();
-        }
-    }
+    data.timed = false;
 }
 
 }
