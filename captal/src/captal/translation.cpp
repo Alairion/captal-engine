@@ -646,7 +646,7 @@ std::string translation_editor::encode_file_information() const
     output_it = write_magic_word(output_it);
     output_it = write_uint16(output_it, m_version.major);
     output_it = write_uint16(output_it, m_version.minor);
-    output_it = write_uint32(output_it, m_version.patch);
+                write_uint32(output_it, m_version.patch);
 
     return output;
 }
@@ -663,7 +663,7 @@ std::string translation_editor::encode_header_information() const
     output_it = write_uint32(output_it, static_cast<std::uint32_t>(m_target_language));
     output_it = write_uint32(output_it, static_cast<std::uint32_t>(m_target_country));
     output_it = write_uint64(output_it, section_count());
-    output_it = write_uint64(output_it, translation_count());
+                write_uint64(output_it, translation_count());
 
     return output;
 }
@@ -728,7 +728,7 @@ std::string translation_editor::encode_translation(const std::string& source, co
     char* output_it{std::data(output)};
     output_it = write_uint64(output_it, hash_value(source));
     output_it = write_uint64(output_it, static_cast<std::uint64_t>(std::size(source)));
-    output_it = write_uint64(output_it, static_cast<std::uint64_t>(std::size(target)));
+                write_uint64(output_it, static_cast<std::uint64_t>(std::size(target)));
 
     output += source;
     output += target;

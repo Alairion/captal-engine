@@ -1,4 +1,4 @@
-#include "render_window.hpp"
+#include "window.hpp"
 
 #include "engine.hpp"
 
@@ -94,40 +94,24 @@ static tph::texture_format choose_surface_format(tph::surface& surface)
     return formats[0];
 }
 
-static tph::swapchain_info make_swapchain_info(const cpt::video_mode& info, const tph::surface_capabilities& capabilities, tph::texture_format surface_format)
-{
-    tph::swapchain_info output{};
-    output.image_count = info.image_count;
-    output.width = capabilities.current_width;
-    output.height = capabilities.current_height;
-    output.format = surface_format;
-    output.transform = capabilities.current_transform;
-    output.present_mode = info.present_mode;
-    output.clipping = info.clipping;
-
-    return output;
-}
-
-window::window(const std::string& title, std::uint32_t width, std::uint32_t height, const cpt::video_mode& mode, apr::window_options options)
-:window{engine::instance().application().system_application().main_monitor(), title, width, height, mode, options}
+window::window(const std::string& title, std::uint32_t width, std::uint32_t height, apr::window_options options)
+:window{engine::instance().application().system_application().main_monitor(), title, width, height, options}
 {
 
 }
 
-window::window(const apr::monitor& monitor, const std::string& title, std::uint32_t width, std::uint32_t height, const cpt::video_mode& mode, apr::window_options options)
-:window{apr::window{engine::instance().application().system_application(), monitor, title, width, height, options}, mode}
-{
-
-}
-
-window::window(apr::window window, const cpt::video_mode& mode)
-:apr::window{std::move(window)}
-,m_video_mode{mode}
+window::window(const apr::monitor& monitor, const std::string& title, std::uint32_t width, std::uint32_t height, apr::window_options options)
+:apr::window{engine::instance().application().system_application(), monitor, title, width, height, options}
 ,m_surface_format{choose_surface_format(m_surface)}
 ,m_surface{make_window_surface(get_window())}
-,m_swapchain{engine::instance().renderer(), m_surface, make_swapchain_info(mode, m_surface.capabilities(engine::instance().renderer()), m_surface_format)}
 {
 
+}
+
+void window::close()
+{
+    m_closed = true;
+    m_renderable = false;
 }
 
 void window::dispatch_events()
@@ -238,10 +222,11 @@ void window::dispatch_event(const apr::event& event)
     }
 }
 
-void window::close()
+#ifdef CAPTAL_DEBUG
+void window::set_name(std::string_view name)
 {
-     m_closed = true;
-     m_renderable = false;
+    tph::set_object_name(engine::instance().renderer(), m_surface, std::string{name} + " surface");
 }
+#endif
 
 }

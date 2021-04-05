@@ -714,12 +714,31 @@ void begin_render_pass(command_buffer& command_buffer, const render_pass& render
 
         if(std::holds_alternative<clear_color_value>(value))
         {
-            auto&& color{std::get<clear_color_value>(value)};
-            native_value.color = VkClearColorValue{{color.red, color.green, color.blue, color.alpha}};
+            const auto color{std::get<clear_color_value>(value)};
+
+            if(std::holds_alternative<clear_color_float_value>(color))
+            {
+                auto float_color{std::get<clear_color_float_value>(color)};
+
+                native_value.color = VkClearColorValue{.float32{float_color.red, float_color.green, float_color.blue, float_color.alpha}};
+            }
+            else if(std::holds_alternative<clear_color_int_value>(color))
+            {
+                auto int_color{std::get<clear_color_int_value>(color)};
+
+                native_value.color = VkClearColorValue{.int32{int_color.red, int_color.green, int_color.blue, int_color.alpha}};
+            }
+            else
+            {
+                auto uint_color{std::get<clear_color_uint_value>(color)};
+
+                native_value.color = VkClearColorValue{.uint32{uint_color.red, uint_color.green, uint_color.blue, uint_color.alpha}};
+            }
         }
-        else if(std::holds_alternative<clear_depth_stencil_value>(value))
+        else
         {
-            auto&& depth_stencil{std::get<clear_depth_stencil_value>(value)};
+            const auto depth_stencil{std::get<clear_depth_stencil_value>(value)};
+
             native_value.depthStencil = VkClearDepthStencilValue{depth_stencil.depth, depth_stencil.stencil};
         }
     }

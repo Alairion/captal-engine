@@ -18,11 +18,6 @@ using frame_time_t = std::chrono::duration<std::uint64_t, std::nano>;
 using frame_presented_signal = cpt::signal<>;
 using frame_time_signal = cpt::signal<frame_time_t>;
 
-struct current_target_t{};
-inline constexpr current_target_t current_target{};
-
-using render_target_attachment = std::variant<texture_ptr, current_target_t>;
-
 struct frame_render_info
 {
     tph::command_buffer& buffer;

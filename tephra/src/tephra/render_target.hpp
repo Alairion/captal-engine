@@ -70,13 +70,31 @@ struct render_pass_info
 
 class render_pass;
 
-struct clear_color_value
+struct clear_color_float_value
 {
     float red{};
     float green{};
     float blue{};
-    float alpha{1.0f};
+    float alpha{};
 };
+
+struct clear_color_int_value
+{
+    std::int32_t red{};
+    std::int32_t green{};
+    std::int32_t blue{};
+    std::int32_t alpha{};
+};
+
+struct clear_color_uint_value
+{
+    std::uint32_t red{};
+    std::uint32_t green{};
+    std::uint32_t blue{};
+    std::uint32_t alpha{};
+};
+
+using clear_color_value = std::variant<clear_color_float_value, clear_color_int_value, clear_color_uint_value>;
 
 struct clear_depth_stencil_value
 {

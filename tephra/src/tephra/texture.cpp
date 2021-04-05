@@ -48,6 +48,7 @@ static bool need_image_view(texture_usage usage) noexcept
 texture::texture(renderer& renderer, std::uint32_t width, const texture_info& info)
 :m_format{info.format}
 ,m_aspect{aspect_from_format(m_format)}
+,m_sample_count{info.sample_count}
 ,m_width{width}
 ,m_height{1}
 ,m_depth{1}
@@ -82,6 +83,7 @@ texture::texture(renderer& renderer, std::uint32_t width, const texture_info& in
 texture::texture(renderer& renderer, std::uint32_t width, const texture_info& info, const sampling_options& options)
 :m_format{info.format}
 ,m_aspect{aspect_from_format(m_format)}
+,m_sample_count{info.sample_count}
 ,m_width{width}
 ,m_height{1}
 ,m_depth{1}
@@ -121,6 +123,7 @@ texture::texture(renderer& renderer, std::uint32_t width, const texture_info& in
 texture::texture(renderer& renderer, std::uint32_t width, std::uint32_t height, const texture_info& info)
 :m_format{info.format}
 ,m_aspect{aspect_from_format(m_format)}
+,m_sample_count{info.sample_count}
 ,m_width{width}
 ,m_height{height}
 ,m_depth{1}
@@ -155,6 +158,7 @@ texture::texture(renderer& renderer, std::uint32_t width, std::uint32_t height, 
 texture::texture(renderer& renderer, std::uint32_t width, std::uint32_t height, const texture_info& info, const sampling_options& options)
 :m_format{info.format}
 ,m_aspect{aspect_from_format(m_format)}
+,m_sample_count{info.sample_count}
 ,m_width{width}
 ,m_height{height}
 ,m_depth{1}
@@ -194,6 +198,7 @@ texture::texture(renderer& renderer, std::uint32_t width, std::uint32_t height, 
 texture::texture(renderer& renderer, std::uint32_t width, std::uint32_t height, std::uint32_t depth, const texture_info& info)
 :m_format{info.format}
 ,m_aspect{aspect_from_format(m_format)}
+,m_sample_count{info.sample_count}
 ,m_width{width}
 ,m_height{height}
 ,m_depth{depth}
@@ -228,6 +233,7 @@ texture::texture(renderer& renderer, std::uint32_t width, std::uint32_t height, 
 texture::texture(renderer& renderer, std::uint32_t width, std::uint32_t height, std::uint32_t depth, const texture_info& info, const sampling_options& options)
 :m_format{info.format}
 ,m_aspect{aspect_from_format(m_format)}
+,m_sample_count{info.sample_count}
 ,m_width{width}
 ,m_height{height}
 ,m_depth{depth}

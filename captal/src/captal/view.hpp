@@ -48,8 +48,8 @@ public:
     void bind(frame_render_info info);
 
     void fit(std::uint32_t width, std::uint32_t height);
-    void fit(const render_texture_ptr& window);
-    void fit(const render_window_ptr& texture);
+    void fit(const texture_ptr& window);
+    void fit(const window_ptr& texture);
 
     void set_binding(std::uint32_t index, cpt::binding binding);
 

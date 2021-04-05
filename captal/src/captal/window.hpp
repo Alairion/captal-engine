@@ -1,5 +1,5 @@
-#ifndef CAPTAL_RENDER_WINDOW_HPP_INCLUDED
-#define CAPTAL_RENDER_WINDOW_HPP_INCLUDED
+#ifndef CAPTAL_WINDOW_HPP_INCLUDED
+#define CAPTAL_WINDOW_HPP_INCLUDED
 
 #include "config.hpp"
 
@@ -71,16 +71,6 @@ private:
     apr::event_iterator m_iterator{};
 };
 
-struct video_mode
-{
-    std::uint32_t image_count{2};
-    tph::texture_usage usage{tph::texture_usage::color_attachment};
-    tph::surface_transform transform{tph::surface_transform::identity};
-    tph::surface_composite composite{tph::surface_composite::opaque};
-    tph::present_mode present_mode{tph::present_mode::fifo};
-    bool clipping{true};
-};
-
 using window_event_signal = cpt::signal<const apr::window_event&>;
 using mouse_event_signal = cpt::signal<const apr::mouse_event&>;
 using keyboard_event_signal = cpt::signal<const apr::keyboard_event&>;
@@ -92,11 +82,10 @@ class CAPTAL_API window : apr::window
 
 public:
     window() = default;
-    explicit window(const std::string& title, std::uint32_t width, std::uint32_t height, const cpt::video_mode& mode, apr::window_options options = apr::window_options::none);
-    explicit window(const apr::monitor& monitor, const std::string& title, std::uint32_t width, std::uint32_t height, const cpt::video_mode& mode, apr::window_options options = apr::window_options::none);
-    explicit window(apr::window window, const cpt::video_mode& mode);
+    explicit window(const std::string& title, std::uint32_t width, std::uint32_t height, apr::window_options options = apr::window_options::none);
+    explicit window(const apr::monitor& monitor, const std::string& title, std::uint32_t width, std::uint32_t height, apr::window_options options = apr::window_options::none);
 
-    virtual ~window();
+    ~window() = default;
     window(const window&) = delete;
     window& operator=(const window&) = delete;
     window(window&&) = default;
@@ -151,11 +140,6 @@ public:
         return static_cast<const apr::window&>(*this);
     }
 
-    const cpt::video_mode& video_mode() const noexcept
-    {
-        return m_video_mode;
-    }
-
     tph::texture_format surface_format() const noexcept
     {
         return m_surface_format;
@@ -169,16 +153,6 @@ public:
     const tph::surface& surface() const noexcept
     {
         return m_surface;
-    }
-
-    tph::swapchain& swapchain() noexcept
-    {
-        return m_swapchain;
-    }
-
-    const tph::swapchain& swapchain() const noexcept
-    {
-        return m_swapchain;
     }
 
     window_event_signal& on_gained_focus()  noexcept {return m_gained_focus;}
@@ -222,10 +196,8 @@ public:
 #endif
 
 private:
-    cpt::video_mode m_video_mode{};
     tph::texture_format m_surface_format{};
     tph::surface m_surface{};
-    tph::swapchain m_swapchain{};
 
     bool m_closed{};
     bool m_renderable{true};
@@ -247,10 +219,6 @@ private:
     keyboard_event_signal m_key_pressed{};
     keyboard_event_signal m_key_released{};
     text_event_signal     m_text_entered{};
-
-#ifdef CAPTAL_DEBUG
-    std::string m_name{};
-#endif
 };
 
 using window_ptr = std::shared_ptr<window>;

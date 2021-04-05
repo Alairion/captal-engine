@@ -136,6 +136,11 @@ public:
         return m_aspect;
     }
 
+    sample_count sample_count() const noexcept
+    {
+        return m_sample_count;
+    }
+
     std::uint32_t width() const noexcept
     {
         return m_width;
@@ -160,6 +165,7 @@ private:
     vulkan::sampler m_sampler{};
     texture_format m_format{texture_format::undefined};
     texture_aspect m_aspect{};
+    tph::sample_count m_sample_count{};
     std::uint32_t m_width{};
     std::uint32_t m_height{};
     std::uint32_t m_depth{};

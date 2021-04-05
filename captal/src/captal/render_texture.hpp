@@ -13,22 +13,15 @@
 namespace cpt
 {
 
-struct render_texture_info
-{
-    std::uint32_t width{};
-    std::uint32_t height{};
-    tph::texture_format format{tph::texture_format::r8g8b8a8_srgb};
-    tph::texture_usage usage{};
-};
-
-class CAPTAL_API render_texture final : public texture, public render_target
+class CAPTAL_API render_texture final : public render_target
 {
 public:
     render_texture() = default;
-    explicit render_texture(const render_texture_info& info, const tph::render_pass_info& render_pass, std::vector<render_target_attachment> attachments);
-    explicit render_texture(const render_texture_info& info, const tph::sampling_options& sampling, const tph::render_pass_info& render_pass, std::vector<render_target_attachment> attachments);
-    explicit render_texture(const render_texture_info& info, tph::sample_count sample_count = tph::sample_count::msaa_x1, tph::texture_format depth_format = tph::texture_format::undefined);
-    explicit render_texture(const render_texture_info& info, const tph::sampling_options& sampling, tph::sample_count sample_count = tph::sample_count::msaa_x1, tph::texture_format depth_format = tph::texture_format::undefined);
+    explicit render_texture(std::uint32_t width, std::uint32_t height, const tph::render_pass_info& render_pass, std::vector<texture_ptr> attachments);
+    explicit render_texture(texture_ptr texture,
+                            tph::sample_count   sample_count = tph::sample_count::msaa_x1,
+                            tph::texture_format depth_format = tph::texture_format::undefined,
+                            tph::texture_layout final_layout = tph::texture_layout::shader_read_only_optimal);
 
     ~render_texture();
     render_texture(const render_texture&) = delete;
@@ -40,47 +33,7 @@ public:
     void present() override;
     void wait() override;
 
-    tph::framebuffer& framebuffer() noexcept
-    {
-        return m_framebuffer;
-    }
-
-    const tph::framebuffer& framebuffer() const noexcept
-    {
-        return m_framebuffer;
-    }
-
-    texture& attachement(std::size_t index) noexcept
-    {
-        return std::visit([this](auto&& attachement) -> texture&
-        {
-            if constexpr(std::is_same_v<std::decay_t<decltype(attachement)>, current_target_t>)
-            {
-                return *this;
-            }
-            else
-            {
-                return *attachement;
-            }
-        }, m_attachments[index]);
-    }
-
-    const texture& attachement(std::size_t index) const noexcept
-    {
-        return std::visit([this](auto&& attachement) -> const texture&
-        {
-            if constexpr(std::is_same_v<std::decay_t<decltype(attachement)>, current_target_t>)
-            {
-                return *this;
-            }
-            else
-            {
-                return *attachement;
-            }
-        }, m_attachments[index]);
-    }
-
-    std::span<const render_target_attachment> attachements() const noexcept
+    std::span<const texture_ptr> attachements() const noexcept
     {
         return m_attachments;
     }
@@ -109,21 +62,25 @@ private:
     };
 
 private:
-    frame_data& next_frame();
-    frame_data& add_frame_data();
-    void reset_frame_data(frame_data& data);
     void time_results(frame_data& data);
+    void flush_frame_data(frame_data& data);
+    void reset_frame_data(frame_data& data);
+    bool next_frame();
+    frame_data& add_frame_data();
 
 private:
-    std::uint32_t m_epoch{};
-    std::vector<render_target_attachment> m_attachments{};
+    std::uint32_t m_epoch{1};
+    std::vector<texture_ptr> m_attachments{};
     tph::framebuffer m_framebuffer{};
     tph::command_pool m_pool{};
     std::vector<frame_data> m_frames_data{};
-    frame_data* m_current{};
+    frame_data* m_data{};
 
 #ifdef CAPTAL_DEBUG
     std::string m_name{};
+    bool m_own_attachments{};
+    bool m_has_multisampling{};
+    bool m_has_depth_stencil{};
 #endif
 };
 

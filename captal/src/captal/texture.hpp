@@ -68,6 +68,11 @@ public:
         return m_texture.aspect();
     }
 
+    tph::sample_count sample_count() const noexcept
+    {
+        return m_texture.sample_count();
+    }
+
     tph::texture& get_texture() noexcept
     {
         return m_texture;

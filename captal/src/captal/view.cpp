@@ -93,12 +93,12 @@ void view::fit(std::uint32_t width, std::uint32_t height)
     m_need_upload = true;
 }
 
-void view::fit(const render_window_ptr& window)
+void view::fit(const window_ptr& window)
 {
     fit(window->width(), window->height());
 }
 
-void view::fit(const render_texture_ptr& texture)
+void view::fit(const texture_ptr& texture)
 {
     fit(texture->width(), texture->height());
 }

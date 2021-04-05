@@ -856,7 +856,10 @@ public:
 
     std::uint64_t translation_count() const noexcept
     {
-        return std::accumulate(std::begin(m_sections), std::end(m_sections), std::uint64_t{0}, [](std::uint64_t value, auto&& section){return value + std::size(section.second);});
+        return std::accumulate(std::begin(m_sections), std::end(m_sections), std::uint64_t{0}, [](std::uint64_t value, auto&& section)
+        {
+            return value + std::size(section.second);
+        });
     }
 
     std::uint64_t section_count() const noexcept
