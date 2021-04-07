@@ -140,11 +140,6 @@ public:
         return static_cast<const apr::window&>(*this);
     }
 
-    tph::texture_format surface_format() const noexcept
-    {
-        return m_surface_format;
-    }
-
     tph::surface& surface() noexcept
     {
         return m_surface;
@@ -196,7 +191,6 @@ public:
 #endif
 
 private:
-    tph::texture_format m_surface_format{};
     tph::surface m_surface{};
 
     bool m_closed{};

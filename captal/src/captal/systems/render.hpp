@@ -52,19 +52,23 @@ void prepare_render(entt::registry& world)
 }
 
 template<components::drawable_specialization Drawable = components::drawable>
-void render(entt::registry& world)
+void render(entt::registry& world, cpt::begin_render_options options = cpt::begin_render_options::none)
 {
     prepare_render<Drawable>(world);
 
-    const auto draw = [&world](components::camera& camera)
+    const auto draw = [&world, options](components::camera& camera)
     {
-        if(camera && camera->target().is_rendering_enable())
+        if(camera && camera->target().is_renderable())
         {
-            auto render  {camera->target().begin_render()};
+            auto render  {camera->target().begin_render(options)};
             auto transfer{engine::instance().begin_transfer()};
 
             camera->upload(transfer);
-            camera->bind(render);
+
+            if(render)
+            {
+                camera->bind(*render);
+            }
 
             world.view<Drawable>().each([&camera, &transfer, &render](Drawable& drawable)
             {
@@ -75,7 +79,11 @@ void render(entt::registry& world)
                         if(!renderable.hidden())
                         {
                             renderable.upload(transfer);
-                            renderable.draw(render, *camera);
+
+                            if(render)
+                            {
+                                renderable.draw(*render, *camera);
+                            }
                         }
                     });
                 }

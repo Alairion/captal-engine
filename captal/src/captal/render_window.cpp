@@ -5,6 +5,52 @@
 namespace cpt
 {
 
+static tph::texture_format choose_surface_format(tph::surface& surface, video_mode& mode)
+{
+    const auto choose_format = [&surface]
+    {
+        const auto formats{surface.formats(engine::instance().graphics_device())};
+
+        if(std::size(formats) == 1 && formats[0] == tph::texture_format::undefined)
+        {
+            return tph::texture_format::r8g8b8a8_srgb;
+        }
+
+        for(auto format : formats)
+        {
+            if(format == tph::texture_format::b8g8r8a8_srgb)
+            {
+                return format;
+            }
+            else if(format == tph::texture_format::r8g8b8a8_srgb)
+            {
+                return format;
+            }
+        }
+
+        for(auto format : formats)
+        {
+            if(format == tph::texture_format::b8g8r8a8_unorm)
+            {
+                return format;
+            }
+            else if(format == tph::texture_format::b8g8r8a8_unorm)
+            {
+                return format;
+            }
+        }
+
+        return formats[0];
+    };
+
+    if(mode.surface_format == tph::texture_format::undefined)
+    {
+        mode.surface_format = choose_format();
+    }
+
+    return mode.surface_format;
+}
+
 static tph::render_pass_info make_render_pass_info(tph::texture_format color_format, tph::sample_count sample_count, tph::texture_format depth_format)
 {
     const bool has_multisampling{sample_count != tph::sample_count::msaa_x1};
@@ -82,29 +128,34 @@ static tph::render_pass_info make_render_pass_info(tph::texture_format color_for
     return output;
 }
 
-static tph::swapchain_info make_swapchain_info(cpt::video_mode info, const window& window)
+static std::optional<tph::swapchain> make_swapchain(const cpt::video_mode& mode, window& window)
 {
     const auto capabilities{window.surface().capabilities(engine::instance().renderer())};
 
-    assert(((info.usage & capabilities.supported_usages) == info.usage) && "cpt::render_window image usage unsuported.");
-    assert((info.composite & capabilities.supported_composites) == info.composite && "cpt::render_window composite unsuported.");
+    if(capabilities.current_width == 0 || capabilities.current_height == 0)
+    {
+        return std::nullopt;
+    }
 
-    tph::swapchain_info output{};
+    assert(((mode.usage & capabilities.supported_usages) == mode.usage) && "cpt::render_window image usage unsuported.");
+    assert((mode.composite & capabilities.supported_composites) == mode.composite && "cpt::render_window composite unsuported.");
 
-    output.image_count  = info.image_count;
-    output.width        = capabilities.current_width  == 0xFFFFFFFFu ? window.width()  : capabilities.current_width;
-    output.height       = capabilities.current_height == 0xFFFFFFFFu ? window.height() : capabilities.current_height;
-    output.format       = window.surface_format();
-    output.usage        = info.usage;
-    output.composite    = info.composite;
-    output.transform    = capabilities.current_transform;
-    output.present_mode = info.present_mode;
-    output.clipping     = info.clipping;
+    tph::swapchain_info info{};
 
-    return output;
+    info.image_count  = mode.image_count;
+    info.width        = capabilities.current_width  == 0xFFFFFFFFu ? window.width()  : capabilities.current_width;
+    info.height       = capabilities.current_height == 0xFFFFFFFFu ? window.height() : capabilities.current_height;
+    info.format       = mode.surface_format;
+    info.usage        = mode.usage;
+    info.composite    = mode.composite;
+    info.transform    = capabilities.current_transform;
+    info.present_mode = mode.present_mode;
+    info.clipping     = mode.clipping;
+
+    return tph::swapchain{engine::instance().renderer(), window.surface(), info};
 }
 
-static tph::texture make_multisampling_texture(const tph::swapchain& swapchain, tph::texture_format surface_format, tph::sample_count sample_count)
+static tph::texture make_msaa_texture(const tph::swapchain& swapchain, tph::texture_format surface_format, tph::sample_count sample_count)
 {
     if(sample_count == tph::sample_count::msaa_x1)
     {
@@ -159,16 +210,13 @@ static std::vector<std::reference_wrapper<tph::texture>> make_attachments(video_
     return output;
 }
 
-render_window::render_window(window_ptr window, const video_mode& video_mode)
-:render_target{make_render_pass_info(window->surface_format(), video_mode.sample_count, video_mode.depth_format)}
+render_window::render_window(window_ptr window, video_mode mode)
+:render_target{make_render_pass_info(choose_surface_format(window->surface(), mode), mode.sample_count, mode.depth_format)}
 ,m_window{std::move(window)}
-,m_mode{video_mode}
-,m_swapchain{engine::instance().renderer(), m_window->surface(), make_swapchain_info(m_mode, *m_window)}
-,m_multisampling_texture{make_multisampling_texture(m_swapchain, m_window->surface_format(), m_mode.sample_count)}
-,m_depth_texture{make_depth_texture(m_swapchain, m_mode.depth_format, m_mode.sample_count)}
+,m_mode{mode}
 ,m_pool{engine::instance().renderer(), tph::command_pool_options::reset}
 {
-    setup_frame_data();
+    recreate();
 }
 
 render_window::~render_window()
@@ -178,6 +226,13 @@ render_window::~render_window()
 
 std::optional<frame_render_info> render_window::begin_render(begin_render_options options)
 {
+    if(m_fake_frame || std::empty(m_frames_data) || m_status == render_window_status::surface_lost)
+    {
+        m_fake_frame = true;
+
+        return std::nullopt;
+    }
+
     auto& data{m_frames_data[m_frame_index]};
 
     if(data.begin)
@@ -206,10 +261,12 @@ std::optional<frame_render_info> render_window::begin_render(begin_render_option
 
     if(!acquire(data))
     {
+        m_fake_frame = true;
+
         return std::nullopt;
     }
 
-    auto& framebuffer{m_framebuffers[m_swapchain.image_index()]};
+    auto& framebuffer{m_framebuffers[m_swapchain->image_index()]};
     update_clear_values(framebuffer);
 
     tph::cmd::begin(data.buffer, tph::command_buffer_reset_options::none);
@@ -235,20 +292,30 @@ std::optional<frame_render_info> render_window::begin_render(begin_render_option
 
 void render_window::present()
 {
-    auto& data{m_frames_data[m_frame_index]};
-
-    assert(data.begin && "cpt::render_window::present called before cpt:render_window::begin_render.");
-
-    m_frame_index = (m_frame_index + 1) % m_swapchain.info().image_count;
-
-    tph::cmd::end_render_pass(data.buffer);
-
-    if(data.timed)
+    if(std::exchange(m_fake_frame, false))
     {
-        tph::cmd::write_timestamp(data.buffer, data.query_pool, 1, tph::pipeline_stage::bottom_of_pipe);
+        return;
     }
 
-    tph::cmd::end(data.buffer);
+    auto& data{m_frames_data[m_frame_index]};
+
+    assert(data.begin && "cpt::render_window::present called without prior call to cpt:render_window::begin_render.");
+
+    m_frame_index = (m_frame_index + 1) % m_swapchain->info().image_count;
+
+    if(data.epoch != m_epoch)
+    {
+        tph::cmd::end_render_pass(data.buffer);
+
+        if(data.timed)
+        {
+            tph::cmd::write_timestamp(data.buffer, data.query_pool, 1, tph::pipeline_stage::bottom_of_pipe);
+        }
+
+        tph::cmd::end(data.buffer);
+        data.epoch = m_epoch;
+    }
+
     data.begin = false;
 
     tph::submit_info submit_info{};
@@ -264,9 +331,8 @@ void render_window::present()
     lock.unlock();
 
     data.submitted = true;
-    data.epoch = m_epoch;
 
-    const auto status{m_swapchain.present(data.image_presentable)};
+    const auto status{m_swapchain->present(data.image_presentable)};
 
     if(status == tph::swapchain_status::surface_lost)
     {
@@ -274,13 +340,6 @@ void render_window::present()
     }
     else if(status != tph::swapchain_status::valid)
     {
-        const auto capabilities{m_window->surface().capabilities(engine::instance().renderer())};
-        if(capabilities.current_width == 0 && capabilities.current_height == 0)
-        {
-            m_status = render_window_status::unrenderable;
-            return;
-        }
-
         recreate();
     }
 }
@@ -299,17 +358,17 @@ void render_window::wait()
 #ifdef CAPTAL_DEBUG
 void render_window::set_name(std::string_view name)
 {
-    m_name = name;
+    m_name = std::string{name};
 
     const bool has_multisampling{m_mode.sample_count != tph::sample_count::msaa_x1};
     const bool has_depth_stencil{m_mode.depth_format != tph::texture_format::undefined};
 
-    tph::set_object_name(engine::instance().renderer(), m_swapchain, m_name + " swapchain");
+    tph::set_object_name(engine::instance().renderer(), *m_swapchain, m_name + " swapchain");
     tph::set_object_name(engine::instance().renderer(), get_render_pass(), m_name + " render pass");
 
     if(has_multisampling)
     {
-        tph::set_object_name(engine::instance().renderer(), m_multisampling_texture, m_name + " multisampling texture");
+        tph::set_object_name(engine::instance().renderer(), m_msaa_texture, m_name + " multisampling texture");
     }
 
     if(has_depth_stencil)
@@ -319,8 +378,8 @@ void render_window::set_name(std::string_view name)
 
     for(std::size_t i{}; i < std::size(m_frames_data); ++i)
     {
-        tph::set_object_name(engine::instance().renderer(), m_swapchain.textures()[i], m_name + " swapchain image #" + std::to_string(i));
-        tph::set_object_name(engine::instance().renderer(), m_framebuffers[i],         m_name + " swapchain framebuffer #" + std::to_string(i));
+        tph::set_object_name(engine::instance().renderer(), m_swapchain->textures()[i], m_name + " swapchain image #" + std::to_string(i));
+        tph::set_object_name(engine::instance().renderer(), m_framebuffers[i],          m_name + " swapchain framebuffer #" + std::to_string(i));
 
         tph::set_object_name(engine::instance().renderer(), m_frames_data[i].buffer,            m_name + " frame #" + std::to_string(i) + " command buffer");
         tph::set_object_name(engine::instance().renderer(), m_frames_data[i].image_available,   m_name + " frame #" + std::to_string(i) + " available semaphore");
@@ -333,10 +392,9 @@ void render_window::set_name(std::string_view name)
 
 void render_window::setup_frame_data()
 {
-    m_frames_data.reserve(m_swapchain.info().image_count);
-    m_framebuffers.reserve(m_swapchain.info().image_count);
+    m_frames_data.reserve(m_swapchain->info().image_count);
 
-    for(std::uint32_t i{}; i < m_swapchain.info().image_count; ++i)
+    for(std::uint32_t i{}; i < m_swapchain->info().image_count; ++i)
     {
         frame_data data{};
         data.buffer = tph::cmd::begin(m_pool, tph::command_buffer_level::primary);
@@ -346,9 +404,18 @@ void render_window::setup_frame_data()
         data.query_pool = tph::query_pool{engine::instance().renderer(), 2, tph::query_type::timestamp};
 
         m_frames_data.emplace_back(std::move(data));
+    }
+}
 
-        const auto attachments{make_attachments(m_mode, m_swapchain.textures()[i], m_multisampling_texture, m_depth_texture)};
-        m_framebuffers.emplace_back(engine::instance().renderer(), get_render_pass(), attachments, m_swapchain.info().width, m_swapchain.info().height, 1);
+void render_window::setup_framebuffers()
+{
+    m_framebuffers.reserve(m_swapchain->info().image_count);
+
+    for(std::uint32_t i{}; i < m_swapchain->info().image_count; ++i)
+    {
+        const auto attachments{make_attachments(m_mode, m_swapchain->textures()[i], m_msaa_texture, m_depth_texture)};
+
+        m_framebuffers.emplace_back(engine::instance().renderer(), get_render_pass(), attachments, m_swapchain->info().width, m_swapchain->info().height, 1);
     }
 }
 
@@ -371,6 +438,35 @@ void render_window::update_clear_values(tph::framebuffer& framebuffer)
     else if(has_multisampling)
     {
         framebuffer.set_clear_value(1, m_clear_color);
+    }
+}
+
+bool render_window::check_renderability()
+{
+    try
+    {
+        const auto capabilities{m_window->surface().capabilities(engine::instance().renderer())};
+
+        if(capabilities.current_width != 0 && capabilities.current_height != 0)
+        {
+            m_status = render_window_status::ok;
+            return true;
+        }
+        else
+        {
+            m_status = render_window_status::unrenderable;
+            return false;
+        }
+    }
+    catch(const tph::vulkan::error& e)
+    {
+        if(e.error_code() == VK_ERROR_SURFACE_LOST_KHR)
+        {
+            m_status = render_window_status::surface_lost;
+            return false;
+        }
+
+        throw;
     }
 }
 
@@ -421,22 +517,18 @@ void render_window::reset_frame_data(frame_data& data)
 
 bool render_window::acquire(frame_data& data)
 {
-    auto status{m_swapchain.acquire(data.image_available, tph::nullref)};
+    auto status{m_swapchain->acquire(data.image_available, tph::nullref)};
 
     //We continue the normal path even if the swapchain is suboptimal
     //The present function will recreate it after presentation (if possible)
     while(status == tph::swapchain_status::out_of_date)
     {
-        const auto capabilities{m_window->surface().capabilities(engine::instance().renderer())};
-        if(capabilities.current_width == 0 && capabilities.current_height == 0)
+        if(!recreate())
         {
-            m_status = render_window_status::unrenderable;
             return false;
         }
 
-        recreate();
-
-        status = m_swapchain.acquire(data.image_available, tph::nullref);
+        status = m_swapchain->acquire(data.image_available, tph::nullref);
     }
 
     if(status == tph::swapchain_status::surface_lost) //may happens on window closure
@@ -452,57 +544,57 @@ bool render_window::acquire(frame_data& data)
         flush_frame_data(data);
         return false;
     }
-    else
-    {
-        reset_frame_data(data);
-        return true;
-    }
+
+    reset_frame_data(data);
+
+    return true;
 }
 
-void render_window::recreate()
+bool render_window::recreate()
 {
     wait();
 
-    m_frame_index = 0;
     ++m_epoch;
 
-    m_swapchain = tph::swapchain{engine::instance().renderer(), m_window->surface(), make_swapchain_info(m_mode, *m_window), m_swapchain};
-    m_multisampling_texture = make_multisampling_texture(m_swapchain, m_window->surface_format(), m_mode.sample_count);
-    m_depth_texture = make_depth_texture(m_swapchain, m_mode.depth_format, m_mode.sample_count);
+    try
+    {
+        m_swapchain = make_swapchain(m_mode, *m_window);
+
+        if(!m_swapchain)
+        {
+            m_status = render_window_status::unrenderable;
+            return false;
+        }
+    }
+    catch(const tph::vulkan::error& e)
+    {
+        if(e.error_code() == VK_ERROR_SURFACE_LOST_KHR)
+        {
+            m_status = render_window_status::surface_lost;
+            return false;
+        }
+
+        throw;
+    }
+
+    m_msaa_texture = make_msaa_texture(*m_swapchain, m_mode.surface_format, m_mode.sample_count);
+    m_depth_texture = make_depth_texture(*m_swapchain, m_mode.depth_format, m_mode.sample_count);
+
+    setup_framebuffers();
+
+    if(std::size(m_frames_data) != m_swapchain->info().image_count)
+    {
+        m_frames_data.clear();
+        setup_frame_data();
+    }
 
     #ifdef CAPTAL_DEBUG
-    if(!std::empty(m_name))
-    {
-        const bool has_multisampling{m_mode.sample_count != tph::sample_count::msaa_x1};
-        const bool has_depth_stencil{m_mode.depth_format != tph::texture_format::undefined};
-
-        tph::set_object_name(engine::instance().renderer(), m_swapchain, m_name + " swapchain");
-
-        if(has_multisampling)
-        {
-            tph::set_object_name(engine::instance().renderer(), m_multisampling_texture, m_name + " multisampling texture");
-        }
-
-        if(has_depth_stencil)
-        {
-            tph::set_object_name(engine::instance().renderer(), m_depth_texture, m_name + " depth texture");
-        }
-    }
+    set_name(m_name);
     #endif
 
-    for(std::uint32_t i{}; i < m_swapchain.info().image_count; ++i)
-    {
-        const auto attachments{make_attachments(m_mode, m_swapchain.textures()[i], m_multisampling_texture, m_depth_texture)};
+    m_status = render_window_status::ok;
 
-        m_framebuffers[i] = tph::framebuffer{engine::instance().renderer(), get_render_pass(), attachments, m_swapchain.info().width, m_swapchain.info().height, 1};
-
-        #ifdef CAPTAL_DEBUG
-        if(!std::empty(m_name))
-        {
-            tph::set_object_name(engine::instance().renderer(), m_framebuffers[i], m_name + " frame #" + std::to_string(i) + " framebuffer");
-        }
-        #endif
-    }
+    return true;
 }
 
 

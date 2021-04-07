@@ -58,42 +58,6 @@ static tph::surface make_window_surface(apr::window& window)
     return output;
 }
 
-static tph::texture_format choose_surface_format(tph::surface& surface)
-{
-    const auto formats{surface.formats(engine::instance().graphics_device())};
-
-    if(std::size(formats) == 1 && formats[0] == tph::texture_format::undefined)
-    {
-        return tph::texture_format::r8g8b8a8_srgb;
-    }
-
-    for(auto format : formats)
-    {
-        if(format == tph::texture_format::b8g8r8a8_srgb)
-        {
-            return format;
-        }
-        else if(format == tph::texture_format::r8g8b8a8_srgb)
-        {
-            return format;
-        }
-    }
-
-    for(auto format : formats)
-    {
-        if(format == tph::texture_format::b8g8r8a8_unorm)
-        {
-            return format;
-        }
-        else if(format == tph::texture_format::b8g8r8a8_unorm)
-        {
-            return format;
-        }
-    }
-
-    return formats[0];
-}
-
 window::window(const std::string& title, std::uint32_t width, std::uint32_t height, apr::window_options options)
 :window{engine::instance().application().system_application().main_monitor(), title, width, height, options}
 {
@@ -102,7 +66,6 @@ window::window(const std::string& title, std::uint32_t width, std::uint32_t heig
 
 window::window(const apr::monitor& monitor, const std::string& title, std::uint32_t width, std::uint32_t height, apr::window_options options)
 :apr::window{engine::instance().application().system_application(), monitor, title, width, height, options}
-,m_surface_format{choose_surface_format(m_surface)}
 ,m_surface{make_window_surface(get_window())}
 {
 

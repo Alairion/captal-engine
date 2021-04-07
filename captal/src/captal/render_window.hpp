@@ -26,6 +26,7 @@ struct video_mode
     tph::surface_composite composite{tph::surface_composite::opaque};
     tph::present_mode present_mode{tph::present_mode::fifo};
     bool clipping{true};
+    tph::texture_format surface_format{tph::texture_format::undefined};
     tph::sample_count sample_count{tph::sample_count::msaa_x1};
     tph::texture_format depth_format{tph::texture_format::undefined};
 };
@@ -41,7 +42,7 @@ class CAPTAL_API render_window final : public render_target
 {
 public:
     render_window() = default;
-    explicit render_window(window_ptr window, const video_mode& video_mode);
+    explicit render_window(window_ptr window, video_mode mode);
 
     ~render_window();
     render_window(const render_window&) = delete;
@@ -78,11 +79,6 @@ public:
         return m_status;
     }
 
-    bool is_renderable() const noexcept
-    {
-        return m_status == render_window_status::ok && m_window->is_renderable();
-    }
-
 #ifdef CAPTAL_DEBUG
     void set_name(std::string_view name);
 #else
@@ -111,25 +107,28 @@ private:
 
 private:
     void setup_frame_data();
+    void setup_framebuffers();
     void update_clear_values(tph::framebuffer& framebuffer);
 
+    bool check_renderability();
     void flush_frame_data(frame_data& data);
     void reset_frame_data(frame_data& data);
     void time_results(frame_data& data);
     bool acquire(frame_data& data);
-    void recreate();
+    bool recreate();
 
 private:
     window_ptr m_window{};
     video_mode m_mode{};
-    tph::swapchain m_swapchain{};
-    tph::texture m_multisampling_texture{};
+    std::optional<tph::swapchain> m_swapchain{};
+    tph::texture m_msaa_texture{};
     tph::texture m_depth_texture{};
     tph::clear_color_value m_clear_color{};
     tph::clear_depth_stencil_value m_clear_depth_stencil{};
     std::uint32_t m_epoch{1};
     std::uint32_t m_frame_index{};
     render_window_status m_status{};
+    bool m_fake_frame{};
 
     tph::command_pool m_pool{};
     std::vector<frame_data> m_frames_data{};
