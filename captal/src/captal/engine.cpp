@@ -48,7 +48,7 @@ static const swl::physical_device& default_audio_device(const swl::application& 
 {
     if(parameters.physical_device.has_value())
     {
-        return parameters.physical_device.value();
+        return *parameters.physical_device;
     }
 
     const swl::physical_device& default_device{application.default_physical_device()};
@@ -86,7 +86,7 @@ static const tph::physical_device& default_graphics_device(const tph::applicatio
 {
     if(parameters.physical_device.has_value())
     {
-        return parameters.physical_device.value();
+        return *parameters.physical_device;
     }
 
     const auto requirements = [&parameters](const tph::physical_device& device) -> bool

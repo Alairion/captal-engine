@@ -161,7 +161,7 @@ std::optional<bin_packer::rect> font_atlas::add_glyph(std::span<const uint8_t> i
         std::copy(std::begin(image), std::end(image), std::begin(m_buffer_data) + begin);
     }
 
-    m_buffers.emplace_back(transfer_buffer{begin, rect.value()});
+    m_buffers.emplace_back(transfer_buffer{begin, *rect});
 
     return rect;
 }
@@ -516,7 +516,7 @@ std::optional<glyph> font::load(codepoint_t codepoint, glyph_format format, bool
         FT_BBox bbox;
         FT_Glyph_Get_CBox(glyph, FT_GLYPH_BBOX_PIXELS, &bbox);
 
-        if(old_xmin && old_xmin.value() != bbox.xMin) //Subpixel adjustment correction
+        if(old_xmin && *old_xmin != bbox.xMin) //Subpixel adjustment correction
         {
             output.origin.x() += 1.0f;
         }

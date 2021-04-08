@@ -326,10 +326,10 @@ pipeline::pipeline(renderer& renderer, render_pass& render_pass, std::uint32_t s
     if(parent.has_value())
     {
         create_info.flags |= VK_PIPELINE_CREATE_DERIVATIVE_BIT;
-        create_info.basePipelineHandle = parent.value().m_pipeline;
+        create_info.basePipelineHandle = parent->m_pipeline;
     }
 
-    VkPipelineCache native_cache{cache.has_value() ? underlying_cast<VkPipelineCache>(cache.value()) : VkPipelineCache{}};
+    VkPipelineCache native_cache{cache.has_value() ? underlying_cast<VkPipelineCache>(*cache) : VkPipelineCache{}};
 
     m_pipeline = vulkan::pipeline{underlying_cast<VkDevice>(renderer), create_info, native_cache};
 }
@@ -362,10 +362,10 @@ pipeline::pipeline(renderer& renderer, const compute_pipeline_info& info, const 
     if(parent.has_value())
     {
         create_info.flags |= VK_PIPELINE_CREATE_DERIVATIVE_BIT;
-        create_info.basePipelineHandle = parent.value().m_pipeline;
+        create_info.basePipelineHandle = parent->m_pipeline;
     }
 
-    VkPipelineCache native_cache{cache.has_value() ? underlying_cast<VkPipelineCache>(cache.value()) : VkPipelineCache{}};
+    VkPipelineCache native_cache{cache.has_value() ? underlying_cast<VkPipelineCache>(*cache) : VkPipelineCache{}};
 
     m_pipeline = vulkan::pipeline{underlying_cast<VkDevice>(renderer), create_info, native_cache};
 }

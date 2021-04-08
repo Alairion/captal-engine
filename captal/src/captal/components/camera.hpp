@@ -41,12 +41,12 @@ public:
 
     view& attachment() noexcept
     {
-        return m_attachment.value();
+        return *m_attachment;
     }
 
     const view& attachment() const noexcept
     {
-        return m_attachment.value();
+        return *m_attachment;
     }
 
     bool has_attachment() const noexcept
@@ -66,22 +66,22 @@ public:
 
     view& operator*() noexcept
     {
-        return m_attachment.value();
+        return *m_attachment;
     }
 
     const view& operator*() const noexcept
     {
-        return m_attachment.value();
+        return *m_attachment;
     }
 
     view* operator->() noexcept
     {
-        return &m_attachment.value();
+        return &(*m_attachment);
     }
 
     const view* operator->() const noexcept
     {
-        return &m_attachment.value();
+        return &(*m_attachment);
     }
 
 private:

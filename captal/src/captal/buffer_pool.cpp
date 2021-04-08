@@ -390,7 +390,7 @@ buffer_heap_chunk buffer_pool::allocate(std::uint64_t size, std::uint64_t alignm
 
                 if(chunk)
                 {
-                    return std::move(chunk.value());
+                    return std::move(*chunk);
                 }
             }
         }

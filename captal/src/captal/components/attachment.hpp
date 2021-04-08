@@ -48,12 +48,12 @@ public:
 
     reference attachment() noexcept
     {
-        return m_attachment.value();
+        return *m_attachment;
     }
 
     const_reference attachment() const noexcept
     {
-        return m_attachment.value();
+        return *m_attachment;
     }
 
     bool has_attachment() const noexcept
@@ -73,22 +73,22 @@ public:
 
     reference operator*() noexcept
     {
-        return m_attachment.value();
+        return *m_attachment;
     }
 
     const_reference operator*() const noexcept
     {
-        return m_attachment.value();
+        return *m_attachment;
     }
 
     pointer operator->() noexcept
     {
-        return &m_attachment.value();
+        return &(*m_attachment);
     }
 
     const_pointer operator->() const noexcept
     {
-        return &m_attachment.value();
+        return &(*m_attachment);
     }
 
 private:

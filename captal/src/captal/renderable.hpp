@@ -326,7 +326,7 @@ public:
         auto output{try_get_binding(1)};
         if(output)
         {
-            return std::get<texture_ptr>(output.value());
+            return std::get<texture_ptr>(*output);
         }
 
         return nullptr;
@@ -413,7 +413,7 @@ public:
         auto output{try_get_binding(1)};
         if(output)
         {
-            return std::get<texture_ptr>(output.value());
+            return std::get<texture_ptr>(*output);
         }
 
         return nullptr;

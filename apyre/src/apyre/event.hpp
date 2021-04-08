@@ -444,12 +444,12 @@ public:
 
     reference operator*() const noexcept
     {
-        return m_current_event.value();
+        return *m_current_event;
     }
 
     pointer operator->() const noexcept
     {
-        return &(m_current_event.value());
+        return &(*m_current_event);
     }
 
     event_iterator& operator++()

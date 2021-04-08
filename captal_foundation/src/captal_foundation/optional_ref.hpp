@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <type_traits>
+#include <optional>
 
 namespace cpt
 {
@@ -30,6 +31,18 @@ public:
 
     constexpr optional_ref(value_type& ref) noexcept
     :m_ptr{&ref}
+    {
+
+    }
+
+    constexpr optional_ref(std::optional<value_type>& ref)
+    :m_ptr{ref ? &(*ref) : nullptr}
+    {
+
+    }
+
+    constexpr optional_ref(const std::optional<value_type>& ref)
+    :m_ptr{ref ? &(*ref) : nullptr}
     {
 
     }

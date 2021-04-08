@@ -128,7 +128,7 @@ static tph::render_pass_info make_render_pass_info(tph::texture_format color_for
     return output;
 }
 
-static std::optional<tph::swapchain> make_swapchain(const cpt::video_mode& mode, window& window)
+static std::optional<tph::swapchain> make_swapchain(const cpt::video_mode& mode, window& window, optional_ref<tph::swapchain> old)
 {
     const auto capabilities{window.surface().capabilities(engine::instance().renderer())};
 
@@ -152,7 +152,7 @@ static std::optional<tph::swapchain> make_swapchain(const cpt::video_mode& mode,
     info.present_mode = mode.present_mode;
     info.clipping     = mode.clipping;
 
-    return tph::swapchain{engine::instance().renderer(), window.surface(), info};
+    return tph::swapchain{engine::instance().renderer(), window.surface(), info, old};
 }
 
 static tph::texture make_msaa_texture(const tph::swapchain& swapchain, tph::texture_format surface_format, tph::sample_count sample_count)
@@ -574,7 +574,7 @@ bool render_window::recreate()
 
     try
     {
-        m_swapchain = make_swapchain(m_mode, *m_window);
+        m_swapchain = make_swapchain(m_mode, *m_window, m_swapchain);
 
         if(!m_swapchain)
         {

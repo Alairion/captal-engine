@@ -108,16 +108,16 @@ void basic_renderable::bind(frame_render_info info, cpt::view& view)
 
             if(local)
             {
-                writes.emplace_back(make_descriptor_write(data.set->set(), binding.binding, local.value()));
-                data.to_keep.emplace_back(get_binding_resource(local.value()));
+                writes.emplace_back(make_descriptor_write(data.set->set(), binding.binding, *local));
+                data.to_keep.emplace_back(get_binding_resource(*local));
             }
             else
             {
                 const auto fallback{layout->default_binding(render_layout::renderable_index, binding.binding)};
                 assert(fallback && "cpt::basic_renderable::bind can not find any suitable binding, neither the renderable nor the render layout have a binding for specified index.");
 
-                writes.emplace_back(make_descriptor_write(data.set->set(), binding.binding, fallback.value()));
-                data.to_keep.emplace_back(get_binding_resource(fallback.value()));
+                writes.emplace_back(make_descriptor_write(data.set->set(), binding.binding, *fallback));
+                data.to_keep.emplace_back(get_binding_resource(*fallback));
             }
         }
 

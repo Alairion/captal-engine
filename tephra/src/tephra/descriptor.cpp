@@ -73,7 +73,7 @@ descriptor_pool::descriptor_pool(renderer& renderer, std::span<const descriptor_
         max_sets = total_size;
     }
 
-    m_descriptor_pool = vulkan::descriptor_pool{underlying_cast<VkDevice>(renderer), native_sizes, max_sets.value()};
+    m_descriptor_pool = vulkan::descriptor_pool{underlying_cast<VkDevice>(renderer), native_sizes, *max_sets};
 }
 
 void set_object_name(renderer& renderer, const descriptor_pool& object, const std::string& name)

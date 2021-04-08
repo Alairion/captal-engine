@@ -166,7 +166,7 @@ static stack_vector_t<subpass_data> make_subpasses_data(memory_pool_t& pool, std
 
         if(subpass.depth_attachment.has_value())
         {
-            native_subpass.depth_attachment = convert_attachment(subpass.depth_attachment.value());
+            native_subpass.depth_attachment = convert_attachment(*subpass.depth_attachment);
         }
 
         native_subpass.preserve_attachments = &subpass.preserve_attachments;
@@ -194,7 +194,7 @@ static stack_vector_t<VkSubpassDescription> make_subpasses(memory_pool_t& pool, 
 
         if(data.depth_attachment.has_value())
         {
-            native_subpass.pDepthStencilAttachment = &data.depth_attachment.value();
+            native_subpass.pDepthStencilAttachment = &(*data.depth_attachment);
         }
     }
 

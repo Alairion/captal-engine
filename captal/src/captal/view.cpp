@@ -55,16 +55,16 @@ void view::bind(frame_render_info info)
 
             if(local)
             {
-                writes.emplace_back(make_descriptor_write(m_set->set(), binding.binding, local.value()));
-                m_to_keep.emplace_back(get_binding_resource(local.value()));
+                writes.emplace_back(make_descriptor_write(m_set->set(), binding.binding, *local));
+                m_to_keep.emplace_back(get_binding_resource(*local));
             }
             else
             {
                 const auto fallback{m_render_technique->layout()->default_binding(render_layout::view_index, binding.binding)};
                 assert(fallback && "cpt::view::bind can not find any suitable binding, neither the view nor the render layout have a binding for specified index.");
 
-                writes.emplace_back(make_descriptor_write(m_set->set(), binding.binding, fallback));
-                m_to_keep.emplace_back(get_binding_resource(fallback.value()));
+                writes.emplace_back(make_descriptor_write(m_set->set(), binding.binding, *fallback));
+                m_to_keep.emplace_back(get_binding_resource(*fallback));
             }
         }
 

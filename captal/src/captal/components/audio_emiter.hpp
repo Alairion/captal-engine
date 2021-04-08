@@ -41,12 +41,12 @@ public:
 
     sound& attachment() noexcept
     {
-        return m_attachment.value();
+        return *m_attachment;
     }
 
     const sound& attachment() const noexcept
     {
-        return m_attachment.value();
+        return *m_attachment;
     }
 
     bool has_attachment() const noexcept
@@ -66,22 +66,22 @@ public:
 
     sound& operator*() noexcept
     {
-        return m_attachment.value();
+        return *m_attachment;
     }
 
     const sound& operator*() const noexcept
     {
-        return m_attachment.value();
+        return *m_attachment;
     }
 
     sound* operator->() noexcept
     {
-        return &m_attachment.value();
+        return &(*m_attachment);
     }
 
     const sound* operator->() const noexcept
     {
-        return &m_attachment.value();
+        return &(*m_attachment);
     }
 
 private:

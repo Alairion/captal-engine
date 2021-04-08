@@ -59,7 +59,7 @@ public:
     template<typename DisambiguationTag, typename... Args>
     reference attach_constraint(DisambiguationTag tag, physical_body& body, Args&&... args)
     {
-        return emplace_back(tag, m_attachment.value(), body, std::forward<Args>(args)...);
+        return emplace_back(tag, *m_attachment, body, std::forward<Args>(args)...);
     }
 
     void detach()
@@ -80,12 +80,12 @@ public:
 
     physical_body& attachment() noexcept
     {
-        return m_attachment.value();
+        return *m_attachment;
     }
 
     const physical_body& attachment() const noexcept
     {
-        return m_attachment.value();
+        return *m_attachment;
     }
 
     bool has_attachment() const noexcept
@@ -106,22 +106,22 @@ public:
 
     physical_body& operator*() noexcept
     {
-        return m_attachment.value();
+        return *m_attachment;
     }
 
     const physical_body& operator*() const noexcept
     {
-        return m_attachment.value();
+        return *m_attachment;
     }
 
     physical_body* operator->() noexcept
     {
-        return &m_attachment.value();
+        return &(*m_attachment);
     }
 
     const physical_body* operator->() const noexcept
     {
-        return &m_attachment.value();
+        return &(*m_attachment);
     }
 
     using parent_type::operator[];

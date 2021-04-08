@@ -244,7 +244,7 @@ static void flush(std::vector<event>& events, event_mode mode, std::uint32_t win
             const std::optional<event> new_event{translate(sdl_event)};
             if(new_event)
             {
-                events.emplace_back(new_event.value());
+                events.emplace_back(*new_event);
             }
         }
     }
@@ -252,7 +252,7 @@ static void flush(std::vector<event>& events, event_mode mode, std::uint32_t win
     {
         std::optional<event> new_event{};
 
-        while(!new_event || window_id != event_window_id(new_event.value()))
+        while(!new_event || window_id != event_window_id(*new_event))
         {
             SDL_Event sdl_event{};
             if(!SDL_WaitEvent(&sdl_event))
@@ -261,7 +261,7 @@ static void flush(std::vector<event>& events, event_mode mode, std::uint32_t win
             new_event = translate(sdl_event);
         }
 
-        events.emplace_back(new_event.value());
+        events.emplace_back(*new_event);
     }
 }
 

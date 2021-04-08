@@ -193,7 +193,7 @@ memory_heap_chunk memory_heap::allocate(memory_resource_type resource_type, std:
         throw vulkan::error{VK_ERROR_OUT_OF_DEVICE_MEMORY};
     }
 
-    return std::move(chunk.value());
+    return std::move(*chunk);
 }
 
 memory_heap_chunk memory_heap::allocate_dedicated(std::uint64_t size)
@@ -563,7 +563,7 @@ memory_heap_chunk memory_allocator::allocate(const VkMemoryRequirements& require
 
                 if(chunk)
                 {
-                    return std::move(chunk.value());
+                    return std::move(*chunk);
                 }
             }
         }

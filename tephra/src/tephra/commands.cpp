@@ -1057,7 +1057,7 @@ void submit(renderer& renderer, queue queue, const submit_info& info, optional_r
     native_submit.signalSemaphoreCount = static_cast<std::uint32_t>(std::size(signal_semaphores));
     native_submit.pSignalSemaphores = std::data(signal_semaphores);
 
-    VkFence native_fence{fence.has_value() ? underlying_cast<VkFence>(fence.value()) : VkFence{}};
+    VkFence native_fence{fence.has_value() ? underlying_cast<VkFence>(*fence) : VkFence{}};
 
     if(auto result{vkQueueSubmit(underlying_cast<VkQueue>(renderer, queue), 1, &native_submit, native_fence)}; result != VK_SUCCESS)
         throw vulkan::error{result};
@@ -1131,7 +1131,7 @@ void submit(renderer& renderer, queue queue, std::span<const submit_info> submit
         native_submit.pSignalSemaphores = std::data(temp_submit.signal_semaphores);
     }
 
-    VkFence native_fence{fence.has_value() ? underlying_cast<VkFence>(fence.value()) : VkFence{}};
+    VkFence native_fence{fence.has_value() ? underlying_cast<VkFence>(*fence) : VkFence{}};
 
     if(auto result{vkQueueSubmit(underlying_cast<VkQueue>(renderer, queue), static_cast<std::uint32_t>(std::size(native_submits)), std::data(native_submits), native_fence)}; result != VK_SUCCESS)
         throw vulkan::error{result};
