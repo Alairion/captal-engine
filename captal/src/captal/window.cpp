@@ -73,7 +73,8 @@ window::window(const apr::monitor& monitor, const std::string& title, std::uint3
 
 void window::close()
 {
-    m_closed = true;
+    apr::window::close();
+
     m_renderable = false;
 }
 

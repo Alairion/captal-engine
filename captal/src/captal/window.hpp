@@ -114,6 +114,7 @@ public:
     using apr::window::switch_to_windowed_fullscreen;
     using apr::window::switch_to_windowed;
 
+    using apr::window::is_open;
     using apr::window::id;
     using apr::window::width;
     using apr::window::height;
@@ -124,11 +125,11 @@ public:
     using apr::window::is_maximized;
     using apr::window::current_monitor;
 
-    void close();
-
     void dispatch_events();
     void discard_events();
     void dispatch_event(const apr::event& event);
+
+    void close();
 
     apr::window& get_window() noexcept
     {
@@ -171,11 +172,6 @@ public:
 
     text_event_signal& on_text_entered() noexcept {return m_text_entered;}
 
-    bool is_closed() const noexcept
-    {
-        return m_closed;
-    }
-
     bool is_renderable() const noexcept
     {
         return m_renderable;
@@ -193,7 +189,6 @@ public:
 private:
     tph::surface m_surface{};
 
-    bool m_closed{};
     bool m_renderable{true};
 
     window_event_signal   m_gained_focus{};

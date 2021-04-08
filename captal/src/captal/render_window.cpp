@@ -226,11 +226,21 @@ render_window::~render_window()
 
 std::optional<frame_render_info> render_window::begin_render(begin_render_options options)
 {
-    if(m_fake_frame || std::empty(m_frames_data) || m_status == render_window_status::surface_lost)
+    if(m_fake_frame || m_status == render_window_status::surface_lost)
     {
         m_fake_frame = true;
 
         return std::nullopt;
+    }
+
+    if(!m_swapchain || std::empty(m_frames_data))
+    {
+        if(!recreate())
+        {
+            m_fake_frame = true;
+
+            return std::nullopt;
+        }
     }
 
     auto& data{m_frames_data[m_frame_index]};
@@ -363,35 +373,40 @@ void render_window::set_name(std::string_view name)
     const bool has_multisampling{m_mode.sample_count != tph::sample_count::msaa_x1};
     const bool has_depth_stencil{m_mode.depth_format != tph::texture_format::undefined};
 
-    tph::set_object_name(engine::instance().renderer(), *m_swapchain, m_name + " swapchain");
     tph::set_object_name(engine::instance().renderer(), get_render_pass(), m_name + " render pass");
 
-    if(has_multisampling)
+    if(m_swapchain)
     {
-        tph::set_object_name(engine::instance().renderer(), m_msaa_texture, m_name + " multisampling texture");
-    }
+        tph::set_object_name(engine::instance().renderer(), *m_swapchain, m_name + " swapchain");
 
-    if(has_depth_stencil)
-    {
-        tph::set_object_name(engine::instance().renderer(), m_depth_texture, m_name + " depth texture");
-    }
+        if(has_multisampling)
+        {
+            tph::set_object_name(engine::instance().renderer(), m_msaa_texture, m_name + " multisampling texture");
+        }
 
-    for(std::size_t i{}; i < std::size(m_frames_data); ++i)
-    {
-        tph::set_object_name(engine::instance().renderer(), m_swapchain->textures()[i], m_name + " swapchain image #" + std::to_string(i));
-        tph::set_object_name(engine::instance().renderer(), m_framebuffers[i],          m_name + " swapchain framebuffer #" + std::to_string(i));
+        if(has_depth_stencil)
+        {
+            tph::set_object_name(engine::instance().renderer(), m_depth_texture, m_name + " depth texture");
+        }
 
-        tph::set_object_name(engine::instance().renderer(), m_frames_data[i].buffer,            m_name + " frame #" + std::to_string(i) + " command buffer");
-        tph::set_object_name(engine::instance().renderer(), m_frames_data[i].image_available,   m_name + " frame #" + std::to_string(i) + " available semaphore");
-        tph::set_object_name(engine::instance().renderer(), m_frames_data[i].image_presentable, m_name + " frame #" + std::to_string(i) + " presentable semaphore");
-        tph::set_object_name(engine::instance().renderer(), m_frames_data[i].fence,             m_name + " frame #" + std::to_string(i) + " fence");
-        tph::set_object_name(engine::instance().renderer(), m_frames_data[i].query_pool,        m_name + " frame #" + std::to_string(i) + " query pool");
+        for(std::uint32_t i{}; i < m_swapchain->info().image_count; ++i)
+        {
+            tph::set_object_name(engine::instance().renderer(), m_swapchain->textures()[i], m_name + " swapchain image #" + std::to_string(i));
+            tph::set_object_name(engine::instance().renderer(), m_framebuffers[i],          m_name + " swapchain framebuffer #" + std::to_string(i));
+
+            tph::set_object_name(engine::instance().renderer(), m_frames_data[i].buffer,            m_name + " frame #" + std::to_string(i) + " command buffer");
+            tph::set_object_name(engine::instance().renderer(), m_frames_data[i].image_available,   m_name + " frame #" + std::to_string(i) + " available semaphore");
+            tph::set_object_name(engine::instance().renderer(), m_frames_data[i].image_presentable, m_name + " frame #" + std::to_string(i) + " presentable semaphore");
+            tph::set_object_name(engine::instance().renderer(), m_frames_data[i].fence,             m_name + " frame #" + std::to_string(i) + " fence");
+            tph::set_object_name(engine::instance().renderer(), m_frames_data[i].query_pool,        m_name + " frame #" + std::to_string(i) + " query pool");
+        }
     }
 }
 #endif
 
 void render_window::setup_frame_data()
 {
+    m_frames_data.clear();
     m_frames_data.reserve(m_swapchain->info().image_count);
 
     for(std::uint32_t i{}; i < m_swapchain->info().image_count; ++i)
@@ -409,6 +424,7 @@ void render_window::setup_frame_data()
 
 void render_window::setup_framebuffers()
 {
+    m_framebuffers.clear();
     m_framebuffers.reserve(m_swapchain->info().image_count);
 
     for(std::uint32_t i{}; i < m_swapchain->info().image_count; ++i)
@@ -584,12 +600,14 @@ bool render_window::recreate()
 
     if(std::size(m_frames_data) != m_swapchain->info().image_count)
     {
-        m_frames_data.clear();
         setup_frame_data();
     }
 
     #ifdef CAPTAL_DEBUG
-    set_name(m_name);
+    if(!std::empty(m_name))
+    {
+        set_name(m_name);
+    }
     #endif
 
     m_status = render_window_status::ok;

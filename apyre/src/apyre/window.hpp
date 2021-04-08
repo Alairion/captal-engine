@@ -54,6 +54,7 @@ public:
     window(window&& other) noexcept;
     window& operator=(window&& other) noexcept;
 
+    void close();
     void resize(std::uint32_t width, std::uint32_t height);
     void change_limits(std::uint32_t min_width, std::uint32_t min_height, std::uint32_t max_width, std::uint32_t max_height);
     void move(std::int32_t relative_x, std::int32_t relative_y);
@@ -81,6 +82,13 @@ public:
     void switch_to_windowed();
     void switch_to_windowed(const monitor& monitor);
 
+    VkSurfaceKHR make_surface(VkInstance instance);
+
+    bool is_open() const noexcept
+    {
+        return m_window;
+    }
+
     id_type id() const noexcept;
     std::uint32_t width() const noexcept;
     std::uint32_t height() const noexcept;
@@ -92,8 +100,6 @@ public:
     bool is_minimized() const noexcept;
     bool is_maximized() const noexcept;
     const monitor& current_monitor() const noexcept;
-
-    VkSurfaceKHR make_surface(VkInstance instance);
 
 private:
     SDL_Window* m_window{};

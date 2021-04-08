@@ -74,7 +74,9 @@ window::window(application& application, const monitor& monitor, const std::stri
 window::~window()
 {
     if(m_window)
+    {
         SDL_DestroyWindow(m_window);
+    }
 }
 
 window::window(window&& other) noexcept
@@ -88,6 +90,11 @@ window& window::operator=(window&& other) noexcept
     m_window = std::exchange(other.m_window, m_window);
 
     return *this;
+}
+
+void window::close()
+{
+    SDL_DestroyWindow(std::exchange(m_window, nullptr));
 }
 
 void window::resize(std::uint32_t width, std::uint32_t height)
@@ -226,6 +233,16 @@ void window::switch_to_windowed(const monitor& monitor)
     switch_to_windowed();
 }
 
+VkSurfaceKHR window::make_surface(VkInstance instance)
+{
+    VkSurfaceKHR surface{};
+
+    if(!SDL_Vulkan_CreateSurface(m_window, instance, &surface))
+        throw std::runtime_error{"Can not create window surface. " + std::string{SDL_GetError()}};
+
+    return surface;
+}
+
 window::id_type window::id() const noexcept
 {
     return m_window ? SDL_GetWindowID(m_window) : 0;
@@ -291,16 +308,6 @@ bool window::is_maximized() const noexcept
 const monitor& window::current_monitor() const noexcept
 {
     return m_monitors[SDL_GetWindowDisplayIndex(m_window)];
-}
-
-VkSurfaceKHR window::make_surface(VkInstance instance)
-{
-    VkSurfaceKHR surface{};
-
-    if(!SDL_Vulkan_CreateSurface(m_window, instance, &surface))
-        throw std::runtime_error{"Can not create window surface. " + std::string{SDL_GetError()}};
-
-    return surface;
 }
 
 }

@@ -36,7 +36,7 @@ using namespace cpt::enum_operations;
 
 static void run()
 {
-    auto window{cpt::make_window("Captal widgets", 640, 480, apr::window_options::resizable | apr::window_options::minimized)};
+    auto window{cpt::make_window("Captal widgets", 640, 480, apr::window_options::resizable)};
     auto other{cpt::make_window("Captal other", 640, 480, apr::window_options::resizable)};
 
     constexpr cpt::video_mode mode
@@ -62,7 +62,7 @@ static void run()
 
     cpt::engine::instance().submit_transfers();
 
-    cpt::engine::instance().frame_per_second_update_signal().connect([&target, &window](std::uint32_t fps)
+    cpt::engine::instance().frame_per_second_update_signal().connect([&target](std::uint32_t fps)
     {
         std::cout << fps << " : " << (target->status() == cpt::render_window_status::ok) << std::endl;
     });
@@ -70,6 +70,7 @@ static void run()
     while(cpt::engine::instance().run())
     {
         window->discard_events();
+        other->discard_events();
 
         auto render_info{target->begin_render(cpt::begin_render_options::reset)};
 
