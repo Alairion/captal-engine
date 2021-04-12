@@ -15,15 +15,26 @@ namespace apr
 
 class window;
 
+enum class application_extension : std::uint32_t
+{
+    none = 0x00,
+    extended_client_area = 0x01
+};
+
 class APYRE_API application
 {
 public:
-    application();
+    application(application_extension extensions = application_extension::none);
     ~application();
     application(const application&) = delete;
     application& operator=(const application&) = delete;
     application(application&& other) noexcept;
     application& operator=(application&& other) noexcept;
+
+    apr::event_queue& event_queue() noexcept
+    {
+        return *m_event_queue;
+    }
 
     std::span<const monitor> enumerate_monitors() const noexcept
     {
@@ -43,17 +54,20 @@ public:
         return m_monitors[0];
     }
 
-    apr::event_queue& event_queue() noexcept
+    application_extension extensions() const noexcept
     {
-        return *m_event_queue;
+        return m_extensions;
     }
 
 private:
     std::unique_ptr<apr::event_queue> m_event_queue{};
     std::vector<monitor> m_monitors{};
+    application_extension m_extensions{};
     bool m_free{};
 };
 
 }
+
+template<> struct apr::enable_enum_operations<apr::application_extension> {static constexpr bool value{true};};
 
 #endif

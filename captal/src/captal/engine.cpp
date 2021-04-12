@@ -108,7 +108,7 @@ static const tph::physical_device& default_graphics_device(const tph::applicatio
 }
 
 engine::engine(const std::string& application_name, cpt::version version, const system_parameters& system, const audio_parameters& audio, const graphics_parameters& graphics)
-:engine{cpt::application{application_name, version}, system, audio, graphics}
+:engine{cpt::application{application_name, version, system.extensions}, system, audio, graphics}
 {
 
 }

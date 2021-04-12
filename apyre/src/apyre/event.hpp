@@ -5,6 +5,7 @@
 
 #include <variant>
 #include <vector>
+#include <unordered_map>
 #include <string>
 #include <array>
 #include <optional>
@@ -415,11 +416,22 @@ public:
     std::optional<event> next(event_mode mode = event_mode::poll);
     std::optional<event> next(window& window, event_mode mode = event_mode::poll);
 
+    void register_window(std::uint32_t id)
+    {
+        m_events.emplace(id, std::vector<event>{});
+    }
+
+    void unregister_window(std::uint32_t id)
+    {
+        m_events.erase(id);
+    }
+
 private:
+    void flush(event_mode mode, std::uint32_t id);
     std::optional<event> next(event_mode mode, std::uint32_t id);
 
 private:
-    std::vector<event> m_events{};
+    std::unordered_map<std::uint32_t, std::vector<event>> m_events{};
 };
 
 class APYRE_API event_iterator

@@ -132,19 +132,26 @@ static std::optional<tph::swapchain> make_swapchain(const cpt::video_mode& mode,
 {
     const auto capabilities{window.surface().capabilities(engine::instance().renderer())};
 
+    tph::swapchain_info info{};
+
     if(capabilities.current_width == 0 || capabilities.current_height == 0)
     {
         return std::nullopt;
     }
+    else if(capabilities.current_width == 0xFFFFFFFFu || capabilities.current_height == 0xFFFFFFFFu)
+    {
+        const auto [width, height] = window.atomic_surface_size();
 
-    assert(((mode.usage & capabilities.supported_usages) == mode.usage) && "cpt::render_window image usage unsuported.");
-    assert((mode.composite & capabilities.supported_composites) == mode.composite && "cpt::render_window composite unsuported.");
-
-    tph::swapchain_info info{};
+        info.width  = std::clamp(width,  capabilities.min_width,  capabilities.max_width);
+        info.height = std::clamp(height, capabilities.min_height, capabilities.max_height);
+    }
+    else
+    {
+        info.width  = capabilities.current_width;
+        info.height = capabilities.current_height;
+    }
 
     info.image_count  = mode.image_count;
-    info.width        = capabilities.current_width  == 0xFFFFFFFFu ? window.width()  : capabilities.current_width;
-    info.height       = capabilities.current_height == 0xFFFFFFFFu ? window.height() : capabilities.current_height;
     info.format       = mode.surface_format;
     info.usage        = mode.usage;
     info.composite    = mode.composite;

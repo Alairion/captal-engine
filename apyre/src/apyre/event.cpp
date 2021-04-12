@@ -5,6 +5,7 @@
 #include <iostream>
 
 #include <SDL.h>
+#include <SDL_vulkan.h>
 
 #include <captal_foundation/encoding.hpp>
 
@@ -107,18 +108,22 @@ static std::optional<event> translate(const SDL_Event& sdl_event)
         {
             output.button |= mouse_button::left;
         }
+
         if(sdl_event.motion.state & SDL_BUTTON_RMASK)
         {
             output.button |= mouse_button::right;
         }
+
         if(sdl_event.motion.state & SDL_BUTTON_MMASK)
         {
             output.button |= mouse_button::middle;
         }
+
         if(sdl_event.motion.state & SDL_BUTTON_X1MASK)
         {
             output.button |= mouse_button::side1;
         }
+
         if(sdl_event.motion.state & SDL_BUTTON_X2MASK)
         {
             output.button |= mouse_button::side2;
@@ -234,37 +239,6 @@ static std::optional<event> translate(const SDL_Event& sdl_event)
     return std::nullopt;
 }
 
-static void flush(std::vector<event>& events, event_mode mode, std::uint32_t window_id)
-{
-    if(mode == event_mode::poll)
-    {
-        SDL_Event sdl_event{};
-        while(SDL_PollEvent(&sdl_event))
-        {
-            const std::optional<event> new_event{translate(sdl_event)};
-            if(new_event)
-            {
-                events.emplace_back(*new_event);
-            }
-        }
-    }
-    else if(mode == event_mode::wait)
-    {
-        std::optional<event> new_event{};
-
-        while(!new_event || window_id != event_window_id(*new_event))
-        {
-            SDL_Event sdl_event{};
-            if(!SDL_WaitEvent(&sdl_event))
-                throw std::runtime_error{"Can not wait for event. " + std::string{SDL_GetError()}};
-
-            new_event = translate(sdl_event);
-        }
-
-        events.emplace_back(*new_event);
-    }
-}
-
 std::optional<event> event_queue::next(event_mode mode)
 {
     return next(mode, 0);
@@ -272,37 +246,90 @@ std::optional<event> event_queue::next(event_mode mode)
 
 std::optional<event> event_queue::next(window& window, event_mode mode)
 {
-    return next(mode, window.id());
+    const auto event{next(mode, window.id())};
+
+    if(event)
+    {
+        if(std::holds_alternative<apr::window_event>(*event))
+        {
+            const auto& window_event{std::get<apr::window_event>(*event)};
+
+            if(window_event.type == apr::window_event::resized)
+            {
+                int width{};
+                int height{};
+                SDL_Vulkan_GetDrawableSize(window.m_window, &width, &height);
+
+                std::uint64_t surface_size{};
+                surface_size |= static_cast<std::uint64_t>(width);
+                surface_size |= static_cast<std::uint64_t>(height) << 32ull;
+
+                window.m_surface_size->store(surface_size, std::memory_order_release);
+            }
+        }
+    }
+
+    return event;
+}
+
+void event_queue::flush(event_mode mode, std::uint32_t id)
+{
+    const auto push = [this](event new_event)
+    {
+        if(const auto it{m_events.find(event_window_id(new_event))}; it != std::end(m_events))
+        {
+            auto& buffer{it->second};
+
+            buffer.insert(std::begin(buffer), new_event);
+        }
+    };
+
+    if(mode == event_mode::poll)
+    {
+        SDL_Event sdl_event{};
+        while(SDL_PollEvent(&sdl_event))
+        {
+            if(const auto new_event{translate(sdl_event)}; new_event)
+            {
+                push(*new_event);
+            }
+        }
+    }
+    else if(mode == event_mode::wait)
+    {
+        while(true)
+        {
+            SDL_Event sdl_event{};
+            if(!SDL_WaitEvent(&sdl_event))
+                throw std::runtime_error{"Can not wait for event. " + std::string{SDL_GetError()}};
+
+            if(const auto new_event{translate(sdl_event)}; new_event)
+            {
+                push(*new_event);
+
+                if(event_window_id(*new_event) == id)
+                {
+                    return;
+                }
+            }
+        }
+    }
 }
 
 std::optional<event> event_queue::next(event_mode mode, std::uint32_t id)
 {
-    const auto predicate = [id](const event& event)
-    {
-        return event_window_id(event) == id;
-    };
+    auto& buffer{m_events.find(id)->second};
 
-    const auto find_event = [this, predicate]
+    if(std::empty(buffer))
     {
-        return std::find_if(std::cbegin(m_events), std::cend(m_events), predicate);
-    };
-
-    auto it{find_event()};
-    if(it != std::cend(m_events))
-    {
-        const event output{*it};
-        m_events.erase(it);
-
-        return std::make_optional(output);
+        flush(mode, id);
     }
 
-    flush(m_events, mode, id);
-
-    it = find_event();
-    if(it != std::cend(m_events))
+    if(!std::empty(buffer))
     {
-        const event output{*it};
-        m_events.erase(it);
+        const auto output{buffer.back()};
+
+        buffer.pop_back();
 
         return std::make_optional(output);
     }

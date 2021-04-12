@@ -10,20 +10,10 @@ namespace apr
 
 class APYRE_API monitor
 {
+    friend class application;
+
 public:
     constexpr monitor() = default;
-
-    explicit monitor(std::int32_t id, std::int32_t x, std::int32_t y, std::uint32_t width, std::uint32_t height, std::string name) noexcept
-    :m_id{id}
-    ,m_x{x}
-    ,m_y{y}
-    ,m_width{width}
-    ,m_height{height}
-    ,m_name{std::move(name)}
-    {
-
-    }
-
     ~monitor() = default;
     monitor(const monitor&) = delete;
     monitor& operator=(const monitor&) = delete;
@@ -60,6 +50,16 @@ public:
         return m_height;
     }
 
+    std::uint32_t vertical_dpi() const noexcept
+    {
+        return m_vertical_dpi;
+    }
+
+    std::uint32_t horizontal_dpi() const noexcept
+    {
+        return m_horizontal_dpi;
+    }
+
     std::string_view name() const noexcept
     {
         return m_name;
@@ -71,6 +71,8 @@ private:
     std::int32_t m_y{};
     std::uint32_t m_width{};
     std::uint32_t m_height{};
+    double m_vertical_dpi{};
+    double m_horizontal_dpi{};
     std::string m_name{};
 };
 

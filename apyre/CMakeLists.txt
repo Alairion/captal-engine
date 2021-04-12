@@ -57,6 +57,7 @@ target_link_libraries(apyre
 
 if(WIN32)
     target_sources(apyre PRIVATE src/apyre/resources.rc)
+    target_link_libraries(apyre PRIVATE dwmapi)
 endif()
 
 if(CAPTAL_BUILD_APYRE_EXAMPLES)

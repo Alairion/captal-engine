@@ -4,6 +4,8 @@
 #include "config.hpp"
 
 #include <string>
+#include <memory>
+#include <atomic>
 #include <span>
 
 class SDL_Window;
@@ -26,6 +28,17 @@ namespace apr
 
 class application;
 class monitor;
+class event_queue;
+
+enum class window_system : std::uint32_t
+{
+    win32   = 0,
+    x11     = 1,
+    wayland = 2,
+    android = 3,
+    cocoa   = 4,
+    uikit   = 5
+};
 
 enum class window_options : std::uint32_t
 {
@@ -36,10 +49,14 @@ enum class window_options : std::uint32_t
     resizable = 0x08,
     minimized = 0x10,
     maximized = 0x20,
+    high_dpi = 0x40,
+    extended_client_area = 0x80
 };
 
 class APYRE_API window
 {
+    friend class event_queue;
+
 public:
     using id_type = std::uint32_t;
 
@@ -101,9 +118,21 @@ public:
     bool is_maximized() const noexcept;
     const monitor& current_monitor() const noexcept;
 
+    std::pair<std::uint32_t, std::uint32_t> atomic_surface_size() const noexcept
+    {
+        const auto value {m_surface_size->load(std::memory_order_acquire)};
+        const auto width {static_cast<std::uint32_t>(value & (0xFFFFFFFFull << 0ull ))};
+        const auto height{static_cast<std::uint32_t>(value & (0xFFFFFFFFull << 32ull))};
+
+        return std::make_pair(width, height);
+    }
+
 private:
     SDL_Window* m_window{};
+    event_queue* m_event_queue{};
     std::span<const monitor> m_monitors{};
+    window_options m_options{};
+    std::unique_ptr<std::atomic<std::uint64_t>> m_surface_size{};
 };
 
 }

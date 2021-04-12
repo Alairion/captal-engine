@@ -5,9 +5,14 @@
 
 #include <SDL.h>
 #include <SDL_vulkan.h>
+#include <SDL_syswm.h>
 
 #include "application.hpp"
 #include "monitor.hpp"
+
+#ifdef _WIN32
+    #include <dwmapi.h>
+#endif
 
 namespace apr
 {
@@ -24,10 +29,6 @@ static std::uint32_t to_sdl_options(window_options options) noexcept
     if(static_cast<bool>(options & window_options::hidden))
     {
         output |= SDL_WINDOW_HIDDEN;
-    }
-    else
-    {
-        output |= SDL_WINDOW_SHOWN;
     }
 
     if(static_cast<bool>(options & window_options::borderless))
@@ -50,16 +51,83 @@ static std::uint32_t to_sdl_options(window_options options) noexcept
         output |= SDL_WINDOW_MAXIMIZED;
     }
 
+    if(static_cast<bool>(options & window_options::high_dpi))
+    {
+        output |= SDL_WINDOW_ALLOW_HIGHDPI;
+    }
+
     return output;
 }
 
+static window_options filter_options(application& application, window_options options)
+{
+    if(!static_cast<bool>(application.extensions() & application_extension::extended_client_area))
+    {
+        options &= ~window_options::extended_client_area;
+    }
+
+    return options;
+}
+
+#ifdef _WIN32
+static HWND get_window_handle(SDL_Window* window)
+{
+    SDL_SysWMinfo info{};
+    info.version = SDL_version{SDL_MAJOR_VERSION, SDL_MINOR_VERSION, SDL_PATCHLEVEL};
+    SDL_GetWindowWMInfo(window, &info);
+
+    return info.info.win.window;
+}
+
+using winproc = LRESULT CALLBACK (*)(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam);
+
+static LRESULT CALLBACK extended_client_area_proc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam) noexcept
+{
+    if(message == WM_NCCALCSIZE)
+    {/*
+        auto& params{*reinterpret_cast<NCCALCSIZE_PARAMS*>(lparam)};
+
+        if(params.rgrc[0].top != 0)
+            params.rgrc[0].top -= 1;
+*/
+        return 0;
+    }
+
+    const auto fallback{reinterpret_cast<winproc>(GetPropW(hwnd, L"cpt_sdl_winproc"))};
+
+    return fallback(hwnd, message, wparam, lparam);
+}
+#endif
+
 window::window(application& application, const std::string& title, std::uint32_t width, std::uint32_t height, window_options options)
-:m_monitors{application.enumerate_monitors()}
+:m_event_queue{&application.event_queue()}
+,m_monitors{application.enumerate_monitors()}
+,m_options{filter_options(application, options)}
+,m_surface_size{std::make_unique<std::atomic<std::uint64_t>>()}
 {
     m_window = SDL_CreateWindow(std::data(title), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, static_cast<int>(width), static_cast<int>(height), to_sdl_options(options));
 
     if(!m_window)
         throw std::runtime_error{"Can not create window. " + std::string{SDL_GetError()}};
+
+    m_event_queue->register_window(id());
+
+#ifdef _WIN32
+    if(static_cast<bool>(m_options & window_options::extended_client_area))
+    {
+        const auto hwnd{get_window_handle(m_window)};
+
+        SetPropW(hwnd, L"cpt_sdl_winproc", reinterpret_cast<HANDLE>(GetWindowLongPtrW(hwnd, GWLP_WNDPROC)));
+        SetWindowLongPtrW(hwnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(&extended_client_area_proc));
+
+        const MARGINS margin{1, 1, 1, 1};
+        DwmExtendFrameIntoClientArea(hwnd, &margin);
+
+        RECT rect{};
+        GetWindowRect(hwnd, &rect);
+        SetWindowPos(hwnd, nullptr, rect.left, rect.top, static_cast<int>(width), static_cast<int>(height), SWP_FRAMECHANGED);
+    }
+#endif
 }
 
 window::window(application& application, const monitor& monitor, const std::string& title, std::uint32_t width, std::uint32_t height, window_options options)
@@ -73,14 +141,15 @@ window::window(application& application, const monitor& monitor, const std::stri
 
 window::~window()
 {
-    if(m_window)
-    {
-        SDL_DestroyWindow(m_window);
-    }
+    close();
 }
 
 window::window(window&& other) noexcept
 :m_window{std::exchange(other.m_window, nullptr)}
+,m_event_queue{std::exchange(other.m_event_queue, nullptr)}
+,m_monitors{other.m_monitors}
+,m_options{other.m_options}
+,m_surface_size{std::move(other.m_surface_size)}
 {
 
 }
@@ -88,13 +157,22 @@ window::window(window&& other) noexcept
 window& window::operator=(window&& other) noexcept
 {
     m_window = std::exchange(other.m_window, m_window);
+    m_event_queue = std::exchange(other.m_event_queue, nullptr);
+    m_monitors = other.m_monitors;
+    m_options = other.m_options;
+    m_surface_size = std::move(other.m_surface_size);
 
     return *this;
 }
 
 void window::close()
 {
-    SDL_DestroyWindow(std::exchange(m_window, nullptr));
+    if(m_window)
+    {
+        m_event_queue->unregister_window(id());
+
+        SDL_DestroyWindow(std::exchange(m_window, nullptr));
+    }
 }
 
 void window::resize(std::uint32_t width, std::uint32_t height)
@@ -203,6 +281,20 @@ void window::change_opacity(float opacity)
 void window::switch_to_fullscreen()
 {
     SDL_SetWindowFullscreen(m_window, SDL_WINDOW_FULLSCREEN);
+
+#ifdef _WIN32
+    if(static_cast<bool>(m_options & window_options::extended_client_area))
+    {
+        const auto    hwnd  {get_window_handle(m_window)};
+        const MARGINS margin{0, 0, 0, 0};
+
+        DwmExtendFrameIntoClientArea(hwnd, &margin);
+
+        RECT rect{};
+        GetWindowRect(hwnd, &rect);
+        SetWindowPos(hwnd, nullptr, rect.left, rect.top, rect.bottom - rect.top, rect.right - rect.left, SWP_FRAMECHANGED);
+    }
+#endif
 }
 
 void window::switch_to_fullscreen(const monitor& monitor)
@@ -214,6 +306,20 @@ void window::switch_to_fullscreen(const monitor& monitor)
 void window::switch_to_windowed_fullscreen()
 {
     SDL_SetWindowFullscreen(m_window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+
+#ifdef _WIN32
+    if(static_cast<bool>(m_options & window_options::extended_client_area))
+    {
+        const auto    hwnd  {get_window_handle(m_window)};
+        const MARGINS margin{0, 0, 0, 0};
+
+        DwmExtendFrameIntoClientArea(hwnd, &margin);
+
+        RECT rect{};
+        GetWindowRect(hwnd, &rect);
+        SetWindowPos(hwnd, nullptr, rect.left, rect.top, rect.bottom - rect.top, rect.right - rect.left, SWP_FRAMECHANGED);
+    }
+#endif
 }
 
 void window::switch_to_windowed_fullscreen(const monitor& monitor)
@@ -225,12 +331,26 @@ void window::switch_to_windowed_fullscreen(const monitor& monitor)
 void window::switch_to_windowed()
 {
     SDL_SetWindowFullscreen(m_window, 0);
+
+    #ifdef _WIN32
+    if(static_cast<bool>(m_options & window_options::extended_client_area))
+    {
+        const auto    hwnd  {get_window_handle(m_window)};
+        const MARGINS margin{1, 1, 1, 1};
+
+        DwmExtendFrameIntoClientArea(hwnd, &margin);
+
+        RECT rect{};
+        GetWindowRect(hwnd, &rect);
+        SetWindowPos(hwnd, nullptr, rect.left, rect.top, rect.bottom - rect.top, rect.right - rect.left, SWP_FRAMECHANGED);
+    }
+    #endif
 }
 
 void window::switch_to_windowed(const monitor& monitor)
 {
-    move_to(monitor, 0, 0);
     switch_to_windowed();
+    move_to(monitor, 0, 0);
 }
 
 VkSurfaceKHR window::make_surface(VkInstance instance)

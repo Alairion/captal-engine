@@ -13,8 +13,9 @@ static constexpr auto graphics_layers{tph::application_layer::none};
 static constexpr auto graphics_extensions{tph::application_extension::surface};
 #endif
 
-application::application(const std::string& application_name, cpt::version version, tph::application_layer layers, tph::application_extension extensions)
-:m_graphics_application{application_name, version, layers | graphics_layers, extensions | graphics_extensions}
+application::application(const std::string& application_name, cpt::version version, apr::application_extension apr_extensions, tph::application_layer tph_layers, tph::application_extension tph_extensions)
+:m_system_application{apr_extensions}
+,m_graphics_application{application_name, version, tph_layers | graphics_layers, tph_extensions | graphics_extensions}
 #ifdef CAPTAL_DEBUG
 ,m_debug_messenger{m_graphics_application, tph::debug_messenger_default_callback, debug_severities, debug_types}
 #endif

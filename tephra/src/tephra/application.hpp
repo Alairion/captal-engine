@@ -41,8 +41,8 @@ public:
 
 public:
     constexpr application() = default;
-    explicit application(const std::string& application_name, version application_version, application_layer layers, application_extension extensions);
-    explicit application(const std::string& application_name, version application_version, version api_version, application_layer layers, application_extension extensions);
+    explicit application(const std::string& application_name, version application_version, application_layer layers = application_layer::none, application_extension extensions = application_extension::none);
+    explicit application(const std::string& application_name, version application_version, version api_version, application_layer layers = application_layer::none, application_extension extensions  = application_extension::none);
 
     explicit application(vulkan::instance instance, tph::version api_version, application_layer layers, application_extension extensions);
 

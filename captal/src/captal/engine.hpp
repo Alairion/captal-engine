@@ -27,7 +27,7 @@ namespace cpt
 
 struct system_parameters
 {
-
+    apr::application_extension extensions{};
 };
 
 struct audio_parameters

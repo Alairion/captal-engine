@@ -36,7 +36,7 @@ using namespace cpt::enum_operations;
 
 static void run()
 {
-    auto window{cpt::make_window("Captal widgets", 640, 480, apr::window_options::resizable)};
+    auto window{cpt::make_window("Captal widgets", 640, 480, apr::window_options::resizable | apr::window_options::extended_client_area)};
     auto other{cpt::make_window("Captal other", 640, 480, apr::window_options::resizable)};
 
     constexpr cpt::video_mode mode
@@ -47,7 +47,7 @@ static void run()
     };
 
     auto target{cpt::make_render_window(window, mode)};
-    target->set_clear_color(cpt::colors::white);
+    target->set_clear_color(cpt::color{1.0f, 1.0f, 1.0f, 0.5f});
 
     cpt::view view{target, cpt::render_technique_info{.multisample{tph::sample_count::msaa_x4}}};
     view.fit(window);
@@ -67,10 +67,30 @@ static void run()
         std::cout << fps << " : " << (target->status() == cpt::render_window_status::ok) << std::endl;
     });
 
+    window->on_close().connect([](cpt::window& window, const apr::window_event&){window.close();});
+
+    window->on_key_pressed().connect([](cpt::window& window, const apr::keyboard_event& event)
+    {
+        if(event.scan == apr::scancode::f1)
+        {
+            window.switch_to_fullscreen();
+        }
+        else if(event.scan == apr::scancode::f2)
+        {
+            window.switch_to_windowed_fullscreen();
+        }
+        else if(event.scan == apr::scancode::f3)
+        {
+            window.switch_to_windowed();
+        }
+    });
+
+    other->on_close().connect([](cpt::window& window, const apr::window_event&){window.close();});
+
     while(cpt::engine::instance().run())
     {
-        window->discard_events();
-        other->discard_events();
+        window->dispatch_events();
+        other->dispatch_events();
 
         auto render_info{target->begin_render(cpt::begin_render_options::reset)};
 
@@ -86,7 +106,10 @@ static void run()
 
 int main()
 {
-    const cpt::system_parameters system{};
+    const cpt::system_parameters system
+    {
+        .extensions = apr::application_extension::extended_client_area
+    };
 
     const cpt::audio_parameters audio
     {

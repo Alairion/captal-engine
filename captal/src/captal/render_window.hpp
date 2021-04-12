@@ -79,6 +79,14 @@ public:
         return m_status;
     }
 
+    optional_ref<const tph::swapchain_info> info() const noexcept
+    {
+        if(m_swapchain)
+            return m_swapchain->info();
+
+        return nullref;
+    }
+
 #ifdef CAPTAL_DEBUG
     void set_name(std::string_view name);
 #else

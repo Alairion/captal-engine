@@ -18,63 +18,12 @@
 namespace cpt
 {
 
-class window;
+class CAPTAL_API window;
 
-class CAPTAL_API event_iterator
-{
-public:
-    using value_type        = apr::event_iterator::value_type;
-    using difference_type   = apr::event_iterator::difference_type;
-    using pointer           = apr::event_iterator::pointer;
-    using reference         = apr::event_iterator::reference;
-    using iterator_category = apr::event_iterator::iterator_category;
-
-public:
-    constexpr event_iterator() = default;
-    event_iterator(window& window, apr::event_mode mode = apr::event_mode::poll);
-
-    ~event_iterator() = default;
-    event_iterator(const event_iterator&) = default;
-    event_iterator& operator=(const event_iterator&) = default;
-    event_iterator(event_iterator&& other) noexcept = default;
-    event_iterator& operator=(event_iterator&& other) noexcept = default;
-
-    reference operator*() const noexcept
-    {
-        return *m_iterator;
-    }
-
-    pointer operator->() const noexcept
-    {
-        return &(*m_iterator);
-    }
-
-    event_iterator& operator++();
-
-    event_iterator begin() const noexcept
-    {
-        return *this;
-    }
-
-    event_iterator end() const noexcept
-    {
-        return event_iterator{};
-    }
-
-    bool operator!=(const event_iterator& other) const noexcept
-    {
-        return m_iterator != other.m_iterator;
-    }
-
-private:
-    window* m_window{};
-    apr::event_iterator m_iterator{};
-};
-
-using window_event_signal = cpt::signal<const apr::window_event&>;
-using mouse_event_signal = cpt::signal<const apr::mouse_event&>;
-using keyboard_event_signal = cpt::signal<const apr::keyboard_event&>;
-using text_event_signal = cpt::signal<const apr::text_event&>;
+using window_event_signal = cpt::signal<window&, const apr::window_event&>;
+using mouse_event_signal = cpt::signal<window&, const apr::mouse_event&>;
+using keyboard_event_signal = cpt::signal<window&, const apr::keyboard_event&>;
+using text_event_signal = cpt::signal<window&, const apr::text_event&>;
 
 class CAPTAL_API window : apr::window
 {
@@ -91,6 +40,7 @@ public:
     window(window&&) = default;
     window& operator=(window&&) = default;
 
+    using apr::window::close;
     using apr::window::resize;
     using apr::window::change_limits;
     using apr::window::move;
@@ -124,12 +74,11 @@ public:
     using apr::window::is_minimized;
     using apr::window::is_maximized;
     using apr::window::current_monitor;
+    using apr::window::atomic_surface_size;
 
     void dispatch_events();
     void discard_events();
     void dispatch_event(const apr::event& event);
-
-    void close();
 
     apr::window& get_window() noexcept
     {
@@ -172,11 +121,6 @@ public:
 
     text_event_signal& on_text_entered() noexcept {return m_text_entered;}
 
-    bool is_renderable() const noexcept
-    {
-        return m_renderable;
-    }
-
 #ifdef CAPTAL_DEBUG
     void set_name(std::string_view name);
 #else
@@ -188,8 +132,6 @@ public:
 
 private:
     tph::surface m_surface{};
-
-    bool m_renderable{true};
 
     window_event_signal   m_gained_focus{};
     window_event_signal   m_lost_focus{};
@@ -218,6 +160,35 @@ window_ptr make_window(Args&&... args)
 {
     return std::make_shared<window>(std::forward<Args>(args)...);
 }
+
+class CAPTAL_API event_iterator : apr::event_iterator
+{
+public:
+    using value_type        = apr::event_iterator::value_type;
+    using difference_type   = apr::event_iterator::difference_type;
+    using pointer           = apr::event_iterator::pointer;
+    using reference         = apr::event_iterator::reference;
+    using iterator_category = apr::event_iterator::iterator_category;
+
+public:
+    constexpr event_iterator() = default;
+    event_iterator(window_ptr window, apr::event_mode mode = apr::event_mode::poll);
+    event_iterator(window& window, apr::event_mode mode = apr::event_mode::poll);
+
+    ~event_iterator() = default;
+    event_iterator(const event_iterator&) = default;
+    event_iterator& operator=(const event_iterator&) = default;
+    event_iterator(event_iterator&& other) noexcept = default;
+    event_iterator& operator=(event_iterator&& other) noexcept = default;
+
+    using apr::event_iterator::operator*;
+    using apr::event_iterator::operator->;
+    using apr::event_iterator::operator++;
+
+    using apr::event_iterator::begin;
+    using apr::event_iterator::end;
+    using apr::event_iterator::operator!=;
+};
 
 }
 

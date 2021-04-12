@@ -14,7 +14,11 @@ namespace cpt
 class CAPTAL_API application
 {
 public:
-    explicit application(const std::string& application_name, cpt::version version, tph::application_layer layers = tph::application_layer::none, tph::application_extension extensions = tph::application_extension::none);
+    explicit application(const std::string& application_name, cpt::version version,
+                         apr::application_extension apr_extensions = apr::application_extension::none,
+                         tph::application_layer tph_layers = tph::application_layer::none,
+                         tph::application_extension tph_extensions = tph::application_extension::none);
+
     ~application() = default;
     application(const application&) = delete;
     application& operator=(const application&) = delete;
