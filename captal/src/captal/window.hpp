@@ -60,6 +60,7 @@ public:
     using apr::window::change_title;
     using apr::window::change_icon;
     using apr::window::change_opacity;
+    using apr::window::change_hit_test_function;
     using apr::window::switch_to_fullscreen;
     using apr::window::switch_to_windowed_fullscreen;
     using apr::window::switch_to_windowed;

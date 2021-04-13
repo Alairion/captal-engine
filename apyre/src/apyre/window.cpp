@@ -1,6 +1,7 @@
 #include "window.hpp"
 
 #include <algorithm>
+#include <iostream>
 #include <stdexcept>
 
 #include <SDL.h>
@@ -11,6 +12,7 @@
 #include "monitor.hpp"
 
 #ifdef _WIN32
+    #include <windowsx.h>
     #include <dwmapi.h>
 #endif
 
@@ -31,16 +33,6 @@ static std::uint32_t to_sdl_options(window_options options) noexcept
         output |= SDL_WINDOW_HIDDEN;
     }
 
-    if(static_cast<bool>(options & window_options::borderless))
-    {
-        output |= SDL_WINDOW_BORDERLESS;
-    }
-
-    if(static_cast<bool>(options & window_options::resizable))
-    {
-        output |= SDL_WINDOW_RESIZABLE;
-    }
-
     if(static_cast<bool>(options & window_options::minimized))
     {
         output |= SDL_WINDOW_MINIMIZED;
@@ -56,6 +48,19 @@ static std::uint32_t to_sdl_options(window_options options) noexcept
         output |= SDL_WINDOW_ALLOW_HIGHDPI;
     }
 
+    if(static_cast<bool>(options & window_options::extended_client_area))
+    {
+        return output | SDL_WINDOW_RESIZABLE;
+    }
+    else if(static_cast<bool>(options & window_options::borderless))
+    {
+        return output | SDL_WINDOW_BORDERLESS;
+    }
+    else if(static_cast<bool>(options & window_options::resizable))
+    {
+        return output | SDL_WINDOW_RESIZABLE;
+    }
+
     return output;
 }
 
@@ -67,6 +72,13 @@ static window_options filter_options(application& application, window_options op
     }
 
     return options;
+}
+
+static SDL_HitTestResult hit_test_callback(SDL_Window*, const SDL_Point* area, void* data)
+{
+    auto& callback{*reinterpret_cast<window::hit_test_function_type*>(data)};
+
+    return static_cast<SDL_HitTestResult>(callback(area->x, area->y));
 }
 
 #ifdef _WIN32
@@ -83,13 +95,8 @@ using winproc = LRESULT CALLBACK (*)(HWND hwnd, UINT message, WPARAM wparam, LPA
 
 static LRESULT CALLBACK extended_client_area_proc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam) noexcept
 {
-    if(message == WM_NCCALCSIZE)
-    {/*
-        auto& params{*reinterpret_cast<NCCALCSIZE_PARAMS*>(lparam)};
-
-        if(params.rgrc[0].top != 0)
-            params.rgrc[0].top -= 1;
-*/
+    if(message == WM_NCCALCSIZE && wparam == TRUE)
+    {
         return 0;
     }
 
@@ -112,7 +119,7 @@ window::window(application& application, const std::string& title, std::uint32_t
 
     m_event_queue->register_window(id());
 
-#ifdef _WIN32
+    #ifdef _WIN32
     if(static_cast<bool>(m_options & window_options::extended_client_area))
     {
         const auto hwnd{get_window_handle(m_window)};
@@ -127,7 +134,7 @@ window::window(application& application, const std::string& title, std::uint32_t
         GetWindowRect(hwnd, &rect);
         SetWindowPos(hwnd, nullptr, rect.left, rect.top, static_cast<int>(width), static_cast<int>(height), SWP_FRAMECHANGED);
     }
-#endif
+    #endif
 }
 
 window::window(application& application, const monitor& monitor, const std::string& title, std::uint32_t width, std::uint32_t height, window_options options)
@@ -149,23 +156,35 @@ window::window(window&& other) noexcept
 ,m_event_queue{std::exchange(other.m_event_queue, nullptr)}
 ,m_monitors{other.m_monitors}
 ,m_options{other.m_options}
+,m_hit_test_func{std::move(other.m_hit_test_func)}
 ,m_surface_size{std::move(other.m_surface_size)}
 {
-
+    if(m_hit_test_func)
+    {
+        SDL_SetWindowHitTest(m_window, hit_test_callback, &m_hit_test_func);
+    }
 }
 
 window& window::operator=(window&& other) noexcept
 {
-    m_window = std::exchange(other.m_window, m_window);
-    m_event_queue = std::exchange(other.m_event_queue, nullptr);
+    std::swap(other.m_window, m_window);
+    std::swap(other.m_event_queue, m_event_queue);
     m_monitors = other.m_monitors;
     m_options = other.m_options;
+    m_hit_test_func = std::move(other.m_hit_test_func);
     m_surface_size = std::move(other.m_surface_size);
+
+    if(m_hit_test_func)
+    {
+        SDL_SetWindowHitTest(m_window, hit_test_callback, &m_hit_test_func);
+    }
+
+    other.close();
 
     return *this;
 }
 
-void window::close()
+void window::close() noexcept
 {
     if(m_window)
     {
@@ -278,23 +297,37 @@ void window::change_opacity(float opacity)
     SDL_SetWindowOpacity(m_window, opacity);
 }
 
+void window::change_hit_test_function(hit_test_function_type func)
+{
+    if(func)
+    {
+        m_hit_test_func = std::move(func);
+        SDL_SetWindowHitTest(m_window, hit_test_callback, &m_hit_test_func);
+    }
+    else
+    {
+        m_hit_test_func = nullptr;
+        SDL_SetWindowHitTest(m_window, nullptr, nullptr);
+    }
+}
+
 void window::switch_to_fullscreen()
 {
-    SDL_SetWindowFullscreen(m_window, SDL_WINDOW_FULLSCREEN);
-
-#ifdef _WIN32
+    #ifdef _WIN32
     if(static_cast<bool>(m_options & window_options::extended_client_area))
     {
         const auto    hwnd  {get_window_handle(m_window)};
-        const MARGINS margin{0, 0, 0, 0};
+        const MARGINS margin{-1, -1, -1, -1};
 
         DwmExtendFrameIntoClientArea(hwnd, &margin);
 
         RECT rect{};
         GetWindowRect(hwnd, &rect);
-        SetWindowPos(hwnd, nullptr, rect.left, rect.top, rect.bottom - rect.top, rect.right - rect.left, SWP_FRAMECHANGED);
+        SetWindowPos(hwnd, nullptr, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top, SWP_FRAMECHANGED);
     }
-#endif
+    #endif
+
+    SDL_SetWindowFullscreen(m_window, SDL_WINDOW_FULLSCREEN);
 }
 
 void window::switch_to_fullscreen(const monitor& monitor)
@@ -305,21 +338,21 @@ void window::switch_to_fullscreen(const monitor& monitor)
 
 void window::switch_to_windowed_fullscreen()
 {
-    SDL_SetWindowFullscreen(m_window, SDL_WINDOW_FULLSCREEN_DESKTOP);
-
-#ifdef _WIN32
+    #ifdef _WIN32
     if(static_cast<bool>(m_options & window_options::extended_client_area))
     {
         const auto    hwnd  {get_window_handle(m_window)};
-        const MARGINS margin{0, 0, 0, 0};
+        const MARGINS margin{-1, -1, -1, -1};
 
         DwmExtendFrameIntoClientArea(hwnd, &margin);
 
         RECT rect{};
         GetWindowRect(hwnd, &rect);
-        SetWindowPos(hwnd, nullptr, rect.left, rect.top, rect.bottom - rect.top, rect.right - rect.left, SWP_FRAMECHANGED);
+        SetWindowPos(hwnd, nullptr, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top, SWP_FRAMECHANGED);
     }
-#endif
+    #endif
+
+    SDL_SetWindowFullscreen(m_window, SDL_WINDOW_FULLSCREEN_DESKTOP);
 }
 
 void window::switch_to_windowed_fullscreen(const monitor& monitor)
@@ -342,7 +375,7 @@ void window::switch_to_windowed()
 
         RECT rect{};
         GetWindowRect(hwnd, &rect);
-        SetWindowPos(hwnd, nullptr, rect.left, rect.top, rect.bottom - rect.top, rect.right - rect.left, SWP_FRAMECHANGED);
+        SetWindowPos(hwnd, nullptr, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top, SWP_FRAMECHANGED);
     }
     #endif
 }

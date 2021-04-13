@@ -37,7 +37,7 @@ using namespace cpt::enum_operations;
 static void run()
 {
     auto window{cpt::make_window("Captal widgets", 640, 480, apr::window_options::resizable | apr::window_options::extended_client_area)};
-    auto other{cpt::make_window("Captal other", 640, 480, apr::window_options::resizable)};
+    auto other{cpt::make_window("Captal other", 640, 480, apr::window_options::borderless)};
 
     constexpr cpt::video_mode mode
     {
@@ -47,13 +47,16 @@ static void run()
     };
 
     auto target{cpt::make_render_window(window, mode)};
-    target->set_clear_color(cpt::color{1.0f, 1.0f, 1.0f, 0.5f});
+    target->set_clear_color(cpt::color{0.0f, 0.0f, 0.0f, 0.0f});
+
+    auto other_target{cpt::make_render_window(other, mode)};
+    target->set_clear_color(cpt::color{1.0f, 1.0f, 1.0f, 1.0f});
 
     cpt::view view{target, cpt::render_technique_info{.multisample{tph::sample_count::msaa_x4}}};
     view.fit(window);
 
     cpt::sprite sprite{40, 40, cpt::colors::dodgerblue};
-    sprite.move_to(cpt::vec3f{300.0f, 220.0f, 0.0f});
+    sprite.move_to(cpt::vec3f{0.0f, 0.0f, 0.0f});
 
     auto transfer_info{cpt::engine::instance().begin_transfer()};
 
@@ -85,7 +88,43 @@ static void run()
         }
     });
 
+    window->change_hit_test_function([](std::int32_t, std::int32_t y) -> apr::hit_test_result
+    {
+        if(y > 0 && y < 20)
+        {
+            return apr::hit_test_result::drag;
+        }
+
+        return apr::hit_test_result::normal;
+    });
+
     other->on_close().connect([](cpt::window& window, const apr::window_event&){window.close();});
+
+    other->on_key_pressed().connect([](cpt::window& window, const apr::keyboard_event& event)
+    {
+        if(event.scan == apr::scancode::f1)
+        {
+            window.switch_to_fullscreen();
+        }
+        else if(event.scan == apr::scancode::f2)
+        {
+            window.switch_to_windowed_fullscreen();
+        }
+        else if(event.scan == apr::scancode::f3)
+        {
+            window.switch_to_windowed();
+        }
+    });
+
+    other->change_hit_test_function([](std::int32_t, std::int32_t y) -> apr::hit_test_result
+    {
+        if(y > 0 && y < 20)
+        {
+            return apr::hit_test_result::drag;
+        }
+
+        return apr::hit_test_result::normal;
+    });
 
     while(cpt::engine::instance().run())
     {
@@ -101,6 +140,9 @@ static void run()
         }
 
         target->present();
+
+        other_target->begin_render(cpt::begin_render_options::none);
+        other_target->present();
     }
 }
 
@@ -125,6 +167,7 @@ int main()
     try
     {
         cpt::engine engine{"captal_test", cpt::version{0, 1, 0}, system, audio, graphics};
+        engine.set_framerate_limit(100);
 
         run();
     }

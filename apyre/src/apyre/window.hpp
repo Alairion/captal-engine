@@ -6,6 +6,7 @@
 #include <string>
 #include <memory>
 #include <atomic>
+#include <functional>
 #include <span>
 
 class SDL_Window;
@@ -53,12 +54,27 @@ enum class window_options : std::uint32_t
     extended_client_area = 0x80
 };
 
+enum class hit_test_result : std::uint32_t
+{
+    normal = 0,
+    drag = 1,
+    resize_topleft = 2,
+    resize_top = 3,
+    resize_topright = 4,
+    resize_right = 5,
+    resize_bottomright = 6,
+    resize_bottom = 7,
+    resize_bottomleft = 8,
+    resize_left = 9,
+};
+
 class APYRE_API window
 {
     friend class event_queue;
 
 public:
     using id_type = std::uint32_t;
+    using hit_test_function_type = std::function<hit_test_result(std::int32_t, std::int32_t)>;
 
 public:
     constexpr window() = default;
@@ -71,7 +87,7 @@ public:
     window(window&& other) noexcept;
     window& operator=(window&& other) noexcept;
 
-    void close();
+    void close() noexcept;
     void resize(std::uint32_t width, std::uint32_t height);
     void change_limits(std::uint32_t min_width, std::uint32_t min_height, std::uint32_t max_width, std::uint32_t max_height);
     void move(std::int32_t relative_x, std::int32_t relative_y);
@@ -92,6 +108,7 @@ public:
     void change_title(const std::string& title);
     void change_icon(const std::uint8_t* rgba, std::uint32_t width, std::uint32_t height);
     void change_opacity(float opacity);
+    void change_hit_test_function(hit_test_function_type func);
     void switch_to_fullscreen();
     void switch_to_fullscreen(const monitor& monitor);
     void switch_to_windowed_fullscreen();
@@ -121,8 +138,8 @@ public:
     std::pair<std::uint32_t, std::uint32_t> atomic_surface_size() const noexcept
     {
         const auto value {m_surface_size->load(std::memory_order_acquire)};
-        const auto width {static_cast<std::uint32_t>(value & (0xFFFFFFFFull << 0ull ))};
-        const auto height{static_cast<std::uint32_t>(value & (0xFFFFFFFFull << 32ull))};
+        const auto width {static_cast<std::uint32_t>(value >> 0)};
+        const auto height{static_cast<std::uint32_t>(value >> 32)};
 
         return std::make_pair(width, height);
     }
@@ -132,6 +149,7 @@ private:
     event_queue* m_event_queue{};
     std::span<const monitor> m_monitors{};
     window_options m_options{};
+    hit_test_function_type m_hit_test_func{};
     std::unique_ptr<std::atomic<std::uint64_t>> m_surface_size{};
 };
 

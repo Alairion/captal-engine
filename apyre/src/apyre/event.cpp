@@ -246,7 +246,13 @@ std::optional<event> event_queue::next(event_mode mode)
 
 std::optional<event> event_queue::next(window& window, event_mode mode)
 {
-    const auto event{next(mode, window.id())};
+    const auto id{window.id()};
+    if(id == 0) //The window is closed, no further events must be processed.
+    {
+        return std::nullopt;
+    }
+
+    const auto event{next(mode, id)};
 
     if(event)
     {
