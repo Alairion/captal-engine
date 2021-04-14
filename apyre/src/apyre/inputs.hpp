@@ -5,10 +5,13 @@
 
 #include <string>
 
+struct SDL_Cursor;
+
 namespace apr
 {
 
 class application;
+class window;
 
 enum class scancode : std::uint32_t
 {
@@ -289,11 +292,86 @@ APYRE_API scancode to_scancode(application& application, keycode key) noexcept;
 APYRE_API keycode to_keycode(application& application, scancode scan) noexcept;
 APYRE_API std::string to_string(application& application, keycode key);
 APYRE_API std::string to_string(application& application, scancode scan);
+
 APYRE_API void begin_text_input(application& application) noexcept;
 APYRE_API void end_text_input(application& application) noexcept;
+APYRE_API bool is_text_input_active(application& application) noexcept;
+
+APYRE_API std::uint32_t get_keyboard_focus(application& application) noexcept;
+
+enum class mouse_button : std::uint32_t
+{
+    left = 0x01,
+    middle = 0x02,
+    right = 0x04,
+    side1 = 0x08,
+    side2 = 0x10,
+};
+
+struct mouse_state
+{
+    std::int32_t x{};
+    std::int32_t y{};
+    mouse_button buttons{};
+};
+
+APYRE_API mouse_state get_mouse_state(application& application) noexcept;
+APYRE_API mouse_state get_global_mouse_state(application& application) noexcept;
+
+APYRE_API void enable_relative_mouse(application& application) noexcept;
+APYRE_API void disable_relative_mouse(application& application) noexcept;
+
+APYRE_API void move_mouse(application& application, std::int32_t x, std::int32_t y) noexcept;
+APYRE_API void move_mouse(application& application, window& window, std::int32_t x, std::int32_t y) noexcept;
+APYRE_API void move_mouse_to(application& application, std::int32_t x, std::int32_t y) noexcept;
+APYRE_API void move_mouse_to(application& application, window& window, std::int32_t x, std::int32_t y) noexcept;
+
+APYRE_API std::uint32_t get_mouse_focus(application& application) noexcept;
+
+enum class system_cursor : std::uint32_t
+{
+    arrow,
+    ibeam,
+    wait,
+    crosshair,
+    wait_arrow,
+    size_northwest_southeast,
+    size_northeast_southwest,
+    size_west_east,
+    size_north_south,
+    size_all,
+    no,
+    hand,
+};
+
+class APYRE_API cursor
+{
+    friend APYRE_API void activate_cursor(cursor& cursor) noexcept;
+
+public:
+    constexpr cursor() = default;
+    cursor(application& application, const std::uint8_t* rgba, std::uint32_t width, std::uint32_t height, std::uint32_t hot_x, std::uint32_t hot_y);
+    cursor(application& application, system_cursor type);
+
+    ~cursor();
+    cursor(const cursor&) = delete;
+    cursor& operator=(const cursor&) = delete;
+    cursor(cursor&& other) noexcept;
+    cursor& operator=(cursor&& other) noexcept;
+
+    void activate() noexcept;
+
+private:
+    SDL_Cursor* m_cursor{};
+};
+
+APYRE_API void hide_cursor(application& application);
+APYRE_API void show_cursor(application& application);
+APYRE_API bool is_cursor_visible(application& application) noexcept;
 
 }
 
 template<> struct apr::enable_enum_operations<apr::key_modifier> {static constexpr bool value{true};};
+template<> struct apr::enable_enum_operations<apr::mouse_button> {static constexpr bool value{true};};
 
 #endif

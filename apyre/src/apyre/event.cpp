@@ -83,31 +83,8 @@ static std::optional<event> translate(const SDL_Event& sdl_event)
         output.window = sdl_event.motion.windowID;
         output.x = sdl_event.motion.x;
         output.y = sdl_event.motion.y;
-
-        if(sdl_event.motion.state & SDL_BUTTON_LMASK)
-        {
-            output.button |= mouse_button::left;
-        }
-
-        if(sdl_event.motion.state & SDL_BUTTON_RMASK)
-        {
-            output.button |= mouse_button::right;
-        }
-
-        if(sdl_event.motion.state & SDL_BUTTON_MMASK)
-        {
-            output.button |= mouse_button::middle;
-        }
-
-        if(sdl_event.motion.state & SDL_BUTTON_X1MASK)
-        {
-            output.button |= mouse_button::side1;
-        }
-
-        if(sdl_event.motion.state & SDL_BUTTON_X2MASK)
-        {
-            output.button |= mouse_button::side2;
-        }
+        output.relative_x = sdl_event.motion.xrel;
+        output.relative_y = sdl_event.motion.yrel;
 
         return std::make_optional(event{output});
     }
@@ -119,27 +96,7 @@ static std::optional<event> translate(const SDL_Event& sdl_event)
         output.x = sdl_event.button.x;
         output.y = sdl_event.button.y;
         output.clicks = sdl_event.button.clicks;
-
-        if(sdl_event.button.button == SDL_BUTTON_LEFT)
-        {
-            output.button |= mouse_button::left;
-        }
-        else if(sdl_event.button.button == SDL_BUTTON_RIGHT)
-        {
-            output.button |= mouse_button::right;
-        }
-        else if(sdl_event.button.button == SDL_BUTTON_MIDDLE)
-        {
-            output.button |= mouse_button::middle;
-        }
-        else if(sdl_event.button.button == SDL_BUTTON_X1)
-        {
-            output.button |= mouse_button::side1;
-        }
-        else if(sdl_event.button.button == SDL_BUTTON_X2)
-        {
-            output.button |= mouse_button::side2;
-        }
+        output.button = static_cast<mouse_button>(1u << (sdl_event.button.button - 1));
 
         return std::make_optional(event{output});
     }
@@ -151,27 +108,7 @@ static std::optional<event> translate(const SDL_Event& sdl_event)
         output.x = sdl_event.button.x;
         output.y = sdl_event.button.y;
         output.clicks = sdl_event.button.clicks;
-
-        if(sdl_event.button.button == SDL_BUTTON_LEFT)
-        {
-            output.button |= mouse_button::left;
-        }
-        else if(sdl_event.button.button == SDL_BUTTON_RIGHT)
-        {
-            output.button |= mouse_button::right;
-        }
-        else if(sdl_event.button.button == SDL_BUTTON_MIDDLE)
-        {
-            output.button |= mouse_button::middle;
-        }
-        else if(sdl_event.button.button == SDL_BUTTON_X1)
-        {
-            output.button |= mouse_button::side1;
-        }
-        else if(sdl_event.button.button == SDL_BUTTON_X2)
-        {
-            output.button |= mouse_button::side2;
-        }
+        output.button = static_cast<mouse_button>(1u << (sdl_event.button.button - 1));
 
         return std::make_optional(event{output});
     }

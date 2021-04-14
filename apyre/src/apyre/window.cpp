@@ -287,8 +287,12 @@ void window::change_title(const std::string& title)
 
 void window::change_icon(const std::uint8_t* rgba, std::uint32_t width, std::uint32_t height)
 {
-    SDL_Surface* surface{SDL_CreateRGBSurfaceFrom(const_cast<std::uint8_t*>(rgba), static_cast<int>(width), static_cast<int>(height), 32, width * 4, 0xF000, 0x0F00, 0x00F0, 0x000F)};
+    SDL_Surface* surface{SDL_CreateRGBSurfaceFrom(const_cast<std::uint8_t*>(rgba), static_cast<int>(width), static_cast<int>(height), 32, width * 4, 0xFF000000, 0x00FF0000, 0x0000FF00, 0x000000FF)};
+    if(!surface)
+        throw std::runtime_error{"Can not set window icon." + std::string{SDL_GetError()}};
+
     SDL_SetWindowIcon(m_window, surface);
+
     SDL_FreeSurface(surface);
 }
 

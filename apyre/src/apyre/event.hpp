@@ -47,15 +47,6 @@ struct window_event
     std::uint32_t height{};
 };
 
-enum class mouse_button : std::uint32_t
-{
-    left = 0x01,
-    right = 0x02,
-    middle = 0x04,
-    side1 = 0x08,
-    side2 = 0x10,
-};
-
 struct mouse_event
 {
     enum : std::uint32_t
@@ -70,6 +61,8 @@ struct mouse_event
     std::uint32_t window{};
     std::int32_t  x{};
     std::int32_t  y{};
+    std::int32_t  relative_x{};
+    std::int32_t  relative_y{};
     mouse_button  button{};
     std::uint32_t clicks{};
     std::int32_t  wheel{};
@@ -223,8 +216,5 @@ private:
 };
 
 }
-
-template<> struct apr::enable_enum_operations<apr::mouse_button> {static constexpr bool value{true};};
-
 
 #endif

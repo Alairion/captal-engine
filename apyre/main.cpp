@@ -5,6 +5,8 @@
 #include <apyre/messagebox.hpp>
 #include <apyre/inputs.hpp>
 
+using namespace apr::enum_operations;
+
 int main()
 {
     //Initialize Apyre.
@@ -13,6 +15,9 @@ int main()
     //Create a window.
     //The parameters are pretty simple, the app, the window's title, it's size (width then height), and some additionnal options.
     apr::window window{application, "Test window", 640, 480, apr::window_options::extended_client_area};
+
+    apr::cursor cursor{application, apr::system_cursor::crosshair};
+    cursor.activate();
 
     //Let's play with monitors, we can grab on which monitor the windows actually is.
     const apr::monitor& monitor{window.current_monitor()};
@@ -34,6 +39,7 @@ int main()
     }
 
     std::string text{};
+    bool relative_mouse{};
 
     apr::begin_text_input(application);
 
@@ -53,7 +59,7 @@ int main()
         }
         else if(std::holds_alternative<apr::keyboard_event>(event))
         {
-            const auto& keyevent{std::get<apr::keyboard_event>(event)};
+            auto&& keyevent{std::get<apr::keyboard_event>(event)};
 
             //Some user interactions
             if(keyevent.type == apr::keyboard_event::key_pressed && keyevent.scan == apr::scancode::escape)
@@ -88,9 +94,49 @@ int main()
                 }
             }
         }
+        else if(std::holds_alternative<apr::mouse_event>(event))
+        {
+            auto&& mouseevent{std::get<apr::mouse_event>(event)};
+
+            if(mouseevent.type == apr::mouse_event::button_pressed)
+            {
+                if(static_cast<bool>(mouseevent.button & apr::mouse_button::right))
+                {
+                    if(apr::is_cursor_visible(application))
+                    {
+                        apr::hide_cursor(application);
+                    }
+                    else
+                    {
+                        apr::show_cursor(application);
+                    }
+                }
+                else if(static_cast<bool>(mouseevent.button & apr::mouse_button::left))
+                {
+                    apr::move_mouse(application, 5, -3);
+                }
+                else if(static_cast<bool>(mouseevent.button & apr::mouse_button::middle))
+                {
+                    if(!relative_mouse)
+                    {
+                        apr::enable_relative_mouse(application);
+                        relative_mouse = true;
+                    }
+                    else
+                    {
+                        apr::disable_relative_mouse(application);
+                        relative_mouse = false;
+                    }
+                }
+            }
+            else if(mouseevent.type == apr::mouse_event::moved && relative_mouse)
+            {
+                std::cout << "Mouse move of a distance of " << mouseevent.relative_x << "; " << mouseevent.relative_y << std::endl;
+            }
+        }
         else if(std::holds_alternative<apr::text_event>(event))
         {
-            const auto& textevent{std::get<apr::text_event>(event)};
+            auto&& textevent{std::get<apr::text_event>(event)};
 
             text += textevent.text;
 
