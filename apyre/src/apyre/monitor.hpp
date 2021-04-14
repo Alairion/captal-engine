@@ -50,14 +50,19 @@ public:
         return m_height;
     }
 
-    std::uint32_t vertical_dpi() const noexcept
+    double vertical_dpi() const noexcept
     {
         return m_vertical_dpi;
     }
 
-    std::uint32_t horizontal_dpi() const noexcept
+    double horizontal_dpi() const noexcept
     {
         return m_horizontal_dpi;
+    }
+
+    double frequency() const noexcept
+    {
+        return m_frequency;
     }
 
     std::string_view name() const noexcept
@@ -73,6 +78,7 @@ private:
     std::uint32_t m_height{};
     double m_vertical_dpi{};
     double m_horizontal_dpi{};
+    double m_frequency{};
     std::string m_name{};
 };
 

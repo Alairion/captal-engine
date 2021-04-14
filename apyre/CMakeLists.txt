@@ -9,6 +9,7 @@ set(APYRE_SOURCES
     src/apyre/config.hpp
     src/apyre/application.hpp
     src/apyre/monitor.hpp
+    src/apyre/inputs.hpp
     src/apyre/window.hpp
     src/apyre/event.hpp
     src/apyre/messagebox.hpp
@@ -16,6 +17,7 @@ set(APYRE_SOURCES
 
     #Sources:
     src/apyre/application.cpp
+    src/apyre/inputs.cpp
     src/apyre/window.cpp
     src/apyre/event.cpp
     src/apyre/messagebox.cpp

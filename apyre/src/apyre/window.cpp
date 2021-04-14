@@ -140,7 +140,7 @@ window::window(application& application, const std::string& title, std::uint32_t
 window::window(application& application, const monitor& monitor, const std::string& title, std::uint32_t width, std::uint32_t height, window_options options)
 :window{application, title, width, height, options}
 {
-    const std::int32_t x{monitor.x() + ((static_cast<std::int32_t>(monitor.width()) - static_cast<std::int32_t>(width)) / 2)};
+    const std::int32_t x{monitor.x() + ((static_cast<std::int32_t>(monitor.width())  - static_cast<std::int32_t>(width))  / 2)};
     const std::int32_t y{monitor.y() + ((static_cast<std::int32_t>(monitor.height()) - static_cast<std::int32_t>(height)) / 2)};
 
     SDL_SetWindowPosition(m_window, x, y);
@@ -167,8 +167,10 @@ window::window(window&& other) noexcept
 
 window& window::operator=(window&& other) noexcept
 {
-    std::swap(other.m_window, m_window);
-    std::swap(other.m_event_queue, m_event_queue);
+    close();
+
+    m_window = other.m_window;
+    m_event_queue = other.m_event_queue;
     m_monitors = other.m_monitors;
     m_options = other.m_options;
     m_hit_test_func = std::move(other.m_hit_test_func);
@@ -178,8 +180,6 @@ window& window::operator=(window&& other) noexcept
     {
         SDL_SetWindowHitTest(m_window, hit_test_callback, &m_hit_test_func);
     }
-
-    other.close();
 
     return *this;
 }

@@ -15,26 +15,6 @@
 namespace apr
 {
 
-scancode to_scancode(keycode key) noexcept
-{
-    return static_cast<scancode>(SDL_GetScancodeFromKey(static_cast<SDL_Keycode>(key)));
-}
-
-keycode to_keycode(scancode scan) noexcept
-{
-    return static_cast<keycode>(SDL_GetScancodeFromKey(static_cast<SDL_Scancode>(scan)));
-}
-
-std::string to_string(keycode key)
-{
-    return SDL_GetKeyName(static_cast<SDL_Keycode>(key));
-}
-
-std::string to_string(scancode scan)
-{
-    return SDL_GetScancodeName(static_cast<SDL_Scancode>(scan));
-}
-
 static std::optional<event> translate(const SDL_Event& sdl_event)
 {
     if(sdl_event.type == SDL_QUIT)

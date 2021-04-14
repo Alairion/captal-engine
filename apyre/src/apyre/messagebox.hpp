@@ -13,9 +13,9 @@ class window;
 
 enum class message_box_type : std::uint32_t
 {
-    error = 1,
-    warning = 2,
-    information = 4
+    error = 0x01,
+    warning = 0x02,
+    information = 0x04
 };
 
 enum class message_box_button_bind : std::uint32_t

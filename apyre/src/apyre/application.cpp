@@ -35,12 +35,15 @@ application::application(application_extension extensions)
         SDL_Rect rect{};
         SDL_GetDisplayBounds(i, &rect);
 
+        SDL_DisplayMode mode{};
+        SDL_GetDesktopDisplayMode(i, &mode);
+
         float hdpi{};
         float vdpi{};
-        if(!SDL_GetDisplayDPI(i, nullptr, &hdpi, &vdpi))
+        if(SDL_GetDisplayDPI(i, nullptr, &hdpi, &vdpi))
         {
-            hdpi = 1.0f;
-            vdpi = 1.0f;
+            hdpi = 96.0f;
+            vdpi = 96.0f;
         }
 
         auto& monitor{m_monitors.emplace_back()};
@@ -51,6 +54,7 @@ application::application(application_extension extensions)
         monitor.m_height         = rect.h;
         monitor.m_horizontal_dpi = static_cast<double>(hdpi);
         monitor.m_vertical_dpi   = static_cast<double>(vdpi);
+        monitor.m_frequency      = static_cast<double>(mode.refresh_rate);
         monitor.m_name           = SDL_GetDisplayName(i);
     }
 
