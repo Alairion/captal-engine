@@ -330,18 +330,18 @@ APYRE_API std::uint32_t get_mouse_focus(application& application) noexcept;
 
 enum class system_cursor : std::uint32_t
 {
-    arrow,
-    ibeam,
-    wait,
-    crosshair,
-    wait_arrow,
-    size_northwest_southeast,
-    size_northeast_southwest,
-    size_west_east,
-    size_north_south,
-    size_all,
-    no,
-    hand,
+    arrow = 0,
+    ibeam = 1,
+    wait = 2,
+    crosshair = 3,
+    wait_arrow = 4,
+    size_northwest_southeast = 5,
+    size_northeast_southwest = 6,
+    size_west_east = 7,
+    size_north_south = 8,
+    size_all = 9,
+    no = 10,
+    hand = 11,
 };
 
 class APYRE_API cursor

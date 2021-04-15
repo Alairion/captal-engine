@@ -8,6 +8,7 @@
 #include <atomic>
 #include <functional>
 #include <span>
+#include <variant>
 
 class SDL_Window;
 
@@ -30,6 +31,43 @@ namespace apr
 class application;
 class monitor;
 class event_queue;
+
+struct win32_window_info
+{
+    void* hinstance{};
+    void* device_context{};
+    void* window{};
+};
+
+struct x11_window_info
+{
+    void* display{};
+    std::uintptr_t window{};
+};
+
+struct wayland_window_info
+{
+    void* display{};
+    void* surface{};
+    void* shell_surface{};
+};
+
+struct cocoa_window_info
+{
+    void* window{};
+};
+
+struct android_window_info
+{
+    void* window{};
+};
+
+struct uikit_window_info
+{
+    void* window{};
+};
+
+using platform_window_info = std::variant<win32_window_info, x11_window_info, wayland_window_info, cocoa_window_info, android_window_info, uikit_window_info>;
 
 enum class window_system : std::uint32_t
 {
@@ -143,6 +181,8 @@ public:
 
         return std::make_pair(width, height);
     }
+
+    platform_window_info platform_info() const noexcept;
 
 private:
     SDL_Window* m_window{};

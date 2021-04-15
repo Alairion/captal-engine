@@ -82,15 +82,6 @@ static SDL_HitTestResult hit_test_callback(SDL_Window*, const SDL_Point* area, v
 }
 
 #ifdef _WIN32
-static HWND get_window_handle(SDL_Window* window)
-{
-    SDL_SysWMinfo info{};
-    info.version = SDL_version{SDL_MAJOR_VERSION, SDL_MINOR_VERSION, SDL_PATCHLEVEL};
-    SDL_GetWindowWMInfo(window, &info);
-
-    return info.info.win.window;
-}
-
 using winproc = LRESULT CALLBACK (*)(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam);
 
 static LRESULT CALLBACK extended_client_area_proc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam) noexcept
@@ -122,7 +113,7 @@ window::window(application& application, const std::string& title, std::uint32_t
     #ifdef _WIN32
     if(static_cast<bool>(m_options & window_options::extended_client_area))
     {
-        const auto hwnd{get_window_handle(m_window)};
+        const auto hwnd{reinterpret_cast<HWND>(std::get<win32_window_info>(platform_info()).window)};
 
         SetPropW(hwnd, L"cpt_sdl_winproc", reinterpret_cast<HANDLE>(GetWindowLongPtrW(hwnd, GWLP_WNDPROC)));
         SetWindowLongPtrW(hwnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(&extended_client_area_proc));
@@ -320,7 +311,7 @@ void window::switch_to_fullscreen()
     #ifdef _WIN32
     if(static_cast<bool>(m_options & window_options::extended_client_area))
     {
-        const auto    hwnd  {get_window_handle(m_window)};
+        const auto    hwnd  {reinterpret_cast<HWND>(std::get<win32_window_info>(platform_info()).window)};
         const MARGINS margin{-1, -1, -1, -1};
 
         DwmExtendFrameIntoClientArea(hwnd, &margin);
@@ -345,7 +336,7 @@ void window::switch_to_windowed_fullscreen()
     #ifdef _WIN32
     if(static_cast<bool>(m_options & window_options::extended_client_area))
     {
-        const auto    hwnd  {get_window_handle(m_window)};
+        const auto    hwnd  {reinterpret_cast<HWND>(std::get<win32_window_info>(platform_info()).window)};
         const MARGINS margin{-1, -1, -1, -1};
 
         DwmExtendFrameIntoClientArea(hwnd, &margin);
@@ -372,7 +363,7 @@ void window::switch_to_windowed()
     #ifdef _WIN32
     if(static_cast<bool>(m_options & window_options::extended_client_area))
     {
-        const auto    hwnd  {get_window_handle(m_window)};
+        const auto    hwnd  {reinterpret_cast<HWND>(std::get<win32_window_info>(platform_info()).window)};
         const MARGINS margin{1, 1, 1, 1};
 
         DwmExtendFrameIntoClientArea(hwnd, &margin);
@@ -465,6 +456,50 @@ bool window::is_maximized() const noexcept
 const monitor& window::current_monitor() const noexcept
 {
     return m_monitors[SDL_GetWindowDisplayIndex(m_window)];
+}
+
+platform_window_info window::platform_info() const noexcept
+{
+    SDL_SysWMinfo info{};
+    info.version.major = SDL_MAJOR_VERSION;
+    info.version.minor = SDL_MINOR_VERSION;
+    info.version.patch = SDL_PATCHLEVEL;
+
+    SDL_GetWindowWMInfo(m_window, &info);
+
+#if defined(SDL_VIDEO_DRIVER_WINDOWS)
+
+    return platform_window_info{win32_window_info{info.info.win.hinstance, info.info.win.hdc, info.info.win.window}};
+
+#elif defined(SDL_VIDEO_DRIVER_X11) || defined(SDL_VIDEO_DRIVER_WAYLAND)
+
+    switch(info.subsystem)
+    {
+    #if defined(SDL_VIDEO_DRIVER_X11)
+        case SDL_SYSWM_X11:
+            return platform_window_info{x11_window_info{info.info.x11.display, info.info.x11.window}};
+    #elif defined(SDL_VIDEO_DRIVER_WAYLAND)
+        case SDL_SYSWM_WAYLAND:
+            return platform_window_info{wayland_window_info{info.info.wl.display, info.info.wl.surface, info.info.wl.shell_surface}};
+    #endif
+        default:
+            throw std::runtime_error{"Invalid window subsystem."};
+    }
+
+#elif defined(SDL_VIDEO_DRIVER_COCOA)
+
+    return platform_window_info{cocoa_window_info{info.info.cocoa.window}};
+
+#elif defined(SDL_VIDEO_DRIVER_UIKIT)
+
+    return platform_window_info{uikit_window_info{info.info.uikit.window}};
+
+#elif defined(SDL_VIDEO_DRIVER_ANDROID)
+
+    return platform_window_info{android_window_info{info.info.android.window}};
+
+#endif
+
 }
 
 }
