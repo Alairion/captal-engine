@@ -5,7 +5,7 @@ L: low
 I: just an idea
 
 Captal Foundation:
-L: Add swap overload for stack_allocator
+
 
 Tephra:
 A: Complete commands list (WIP)

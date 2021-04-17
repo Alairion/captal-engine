@@ -54,7 +54,7 @@ struct mouse_event
         moved = 0,
         button_pressed,
         button_released,
-        wheel_scroll,
+        wheel_scrolled,
     };
 
     std::uint32_t type{};

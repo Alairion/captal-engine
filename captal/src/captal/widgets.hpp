@@ -235,8 +235,9 @@ struct box_layout : basic_widget
 struct form
 {
 public:
-    form(render_window_ptr window)
+    form(window_ptr window, render_target_ptr target)
     :m_window{std::move(window)}
+    ,m_target{std::move(target)}
     {
 
     }
@@ -253,7 +254,8 @@ public:
     }
 
 private:
-    render_window_ptr m_window{};
+    window_ptr m_window{};
+    render_target_ptr m_target{};
 };
 
 }

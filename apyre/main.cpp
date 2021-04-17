@@ -43,6 +43,16 @@ int main()
 
     apr::begin_text_input(application);
 
+    window.change_hit_test_function([](std::int32_t x, std::int32_t y) -> apr::hit_test_result
+    {
+        if(x < 5 && y < 5)
+        {
+            return apr::hit_test_result::resize_topleft;
+        }
+
+        return apr::hit_test_result::normal;
+    });
+
     //Here is the event loop.
     //The event iterator will wait indefinitly for window's event, due to apr::event_mode::wait.
     //There is also a polling mode (apr::event_mode::poll) that only runs the loop for available events, then leave it immediately.
@@ -51,10 +61,16 @@ int main()
         //apr::event is a std::variant of various apr::xxx_event, so you may use it as you want (visitor pattern, holds_alternative, ...)
         if(std::holds_alternative<apr::window_event>(event))
         {
+            auto&& windowevent{std::get<apr::window_event>(event)};
+
             //Since the loop will not stop by itself, we must break it at some point.
-            if(std::get<apr::window_event>(event).type == apr::window_event::closed)
+            if(windowevent.type == apr::window_event::closed)
             {
                 break;
+            }
+            else if(windowevent.type == apr::window_event::resized)
+            {
+                std::cout << "Window resized: " << windowevent.width << "; " << windowevent.height << std::endl;
             }
         }
         else if(std::holds_alternative<apr::keyboard_event>(event))
@@ -92,6 +108,28 @@ int main()
 
                     std::cout << ">" << text << std::endl;
                 }
+            }
+            else if(keyevent.type == apr::keyboard_event::key_pressed && keyevent.scan == apr::scancode::f1)
+            {
+                window.switch_to_fullscreen();
+
+                std::cout << "Window switched to fullscreen" << std::endl;
+            }
+            else if(keyevent.type == apr::keyboard_event::key_pressed && keyevent.scan == apr::scancode::f2)
+            {
+                window.switch_to_windowed_fullscreen();
+
+                std::cout << "Window switched to windowed fullscreen" << std::endl;
+            }
+            else if(keyevent.type == apr::keyboard_event::key_pressed && keyevent.scan == apr::scancode::f3)
+            {
+                window.switch_to_windowed();
+
+                std::cout << "Window switched to windowed" << std::endl;
+            }
+            else if(keyevent.type == apr::keyboard_event::key_pressed && keyevent.scan == apr::scancode::enter)
+            {
+                std::cout << "Window size: " << window.width() << "; " << window.height() << std::endl;
             }
         }
         else if(std::holds_alternative<apr::mouse_event>(event))

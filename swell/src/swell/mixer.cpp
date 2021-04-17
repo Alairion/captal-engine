@@ -6,7 +6,7 @@
 #include <numbers>
 
 #if defined(_WIN32)
-    #include <Windows.h>
+    #include <windows.h>
 
     namespace swl
     {
@@ -233,14 +233,14 @@ void sound::set_attenuation(float attenuation)
     m_data->state.spatialization.attenuation = attenuation;
 }
 
-void sound::move(const cpt::vec3f& relative)
+void sound::move(const vec3f& relative)
 {
     std::lock_guard lock{m_data->mutex};
 
     m_data->state.spatialization.position += relative;
 }
 
-void sound::move_to(const cpt::vec3f& position)
+void sound::move_to(const vec3f& position)
 {
     std::lock_guard lock{m_data->mutex};
 
@@ -316,7 +316,7 @@ float sound::attenuation() const
     return m_data->state.spatialization.attenuation;
 }
 
-cpt::vec3f sound::position() const
+vec3f sound::position() const
 {
     std::lock_guard lock{m_data->mutex};
 
@@ -425,28 +425,28 @@ void mixer::stop()
     m_status.store(mixer_status::paused, std::memory_order::release);
 }
 
-void mixer::move_listener(const cpt::vec3f& relative)
+void mixer::move_listener(const vec3f& relative)
 {
     std::lock_guard lock{m_mutex};
 
     m_position += relative;
 }
 
-void mixer::move_listener_to(const cpt::vec3f& position)
+void mixer::move_listener_to(const vec3f& position)
 {
     std::lock_guard lock{m_mutex};
 
     m_position = position;
 }
 
-void mixer::set_up(const cpt::vec3f& direction)
+void mixer::set_up(const vec3f& direction)
 {
     std::lock_guard lock{m_mutex};
 
     m_up = direction;
 }
 
-void mixer::set_listener_direction(const cpt::vec3f& direction)
+void mixer::set_listener_direction(const vec3f& direction)
 {
     std::lock_guard lock{m_mutex};
 
@@ -469,21 +469,21 @@ impl::sound_data* mixer::make_sound()
     return m_sounds.back().get();
 }
 
-cpt::vec3f mixer::listener_position() const
+vec3f mixer::listener_position() const
 {
     std::lock_guard lock{m_mutex};
 
     return m_position;
 }
 
-cpt::vec3f mixer::listener_direction() const
+vec3f mixer::listener_direction() const
 {
     std::lock_guard lock{m_mutex};
 
     return m_direction;
 }
 
-cpt::vec3f mixer::up() const
+vec3f mixer::up() const
 {
     std::lock_guard lock{m_mutex};
 
@@ -516,16 +516,16 @@ void mixer::process() noexcept
                 });
             }
 
-            const clock::time_point now{clock::now()};
-            const seconds elapsed{std::chrono::duration_cast<seconds>(now - m_last)};
+            const auto now    {clock::now()};
+            const auto elapsed{std::chrono::duration_cast<seconds>(now - m_last)};
 
             if(elapsed >= m_minimum_latency)
             {
                 m_last = now;
 
                 const auto frame_count{static_cast<std::size_t>(elapsed.count() * m_sample_rate)};
-                const sample_buffer_t data{mix_sounds(get_sounds_data(frame_count), frame_count)};
 
+                const auto data{mix_sounds(get_sounds_data(frame_count), frame_count)};
                 m_queue.push(std::begin(data), std::end(data));
             }
             else
@@ -651,14 +651,14 @@ sample_buffer_t mixer::spatialize(impl::sound_data& sound, sample_buffer_t data,
     {
         if(channels == 1 && sound.state.spatialization.enable)
         {
-            const cpt::vec3f listener_position{m_position};
-            const cpt::vec3f sound_base_position{sound.state.spatialization.position};
-            const cpt::vec3f sound_position{sound.state.spatialization.relative ? listener_position + sound_base_position : sound_base_position};
+            const vec3f listener_position  {m_position};
+            const vec3f sound_base_position{sound.state.spatialization.position};
+            const vec3f sound_position     {sound.state.spatialization.relative ? listener_position + sound_base_position : sound_base_position};
 
-            const float distance{cpt::distance(sound_position, listener_position)};
-            const float minimum{sound.state.spatialization.minimum_distance};
+            const float distance   {cpt::distance(sound_position, listener_position)};
+            const float minimum    {sound.state.spatialization.minimum_distance};
             const float attenuation{sound.state.spatialization.attenuation};
-            const float factor{minimum / (minimum + attenuation * (std::max(distance, minimum) - minimum))};
+            const float factor     {minimum / (minimum + attenuation * (std::max(distance, minimum) - minimum))};
 
             for(auto& sample : data)
             {
@@ -670,14 +670,15 @@ sample_buffer_t mixer::spatialize(impl::sound_data& sound, sample_buffer_t data,
                 return data;
             }
 
-            const cpt::vec3f up{cpt::normalize(m_up)};
-            const cpt::vec3f listener_direction{cpt::normalize(m_direction)};
-            const cpt::vec3f sound_direction{sound_position == listener_position ? -listener_direction : cpt::normalize(sound_position - listener_position)};
+            const vec3f up{cpt::normalize(m_up)};
 
-            const cpt::vec3f cross{cpt::cross(sound_direction, listener_direction)};
-            const float determinant{cpt::dot(up, cross)};
-            const float dot{cpt::dot(sound_direction, listener_direction)};
-            const float angle{std::atan2(determinant, dot)};
+            const vec3f listener_direction{cpt::normalize(m_direction)};
+            const vec3f sound_direction   {sound_position == listener_position ? -listener_direction : cpt::normalize(sound_position - listener_position)};
+
+            const vec3f cross {cpt::cross(sound_direction, listener_direction)};
+            const float deter {cpt::dot(up, cross)};
+            const float dot   {cpt::dot(sound_direction, listener_direction)};
+            const float angle {std::atan2(deter, dot)};
             const float cosine{std::cos(angle - (std::numbers::pi_v<float> / 2.0f))};
 
             if(m_channel_count == 2)

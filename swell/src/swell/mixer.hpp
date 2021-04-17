@@ -43,7 +43,7 @@ struct sound_spatialization
     bool relative{};
     float minimum_distance{1.0f};
     float attenuation{1.0f};
-    cpt::vec3f position{};
+    vec3f position{};
 };
 
 struct sound_state
@@ -169,8 +169,8 @@ public:
     void absolute_spatialization();
     void set_minimum_distance(float distance);
     void set_attenuation(float attenuation);
-    void move(const cpt::vec3f& relative);
-    void move_to(const cpt::vec3f& position);
+    void move(const vec3f& relative);
+    void move_to(const vec3f& position);
     void seek(std::uint64_t frame);
 
     template<typename Rep1, typename Period1, typename Rep2, typename Period2>
@@ -194,7 +194,7 @@ public:
     bool is_spatialization_relative() const;
     float minimum_distance() const;
     float attenuation() const;
-    cpt::vec3f position() const;
+    vec3f position() const;
     std::uint64_t tell() const;
     sound_reader& reader() const;
 
@@ -240,16 +240,16 @@ public:
 
     void start();
     void stop();
-    void move_listener(const cpt::vec3f& relative);
-    void move_listener_to(const cpt::vec3f& position);
-    void set_listener_direction(const cpt::vec3f& direction);
-    void set_up(const cpt::vec3f& direction);
+    void move_listener(const vec3f& relative);
+    void move_listener_to(const vec3f& position);
+    void set_listener_direction(const vec3f& direction);
+    void set_up(const vec3f& direction);
     void set_volume(float volume);
     impl::sound_data* make_sound();
 
-    cpt::vec3f listener_position() const;
-    cpt::vec3f listener_direction() const;
-    cpt::vec3f up() const;
+    vec3f listener_position() const;
+    vec3f listener_direction() const;
+    vec3f up() const;
     float volume() const;
 
     std::uint32_t sample_rate() const noexcept
@@ -283,9 +283,9 @@ private:
     std::uint32_t m_channel_count{};
     seconds m_minimum_latency{};
 
-    cpt::vec3f m_position{0.0f, 0.0f, 0.0f};
-    cpt::vec3f m_up{0.0f, 1.0f, 0.0f};
-    cpt::vec3f m_direction{0.0f, 0.0f, 1.0f};
+    vec3f m_position{0.0f, 0.0f, 0.0f};
+    vec3f m_up{0.0f, 1.0f, 0.0f};
+    vec3f m_direction{0.0f, 0.0f, 1.0f};
     float m_volume{1.0f};
 
     std::vector<std::unique_ptr<impl::sound_data>> m_sounds{};

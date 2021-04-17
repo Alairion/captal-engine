@@ -52,6 +52,8 @@ void window::discard_events()
 
 void window::dispatch_event(const apr::event& event)
 {
+    m_event(*this, event);
+
     if(std::holds_alternative<apr::window_event>(event))
     {
         const auto& window_event{std::get<apr::window_event>(event)};
@@ -113,7 +115,7 @@ void window::dispatch_event(const apr::event& event)
         {
             m_mouse_moved(*this, mouse_event);
         }
-        else if(mouse_event.type == apr::mouse_event::wheel_scroll)
+        else if(mouse_event.type == apr::mouse_event::wheel_scrolled)
         {
             m_mouse_wheel_scroll(*this, mouse_event);
         }

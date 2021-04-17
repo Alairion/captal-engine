@@ -20,6 +20,7 @@ namespace cpt
 
 class CAPTAL_API window;
 
+using event_signal = cpt::signal<window&, const apr::event&>;
 using window_event_signal = cpt::signal<window&, const apr::window_event&>;
 using mouse_event_signal = cpt::signal<window&, const apr::mouse_event&>;
 using keyboard_event_signal = cpt::signal<window&, const apr::keyboard_event&>;
@@ -101,6 +102,8 @@ public:
         return m_surface;
     }
 
+    event_signal& on_event() noexcept {return m_event;}
+
     window_event_signal& on_gained_focus()  noexcept {return m_gained_focus;}
     window_event_signal& on_lost_focus()    noexcept {return m_lost_focus;}
     window_event_signal& on_mouse_entered() noexcept {return m_mouse_entered;}
@@ -134,6 +137,7 @@ public:
 private:
     tph::surface m_surface{};
 
+    event_signal          m_event{};
     window_event_signal   m_gained_focus{};
     window_event_signal   m_lost_focus{};
     window_event_signal   m_mouse_entered{};

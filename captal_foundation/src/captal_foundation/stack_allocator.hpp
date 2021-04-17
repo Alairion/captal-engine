@@ -87,14 +87,14 @@ public:
             std::memset(std::data(m_memory), 0, std::size(m_memory) * block_size);
         }
 
-        auto* const block{find_block(size)};
-        auto* const user_block_begin{block + 1};
-        auto* const user_block_end{user_block_begin + (size / block_size)};
+        auto* const block      {find_block(size)};
+        auto* const block_begin{block + 1};
+        auto* const block_end  {block_begin + (size / block_size)};
 
-        if(user_block_end <= std::data(m_memory) + std::size(m_memory))
+        if(block_end <= std::data(m_memory) + std::size(m_memory))
         {
             write_size(block, size);
-            return user_block_begin;
+            return block_begin;
         }
 
         return nullptr;

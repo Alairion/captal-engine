@@ -36,8 +36,7 @@ using namespace cpt::enum_operations;
 
 static void run()
 {
-    auto window{cpt::make_window("Captal widgets", 640, 480, apr::window_options::resizable | apr::window_options::extended_client_area)};
-    auto other{cpt::make_window("Captal other", 640, 480, apr::window_options::borderless)};
+    auto window{cpt::make_window("Captal widgets", 640, 480, apr::window_options::extended_client_area)};
 
     constexpr cpt::video_mode mode
     {
@@ -47,9 +46,6 @@ static void run()
     };
 
     auto target{cpt::make_render_window(window, mode)};
-    target->set_clear_color(cpt::color{0.0f, 0.0f, 0.0f, 0.0f});
-
-    auto other_target{cpt::make_render_window(other, mode)};
     target->set_clear_color(cpt::color{1.0f, 1.0f, 1.0f, 1.0f});
 
     cpt::view view{target, cpt::render_technique_info{.multisample{tph::sample_count::msaa_x4}}};
@@ -65,12 +61,10 @@ static void run()
 
     cpt::engine::instance().submit_transfers();
 
-    cpt::engine::instance().frame_per_second_update_signal().connect([&target](std::uint32_t fps)
+    window->on_close().connect([](cpt::window& window, const apr::window_event&)
     {
-        std::cout << fps << " : " << (target->status() == cpt::render_window_status::ok) << std::endl;
+        window.close();
     });
-
-    window->on_close().connect([](cpt::window& window, const apr::window_event&){window.close();});
 
     window->on_key_pressed().connect([](cpt::window& window, const apr::keyboard_event& event)
     {
@@ -86,6 +80,14 @@ static void run()
         {
             window.switch_to_windowed();
         }
+        else if(event.scan == apr::scancode::enter)
+        {
+            std::cout << "Window size: " << window.width() << "; " << window.height() << std::endl;
+        }
+        else if(event.scan == apr::scancode::space)
+        {
+            window.resize(640, 480);
+        }
     });
 
     window->change_hit_test_function([](std::int32_t, std::int32_t y) -> apr::hit_test_result
@@ -98,38 +100,9 @@ static void run()
         return apr::hit_test_result::normal;
     });
 
-    other->on_close().connect([](cpt::window& window, const apr::window_event&){window.close();});
-
-    other->on_key_pressed().connect([](cpt::window& window, const apr::keyboard_event& event)
-    {
-        if(event.scan == apr::scancode::f1)
-        {
-            window.switch_to_fullscreen();
-        }
-        else if(event.scan == apr::scancode::f2)
-        {
-            window.switch_to_windowed_fullscreen();
-        }
-        else if(event.scan == apr::scancode::f3)
-        {
-            window.switch_to_windowed();
-        }
-    });
-
-    other->change_hit_test_function([](std::int32_t, std::int32_t y) -> apr::hit_test_result
-    {
-        if(y > 0 && y < 20)
-        {
-            return apr::hit_test_result::drag;
-        }
-
-        return apr::hit_test_result::normal;
-    });
-
     while(cpt::engine::instance().run())
     {
         window->dispatch_events();
-        other->dispatch_events();
 
         auto render_info{target->begin_render(cpt::begin_render_options::reset)};
 
@@ -140,9 +113,6 @@ static void run()
         }
 
         target->present();
-
-        other_target->begin_render(cpt::begin_render_options::none);
-        other_target->present();
     }
 }
 

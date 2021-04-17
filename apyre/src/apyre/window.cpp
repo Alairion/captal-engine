@@ -187,7 +187,22 @@ void window::close() noexcept
 
 void window::resize(std::uint32_t width, std::uint32_t height)
 {
+    #ifdef _WIN32
+    if(static_cast<bool>(m_options & window_options::extended_client_area))
+    {
+        const auto hwnd{reinterpret_cast<HWND>(std::get<win32_window_info>(platform_info()).window)};
+
+        RECT rect{};
+        GetWindowRect(hwnd, &rect);
+        SetWindowPos(hwnd, nullptr, rect.left, rect.top, static_cast<int>(width), static_cast<int>(height), SWP_FRAMECHANGED);
+    }
+    else
+    {
+        SDL_SetWindowSize(m_window, static_cast<int>(width), static_cast<int>(height));
+    }
+    #else
     SDL_SetWindowSize(m_window, static_cast<int>(width), static_cast<int>(height));
+    #endif
 }
 
 void window::change_limits(std::uint32_t min_width, std::uint32_t min_height, std::uint32_t max_width, std::uint32_t max_height)
@@ -198,17 +213,35 @@ void window::change_limits(std::uint32_t min_width, std::uint32_t min_height, st
 
 void window::move(std::int32_t relative_x, std::int32_t relative_y)
 {
-    SDL_SetWindowPosition(m_window, x() + relative_x, y() + relative_y);
+    move(x() + relative_x, y() + relative_y);
 }
 
 void window::move_to(std::int32_t x, std::int32_t y)
 {
+    #ifdef _WIN32
+    if(static_cast<bool>(m_options & window_options::extended_client_area))
+    {
+        const auto hwnd{reinterpret_cast<HWND>(std::get<win32_window_info>(platform_info()).window)};
+
+        RECT rect{};
+        GetWindowRect(hwnd, &rect);
+        const auto width {rect.right - rect.left};
+        const auto height{rect.bottom - rect.top};
+
+        SetWindowPos(hwnd, nullptr, x, y, width, height, SWP_FRAMECHANGED);
+    }
+    else
+    {
+        SDL_SetWindowPosition(m_window, x, y);
+    }
+    #else
     SDL_SetWindowPosition(m_window, x, y);
+    #endif
 }
 
 void window::move_to(const monitor& monitor, std::int32_t x, std::int32_t y)
 {
-    SDL_SetWindowPosition(m_window, monitor.x() + x, monitor.y() + y);
+    move(monitor.x() + x, monitor.y() + y);
 }
 
 void window::hide()
@@ -309,16 +342,23 @@ void window::change_hit_test_function(hit_test_function_type func)
 void window::switch_to_fullscreen()
 {
     #ifdef _WIN32
-    if(static_cast<bool>(m_options & window_options::extended_client_area))
+    if(static_cast<bool>(m_options & window_options::extended_client_area) && !m_need_fullscreen_restore)
     {
-        const auto    hwnd  {reinterpret_cast<HWND>(std::get<win32_window_info>(platform_info()).window)};
-        const MARGINS margin{-1, -1, -1, -1};
+        if(!static_cast<bool>(SDL_GetWindowFlags(m_window) & (SDL_WINDOW_FULLSCREEN | SDL_WINDOW_FULLSCREEN_DESKTOP)))
+        {
+            const auto    hwnd  {reinterpret_cast<HWND>(std::get<win32_window_info>(platform_info()).window)};
+            const MARGINS margin{-1, -1, -1, -1};
 
-        DwmExtendFrameIntoClientArea(hwnd, &margin);
+            RECT rect{};
+            GetWindowRect(hwnd, &rect);
+            m_windowed_width  = rect.right - rect.left;
+            m_windowed_height = rect.bottom - rect.top;
 
-        RECT rect{};
-        GetWindowRect(hwnd, &rect);
-        SetWindowPos(hwnd, nullptr, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top, SWP_FRAMECHANGED);
+            DwmExtendFrameIntoClientArea(hwnd, &margin);
+
+            GetWindowRect(hwnd, &rect);
+            SetWindowPos(hwnd, nullptr, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top, SWP_FRAMECHANGED);
+        }
     }
     #endif
 
@@ -336,14 +376,21 @@ void window::switch_to_windowed_fullscreen()
     #ifdef _WIN32
     if(static_cast<bool>(m_options & window_options::extended_client_area))
     {
-        const auto    hwnd  {reinterpret_cast<HWND>(std::get<win32_window_info>(platform_info()).window)};
-        const MARGINS margin{-1, -1, -1, -1};
+        if(!static_cast<bool>(SDL_GetWindowFlags(m_window) & (SDL_WINDOW_FULLSCREEN | SDL_WINDOW_FULLSCREEN_DESKTOP)))
+        {
+            const auto    hwnd  {reinterpret_cast<HWND>(std::get<win32_window_info>(platform_info()).window)};
+            const MARGINS margin{-1, -1, -1, -1};
 
-        DwmExtendFrameIntoClientArea(hwnd, &margin);
+            RECT rect{};
+            GetWindowRect(hwnd, &rect);
+            m_windowed_width  = rect.right - rect.left;
+            m_windowed_height = rect.bottom - rect.top;
 
-        RECT rect{};
-        GetWindowRect(hwnd, &rect);
-        SetWindowPos(hwnd, nullptr, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top, SWP_FRAMECHANGED);
+            DwmExtendFrameIntoClientArea(hwnd, &margin);
+
+            GetWindowRect(hwnd, &rect);
+            SetWindowPos(hwnd, nullptr, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top, SWP_FRAMECHANGED);
+        }
     }
     #endif
 
@@ -358,19 +405,26 @@ void window::switch_to_windowed_fullscreen(const monitor& monitor)
 
 void window::switch_to_windowed()
 {
+    #ifdef _WIN32
+    const bool need_dwm_process{static_cast<bool>(SDL_GetWindowFlags(m_window) & (SDL_WINDOW_FULLSCREEN | SDL_WINDOW_FULLSCREEN_DESKTOP))};
+    #endif
+
     SDL_SetWindowFullscreen(m_window, 0);
 
     #ifdef _WIN32
-    if(static_cast<bool>(m_options & window_options::extended_client_area))
+    if(static_cast<bool>(m_options & window_options::extended_client_area) && !m_need_fullscreen_restore)
     {
-        const auto    hwnd  {reinterpret_cast<HWND>(std::get<win32_window_info>(platform_info()).window)};
-        const MARGINS margin{1, 1, 1, 1};
+        if(need_dwm_process)
+        {
+            const auto    hwnd  {reinterpret_cast<HWND>(std::get<win32_window_info>(platform_info()).window)};
+            const MARGINS margin{1, 1, 1, 1};
 
-        DwmExtendFrameIntoClientArea(hwnd, &margin);
+            DwmExtendFrameIntoClientArea(hwnd, &margin);
 
-        RECT rect{};
-        GetWindowRect(hwnd, &rect);
-        SetWindowPos(hwnd, nullptr, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top, SWP_FRAMECHANGED);
+            RECT rect{};
+            GetWindowRect(hwnd, &rect);
+            SetWindowPos(hwnd, nullptr, rect.left, rect.top, m_windowed_width, m_windowed_height, SWP_FRAMECHANGED);
+        }
     }
     #endif
 }

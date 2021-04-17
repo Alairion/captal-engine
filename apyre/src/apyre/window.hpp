@@ -189,8 +189,14 @@ private:
     event_queue* m_event_queue{};
     std::span<const monitor> m_monitors{};
     window_options m_options{};
+    bool m_need_fullscreen_restore{};
     hit_test_function_type m_hit_test_func{};
     std::unique_ptr<std::atomic<std::uint64_t>> m_surface_size{};
+
+#ifdef _WIN32
+    std::int32_t m_windowed_width{};
+    std::int32_t m_windowed_height{};
+#endif
 };
 
 }

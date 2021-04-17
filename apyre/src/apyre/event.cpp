@@ -115,7 +115,7 @@ static std::optional<event> translate(const SDL_Event& sdl_event)
     else if(sdl_event.type == SDL_MOUSEWHEEL)
     {
         mouse_event output{};
-        output.type = mouse_event::wheel_scroll;
+        output.type = mouse_event::wheel_scrolled;
         output.window = sdl_event.wheel.windowID;
         output.wheel = sdl_event.wheel.y;
 
@@ -173,11 +173,11 @@ std::optional<event> event_queue::next(window& window, event_mode mode)
 
     if(event)
     {
-        if(std::holds_alternative<apr::window_event>(*event))
+        if(std::holds_alternative<window_event>(*event))
         {
-            const auto& window_event{std::get<apr::window_event>(*event)};
+            const auto& windowevent{std::get<window_event>(*event)};
 
-            if(window_event.type == apr::window_event::resized)
+            if(windowevent.type == window_event::resized)
             {
                 int width{};
                 int height{};
@@ -188,6 +188,16 @@ std::optional<event> event_queue::next(window& window, event_mode mode)
                 surface_size |= static_cast<std::uint64_t>(height) << 32ull;
 
                 window.m_surface_size->store(surface_size, std::memory_order_release);
+            }
+            else if(windowevent.type == window_event::lost_focus && static_cast<bool>(SDL_GetWindowFlags(window.m_window) & SDL_WINDOW_FULLSCREEN))
+            {
+                window.m_need_fullscreen_restore = true;
+                window.switch_to_windowed();
+            }
+            else if(windowevent.type == window_event::gained_focus && window.m_need_fullscreen_restore)
+            {
+                window.switch_to_fullscreen();
+                window.m_need_fullscreen_restore = false;
             }
         }
     }
