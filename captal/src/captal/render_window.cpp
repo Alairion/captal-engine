@@ -278,8 +278,6 @@ std::optional<frame_render_info> render_window::begin_render(begin_render_option
 
     if(!acquire(data))
     {
-        m_fake_frame = true;
-
         return std::nullopt;
     }
 
@@ -548,6 +546,8 @@ bool render_window::acquire(frame_data& data)
     {
         if(!recreate())
         {
+            m_fake_frame = true;
+
             return false;
         }
 
@@ -557,6 +557,8 @@ bool render_window::acquire(frame_data& data)
     if(status == tph::swapchain_status::surface_lost) //may happens on window closure
     {
         m_status = render_window_status::surface_lost;
+        m_fake_frame = true;
+
         return false;
     }
 
@@ -565,6 +567,7 @@ bool render_window::acquire(frame_data& data)
     if(data.epoch == m_epoch)
     {
         flush_frame_data(data);
+
         return false;
     }
 

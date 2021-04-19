@@ -56,42 +56,58 @@ void render(entt::registry& world, cpt::begin_render_options options = cpt::begi
 {
     prepare_render<Drawable>(world);
 
-    const auto draw = [&world, options](components::camera& camera)
+    world.view<components::camera>().each([&world, options](components::camera& camera)
     {
-        if(camera && camera->target().is_renderable())
+        if(camera)
         {
             auto render  {camera->target().begin_render(options)};
             auto transfer{engine::instance().begin_transfer()};
 
-            camera->upload(transfer);
-
             if(render)
             {
+                camera->upload(transfer);
                 camera->bind(*render);
+
+                world.view<Drawable>().each([&camera, &transfer, &render](Drawable& drawable)
+                {
+                    if(drawable)
+                    {
+                        drawable.apply([&camera, &transfer, &render](auto& renderable)
+                        {
+                            if(!renderable.hidden())
+                            {
+                                renderable.upload(transfer);
+
+                                if(render)
+                                {
+                                    renderable.draw(*render, *camera);
+                                }
+                            }
+                        });
+                    }
+                });
+            }
+            else
+            {
+                camera->upload(transfer);
+
+                world.view<Drawable>().each([&camera, &transfer](Drawable& drawable)
+                {
+                    if(drawable)
+                    {
+                        drawable.apply([&camera, &transfer](auto& renderable)
+                        {
+                            if(!renderable.hidden())
+                            {
+                                renderable.upload(transfer);
+                            }
+                        });
+                    }
+                });
             }
 
-            world.view<Drawable>().each([&camera, &transfer, &render](Drawable& drawable)
-            {
-                if(drawable)
-                {
-                    drawable.apply([&camera, &transfer, &render](auto& renderable)
-                    {
-                        if(!renderable.hidden())
-                        {
-                            renderable.upload(transfer);
-
-                            if(render)
-                            {
-                                renderable.draw(*render, *camera);
-                            }
-                        }
-                    });
-                }
-            });
         }
-    };
-
-    world.view<components::camera>().each(draw);
+    });
 }
 
 }

@@ -100,14 +100,15 @@ static void setup(entt::registry& world)
 
 static void run()
 {
-    auto window{cpt::make_render_window("Captal test", cpt::video_mode{1280, 800}, apr::window_options::resizable)};
-    window->set_clear_color(cpt::colors::white);
+    auto window{cpt::make_window("Captal test", 1280, 800, apr::window_options::none)};
+    auto target{cpt::make_render_window(window, cpt::video_mode{})};
+    target->set_clear_color(cpt::colors::white);
 
     entt::registry world{};
 
     const auto camera{world.create()};
     world.emplace<comp::node>(camera, cpt::vec3f{0.0f, 0.0f, 1.0f});
-    world.emplace<comp::camera>(camera, window)->fit(window);
+    world.emplace<comp::camera>(camera, target)->fit(window);
 
     setup(world);
 
@@ -115,18 +116,11 @@ static void run()
     {
         window->discard_events();
 
-        if(window->is_rendering_enable())
-        {
-            cpt::systems::z_sorting(world);
-            cpt::systems::render(world);
+        cpt::systems::z_sorting(world);
+        cpt::systems::render(world);
 
-            cpt::engine::instance().submit_transfers();
-            window->present();
-        }
-        else
-        {
-            std::this_thread::sleep_for(std::chrono::milliseconds{10});
-        }
+        cpt::engine::instance().submit_transfers();
+        target->present();
 
         cpt::systems::end_frame(world);
     }

@@ -16,13 +16,20 @@
 namespace cpt
 {
 
-using binding = std::variant<texture_ptr, uniform_buffer_ptr, storage_buffer_ptr>;
+struct uniform_buffer_part
+{
+    uniform_buffer_ptr buffer{};
+    std::uint32_t part{};
+};
+
+using binding = std::variant<texture_ptr, uniform_buffer_ptr, storage_buffer_ptr, uniform_buffer_part>;
 
 enum class binding_type : std::uint32_t
 {
     texture = 0,
     uniform_buffer = 1,
-    storage_buffer = 2
+    storage_buffer = 2,
+    uniform_buffer_part = 3
 };
 
 inline binding_type get_binding_type(const binding& binding) noexcept
@@ -34,7 +41,17 @@ inline asynchronous_resource_ptr get_binding_resource(const binding& binding) no
 {
     return std::visit([](auto&& altenative) -> asynchronous_resource_ptr
     {
-        return altenative;
+        using type = std::decay_t<decltype(altenative)>;
+
+        if constexpr(std::is_same_v<type, uniform_buffer_part>)
+        {
+            return altenative.buffer;
+        }
+        else
+        {
+            return altenative;
+        }
+
     }, binding);
 }
 
@@ -54,11 +71,20 @@ inline tph::descriptor_write make_descriptor_write(tph::descriptor_set& set, std
 
         return tph::descriptor_write{set, binding, 0, tph::descriptor_type::image_sampler, info};
     }
-    else
+    else if(get_binding_type(data) == binding_type::storage_buffer)
     {
         const tph::descriptor_buffer_info info{std::get<storage_buffer_ptr>(data)->get_buffer(), 0, std::get<storage_buffer_ptr>(data)->size()};
 
         return tph::descriptor_write{set, binding, 0, tph::descriptor_type::storage_buffer, info};
+    }
+    else
+    {
+        const auto part  {std::get<uniform_buffer_part>(data)};
+        const auto buffer{part.buffer->get_buffer()};
+
+        const tph::descriptor_buffer_info info{buffer.buffer, buffer.offset + part.buffer->part_offset(part.part), part.buffer->part_size(part.part)};
+
+        return tph::descriptor_write{set, binding, 0, tph::descriptor_type::uniform_buffer, info};
     }
 }
 

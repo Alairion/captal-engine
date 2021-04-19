@@ -17,7 +17,9 @@ class CAPTAL_API render_texture final : public render_target
 {
 public:
     render_texture() = default;
+
     explicit render_texture(std::uint32_t width, std::uint32_t height, const tph::render_pass_info& render_pass, std::vector<texture_ptr> attachments);
+
     explicit render_texture(texture_ptr texture,
                             tph::sample_count   sample_count = tph::sample_count::msaa_x1,
                             tph::texture_format depth_format = tph::texture_format::undefined,

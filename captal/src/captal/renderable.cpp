@@ -35,7 +35,7 @@ basic_renderable::basic_renderable(std::uint32_t vertex_count, std::uint32_t uni
     auto buffer{make_uniform_buffer(compute_buffer_parts(vertex_count))};
     m_buffer = buffer.get();
 
-    m_bindings.set(m_uniform_index, std::move(buffer));
+    m_bindings.set(m_uniform_index, uniform_buffer_part{std::move(buffer), 0});
 }
 
 basic_renderable::basic_renderable(std::uint32_t vertex_count, std::uint32_t index_count, std::uint32_t uniform_index)
@@ -46,7 +46,7 @@ basic_renderable::basic_renderable(std::uint32_t vertex_count, std::uint32_t ind
     auto buffer{make_uniform_buffer(compute_buffer_parts(vertex_count, index_count))};
     m_buffer = buffer.get();
 
-    m_bindings.set(m_uniform_index, std::move(buffer));
+    m_bindings.set(m_uniform_index, uniform_buffer_part{std::move(buffer), 0});
 }
 
 void basic_renderable::set_vertices(std::span<const vertex> vertices) noexcept
@@ -76,7 +76,7 @@ void basic_renderable::reset(std::uint32_t vertex_count)
     m_vertex_count = vertex_count;
     m_upload_model = true;
 
-    m_bindings.set(m_uniform_index, std::move(buffer));
+    m_bindings.set(m_uniform_index, uniform_buffer_part{std::move(buffer), 0});
 }
 
 void basic_renderable::reset(std::uint32_t vertex_count, std::uint32_t index_count)
@@ -88,7 +88,7 @@ void basic_renderable::reset(std::uint32_t vertex_count, std::uint32_t index_cou
     m_index_count = index_count;
     m_upload_model = true;
 
-    m_bindings.set(m_uniform_index, std::move(buffer));
+    m_bindings.set(m_uniform_index, uniform_buffer_part{std::move(buffer), 0});
 }
 
 void basic_renderable::bind(frame_render_info info, cpt::view& view)

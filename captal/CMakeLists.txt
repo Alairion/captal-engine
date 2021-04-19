@@ -153,7 +153,7 @@ install(DIRECTORY ${PROJECT_SOURCE_DIR}/src/captal
 
 if(CAPTAL_BUILD_CAPTAL_EXAMPLES)
     add_library(captal_sansation STATIC sansation.hpp sansation.cpp)
-#[[
+
     add_executable(captal_example main.cpp)
     target_link_libraries(captal_example PRIVATE captal captal_sansation)
     target_include_directories(captal_example PRIVATE ${GLOBAL_INCLUDES})
@@ -161,7 +161,7 @@ if(CAPTAL_BUILD_CAPTAL_EXAMPLES)
     add_executable(captal_text text.cpp)
     target_link_libraries(captal_text PRIVATE captal captal_sansation)
     target_include_directories(captal_text PRIVATE ${GLOBAL_INCLUDES})
-]]
+
     add_executable(captal_widgets widgets.cpp)
     target_link_libraries(captal_widgets PRIVATE captal captal_sansation)
     target_include_directories(captal_widgets PRIVATE ${GLOBAL_INCLUDES})

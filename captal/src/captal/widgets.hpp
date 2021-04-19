@@ -210,8 +210,11 @@ struct basic_widget
 };
 
 template<typename... Children>
-struct box_layout : basic_widget
+struct box_layout
 {
+    bool visible{true};
+    bool has_focus{};
+
     std::uint32_t    top_margin{6};
     std::uint32_t    right_margin{6};
     std::uint32_t    bottom_margin{6};
@@ -232,12 +235,56 @@ struct box_layout : basic_widget
     }
 };
 
-struct form
+class form final : public basic_renderable
 {
+    class widget_container_base
+    {
+    public:
+        widget_container_base() = default;
+        virtual ~widget_container_base() = default;
+        widget_container_base(const widget_container_base&) = delete;
+        widget_container_base& operator=(const widget_container_base&) = delete;
+        widget_container_base(widget_container_base&&) noexcept = delete;
+        widget_container_base& operator=(widget_container_base&&) noexcept = delete;
+
+        virtual void resize(std::uint32_t width, std::uint32_t height) = 0;
+    };
+
+    template<widget Widget>
+    class widget_container final : public widget_container_base
+    {
+    public:
+        using widget_type = Widget;
+
+    public:
+        widget_container() = default;
+
+        template<typename T>
+        widget_container(T&& widget)
+        :m_widget{std::forward<T>(widget)}
+        {
+
+        }
+
+        ~widget_container() = default;
+        widget_container(const widget_container&) = delete;
+        widget_container& operator=(const widget_container&) = delete;
+        widget_container(widget_container_base&&) noexcept = delete;
+        widget_container& operator=(widget_container&&) noexcept = delete;
+
+        void resize(std::uint32_t width, std::uint32_t height) override
+        {
+            m_widget.resize(width, height);
+        }
+
+    private:
+        widget_type m_widget{};
+    };
+
 public:
-    form(window_ptr window, render_target_ptr target)
-    :m_window{std::move(window)}
-    ,m_target{std::move(target)}
+    template<widget Widget>
+    form(Widget&& top_widget)
+    :m_widget{std::make_unique<widget_container<Widget>>(std::forward<Widget>(top_widget))}
     {
 
     }
@@ -253,9 +300,13 @@ public:
 
     }
 
+    void resize(std::uint32_t width, std::uint32_t height)
+    {
+        m_widget->resize(width, height);
+    }
+
 private:
-    window_ptr m_window{};
-    render_target_ptr m_target{};
+    std::unique_ptr<widget_container_base> m_widget{};
 };
 
 }

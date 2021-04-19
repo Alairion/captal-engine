@@ -1,5 +1,6 @@
 #include <iostream>
 #include <iomanip>
+#include <numbers>
 
 #include <captal/engine.hpp>
 #include <captal/texture.hpp>
@@ -28,10 +29,10 @@
 
 using namespace cpt::enum_operations;
 
-class sawtooth_generator : public swl::sound_reader
+class sinewave_generator : public swl::sound_reader
 {
 public:
-    sawtooth_generator(std::uint32_t frequency, std::uint32_t channels, std::uint32_t wave_lenght)
+    sinewave_generator(std::uint32_t frequency, std::uint32_t channels, float wave_lenght)
     :m_wave_lenght{wave_lenght}
     {
         const swl::sound_info info
@@ -44,11 +45,11 @@ public:
         set_info(info);
     }
 
-    ~sawtooth_generator() = default;
-    sawtooth_generator(const sawtooth_generator&) = delete;
-    sawtooth_generator& operator=(const sawtooth_generator&) = delete;
-    sawtooth_generator(sawtooth_generator&& other) noexcept = default;
-    sawtooth_generator& operator=(sawtooth_generator&& other) noexcept = default;
+    ~sinewave_generator() = default;
+    sinewave_generator(const sinewave_generator&) = delete;
+    sinewave_generator& operator=(const sinewave_generator&) = delete;
+    sinewave_generator(sinewave_generator&& other) noexcept = default;
+    sinewave_generator& operator=(sinewave_generator&& other) noexcept = default;
 
     bool read(float* output, std::size_t frame_count) override
     {
@@ -68,20 +69,21 @@ public:
 private:
     float next_value() noexcept
     {
-        //Pretty easy implementation
-        m_value += 2.0f / static_cast<float>(m_wave_lenght);
+        constexpr auto pi2{std::numbers::pi_v<float> * 2};
 
-        if(m_value >= 1.0f)
+        m_value += pi2 / m_wave_lenght;
+
+        if(m_value >= pi2)
         {
-            m_value -= 2.0f;
+            m_value -= pi2;
         }
 
-        return m_value;
+        return std::sin(m_value);
     }
 
 private:
     float m_value{-1.0f};
-    std::uint32_t m_wave_lenght{};
+    float m_wave_lenght{};
 };
 
 static constexpr cpt::collision_type_t player_type{1};
@@ -96,7 +98,7 @@ static entt::entity add_player(entt::registry& world, cpt::physical_world& physi
     world.emplace<cpt::components::node>(player, cpt::vec3f{320.0f, 240.0f, 0.5f});
 
     //The player will emit sounds when a wall is hit
-    world.emplace<cpt::components::audio_emiter>(player, std::make_unique<sawtooth_generator>(44100, 2, 250))->set_volume(0.5f);
+    world.emplace<cpt::components::audio_emiter>(player, std::make_unique<sinewave_generator>(44100, 2, 100.0f))->set_volume(0.5f);
 
     //The player sprite, we use an ellipse. Why ? Because why not !
     const auto points{cpt::ellipse(48.0f, 32.0f)};
@@ -165,7 +167,7 @@ static entt::entity fill_world(entt::registry& world, cpt::physical_world& physi
     return add_player(world, physical_world);
 }
 
-static void add_logic(const cpt::render_window_ptr& window, entt::registry& world, cpt::physical_world& physical_world, entt::entity camera, const std::shared_ptr<cpt::frame_time_t>& time)
+static void add_logic(cpt::render_window_ptr target, entt::registry& world, cpt::physical_world& physical_world, entt::entity camera, std::shared_ptr<cpt::frame_time_t> time)
 {
     cpt::text_drawer drawer{cpt::font_set{cpt::font{sansation_regular_font_data, 16}}};
     drawer.set_color(cpt::colors::black);
@@ -201,7 +203,7 @@ static void add_logic(const cpt::render_window_ptr& window, entt::registry& worl
         };
 
         const auto memory_heaps{cpt::engine::instance().renderer().allocator().heap_count()};
-        const auto memory_used{cpt::engine::instance().renderer().allocator().used_memory()};
+        const auto memory_used {cpt::engine::instance().renderer().allocator().used_memory()};
         const auto memory_alloc{cpt::engine::instance().renderer().allocator().allocated_memory()};
 
         std::string info{};
@@ -209,10 +211,7 @@ static void add_logic(const cpt::render_window_ptr& window, entt::registry& worl
         info += "Device shared (" + std::to_string(memory_heaps.device_shared) + "): " + format_data(memory_used.device_shared) + " / " + format_data(memory_alloc.device_shared) + "\n";
         info += "Host shared (" + std::to_string(memory_heaps.host_shared) + "): " + format_data(memory_used.host_shared) + " / " + format_data(memory_alloc.host_shared) + "\n";
         info += std::to_string(frame_per_second) + " FPS\n";
-
-        auto fps{std::to_string(std::chrono::duration<double, std::milli>{*time}.count())};
-        fps.resize(4);
-        info += "Frame time: " + fps + "ms";
+        info += "Frame time: " + std::to_string(std::chrono::duration<double, std::milli>{*time}.count()) + "ms";
 
         cpt::engine::instance().renderer().allocator().clean_dedicated();
 
@@ -223,7 +222,7 @@ static void add_logic(const cpt::render_window_ptr& window, entt::registry& worl
     });
 
     //Add a zoom support
-    window->on_mouse_wheel_scroll().connect([&world, camera](const apr::mouse_event& event)
+    target->window()->on_mouse_wheel_scroll().connect([&world, camera](cpt::window&, const apr::mouse_event& event)
     {
         if(event.wheel > 0)
         {
@@ -240,7 +239,7 @@ static void add_logic(const cpt::render_window_ptr& window, entt::registry& worl
     std::shared_ptr<bool[]> pressed_keys{new bool[4]{}};
 
     //Check what keys have been pressed.
-    window->on_key_pressed().connect([pressed_keys](const apr::keyboard_event& event)
+    target->window()->on_key_pressed().connect([pressed_keys](cpt::window&, const apr::keyboard_event& event)
     {
         if(event.scan == apr::scancode::d) pressed_keys[0] = true;
         if(event.scan == apr::scancode::s) pressed_keys[1] = true;
@@ -249,7 +248,7 @@ static void add_logic(const cpt::render_window_ptr& window, entt::registry& worl
     });
 
     //Check what keys have been released.
-    window->on_key_released().connect([pressed_keys](const apr::keyboard_event& event)
+    target->window()->on_key_released().connect([pressed_keys](cpt::window&, const apr::keyboard_event& event)
     {
         if(event.scan == apr::scancode::d) pressed_keys[0] = false;
         if(event.scan == apr::scancode::s) pressed_keys[1] = false;
@@ -317,9 +316,10 @@ static void add_logic(const cpt::render_window_ptr& window, entt::registry& worl
 
 static void run()
 {
-    //-The first value is the window width (640 pixels). (no default value)
-    //-The second value is the window height (480 pixels). (no default value)
-    //-The third value is the number of image in the swapchain of the window's surface. (default: 2)
+    //Create our window, parameters are title, width, height, and several flags, cf. apr::window.
+    cpt::window_ptr window{cpt::make_window("Captal test", 640, 480, apr::window_options::resizable)};
+
+    //-The image_count is the minimum number of image in the swapchain. (default: 2)
     //    2 means double buffering, 3 triple buffering and so on.
     //    This value is limited in a specific interval by the implementation, but 2 is one of the commonest value and should work everywhere.
     //-The present mode defines window behaviour on presentation. (default: tph::present_mode::fifo)
@@ -329,12 +329,19 @@ static void run()
     //    MSAAx4 and no MSAA (MSAAx1), are always available (cf. Vulkan Specification)
     //-The texture format is given to enable depth buffering.
     //    Depth format "d32_sfloat" is widely available, so it is hardcoded. But in real appliction should check for it's availability.
-    constexpr cpt::video_mode video_mode{640, 480, 2, tph::present_mode::mailbox, tph::sample_count::msaa_x4, tph::texture_format::d32_sfloat};
+    //Other parameter are more situational. Check out the doc.
+    constexpr cpt::video_mode video_mode
+    {
+        .image_count  = 2,
+        .present_mode = tph::present_mode::fifo,
+        .sample_count = tph::sample_count::msaa_x4,
+        .depth_format = tph::texture_format::d32_sfloat
+    };
 
-    //Create the window
-    cpt::render_window_ptr window{cpt::make_render_window("Captal test", video_mode, apr::window_options::resizable)};
+    //Create the render target for the window
+    cpt::render_window_ptr target{cpt::make_render_window(window, video_mode)};
     //Clear color is a part of tph::render_target, returned by cpt::render_target::get_target()
-    window->set_clear_color(cpt::colors::white);
+    target->set_clear_color(cpt::colors::white);
 
     //Our physical world. See add_logic() function for more informations.
     //You must destroy the physical world AFTER all objects which refer to it so you should construct it before your entt::registry
@@ -351,29 +358,45 @@ static void run()
 
     //Since we use multisampling, we must use a compatible pipeline.
     //A render technique describes how a view will render the scene it seens.
-    //Here we need to turn on multisampling within the technique's pipeline...
-    cpt::render_technique_info technique_info{};
-    technique_info.multisample.sample_count = tph::sample_count::msaa_x4;
-    technique_info.multisample.sample_shading = 1.0f;
-    //And also depth buffering.
-    technique_info.depth_stencil.depth_test = true;
-    technique_info.depth_stencil.depth_write = true;
-    technique_info.depth_stencil.depth_compare_op = tph::compare_op::greater_or_equal;
+    //Here we need to turn on multisampling and depth buffering within the technique's pipeline.
+    const cpt::render_technique_info technique_info
+    {
+        .multisample = tph::pipeline_multisample
+        {
+            .sample_count = tph::sample_count::msaa_x4,
+            .sample_shading = 1.0f
+        },
+
+        .depth_stencil = tph::pipeline_depth_stencil
+        {
+            .depth_test = true,
+            .depth_write = true,
+            .depth_compare_op = tph::compare_op::greater_or_equal
+        }
+
+    };
 
     //Our camera, it will hold the cpt::view for our scene.
     const auto camera{world.create()};
-    world.emplace<cpt::components::node>(camera, cpt::vec3f{320.0f, 240.0f, 1.0f}, cpt::vec3f{320.0f, 240.0f, 0.0f});
-    world.emplace<cpt::components::camera>(camera, window, technique_info)->fit(window);
+    world.emplace<cpt::components::node>(camera, cpt::vec3f{0.0f, 0.0f, 1.0f});
+    world.emplace<cpt::components::camera>(camera, target, technique_info)->fit(window);
 
-    //See above.
+    //cf. add_logic()
     auto time_ptr{std::make_shared<cpt::frame_time_t>()};
-    add_logic(window, world, physical_world, camera, time_ptr);
+    add_logic(target, world, physical_world, camera, time_ptr);
+
+    //See the declaration of render_options below...
+    bool reset{};
+    cpt::engine::instance().frame_per_second_update_signal().connect([&reset](auto)
+    {
+        reset = true;
+    });
 
     //The game engine will return true if there is at least one window opened.
     //Run function will update all windows created within the engine and process their events.
-    //It also trigger on_update().
+    //It also trigger on_update (each frame) and frame_per_second_update_signal (each second).
     //It also keeps track of the elapsed time within two call of run().
-    //This function is usually be used as the main loop of your game.
+    //This function is usually be used for the main loop of your game.
     while(cpt::engine::instance().run())
     {
         //Process window events
@@ -386,33 +409,39 @@ static void run()
         //Audio systems will update objects' and listener' position withing the audio world.
         cpt::systems::audio(world);
 
-        //We must not present a window that has rendering disabled.
-        //Window rendering may be disabled when it is closed or minimized.
-        if(window->is_rendering_enable())
+        //The render options, we must specify cpt::begin_render_options::reset when the text get recreated
+        //because the command buffers hold a reference on the old object.
+        auto render_options{cpt::begin_render_options::timed};
+        if(reset)
         {
-            //We register the frame time
-            auto& signal{window->register_frame_time()};
-            signal.connect([time_ptr](cpt::frame_time_t time)
+            render_options |= cpt::begin_render_options::reset;
+            reset = false;
+        }
+
+        //We register the frame time before calling cpt::systems::render.
+        //cpt::render_target::begin_render can be called multiple time each frame, but the first call is the only one that can reset the target.
+        //Reseting the target reset the internal command buffers so we can draw new object, or remove or hide objects.
+        if(auto render_info{target->begin_render(render_options)}; render_info)
+        {
+            render_info->time_signal->connect([time_ptr](cpt::frame_time_t time)
             {
                 *time_ptr = time;
             });
-
-            //Render system will update all views within the world,
-            //and draw all drawable items to all render targets associated to the views.
-            cpt::systems::render(world);
-
-            //Before executing work on the GPU, we first need to execute memory transfers that occured during the frame
-            cpt::engine::instance().submit_transfers();
-
-            //This will update window's swapchain.
-            //Doing so will put the newly drawn image in the rendering queue of the system's presentation engine.
-            //It will then display it on screen. It's accual behaviour will depends on window presention mode.
-            window->present();
         }
-        else
-        {
-            std::this_thread::sleep_for(std::chrono::milliseconds{1});
-        }
+
+        //Render system will update all views within the world,
+        //and draw all drawable items to all render targets associated to the views,
+        //if the target effectively returns .
+        cpt::systems::render(world);
+
+        //Before executing work on the GPU, we first need to execute memory transfers that occured during the frame
+        cpt::engine::instance().submit_transfers();
+
+        //Submit rendering work to the GPU.
+        //Since it is a render_window, this will also update window's swapchain.
+        //It will put the newly drawn image in the rendering queue of the system's presentation engine.
+        //It will then display it on screen. It's accual behaviour will depends on window presention mode.
+        target->present();
 
         //End frame system marks the end of the current frame.
         //It will reset some states within the world to prepare it for a new frame.

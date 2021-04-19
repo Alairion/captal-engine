@@ -31,5 +31,6 @@ A: Widgets (WIP)
 A: Complete text rendering support (alignments, stylized) (WIP)
 A: More primitive shapes (circles, ellipses, convex polygons) (WIP)
 A: Particles support
+A: Make use of GPU pipeline cache
 L: Custom exception type
 I: Virtual file archive system ? (based on something i wrote few years ago)
