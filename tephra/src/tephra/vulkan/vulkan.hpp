@@ -347,7 +347,7 @@ class TEPHRA_API image
 {
 public:
     constexpr image() = default;
-    explicit image(VkDevice device, VkExtent3D size, VkImageType type, VkFormat format, VkImageUsageFlags usage, VkImageTiling tiling = VK_IMAGE_TILING_OPTIMAL, VkSampleCountFlagBits samples = VK_SAMPLE_COUNT_1_BIT);
+    explicit image(VkDevice device, const VkImageCreateInfo& info);
 
     explicit image(VkDevice device, VkImage image) noexcept
     :m_device{device}
@@ -400,7 +400,7 @@ class TEPHRA_API image_view
 {
 public:
     constexpr image_view() = default;
-    explicit image_view(VkDevice device, VkImage image, VkImageViewType type, VkFormat format, VkComponentMapping components, VkImageAspectFlags aspect);
+    explicit image_view(VkDevice device, const VkImageViewCreateInfo& info);
 
     explicit image_view(VkDevice device, VkImageView image_view) noexcept
     :m_device{device}
@@ -447,7 +447,7 @@ class TEPHRA_API sampler
 {
 public:
     constexpr sampler() = default;
-    explicit sampler(VkDevice device, VkFilter mag_filter, VkFilter min_filter, VkSamplerAddressMode address_mode, VkBool32 compared, VkCompareOp compare_op, VkBool32 unnormalized, float anisotropy = 1.0f);
+    explicit sampler(VkDevice device, const VkSamplerCreateInfo& info);
 
     explicit sampler(VkDevice device, VkSampler sampler) noexcept
     :m_device{device}

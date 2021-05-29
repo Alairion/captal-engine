@@ -232,8 +232,8 @@ static tph::graphics_pipeline_info make_info(const render_technique_info& info, 
     {
         output.stages.emplace_back(stage.shader, stage.name, stage.specialisation_info);
 
-        has_vertex   = stage.shader.stage() == tph::shader_stage::vertex;
-        has_fragment = stage.shader.stage() == tph::shader_stage::fragment;
+        has_vertex   = has_vertex   || stage.shader.get().stage() == tph::shader_stage::vertex;
+        has_fragment = has_fragment || stage.shader.get().stage() == tph::shader_stage::fragment;
     }
 
     if(!has_vertex)

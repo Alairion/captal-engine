@@ -42,13 +42,13 @@ void index_z_sorting(entt::registry& world)
 {
     world.sort<components::node>([&world](entt::entity left, entt::entity right) -> bool
     {
-        const auto left_draw_index{world.get<components::draw_index>(left)};
+        const auto left_draw_index {world.get<components::draw_index>(left)};
         const auto right_draw_index{world.get<components::draw_index>(right)};
 
-        const auto& left_node{world.get<components::node>(left)};
+        const auto& left_node {world.get<components::node>(left)};
         const auto& right_node{world.get<components::node>(right)};
 
-        const vec3f left_position{left_node.position() - left_node.origin()};
+        const vec3f left_position {left_node.position()  - left_node.origin()};
         const vec3f right_position{right_node.position() - right_node.origin()};
 
         return std::make_tuple(left_draw_index.index, left_position.z(), left_position.y()) < std::make_tuple(right_draw_index.index, right_position.z(), right_position.y());

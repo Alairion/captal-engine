@@ -1,5 +1,7 @@
 #include "texture.hpp"
 
+#include <cassert>
+
 #include "vulkan/vulkan_functions.hpp"
 #include "vulkan/helper.hpp"
 
@@ -11,285 +13,118 @@ using namespace tph::vulkan::functions;
 namespace tph
 {
 
-static VkComponentMapping make_mapping(const component_mapping& mapping)
-{
-    return VkComponentMapping
-    {
-        static_cast<VkComponentSwizzle>(mapping.r),
-        static_cast<VkComponentSwizzle>(mapping.g),
-        static_cast<VkComponentSwizzle>(mapping.b),
-        static_cast<VkComponentSwizzle>(mapping.a)
-    };
-}
-
-static vulkan::sampler make_sampler(renderer& renderer, const sampling_options& options)
-{
-    return vulkan::sampler
-    {
-        underlying_cast<VkDevice>(renderer),
-        static_cast<VkFilter>(options.magnification_filter),
-        static_cast<VkFilter>(options.minification_filter),
-        static_cast<VkSamplerAddressMode>(options.address_mode),
-        static_cast<VkBool32>(options.compare),
-        static_cast<VkCompareOp>(options.compare_op),
-        static_cast<VkBool32>(!options.normalized_coordinates),
-        static_cast<float>(options.anisotropy_level)
-    };
-}
-
-static bool need_image_view(texture_usage usage) noexcept
-{
-    return static_cast<bool>(usage & texture_usage::sampled)
-        || static_cast<bool>(usage & texture_usage::color_attachment)
-        || static_cast<bool>(usage & texture_usage::depth_stencil_attachment)
-        || static_cast<bool>(usage & texture_usage::input_attachment);
-}
-
 texture::texture(renderer& renderer, std::uint32_t width, const texture_info& info)
-:m_format{info.format}
-,m_aspect{aspect_from_format(m_format)}
-,m_sample_count{info.sample_count}
+:m_dimensions{1}
 ,m_width{width}
 ,m_height{1}
 ,m_depth{1}
-{
-    m_image = vulkan::image
-    {
-        underlying_cast<VkDevice>(renderer),
-        VkExtent3D{width, 1, 1},
-        VK_IMAGE_TYPE_1D,
-        static_cast<VkFormat>(m_format),
-        static_cast<VkImageUsageFlags>(info.usage),
-        VK_IMAGE_TILING_OPTIMAL,
-        static_cast<VkSampleCountFlagBits>(info.sample_count)
-    };
-
-    m_memory = renderer.allocator().allocate_bound(m_image, vulkan::memory_resource_type::non_linear, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-    if(need_image_view(info.usage))
-    {
-        m_image_view = vulkan::image_view
-        {
-            underlying_cast<VkDevice>(renderer),
-            m_image,
-            VK_IMAGE_VIEW_TYPE_1D,
-            static_cast<VkFormat>(m_format),
-            make_mapping(info.components),
-            static_cast<VkImageAspectFlags>(m_aspect)
-        };
-    }
-}
-
-texture::texture(renderer& renderer, std::uint32_t width, const texture_info& info, const sampling_options& options)
-:m_format{info.format}
+,m_format{info.format}
 ,m_aspect{aspect_from_format(m_format)}
+,m_mip_levels{info.mip_levels}
+,m_array_layers{info.array_layers}
 ,m_sample_count{info.sample_count}
-,m_width{width}
-,m_height{1}
-,m_depth{1}
 {
-    m_image = vulkan::image
-    {
-        underlying_cast<VkDevice>(renderer),
-        VkExtent3D{width, 1, 1},
-        VK_IMAGE_TYPE_1D,
-        static_cast<VkFormat>(m_format),
-        static_cast<VkImageUsageFlags>(info.usage),
-        VK_IMAGE_TILING_OPTIMAL,
-        static_cast<VkSampleCountFlagBits>(info.sample_count)
-    };
+    VkImageCreateInfo create_info{};
+    create_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+    create_info.imageType = VK_IMAGE_TYPE_1D;
+    create_info.extent = VkExtent3D{width, 1, 1};
+    create_info.format = static_cast<VkFormat>(m_format);
+    create_info.mipLevels = info.mip_levels;
+    create_info.arrayLayers = info.array_layers;
+    create_info.samples = VK_SAMPLE_COUNT_1_BIT;
+    create_info.tiling = VK_IMAGE_TILING_OPTIMAL;
+    create_info.usage = static_cast<VkImageUsageFlags>(info.usage);
+    create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    create_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
+    m_image  = vulkan::image{underlying_cast<VkDevice>(renderer), create_info};
     m_memory = renderer.allocator().allocate_bound(m_image, vulkan::memory_resource_type::non_linear, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-    if(need_image_view(info.usage))
-    {
-        m_image_view = vulkan::image_view
-        {
-            underlying_cast<VkDevice>(renderer),
-            m_image,
-            VK_IMAGE_VIEW_TYPE_1D,
-            static_cast<VkFormat>(m_format),
-            make_mapping(info.components),
-            static_cast<VkImageAspectFlags>(m_aspect)
-        };
-    }
-
-    if(static_cast<bool>(info.usage & texture_usage::sampled))
-    {
-        m_sampler = make_sampler(renderer, options);
-    }
 }
 
 texture::texture(renderer& renderer, std::uint32_t width, std::uint32_t height, const texture_info& info)
-:m_format{info.format}
-,m_aspect{aspect_from_format(m_format)}
-,m_sample_count{info.sample_count}
+:m_dimensions{2}
 ,m_width{width}
 ,m_height{height}
 ,m_depth{1}
-{
-    m_image = vulkan::image
-    {
-        underlying_cast<VkDevice>(renderer),
-        VkExtent3D{width, height, 1},
-        VK_IMAGE_TYPE_2D,
-        static_cast<VkFormat>(m_format),
-        static_cast<VkImageUsageFlags>(info.usage),
-        VK_IMAGE_TILING_OPTIMAL,
-        static_cast<VkSampleCountFlagBits>(info.sample_count)
-    };
-
-    m_memory = renderer.allocator().allocate_bound(m_image, vulkan::memory_resource_type::non_linear, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-    if(need_image_view(info.usage))
-    {
-        m_image_view = vulkan::image_view
-        {
-            underlying_cast<VkDevice>(renderer),
-            m_image,
-            VK_IMAGE_VIEW_TYPE_2D,
-            static_cast<VkFormat>(m_format),
-            make_mapping(info.components),
-            static_cast<VkImageAspectFlags>(m_aspect)
-        };
-    }
-}
-
-texture::texture(renderer& renderer, std::uint32_t width, std::uint32_t height, const texture_info& info, const sampling_options& options)
-:m_format{info.format}
+,m_format{info.format}
 ,m_aspect{aspect_from_format(m_format)}
+,m_mip_levels{info.mip_levels}
+,m_array_layers{info.array_layers}
 ,m_sample_count{info.sample_count}
-,m_width{width}
-,m_height{height}
-,m_depth{1}
 {
-    m_image = vulkan::image
-    {
-        underlying_cast<VkDevice>(renderer),
-        VkExtent3D{width, height, 1},
-        VK_IMAGE_TYPE_2D,
-        static_cast<VkFormat>(m_format),
-        static_cast<VkImageUsageFlags>(info.usage),
-        VK_IMAGE_TILING_OPTIMAL,
-        static_cast<VkSampleCountFlagBits>(info.sample_count)
-    };
+    VkImageCreateInfo create_info{};
+    create_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+    create_info.imageType = VK_IMAGE_TYPE_2D;
+    create_info.extent = VkExtent3D{width, height, 1};
+    create_info.format = static_cast<VkFormat>(m_format);
+    create_info.mipLevels = info.mip_levels;
+    create_info.arrayLayers = info.array_layers;
+    create_info.samples = static_cast<VkSampleCountFlagBits>(info.sample_count);
+    create_info.tiling = VK_IMAGE_TILING_OPTIMAL;
+    create_info.usage = static_cast<VkImageUsageFlags>(info.usage);
+    create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    create_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
+    m_image  = vulkan::image{underlying_cast<VkDevice>(renderer), create_info};
     m_memory = renderer.allocator().allocate_bound(m_image, vulkan::memory_resource_type::non_linear, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-    if(need_image_view(info.usage))
-    {
-        m_image_view = vulkan::image_view
-        {
-            underlying_cast<VkDevice>(renderer),
-            m_image,
-            VK_IMAGE_VIEW_TYPE_2D,
-            static_cast<VkFormat>(m_format),
-            make_mapping(info.components),
-            static_cast<VkImageAspectFlags>(m_aspect)
-        };
-    }
-
-    if(static_cast<bool>(info.usage & texture_usage::sampled))
-    {
-        m_sampler = make_sampler(renderer, options);
-    }
 }
 
 texture::texture(renderer& renderer, std::uint32_t width, std::uint32_t height, std::uint32_t depth, const texture_info& info)
-:m_format{info.format}
-,m_aspect{aspect_from_format(m_format)}
-,m_sample_count{info.sample_count}
+:m_dimensions{3}
 ,m_width{width}
 ,m_height{height}
 ,m_depth{depth}
-{
-    m_image = vulkan::image
-    {
-        underlying_cast<VkDevice>(renderer),
-        VkExtent3D{width, height, depth},
-        VK_IMAGE_TYPE_3D,
-        static_cast<VkFormat>(m_format),
-        static_cast<VkImageUsageFlags>(info.usage),
-        VK_IMAGE_TILING_OPTIMAL,
-        static_cast<VkSampleCountFlagBits>(info.sample_count)
-    };
-
-    m_memory = renderer.allocator().allocate_bound(m_image, vulkan::memory_resource_type::non_linear, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-    if(need_image_view(info.usage))
-    {
-        m_image_view = vulkan::image_view
-        {
-            underlying_cast<VkDevice>(renderer),
-            m_image,
-            VK_IMAGE_VIEW_TYPE_3D,
-            static_cast<VkFormat>(m_format),
-            make_mapping(info.components),
-            static_cast<VkImageAspectFlags>(m_aspect)
-        };
-    }
-}
-
-texture::texture(renderer& renderer, std::uint32_t width, std::uint32_t height, std::uint32_t depth, const texture_info& info, const sampling_options& options)
-:m_format{info.format}
+,m_format{info.format}
 ,m_aspect{aspect_from_format(m_format)}
+,m_mip_levels{info.mip_levels}
+,m_array_layers{info.array_layers}
 ,m_sample_count{info.sample_count}
-,m_width{width}
-,m_height{height}
-,m_depth{depth}
 {
-    m_image = vulkan::image
-    {
-        underlying_cast<VkDevice>(renderer),
-        VkExtent3D{width, height, depth},
-        VK_IMAGE_TYPE_3D,
-        static_cast<VkFormat>(m_format),
-        static_cast<VkImageUsageFlags>(info.usage),
-        VK_IMAGE_TILING_OPTIMAL,
-        static_cast<VkSampleCountFlagBits>(info.sample_count)
-    };
+    VkImageCreateInfo create_info{};
+    create_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+    create_info.imageType = VK_IMAGE_TYPE_3D;
+    create_info.extent = VkExtent3D{width, height, depth};
+    create_info.format = static_cast<VkFormat>(m_format);
+    create_info.mipLevels = info.mip_levels;
+    create_info.arrayLayers = info.array_layers;
+    create_info.samples = VK_SAMPLE_COUNT_1_BIT;
+    create_info.tiling = VK_IMAGE_TILING_OPTIMAL;
+    create_info.usage = static_cast<VkImageUsageFlags>(info.usage);
+    create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    create_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
+    m_image  = vulkan::image{underlying_cast<VkDevice>(renderer), create_info};
     m_memory = renderer.allocator().allocate_bound(m_image, vulkan::memory_resource_type::non_linear, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-    if(need_image_view(info.usage))
-    {
-        m_image_view = vulkan::image_view
-        {
-            underlying_cast<VkDevice>(renderer),
-            m_image,
-            VK_IMAGE_VIEW_TYPE_3D,
-            static_cast<VkFormat>(m_format),
-            make_mapping(info.components),
-            static_cast<VkImageAspectFlags>(m_aspect)
-        };
-    }
-
-    if(static_cast<bool>(info.usage & texture_usage::sampled))
-    {
-        m_sampler = make_sampler(renderer, options);
-    }
 }
 
-void texture::transition(command_buffer& command_buffer, resource_access source_access, resource_access destination_access, pipeline_stage source_stage, pipeline_stage destination_stage, texture_layout current_layout, texture_layout next_layout) noexcept
+texture::texture(renderer& renderer, cubemap_t, std::uint32_t size, const texture_info& info)
+:m_dimensions{2}
+,m_width{size}
+,m_height{size}
+,m_depth{1}
+,m_cubemap{true}
+,m_format{info.format}
+,m_aspect{aspect_from_format(m_format)}
+,m_mip_levels{info.mip_levels}
+,m_array_layers{info.array_layers * 6}
+,m_sample_count{info.sample_count}
 {
-    VkImageMemoryBarrier barrier{};
-    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-    barrier.oldLayout = static_cast<VkImageLayout>(current_layout);
-    barrier.newLayout = static_cast<VkImageLayout>(next_layout);
-    barrier.srcAccessMask = static_cast<VkAccessFlags>(source_access);
-    barrier.dstAccessMask = static_cast<VkAccessFlags>(destination_access);
-    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.image = m_image;
-    barrier.subresourceRange.aspectMask = static_cast<VkImageAspectFlags>(m_aspect);
-    barrier.subresourceRange.baseMipLevel = 0;
-    barrier.subresourceRange.levelCount = 1;
-    barrier.subresourceRange.baseArrayLayer = 0;
-    barrier.subresourceRange.layerCount = 1;
+    VkImageCreateInfo create_info{};
+    create_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+    create_info.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
+    create_info.imageType = VK_IMAGE_TYPE_2D;
+    create_info.extent = VkExtent3D{size, size, 1};
+    create_info.format = static_cast<VkFormat>(m_format);
+    create_info.mipLevels = info.mip_levels;
+    create_info.arrayLayers = info.array_layers * 6;
+    create_info.samples = VK_SAMPLE_COUNT_1_BIT;
+    create_info.tiling = VK_IMAGE_TILING_OPTIMAL;
+    create_info.usage = static_cast<VkImageUsageFlags>(info.usage);
+    create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    create_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
-    vkCmdPipelineBarrier(underlying_cast<VkCommandBuffer>(command_buffer),
-                         static_cast<VkPipelineStageFlags>(source_stage), static_cast<VkPipelineStageFlags>(destination_stage),
-                         0, 0, nullptr, 0, nullptr, 1, &barrier);
+    m_image  = vulkan::image{underlying_cast<VkDevice>(renderer), create_info};
+    m_memory = renderer.allocator().allocate_bound(m_image, vulkan::memory_resource_type::non_linear, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 }
 
 void set_object_name(renderer& renderer, const texture& object, const std::string& name)
@@ -302,34 +137,115 @@ void set_object_name(renderer& renderer, const texture& object, const std::strin
 
     if(auto result{vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(renderer), &info)}; result != VK_SUCCESS)
         throw vulkan::error{result};
+}
 
-    if(auto view{underlying_cast<VkImageView>(object)}; view)
+static VkComponentMapping make_mapping(const component_mapping& mapping)
+{
+    return VkComponentMapping
     {
-        const std::string real_name{name + " image view"};
+        static_cast<VkComponentSwizzle>(mapping.r),
+        static_cast<VkComponentSwizzle>(mapping.g),
+        static_cast<VkComponentSwizzle>(mapping.b),
+        static_cast<VkComponentSwizzle>(mapping.a)
+    };
+}
 
-        VkDebugUtilsObjectNameInfoEXT info{};
-        info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
-        info.objectType = VK_OBJECT_TYPE_IMAGE_VIEW;
-        info.objectHandle = reinterpret_cast<std::uint64_t>(view);
-        info.pObjectName = std::data(real_name);
+texture_view::texture_view(renderer& renderer, const texture& texture, const component_mapping& mapping)
+:texture_view{renderer, texture, texture_subresource_range{0, texture.mip_levels(), 0, texture.array_layers()}, mapping}
+{
 
-        if(auto result{vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(renderer), &info)}; result != VK_SUCCESS)
-            throw vulkan::error{result};
+}
+
+texture_view::texture_view(renderer& renderer, const texture& texture, const texture_subresource_range& subresource_range, const component_mapping& mapping)
+{
+    static constexpr std::array view_types{VK_IMAGE_VIEW_TYPE_1D, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_VIEW_TYPE_3D};
+    static constexpr std::array array_view_types{VK_IMAGE_VIEW_TYPE_1D_ARRAY, VK_IMAGE_VIEW_TYPE_2D_ARRAY};
+
+    VkImageViewCreateInfo create_info{};
+    create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    create_info.image = underlying_cast<VkImage>(texture);
+
+    if(!texture.is_cubemap())
+    {
+        if(subresource_range.array_layer_count == 1)
+        {
+            create_info.viewType = view_types[texture.dimensions() - 1];
+        }
+        else
+        {
+            assert(texture.dimensions() < 3 && "3D textures can not have multiple array layers.");
+
+            create_info.viewType = array_view_types[texture.dimensions() - 1];
+        }
+    }
+    else
+    {
+        if(subresource_range.array_layer_count == 6)
+        {
+            create_info.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
+        }
+        else
+        {
+            create_info.viewType = VK_IMAGE_VIEW_TYPE_CUBE_ARRAY;
+        }
     }
 
-    if(auto sampler{underlying_cast<VkSampler>(object)}; sampler)
-    {
-        const std::string real_name{name + " sampler"};
+    create_info.format = static_cast<VkFormat>(texture.format());
+    create_info.components = make_mapping(mapping);
+    create_info.subresourceRange.aspectMask = static_cast<VkImageAspectFlags>(texture.aspect());
+    create_info.subresourceRange.baseMipLevel = subresource_range.base_mip_level;
+    create_info.subresourceRange.levelCount = subresource_range.mip_level_count;
+    create_info.subresourceRange.baseArrayLayer = subresource_range.base_array_layer;
+    create_info.subresourceRange.layerCount = subresource_range.array_layer_count;
 
-        VkDebugUtilsObjectNameInfoEXT info{};
-        info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
-        info.objectType = VK_OBJECT_TYPE_SAMPLER;
-        info.objectHandle = reinterpret_cast<std::uint64_t>(sampler);
-        info.pObjectName = std::data(real_name);
+    m_image_view = vulkan::image_view{underlying_cast<VkDevice>(renderer), create_info};
+}
 
-        if(auto result{vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(renderer), &info)}; result != VK_SUCCESS)
-            throw vulkan::error{result};
-    }
+void set_object_name(renderer& renderer, const texture_view& object, const std::string& name)
+{
+    VkDebugUtilsObjectNameInfoEXT info{};
+    info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+    info.objectType = VK_OBJECT_TYPE_IMAGE_VIEW;
+    info.objectHandle = reinterpret_cast<std::uint64_t>(underlying_cast<VkImageView>(object));
+    info.pObjectName = std::data(name);
+
+    if(auto result{vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(renderer), &info)}; result != VK_SUCCESS)
+        throw vulkan::error{result};
+}
+
+sampler::sampler(renderer& renderer, const sampler_info& info)
+{
+    VkSamplerCreateInfo create_info{};
+    create_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+    create_info.magFilter = static_cast<VkFilter>(info.mag_filter);
+    create_info.minFilter = static_cast<VkFilter>(info.min_filter);
+    create_info.mipmapMode = static_cast<VkSamplerMipmapMode>(info.mipmap_mode);
+    create_info.addressModeU = static_cast<VkSamplerAddressMode>(info.address_mode);
+    create_info.addressModeV = static_cast<VkSamplerAddressMode>(info.address_mode);
+    create_info.addressModeW = static_cast<VkSamplerAddressMode>(info.address_mode);
+    create_info.borderColor = static_cast<VkBorderColor>(info.border_color);
+    create_info.mipLodBias = info.mip_lod_bias;
+    create_info.anisotropyEnable = info.anisotropy_level > 1.0f ? VK_TRUE : VK_FALSE;
+    create_info.maxAnisotropy = info.anisotropy_level;
+    create_info.unnormalizedCoordinates = static_cast<VkBool32>(info.unnormalized_coordinates);
+    create_info.compareEnable = static_cast<VkBool32>(info.compare);
+    create_info.compareOp = static_cast<VkCompareOp>(info.compare_op);
+    create_info.minLod = info.min_lod;
+    create_info.maxLod = info.max_lod;
+
+    m_sampler = vulkan::sampler{underlying_cast<VkDevice>(renderer), create_info};
+}
+
+void set_object_name(renderer& renderer, const sampler& object, const std::string& name)
+{
+    VkDebugUtilsObjectNameInfoEXT info{};
+    info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+    info.objectType = VK_OBJECT_TYPE_SAMPLER;
+    info.objectHandle = reinterpret_cast<std::uint64_t>(underlying_cast<VkSampler>(object));
+    info.pObjectName = std::data(name);
+
+    if(auto result{vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(renderer), &info)}; result != VK_SUCCESS)
+        throw vulkan::error{result};
 }
 
 }

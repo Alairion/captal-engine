@@ -261,6 +261,15 @@ public:
         return std::span{&m_buffer->get<const std::uint32_t>(2), static_cast<std::size_t>(m_index_count)};
     }
 
+#ifdef CAPTAL_DEBUG
+    void set_name(std::string_view name);
+#else
+    void set_name(std::string_view name [[maybe_unused]]) const noexcept
+    {
+
+    }
+#endif
+
 private:
     struct descriptor_set_data
     {
@@ -292,6 +301,10 @@ private:
     bool m_upload_model{true};
     bool m_upload_indices{false};
     bool m_upload_vertices{false};
+
+#ifdef CAPTAL_DEBUG
+    std::string m_name{};
+#endif
 };
 
 class CAPTAL_API sprite final : public basic_renderable

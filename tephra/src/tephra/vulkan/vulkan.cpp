@@ -226,23 +226,10 @@ buffer_view::~buffer_view()
 
 /////////////////////////////////////////////////////////////////////
 
-image::image(VkDevice device, VkExtent3D size, VkImageType type, VkFormat format, VkImageUsageFlags usage, VkImageTiling tiling, VkSampleCountFlagBits samples)
+image::image(VkDevice device, const VkImageCreateInfo& info)
 :m_device{device}
 {
-    VkImageCreateInfo create_info{};
-    create_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-    create_info.imageType = type;
-    create_info.extent = size;
-    create_info.format = format;
-    create_info.mipLevels = 1;
-    create_info.arrayLayers = 1;
-    create_info.samples = samples;
-    create_info.tiling = tiling;
-    create_info.usage = usage;
-    create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    create_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-
-    if(auto result{vkCreateImage(m_device, &create_info, nullptr, &m_image)}; result != VK_SUCCESS)
+    if(auto result{vkCreateImage(m_device, &info, nullptr, &m_image)}; result != VK_SUCCESS)
         throw error{result};
 }
 
@@ -254,22 +241,10 @@ image::~image()
 
 /////////////////////////////////////////////////////////////////////
 
-image_view::image_view(VkDevice device, VkImage image, VkImageViewType type, VkFormat format, VkComponentMapping components, VkImageAspectFlags aspect)
+image_view::image_view(VkDevice device, const VkImageViewCreateInfo& info)
 :m_device{device}
 {
-    VkImageViewCreateInfo create_info{};
-    create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    create_info.image = image;
-    create_info.viewType = type;
-    create_info.format = format;
-    create_info.components = components;
-    create_info.subresourceRange.aspectMask = aspect;
-    create_info.subresourceRange.baseMipLevel = 0;
-    create_info.subresourceRange.levelCount = 1;
-    create_info.subresourceRange.baseArrayLayer = 0;
-    create_info.subresourceRange.layerCount = 1;
-
-    if(auto result{vkCreateImageView(m_device, &create_info, nullptr, &m_image_view)}; result != VK_SUCCESS)
+    if(auto result{vkCreateImageView(m_device, &info, nullptr, &m_image_view)}; result != VK_SUCCESS)
         throw error{result};
 }
 
@@ -281,28 +256,10 @@ image_view::~image_view()
 
 /////////////////////////////////////////////////////////////////////
 
-sampler::sampler(VkDevice device, VkFilter mag_filter, VkFilter min_filter, VkSamplerAddressMode address_mode, VkBool32 compared, VkCompareOp compare_op, VkBool32 unnormalized, float anisotropy)
+sampler::sampler(VkDevice device, const VkSamplerCreateInfo& info)
 :m_device{device}
 {
-    VkSamplerCreateInfo create_info{};
-    create_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-    create_info.magFilter = mag_filter;
-    create_info.minFilter = min_filter;
-    create_info.addressModeU = address_mode;
-    create_info.addressModeV = address_mode;
-    create_info.addressModeW = address_mode;
-    create_info.borderColor = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
-    create_info.anisotropyEnable = anisotropy > 1.0f ? VK_TRUE : VK_FALSE;
-    create_info.maxAnisotropy = anisotropy;
-    create_info.unnormalizedCoordinates = unnormalized;
-    create_info.compareEnable = compared;
-    create_info.compareOp = compare_op;
-    create_info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
-    create_info.mipLodBias = 0.0f;
-    create_info.minLod = 0.0f;
-    create_info.maxLod = 0.0f;
-
-    if(auto result{vkCreateSampler(m_device, &create_info, nullptr, &m_sampler)}; result != VK_SUCCESS)
+    if(auto result{vkCreateSampler(m_device, &info, nullptr, &m_sampler)}; result != VK_SUCCESS)
         throw error{result};
 }
 

@@ -46,6 +46,13 @@ void view::bind(frame_render_info info)
 
         m_set = m_render_technique->layout()->make_set(render_layout::view_index);
 
+        #ifdef CAPTAL_DEBUG
+        if(!std::empty(m_name))
+        {
+            tph::set_object_name(engine::instance().renderer(), m_set->set(), m_name + " descriptor set");
+        }
+        #endif
+
         std::vector<tph::descriptor_write> writes{};
         writes.reserve(std::size(to_bind));
 
@@ -133,5 +140,16 @@ void view::set_binding(std::uint32_t index, cpt::binding binding)
     m_need_descriptor_update = true;
 }
 
+#ifdef CAPTAL_DEBUG
+void view::set_name(std::string_view name)
+{
+    m_name = name;
+
+    if(m_set)
+    {
+        tph::set_object_name(engine::instance().renderer(), m_set->set(), m_name + " descriptor set");
+    }
+}
+#endif
 
 }

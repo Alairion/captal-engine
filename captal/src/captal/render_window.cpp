@@ -162,36 +162,42 @@ static std::optional<tph::swapchain> make_swapchain(const cpt::video_mode& mode,
     return tph::swapchain{engine::instance().renderer(), window.surface(), info, old};
 }
 
-static tph::texture make_msaa_texture(const tph::swapchain& swapchain, tph::texture_format surface_format, tph::sample_count sample_count)
+static std::pair<tph::texture, tph::texture_view> make_msaa_texture(const tph::swapchain& swapchain, tph::texture_format surface_format, tph::sample_count sample_count)
 {
     if(sample_count == tph::sample_count::msaa_x1)
     {
-        return tph::texture{};
+        return std::pair<tph::texture, tph::texture_view>{};
     }
 
-    const tph::texture_info info{surface_format, tph::texture_usage::color_attachment, {}, sample_count};
+    const tph::texture_info info{.format = surface_format, .usage = tph::texture_usage::color_attachment, .sample_count = sample_count};
 
-    return tph::texture{engine::instance().renderer(), swapchain.info().width, swapchain.info().height, info};
+    tph::texture texture{engine::instance().renderer(), swapchain.info().width, swapchain.info().height, info};
+    tph::texture_view view{engine::instance().renderer(), texture};
+
+    return std::make_pair(std::move(texture), std::move(view));
 }
 
-static tph::texture make_depth_texture(const tph::swapchain& swapchain, tph::texture_format depth_format, tph::sample_count sample_count)
+static std::pair<tph::texture, tph::texture_view> make_depth_texture(const tph::swapchain& swapchain, tph::texture_format depth_format, tph::sample_count sample_count)
 {
     if(depth_format == tph::texture_format::undefined)
     {
-        return tph::texture{};
+        return std::pair<tph::texture, tph::texture_view>{};
     }
 
-    const tph::texture_info info{depth_format, tph::texture_usage::depth_stencil_attachment, {}, sample_count};
+    const tph::texture_info info{.format = depth_format, .usage = tph::texture_usage::depth_stencil_attachment, .sample_count = sample_count};
 
-    return tph::texture{engine::instance().renderer(), swapchain.info().width, swapchain.info().height, info};
+    tph::texture texture{engine::instance().renderer(), swapchain.info().width, swapchain.info().height, info};
+    tph::texture_view view{engine::instance().renderer(), texture};
+
+    return std::make_pair(std::move(texture), std::move(view));
 }
 
-static std::vector<std::reference_wrapper<tph::texture>> make_attachments(video_mode mode, tph::texture& color, tph::texture& multisampling, tph::texture& depth)
+static std::vector<std::reference_wrapper<tph::texture_view>> make_attachments(video_mode mode, tph::texture_view& color, tph::texture_view& multisampling, tph::texture_view& depth)
 {
     const bool has_multisampling{mode.sample_count != tph::sample_count::msaa_x1};
     const bool has_depth_stencil{mode.depth_format != tph::texture_format::undefined};
 
-    std::vector<std::reference_wrapper<tph::texture>> output{};
+    std::vector<std::reference_wrapper<tph::texture_view>> output{};
 
     if(has_multisampling)
     {
@@ -434,7 +440,7 @@ void render_window::setup_framebuffers()
 
     for(std::uint32_t i{}; i < m_swapchain->info().image_count; ++i)
     {
-        const auto attachments{make_attachments(m_mode, m_swapchain->textures()[i], m_msaa_texture, m_depth_texture)};
+        const auto attachments{make_attachments(m_mode, m_swapchain->texture_views()[i], m_msaa_texture_view, m_depth_texture_view)};
 
         m_framebuffers.emplace_back(engine::instance().renderer(), get_render_pass(), attachments, m_swapchain->info().width, m_swapchain->info().height, 1);
     }
@@ -603,8 +609,13 @@ bool render_window::recreate()
         throw;
     }
 
-    m_msaa_texture = make_msaa_texture(*m_swapchain, m_mode.surface_format, m_mode.sample_count);
-    m_depth_texture = make_depth_texture(*m_swapchain, m_mode.depth_format, m_mode.sample_count);
+    auto [msaa_texture, msaa_view] = make_msaa_texture(*m_swapchain, m_mode.surface_format, m_mode.sample_count);
+    m_msaa_texture = std::move(msaa_texture);
+    m_msaa_texture_view = std::move(msaa_view);
+
+    auto [depth_texture, depth_view] = make_depth_texture(*m_swapchain, m_mode.depth_format, m_mode.sample_count);
+    m_depth_texture = std::move(depth_texture);
+    m_depth_texture_view = std::move(depth_view);
 
     setup_framebuffers();
 

@@ -123,7 +123,7 @@ private:
 
 public:
     text_drawer() = default;
-    explicit text_drawer(font_set&& fonts, text_drawer_options options = text_drawer_options::none, glyph_format format = glyph_format::gray, const tph::sampling_options& sampling = tph::sampling_options{});
+    explicit text_drawer(font_set&& fonts, text_drawer_options options = text_drawer_options::none, glyph_format format = glyph_format::gray, const tph::sampler_info& sampling = tph::sampler_info{});
 
     ~text_drawer() = default;
     text_drawer(const text_drawer&) = delete;
@@ -302,7 +302,7 @@ private:
 private:
     font_set m_fonts{};
     glyph_format m_format{};
-    tph::sampling_options m_sampling{};
+    tph::sampler_info m_sampling{};
 
     text_drawer_options m_options{};
     subpixel_adjustment m_adjustment{cpt::subpixel_adjustment::x2};

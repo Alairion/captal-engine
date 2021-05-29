@@ -65,7 +65,7 @@ void memory_transfer_scheduler::submit_transfers()
     const auto index{buffer_index(buffer)};
     const auto to_execute{secondary_buffers(index)};
 
-    tph::cmd::pipeline_barrier(buffer.buffer, tph::pipeline_stage::bottom_of_pipe, tph::pipeline_stage::transfer);
+    tph::cmd::pipeline_barrier(buffer.buffer, tph::pipeline_stage::bottom_of_pipe, tph::pipeline_stage::transfer, tph::dependency_flags::none);
     tph::cmd::execute(buffer.buffer, to_execute);
     tph::cmd::end(buffer.buffer);
 

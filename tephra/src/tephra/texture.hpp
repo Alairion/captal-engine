@@ -30,47 +30,12 @@ enum class texture_usage : std::uint32_t
     input_attachment = VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT,
 };
 
-struct component_mapping
-{
-    component_swizzle r{component_swizzle::identity};
-    component_swizzle g{component_swizzle::identity};
-    component_swizzle b{component_swizzle::identity};
-    component_swizzle a{component_swizzle::identity};
-};
-
-enum class address_mode : std::uint32_t
-{
-    repeat = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-    mirrored =  VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT,
-    clamp_to_edge = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
-    clamp_to_border = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,
-    miror_clamp_to_edge = VK_SAMPLER_ADDRESS_MODE_MIRROR_CLAMP_TO_EDGE,
-};
-
-enum class border_color : std::uint32_t
-{
-    transparent = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK,
-    black = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK,
-    white = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE,
-};
-
-struct sampling_options
-{
-    filter magnification_filter{filter::nearest};
-    filter minification_filter{filter::nearest};
-    address_mode address_mode{address_mode::clamp_to_border};
-    border_color border_color{border_color::transparent};
-    std::uint32_t anisotropy_level{1};
-    bool compare{false};
-    compare_op compare_op{compare_op::always};
-    bool normalized_coordinates{true};
-};
-
 struct texture_info
 {
     texture_format format{};
     texture_usage usage{};
-    component_mapping components{};
+    std::uint32_t mip_levels{1};
+    std::uint32_t array_layers{1};
     tph::sample_count sample_count{tph::sample_count::msaa_x1};
 };
 
@@ -89,6 +54,9 @@ inline texture_aspect aspect_from_format(texture_format format) noexcept
     }
 }
 
+struct cubemap_t{};
+inline constexpr cubemap_t cubemap{};
+
 class TEPHRA_API texture
 {
     template<typename VulkanObject, typename... Args>
@@ -99,23 +67,25 @@ class TEPHRA_API texture
 public:
     constexpr texture() = default;
     explicit texture(renderer& renderer, std::uint32_t width, const texture_info& info);
-    explicit texture(renderer& renderer, std::uint32_t width, const texture_info& info, const sampling_options& options);
     explicit texture(renderer& renderer, std::uint32_t width, std::uint32_t height, const texture_info& info);
-    explicit texture(renderer& renderer, std::uint32_t width, std::uint32_t height, const texture_info& info, const sampling_options& options);
     explicit texture(renderer& renderer, std::uint32_t width, std::uint32_t height, std::uint32_t depth, const texture_info& info);
-    explicit texture(renderer& renderer, std::uint32_t width, std::uint32_t height, std::uint32_t depth, const texture_info& info, const sampling_options& options);
+    explicit texture(renderer& renderer, cubemap_t, std::uint32_t size, const texture_info& info);
 
-    explicit texture(vulkan::image image, vulkan::memory_heap_chunk memory, vulkan::image_view image_view, vulkan::sampler sampler,
-                     texture_format format, std::uint32_t width, std::uint32_t height, std::uint32_t depth) noexcept
+    explicit texture(vulkan::image image, vulkan::memory_heap_chunk memory,
+                     std::uint32_t dimensions, std::uint32_t width, std::uint32_t height, std::uint32_t depth, bool is_cubemap,
+                     texture_format format, std::uint32_t mip_levels, std::uint32_t array_layers, tph::sample_count sample_count) noexcept
     :m_image{std::move(image)}
     ,m_memory{std::move(memory)}
-    ,m_image_view{std::move(image_view)}
-    ,m_sampler{std::move(sampler)}
-    ,m_format{format}
-    ,m_aspect{aspect_from_format(format)}
+    ,m_dimensions{dimensions}
     ,m_width{width}
     ,m_height{height}
     ,m_depth{depth}
+    ,m_cubemap{is_cubemap}
+    ,m_format{format}
+    ,m_aspect{aspect_from_format(format)}
+    ,m_mip_levels{mip_levels}
+    ,m_array_layers{array_layers}
+    ,m_sample_count{sample_count}
     {
 
     }
@@ -126,19 +96,9 @@ public:
     texture(texture&& other) noexcept = default;
     texture& operator=(texture&& other) noexcept = default;
 
-    texture_format format() const noexcept
+    std::uint32_t dimensions() const noexcept
     {
-        return m_format;
-    }
-
-    texture_aspect aspect() const noexcept
-    {
-        return m_aspect;
-    }
-
-    sample_count sample_count() const noexcept
-    {
-        return m_sample_count;
+        return m_dimensions;
     }
 
     std::uint32_t width() const noexcept
@@ -156,19 +116,49 @@ public:
         return m_depth;
     }
 
-    void transition(command_buffer& command_buffer, resource_access source_access, resource_access destination_access, pipeline_stage source_stage, pipeline_stage destination_stage, texture_layout current_layout, texture_layout next_layout) noexcept;
+    bool is_cubemap() const noexcept
+    {
+        return m_cubemap;
+    }
+
+    texture_format format() const noexcept
+    {
+        return m_format;
+    }
+
+    texture_aspect aspect() const noexcept
+    {
+        return m_aspect;
+    }
+
+    std::uint32_t mip_levels() const noexcept
+    {
+        return m_mip_levels;
+    }
+
+    std::uint32_t array_layers() const noexcept
+    {
+        return m_array_layers;
+    }
+
+    sample_count sample_count() const noexcept
+    {
+        return m_sample_count;
+    }
 
 private:
     vulkan::image m_image{};
     vulkan::memory_heap_chunk m_memory{};
-    vulkan::image_view m_image_view{};
-    vulkan::sampler m_sampler{};
-    texture_format m_format{texture_format::undefined};
-    texture_aspect m_aspect{};
-    tph::sample_count m_sample_count{};
+    std::uint32_t m_dimensions{};
     std::uint32_t m_width{};
     std::uint32_t m_height{};
     std::uint32_t m_depth{};
+    bool m_cubemap{};
+    texture_format m_format{texture_format::undefined};
+    texture_aspect m_aspect{};
+    std::uint32_t m_mip_levels{};
+    std::uint32_t m_array_layers{};
+    tph::sample_count m_sample_count{};
 };
 
 TEPHRA_API void set_object_name(renderer& renderer, const texture& object, const std::string& name);
@@ -185,17 +175,134 @@ inline VkImage underlying_cast(const texture& texture) noexcept
      return texture.m_image;
 }
 
-template<>
-inline VkImageView underlying_cast(const texture& texture) noexcept
+struct component_mapping
 {
-     return texture.m_image_view;
+    component_swizzle r{component_swizzle::identity};
+    component_swizzle g{component_swizzle::identity};
+    component_swizzle b{component_swizzle::identity};
+    component_swizzle a{component_swizzle::identity};
+};
+
+class TEPHRA_API texture_view
+{
+    template<typename VulkanObject, typename... Args>
+    friend VulkanObject underlying_cast(const Args&...) noexcept;
+
+public:
+    static constexpr component_mapping identity_mapping{};
+
+public:
+    texture_view() = default;
+    texture_view(renderer& renderer, const texture& texture, const component_mapping& mapping = identity_mapping);
+    texture_view(renderer& renderer, const texture& texture, const texture_subresource_range& subresource_range, const component_mapping& mapping = identity_mapping);
+
+    texture_view(vulkan::image_view image_view) noexcept
+    :m_image_view{std::move(image_view)}
+    {
+
+    }
+
+    ~texture_view() = default;
+    texture_view(const texture_view&) = delete;
+    texture_view& operator=(const texture_view&) = delete;
+    texture_view(texture_view&& other) noexcept = default;
+    texture_view& operator=(texture_view&& other) noexcept = default;
+
+private:
+    vulkan::image_view m_image_view{};
+};
+
+TEPHRA_API void set_object_name(renderer& renderer, const texture_view& object, const std::string& name);
+
+template<>
+inline VkDevice underlying_cast(const texture_view& view) noexcept
+{
+    return view.m_image_view.device();
 }
 
 template<>
-inline VkSampler underlying_cast(const texture& texture) noexcept
+inline VkImageView underlying_cast(const texture_view& view) noexcept
 {
-     return texture.m_sampler;
+     return view.m_image_view;
 }
+
+enum class address_mode : std::uint32_t
+{
+    repeat = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+    mirrored =  VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT,
+    clamp_to_edge = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+    clamp_to_border = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,
+    miror_clamp_to_edge = VK_SAMPLER_ADDRESS_MODE_MIRROR_CLAMP_TO_EDGE,
+};
+
+enum class border_color : std::uint32_t
+{
+    transparent = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK,
+    black = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK,
+    white = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE,
+};
+
+enum class mipmap_mode : std::uint32_t
+{
+    nearest = VK_SAMPLER_MIPMAP_MODE_NEAREST,
+    linear = VK_SAMPLER_MIPMAP_MODE_LINEAR,
+};
+
+struct sampler_info
+{
+    filter mag_filter{filter::nearest};
+    filter min_filter{filter::nearest};
+    mipmap_mode mipmap_mode{mipmap_mode::nearest};
+    address_mode address_mode{address_mode::clamp_to_border};
+    border_color border_color{border_color::transparent};
+    float mip_lod_bias{0.0f};
+    std::uint32_t anisotropy_level{1};
+    bool compare{false};
+    compare_op compare_op{compare_op::always};
+    float min_lod{0.0f};
+    float max_lod{0.0f};
+    bool unnormalized_coordinates{false};
+};
+
+class TEPHRA_API sampler
+{
+    template<typename VulkanObject, typename... Args>
+    friend VulkanObject underlying_cast(const Args&...) noexcept;
+
+public:
+    sampler() = default;
+    sampler(renderer& renderer, const sampler_info& info);
+
+    sampler(vulkan::sampler sampler) noexcept
+    :m_sampler{std::move(sampler)}
+    {
+
+    }
+
+    ~sampler() = default;
+    sampler(const sampler&) = delete;
+    sampler& operator=(const sampler&) = delete;
+    sampler(sampler&& other) noexcept = default;
+    sampler& operator=(sampler&& other) noexcept = default;
+
+private:
+    vulkan::sampler m_sampler{};
+};
+
+TEPHRA_API void set_object_name(renderer& renderer, const sampler& object, const std::string& name);
+
+template<>
+inline VkDevice underlying_cast(const sampler& sampler) noexcept
+{
+    return sampler.m_sampler.device();
+}
+
+template<>
+inline VkSampler underlying_cast(const sampler& sampler) noexcept
+{
+     return sampler.m_sampler;
+}
+
 
 }
 

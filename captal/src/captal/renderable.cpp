@@ -97,6 +97,15 @@ void basic_renderable::bind(frame_render_info info, cpt::view& view)
 
     const auto write_set = [this, &layout](descriptor_set_data& data)
     {
+        #ifdef CAPTAL_DEBUG
+        if(!std::empty(m_name))
+        {
+            const std::string layout_name{std::empty(layout->m_name) ? std::string{"unknown"} : layout->m_name};
+
+            tph::set_object_name(engine::instance().renderer(), data.set->set(), m_name + " descriptor set for render layout " + layout_name);
+        }
+        #endif
+
         const auto to_bind{layout->bindings(render_layout::renderable_index)};
 
         std::vector<tph::descriptor_write> writes{};
@@ -215,6 +224,23 @@ void basic_renderable::set_binding(std::uint32_t index, cpt::binding binding)
     m_bindings.set(index, std::move(binding));
     ++m_descriptors_epoch;
 }
+
+#ifdef CAPTAL_DEBUG
+void basic_renderable::set_name(std::string_view name)
+{
+    m_name = name;
+
+    for(auto&& [layout_weak, set] : m_sets)
+    {
+        if(const auto layout{layout_weak.lock()}; layout)
+        {
+            const std::string layout_name{std::empty(layout->m_name) ? std::string{"unknown"} : layout->m_name};
+
+            tph::set_object_name(engine::instance().renderer(), set.set->set(), m_name + " descriptor set for render layout " + layout_name);
+        }
+    }
+}
+#endif
 
 sprite::sprite(std::uint32_t width, std::uint32_t height, const color& color)
 :basic_renderable{4, 6, 0}

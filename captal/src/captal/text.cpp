@@ -211,7 +211,7 @@ static std::vector<std::uint32_t> generate_indices(std::size_t codepoint_count)
     return indices;
 }
 
-text_drawer::text_drawer(font_set&& fonts, text_drawer_options options, glyph_format format, const tph::sampling_options& sampling)
+text_drawer::text_drawer(font_set&& fonts, text_drawer_options options, glyph_format format, const tph::sampler_info& sampling)
 :m_fonts{std::move(fonts)}
 ,m_format{format}
 ,m_sampling{sampling}

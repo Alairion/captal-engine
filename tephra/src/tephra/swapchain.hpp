@@ -49,7 +49,7 @@ public:
     constexpr swapchain() = default;
     explicit swapchain(renderer& renderer, surface& surface, const swapchain_info& info, optional_ref<swapchain> old_swapchain = nullref);
 
-    explicit swapchain(vulkan::swapchain swapchain, VkQueue present_queue, const swapchain_info info, std::vector<tph::texture> textures) noexcept
+    explicit swapchain(vulkan::swapchain swapchain, VkQueue present_queue, const swapchain_info& info, std::vector<tph::texture> textures) noexcept
     :m_swapchain{std::move(swapchain)}
     ,m_queue{present_queue}
     ,m_info{info}
@@ -111,6 +111,16 @@ public:
         return m_textures;
     }
 
+    std::span<tph::texture_view> texture_views() noexcept
+    {
+        return m_texture_views;
+    }
+
+    std::span<const tph::texture_view> texture_views() const noexcept
+    {
+        return m_texture_views;
+    }
+
     std::uint32_t image_index() const noexcept
     {
         return m_image_index;
@@ -124,6 +134,7 @@ private:
     VkQueue m_queue{};
     swapchain_info m_info{};
     std::vector<tph::texture> m_textures{};
+    std::vector<tph::texture_view> m_texture_views{};
     std::uint32_t m_image_index{};
 };
 

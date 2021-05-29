@@ -228,7 +228,8 @@ static std::uint32_t choose_present_family(VkPhysicalDevice physical_device [[ma
 #elif defined(TPH_PLATFORM_XLIB)
 
     Display* display{XOpenDislay(nullptr)};
-    Visual* visual{XDefaultVisual(display, XDefaultScreen(display))};
+    Visual*  visual {XDefaultVisual(display, XDefaultScreen(display))};
+
     VisualID id{XVisualIDFromVisual(visual)};
 
     for(std::size_t i{}; i < std::size(queue_families); ++i)
@@ -259,7 +260,8 @@ static std::uint32_t choose_present_family(VkPhysicalDevice physical_device [[ma
 
     int screen{};
     xcb_connection_t* connection{xcb_connect(nullptr, &screen)};
-    xcb_screen_t* screen{screen_of_display(connection, screen)};
+    xcb_screen_t*     screen    {screen_of_display(connection, screen)};
+
     xcb_visualid_t id{screen->root_visual};
 
     for(std::size_t i{}; i < std::size(queue_families); ++i)
@@ -298,7 +300,7 @@ static std::uint32_t choose_transfer_family(const std::vector<VkQueueFamilyPrope
     for(std::size_t i{}; i < std::size(queue_families); ++i)
     {
         const bool support_transfer{(queue_families[i].queueFlags & VK_QUEUE_TRANSFER_BIT) != 0};
-        const bool support_other{(queue_families[i].queueFlags & (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT)) != 0};
+        const bool support_other   {(queue_families[i].queueFlags & (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT)) != 0};
 
         if(support_transfer && !support_other)
         {
@@ -314,7 +316,7 @@ static std::uint32_t choose_compute_family(const std::vector<VkQueueFamilyProper
     for(std::size_t i{}; i < std::size(queue_families); ++i)
     {
         const bool support_compute{(queue_families[i].queueFlags & VK_QUEUE_COMPUTE_BIT) != 0};
-        const bool support_other{(queue_families[i].queueFlags & (VK_QUEUE_GRAPHICS_BIT)) != 0};
+        const bool support_other  {(queue_families[i].queueFlags & (VK_QUEUE_GRAPHICS_BIT)) != 0};
 
         if(support_compute && !support_other)
         {
@@ -523,7 +525,7 @@ renderer::renderer(const physical_device& physical_device, vulkan::device device
 ,m_extensions{extensions}
 ,m_queue_families{queue_families}
 ,m_queues{queues}
-,m_transfer_queue_granularity{compute_transfer_granularity(m_physical_device, queue_family_index(queue::transfer))}
+,m_transfer_queue_granularity{compute_transfer_granularity(m_physical_device, queue_family(queue::transfer))}
 {
     tph::vulkan::functions::load_device_level_functions(m_device);
 

@@ -34,41 +34,6 @@ enum class debug_message_type : std::uint32_t
     performance = VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
 };
 
-enum class object_type : std::uint32_t
-{
-    unknown = VK_OBJECT_TYPE_UNKNOWN,
-    instance = VK_OBJECT_TYPE_INSTANCE,
-    physical_device = VK_OBJECT_TYPE_PHYSICAL_DEVICE,
-    device = VK_OBJECT_TYPE_DEVICE,
-    queue = VK_OBJECT_TYPE_QUEUE,
-    semaphore = VK_OBJECT_TYPE_SEMAPHORE,
-    command_buffer = VK_OBJECT_TYPE_COMMAND_BUFFER,
-    fence = VK_OBJECT_TYPE_FENCE,
-    device_memory = VK_OBJECT_TYPE_DEVICE_MEMORY,
-    buffer = VK_OBJECT_TYPE_BUFFER,
-    image = VK_OBJECT_TYPE_IMAGE,
-    event = VK_OBJECT_TYPE_EVENT,
-    query_pool = VK_OBJECT_TYPE_QUERY_POOL,
-    buffer_view = VK_OBJECT_TYPE_BUFFER_VIEW,
-    image_view = VK_OBJECT_TYPE_IMAGE_VIEW,
-    shader_module = VK_OBJECT_TYPE_SHADER_MODULE,
-    pipeline_cache = VK_OBJECT_TYPE_PIPELINE_CACHE,
-    pipeline_layout = VK_OBJECT_TYPE_PIPELINE_LAYOUT,
-    render_pass = VK_OBJECT_TYPE_RENDER_PASS,
-    pipeline = VK_OBJECT_TYPE_PIPELINE,
-    descriptor_set_layout = VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT,
-    sampler = VK_OBJECT_TYPE_SAMPLER,
-    descriptor_pool = VK_OBJECT_TYPE_DESCRIPTOR_POOL,
-    descriptor_set = VK_OBJECT_TYPE_DESCRIPTOR_SET,
-    framebuffer = VK_OBJECT_TYPE_FRAMEBUFFER,
-    command_pool = VK_OBJECT_TYPE_COMMAND_POOL,
-    sampler_ycbcr_conversion = VK_OBJECT_TYPE_SAMPLER_YCBCR_CONVERSION,
-    surface = VK_OBJECT_TYPE_SURFACE_KHR,
-    swapchain = VK_OBJECT_TYPE_SWAPCHAIN_KHR,
-    debug_report_callback = VK_OBJECT_TYPE_DEBUG_REPORT_CALLBACK_EXT,
-    debug_messenger = VK_OBJECT_TYPE_DEBUG_UTILS_MESSENGER_EXT,
-};
-
 struct debug_label
 {
     std::string_view name{};

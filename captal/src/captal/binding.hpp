@@ -67,7 +67,9 @@ inline tph::descriptor_write make_descriptor_write(tph::descriptor_set& set, std
     }
     else if(get_binding_type(data) == binding_type::texture)
     {
-        const tph::descriptor_texture_info info{std::get<texture_ptr>(data)->get_texture(), tph::texture_layout::shader_read_only_optimal};
+        auto& texture{*std::get<texture_ptr>(data)};
+
+        const tph::descriptor_texture_info info{&texture.get_sampler(), &texture.get_texture_view(), tph::texture_layout::shader_read_only_optimal};
 
         return tph::descriptor_write{set, binding, 0, tph::descriptor_type::image_sampler, info};
     }

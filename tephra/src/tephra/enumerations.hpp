@@ -8,6 +8,41 @@
 namespace tph
 {
 
+enum class object_type : std::uint32_t
+{
+    unknown = VK_OBJECT_TYPE_UNKNOWN,
+    instance = VK_OBJECT_TYPE_INSTANCE,
+    physical_device = VK_OBJECT_TYPE_PHYSICAL_DEVICE,
+    device = VK_OBJECT_TYPE_DEVICE,
+    queue = VK_OBJECT_TYPE_QUEUE,
+    semaphore = VK_OBJECT_TYPE_SEMAPHORE,
+    command_buffer = VK_OBJECT_TYPE_COMMAND_BUFFER,
+    fence = VK_OBJECT_TYPE_FENCE,
+    device_memory = VK_OBJECT_TYPE_DEVICE_MEMORY,
+    buffer = VK_OBJECT_TYPE_BUFFER,
+    image = VK_OBJECT_TYPE_IMAGE,
+    event = VK_OBJECT_TYPE_EVENT,
+    query_pool = VK_OBJECT_TYPE_QUERY_POOL,
+    buffer_view = VK_OBJECT_TYPE_BUFFER_VIEW,
+    image_view = VK_OBJECT_TYPE_IMAGE_VIEW,
+    shader_module = VK_OBJECT_TYPE_SHADER_MODULE,
+    pipeline_cache = VK_OBJECT_TYPE_PIPELINE_CACHE,
+    pipeline_layout = VK_OBJECT_TYPE_PIPELINE_LAYOUT,
+    render_pass = VK_OBJECT_TYPE_RENDER_PASS,
+    pipeline = VK_OBJECT_TYPE_PIPELINE,
+    descriptor_set_layout = VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT,
+    sampler = VK_OBJECT_TYPE_SAMPLER,
+    descriptor_pool = VK_OBJECT_TYPE_DESCRIPTOR_POOL,
+    descriptor_set = VK_OBJECT_TYPE_DESCRIPTOR_SET,
+    framebuffer = VK_OBJECT_TYPE_FRAMEBUFFER,
+    command_pool = VK_OBJECT_TYPE_COMMAND_POOL,
+    sampler_ycbcr_conversion = VK_OBJECT_TYPE_SAMPLER_YCBCR_CONVERSION,
+    surface = VK_OBJECT_TYPE_SURFACE_KHR,
+    swapchain = VK_OBJECT_TYPE_SWAPCHAIN_KHR,
+    debug_report_callback = VK_OBJECT_TYPE_DEBUG_REPORT_CALLBACK_EXT,
+    debug_messenger = VK_OBJECT_TYPE_DEBUG_UTILS_MESSENGER_EXT,
+};
+
 enum class queue : std::size_t
 {
     graphics = 0,
@@ -417,6 +452,7 @@ enum class texture_format : std::uint32_t
 
 enum class texture_aspect : std::uint32_t
 {
+    undefined = 0,
     color = VK_IMAGE_ASPECT_COLOR_BIT,
     depth = VK_IMAGE_ASPECT_DEPTH_BIT,
     stencil = VK_IMAGE_ASPECT_STENCIL_BIT,
@@ -457,8 +493,6 @@ enum class dependency_flags : std::uint32_t
 {
     none = 0,
     by_region = VK_DEPENDENCY_BY_REGION_BIT,
-    device_group = VK_DEPENDENCY_DEVICE_GROUP_BIT,
-    view_local = VK_DEPENDENCY_VIEW_LOCAL_BIT,
 };
 
 enum class filter : std::uint32_t
@@ -536,6 +570,67 @@ enum class stencil_face : std::uint32_t
     back = VK_STENCIL_FACE_BACK_BIT,
     front_and_back = VK_STENCIL_FACE_FRONT_AND_BACK,
 };
+
+struct viewport
+{
+    float x{};
+    float y{};
+    float width{};
+    float height{};
+    float min_depth{};
+    float max_depth{};
+};
+
+struct scissor
+{
+    std::int32_t x{};
+    std::int32_t y{};
+    std::uint32_t width{};
+    std::uint32_t height{};
+};
+
+struct texture_subresource_range
+{
+    std::uint32_t base_mip_level{};
+    std::uint32_t mip_level_count{1};
+    std::uint32_t base_array_layer{};
+    std::uint32_t array_layer_count{1};
+    texture_aspect aspect{};
+};
+
+struct clear_color_float_value
+{
+    float red{};
+    float green{};
+    float blue{};
+    float alpha{};
+};
+
+struct clear_color_int_value
+{
+    std::int32_t red{};
+    std::int32_t green{};
+    std::int32_t blue{};
+    std::int32_t alpha{};
+};
+
+struct clear_color_uint_value
+{
+    std::uint32_t red{};
+    std::uint32_t green{};
+    std::uint32_t blue{};
+    std::uint32_t alpha{};
+};
+
+using clear_color_value = std::variant<clear_color_float_value, clear_color_int_value, clear_color_uint_value>;
+
+struct clear_depth_stencil_value
+{
+    float depth{};
+    std::uint32_t stencil{};
+};
+
+using clear_value_t = std::variant<clear_color_value, clear_depth_stencil_value>;
 
 }
 

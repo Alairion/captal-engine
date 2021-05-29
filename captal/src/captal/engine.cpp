@@ -216,7 +216,7 @@ void engine::init()
     render_layout_info view_info{};
     view_info.bindings.emplace_back(tph::shader_stage::vertex, 0, tph::descriptor_type::uniform_buffer);
 
-    constexpr tph::sampling_options default_sampling{tph::filter::nearest, tph::filter::nearest, tph::address_mode::repeat};
+    constexpr tph::sampler_info default_sampling{.address_mode = tph::address_mode::repeat};
 
     render_layout_info renderable_info{};
     renderable_info.bindings.reserve(2);

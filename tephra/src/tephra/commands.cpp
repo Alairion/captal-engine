@@ -19,6 +19,29 @@ using namespace tph::vulkan::functions;
 namespace tph
 {
 
+static VkClearColorValue to_vk_clear_color(const clear_color_value& color)
+{
+    if(std::holds_alternative<clear_color_float_value>(color))
+    {
+        auto float_color{std::get<clear_color_float_value>(color)};
+
+        return VkClearColorValue{.float32{float_color.red, float_color.green, float_color.blue, float_color.alpha}};
+    }
+    else if(std::holds_alternative<clear_color_int_value>(color))
+    {
+        auto int_color{std::get<clear_color_int_value>(color)};
+
+        return VkClearColorValue{.int32{int_color.red, int_color.green, int_color.blue, int_color.alpha}};
+    }
+    else
+    {
+        auto uint_color{std::get<clear_color_uint_value>(color)};
+
+        return VkClearColorValue{.uint32{uint_color.red, uint_color.green, uint_color.blue, uint_color.alpha}};
+    }
+
+}
+
 command_pool::command_pool(renderer& renderer, command_pool_options options)
 :command_pool{renderer, queue::graphics, options}
 {
@@ -26,7 +49,9 @@ command_pool::command_pool(renderer& renderer, command_pool_options options)
 }
 
 command_pool::command_pool(renderer& renderer, queue queue, command_pool_options options)
-:m_pool{underlying_cast<VkDevice>(renderer), renderer.queue_family_index(queue), static_cast<VkCommandPoolCreateFlags>(options)}
+:m_pool{underlying_cast<VkDevice>(renderer), renderer.queue_family(queue), static_cast<VkCommandPoolCreateFlags>(options)}
+,m_queue_families{renderer.queue_families()}
+,m_queue_family{renderer.queue_family(queue)}
 {
 
 }
@@ -84,7 +109,7 @@ command_buffer begin(command_pool& pool, command_buffer_level level, command_buf
     if(auto result{vkBeginCommandBuffer(buffer, &begin_info)}; result != VK_SUCCESS)
         throw vulkan::error{result};
 
-    return command_buffer{std::move(buffer)};
+    return command_buffer{std::move(buffer), pool.queue_family(), pool.queue_families()};
 }
 
 command_buffer begin(command_pool& pool, render_pass& render_pass, optional_ref<framebuffer> framebuffer, command_buffer_options options)
@@ -104,7 +129,7 @@ command_buffer begin(command_pool& pool, render_pass& render_pass, optional_ref<
     if(auto result{vkBeginCommandBuffer(buffer, &begin_info)}; result != VK_SUCCESS)
         throw vulkan::error{result};
 
-    return command_buffer{std::move(buffer)};
+    return command_buffer{std::move(buffer), pool.queue_family(), pool.queue_families()};
 }
 
 void begin(command_buffer& buffer, command_buffer_reset_options reset, command_buffer_options options)
@@ -197,10 +222,20 @@ void copy(command_buffer& command_buffer, buffer& source, texture& destination, 
     native_region.bufferOffset = region.buffer_offset;
     native_region.bufferRowLength = region.buffer_image_width;
     native_region.bufferImageHeight = region.buffer_image_height;
+
+    if(region.texture_subresource.aspect == texture_aspect::undefined)
+    {
+        native_region.imageSubresource.aspectMask = static_cast<VkImageAspectFlags>(destination.aspect());
+    }
+    else
+    {
+        native_region.imageSubresource.aspectMask = static_cast<VkImageAspectFlags>(region.texture_subresource.aspect);
+    }
+
     native_region.imageSubresource.aspectMask = static_cast<VkImageAspectFlags>(destination.aspect());
-    native_region.imageSubresource.mipLevel = 0;
-    native_region.imageSubresource.baseArrayLayer = 0;
-    native_region.imageSubresource.layerCount = 1;
+    native_region.imageSubresource.mipLevel = region.texture_subresource.mip_level;
+    native_region.imageSubresource.baseArrayLayer = region.texture_subresource.base_array_layer;
+    native_region.imageSubresource.layerCount = region.texture_subresource.array_layer_count;
     native_region.imageOffset.x = region.texture_offset.x;
     native_region.imageOffset.y = region.texture_offset.y;
     native_region.imageOffset.z = region.texture_offset.z;
@@ -226,10 +261,19 @@ void copy(command_buffer& command_buffer, buffer& source, texture& destination, 
         native_region.bufferOffset = region.buffer_offset;
         native_region.bufferRowLength = region.buffer_image_width;
         native_region.bufferImageHeight = region.buffer_image_height;
-        native_region.imageSubresource.aspectMask = static_cast<VkImageAspectFlags>(destination.aspect());
-        native_region.imageSubresource.mipLevel = 0;
-        native_region.imageSubresource.baseArrayLayer = 0;
-        native_region.imageSubresource.layerCount = 1;
+
+        if(region.texture_subresource.aspect == texture_aspect::undefined)
+        {
+            native_region.imageSubresource.aspectMask = static_cast<VkImageAspectFlags>(destination.aspect());
+        }
+        else
+        {
+            native_region.imageSubresource.aspectMask = static_cast<VkImageAspectFlags>(region.texture_subresource.aspect);
+        }
+
+        native_region.imageSubresource.mipLevel = region.texture_subresource.mip_level;
+        native_region.imageSubresource.baseArrayLayer = region.texture_subresource.base_array_layer;
+        native_region.imageSubresource.layerCount = region.texture_subresource.array_layer_count;
         native_region.imageOffset.x = region.texture_offset.x;
         native_region.imageOffset.y = region.texture_offset.y;
         native_region.imageOffset.z = region.texture_offset.z;
@@ -263,10 +307,19 @@ void copy(command_buffer& command_buffer, image& source, texture& destination, c
     VkBufferImageCopy native_region{};
     native_region.bufferRowLength = static_cast<std::uint32_t>(source.width());
     native_region.bufferImageHeight = static_cast<std::uint32_t>(source.height());
-    native_region.imageSubresource.aspectMask = static_cast<VkImageAspectFlags>(destination.aspect());
-    native_region.imageSubresource.mipLevel = 0;
-    native_region.imageSubresource.baseArrayLayer = 0;
-    native_region.imageSubresource.layerCount = 1;
+
+    if(region.texture_subresource.aspect == texture_aspect::undefined)
+    {
+        native_region.imageSubresource.aspectMask = static_cast<VkImageAspectFlags>(destination.aspect());
+    }
+    else
+    {
+        native_region.imageSubresource.aspectMask = static_cast<VkImageAspectFlags>(region.texture_subresource.aspect);
+    }
+
+    native_region.imageSubresource.mipLevel = region.texture_subresource.mip_level;
+    native_region.imageSubresource.baseArrayLayer = region.texture_subresource.base_array_layer;
+    native_region.imageSubresource.layerCount = region.texture_subresource.array_layer_count;
     native_region.imageOffset.x = region.texture_offset.x;
     native_region.imageOffset.y = region.texture_offset.y;
     native_region.imageOffset.z = region.texture_offset.z;
@@ -291,10 +344,19 @@ void copy(command_buffer& command_buffer, image& source, texture& destination, s
         VkBufferImageCopy& native_region{native_regions.emplace_back()};
         native_region.bufferRowLength = static_cast<std::uint32_t>(source.width());
         native_region.bufferImageHeight = static_cast<std::uint32_t>(source.height());
-        native_region.imageSubresource.aspectMask = static_cast<VkImageAspectFlags>(destination.aspect());
-        native_region.imageSubresource.mipLevel = 0;
-        native_region.imageSubresource.baseArrayLayer = 0;
-        native_region.imageSubresource.layerCount = 1;
+
+        if(region.texture_subresource.aspect == texture_aspect::undefined)
+        {
+            native_region.imageSubresource.aspectMask = static_cast<VkImageAspectFlags>(destination.aspect());
+        }
+        else
+        {
+            native_region.imageSubresource.aspectMask = static_cast<VkImageAspectFlags>(region.texture_subresource.aspect);
+        }
+
+        native_region.imageSubresource.mipLevel = region.texture_subresource.mip_level;
+        native_region.imageSubresource.baseArrayLayer = region.texture_subresource.base_array_layer;
+        native_region.imageSubresource.layerCount = region.texture_subresource.array_layer_count;
         native_region.imageOffset.x = region.texture_offset.x;
         native_region.imageOffset.y = region.texture_offset.y;
         native_region.imageOffset.z = region.texture_offset.z;
@@ -315,10 +377,19 @@ void copy(command_buffer& command_buffer, texture& source, buffer& destination, 
     native_region.bufferOffset = region.buffer_offset;
     native_region.bufferRowLength = region.buffer_image_width;
     native_region.bufferImageHeight = region.buffer_image_height;
-    native_region.imageSubresource.aspectMask = static_cast<VkImageAspectFlags>(source.aspect());
-    native_region.imageSubresource.mipLevel = 0;
-    native_region.imageSubresource.baseArrayLayer = 0;
-    native_region.imageSubresource.layerCount = 1;
+
+    if(region.texture_subresource.aspect == texture_aspect::undefined)
+    {
+        native_region.imageSubresource.aspectMask = static_cast<VkImageAspectFlags>(source.aspect());
+    }
+    else
+    {
+        native_region.imageSubresource.aspectMask = static_cast<VkImageAspectFlags>(region.texture_subresource.aspect);
+    }
+
+    native_region.imageSubresource.mipLevel = region.texture_subresource.mip_level;
+    native_region.imageSubresource.baseArrayLayer = region.texture_subresource.base_array_layer;
+    native_region.imageSubresource.layerCount = region.texture_subresource.array_layer_count;
     native_region.imageOffset.x = region.texture_offset.x;
     native_region.imageOffset.y = region.texture_offset.y;
     native_region.imageOffset.z = region.texture_offset.z;
@@ -344,10 +415,19 @@ void copy(command_buffer& command_buffer, texture& source, buffer& destination, 
         native_region.bufferOffset = region.buffer_offset;
         native_region.bufferRowLength = region.buffer_image_width;
         native_region.bufferImageHeight = region.buffer_image_height;
-        native_region.imageSubresource.aspectMask = static_cast<VkImageAspectFlags>(source.aspect());
-        native_region.imageSubresource.mipLevel = 0;
-        native_region.imageSubresource.baseArrayLayer = 0;
-        native_region.imageSubresource.layerCount = 1;
+
+        if(region.texture_subresource.aspect == texture_aspect::undefined)
+        {
+            native_region.imageSubresource.aspectMask = static_cast<VkImageAspectFlags>(source.aspect());
+        }
+        else
+        {
+            native_region.imageSubresource.aspectMask = static_cast<VkImageAspectFlags>(region.texture_subresource.aspect);
+        }
+
+        native_region.imageSubresource.mipLevel = region.texture_subresource.mip_level;
+        native_region.imageSubresource.baseArrayLayer = region.texture_subresource.base_array_layer;
+        native_region.imageSubresource.layerCount = region.texture_subresource.array_layer_count;
         native_region.imageOffset.x = region.texture_offset.x;
         native_region.imageOffset.y = region.texture_offset.y;
         native_region.imageOffset.z = region.texture_offset.z;
@@ -367,10 +447,19 @@ void copy(command_buffer& command_buffer, texture& source, image& destination, c
     VkBufferImageCopy native_region{};
     native_region.bufferRowLength = static_cast<std::uint32_t>(destination.width());
     native_region.bufferImageHeight = static_cast<std::uint32_t>(destination.height());
-    native_region.imageSubresource.aspectMask = static_cast<VkImageAspectFlags>(source.aspect());
-    native_region.imageSubresource.mipLevel = 0;
-    native_region.imageSubresource.baseArrayLayer = 0;
-    native_region.imageSubresource.layerCount = 1;
+
+    if(region.texture_subresource.aspect == texture_aspect::undefined)
+    {
+        native_region.imageSubresource.aspectMask = static_cast<VkImageAspectFlags>(source.aspect());
+    }
+    else
+    {
+        native_region.imageSubresource.aspectMask = static_cast<VkImageAspectFlags>(region.texture_subresource.aspect);
+    }
+
+    native_region.imageSubresource.mipLevel = region.texture_subresource.mip_level;
+    native_region.imageSubresource.baseArrayLayer = region.texture_subresource.base_array_layer;
+    native_region.imageSubresource.layerCount = region.texture_subresource.array_layer_count;
     native_region.imageOffset.x = region.texture_offset.x;
     native_region.imageOffset.y = region.texture_offset.y;
     native_region.imageOffset.z = region.texture_offset.z;
@@ -395,10 +484,19 @@ void copy(command_buffer& command_buffer, texture& source, image& destination, s
         VkBufferImageCopy& native_region{native_regions.emplace_back()};
         native_region.bufferRowLength = static_cast<std::uint32_t>(destination.width());
         native_region.bufferImageHeight = static_cast<std::uint32_t>(destination.height());
-        native_region.imageSubresource.aspectMask = static_cast<VkImageAspectFlags>(source.aspect());
-        native_region.imageSubresource.mipLevel = 0;
-        native_region.imageSubresource.baseArrayLayer = 0;
-        native_region.imageSubresource.layerCount = 1;
+
+        if(region.texture_subresource.aspect == texture_aspect::undefined)
+        {
+            native_region.imageSubresource.aspectMask = static_cast<VkImageAspectFlags>(source.aspect());
+        }
+        else
+        {
+            native_region.imageSubresource.aspectMask = static_cast<VkImageAspectFlags>(region.texture_subresource.aspect);
+        }
+
+        native_region.imageSubresource.mipLevel = region.texture_subresource.mip_level;
+        native_region.imageSubresource.baseArrayLayer = region.texture_subresource.base_array_layer;
+        native_region.imageSubresource.layerCount = region.texture_subresource.array_layer_count;
         native_region.imageOffset.x = region.texture_offset.x;
         native_region.imageOffset.y = region.texture_offset.y;
         native_region.imageOffset.z = region.texture_offset.z;
@@ -416,17 +514,35 @@ void copy(command_buffer& command_buffer, texture& source, image& destination, s
 void copy(command_buffer& command_buffer, texture& source, texture& destination, const texture_copy& region) noexcept
 {
     VkImageCopy native_region{};
-    native_region.srcSubresource.aspectMask = static_cast<VkImageAspectFlags>(source.aspect());
-    native_region.srcSubresource.mipLevel = 0;
-    native_region.srcSubresource.baseArrayLayer = 0;
-    native_region.srcSubresource.layerCount = 1;
+
+    if(region.source_subresource.aspect == texture_aspect::undefined)
+    {
+        native_region.srcSubresource.aspectMask = static_cast<VkImageAspectFlags>(source.aspect());
+    }
+    else
+    {
+        native_region.srcSubresource.aspectMask = static_cast<VkImageAspectFlags>(region.source_subresource.aspect);
+    }
+
+    native_region.srcSubresource.mipLevel = region.source_subresource.mip_level;
+    native_region.srcSubresource.baseArrayLayer = region.source_subresource.base_array_layer;
+    native_region.srcSubresource.layerCount = region.source_subresource.array_layer_count;
     native_region.srcOffset.x = region.source_offset.x;
     native_region.srcOffset.y = region.source_offset.y;
     native_region.srcOffset.z = region.source_offset.z;
-    native_region.dstSubresource.aspectMask = static_cast<VkImageAspectFlags>(destination.aspect());
-    native_region.dstSubresource.mipLevel = 0;
-    native_region.dstSubresource.baseArrayLayer = 0;
-    native_region.dstSubresource.layerCount = 1;
+
+    if(region.destination_subresource.aspect == texture_aspect::undefined)
+    {
+        native_region.dstSubresource.aspectMask = static_cast<VkImageAspectFlags>(destination.aspect());
+    }
+    else
+    {
+        native_region.dstSubresource.aspectMask = static_cast<VkImageAspectFlags>(region.destination_subresource.aspect);
+    }
+
+    native_region.dstSubresource.mipLevel = region.destination_subresource.mip_level;
+    native_region.dstSubresource.baseArrayLayer = region.destination_subresource.base_array_layer;
+    native_region.dstSubresource.layerCount = region.destination_subresource.array_layer_count;
     native_region.dstOffset.x = region.destination_offset.x;
     native_region.dstOffset.y = region.destination_offset.y;
     native_region.dstOffset.z = region.destination_offset.z;
@@ -449,17 +565,35 @@ void copy(command_buffer& command_buffer, texture& source, texture& destination,
     for(auto&& region : regions)
     {
         VkImageCopy& native_region{native_regions.emplace_back()};
-        native_region.srcSubresource.aspectMask = static_cast<VkImageAspectFlags>(source.aspect());
-        native_region.srcSubresource.mipLevel = 0;
-        native_region.srcSubresource.baseArrayLayer = 0;
-        native_region.srcSubresource.layerCount = 1;
+
+        if(region.source_subresource.aspect == texture_aspect::undefined)
+        {
+            native_region.srcSubresource.aspectMask = static_cast<VkImageAspectFlags>(source.aspect());
+        }
+        else
+        {
+            native_region.srcSubresource.aspectMask = static_cast<VkImageAspectFlags>(region.source_subresource.aspect);
+        }
+
+        native_region.srcSubresource.mipLevel = region.source_subresource.mip_level;
+        native_region.srcSubresource.baseArrayLayer = region.source_subresource.base_array_layer;
+        native_region.srcSubresource.layerCount = region.source_subresource.array_layer_count;
         native_region.srcOffset.x = region.source_offset.x;
         native_region.srcOffset.y = region.source_offset.y;
         native_region.srcOffset.z = region.source_offset.z;
-        native_region.dstSubresource.aspectMask = static_cast<VkImageAspectFlags>(destination.aspect());
-        native_region.dstSubresource.mipLevel = 0;
-        native_region.dstSubresource.baseArrayLayer = 0;
-        native_region.dstSubresource.layerCount = 1;
+
+        if(region.destination_subresource.aspect == texture_aspect::undefined)
+        {
+            native_region.dstSubresource.aspectMask = static_cast<VkImageAspectFlags>(destination.aspect());
+        }
+        else
+        {
+            native_region.dstSubresource.aspectMask = static_cast<VkImageAspectFlags>(region.destination_subresource.aspect);
+        }
+
+        native_region.dstSubresource.mipLevel = region.destination_subresource.mip_level;
+        native_region.dstSubresource.baseArrayLayer = region.destination_subresource.base_array_layer;
+        native_region.dstSubresource.layerCount = region.destination_subresource.array_layer_count;
         native_region.dstOffset.x = region.destination_offset.x;
         native_region.dstOffset.y = region.destination_offset.y;
         native_region.dstOffset.z = region.destination_offset.z;
@@ -474,93 +608,6 @@ void copy(command_buffer& command_buffer, texture& source, texture& destination,
                    static_cast<std::uint32_t>(std::size(native_regions)), std::data(native_regions));
 }
 
-void copy(command_buffer& command_buffer, buffer& source, buffer& destination) noexcept
-{
-    assert(source.size() <= destination.size() && "tph::cmd::copy called with too small destination buffer.");
-
-    VkBufferCopy native_region{};
-    native_region.size = source.size();
-
-    vkCmdCopyBuffer(underlying_cast<VkCommandBuffer>(command_buffer),
-                    underlying_cast<VkBuffer>(source),
-                    underlying_cast<VkBuffer>(destination),
-                    1, &native_region);
-}
-
-void copy(command_buffer& command_buffer, image& source, image& destination) noexcept
-{
-    assert((source.width() == destination.width() && source.height() <= destination.height()) && "tph::cmd::copy called with images of different size.");
-
-    VkBufferCopy native_region{};
-    native_region.size = source.byte_size();
-
-    vkCmdCopyBuffer(underlying_cast<VkCommandBuffer>(command_buffer),
-                    underlying_cast<VkBuffer>(source),
-                    underlying_cast<VkBuffer>(destination),
-                    1, &native_region);
-}
-
-void copy(command_buffer& command_buffer, image& source, texture& destination) noexcept
-{
-    VkBufferImageCopy native_region{};
-    native_region.bufferRowLength = static_cast<std::uint32_t>(source.width());
-    native_region.bufferImageHeight = static_cast<std::uint32_t>(source.height());
-    native_region.imageSubresource.aspectMask = static_cast<VkImageAspectFlags>(destination.aspect());
-    native_region.imageSubresource.mipLevel = 0;
-    native_region.imageSubresource.layerCount = 1;
-    native_region.imageSubresource.baseArrayLayer = 0;
-    native_region.imageExtent.width = destination.width();
-    native_region.imageExtent.height = destination.height();
-    native_region.imageExtent.depth = destination.depth();
-
-    vkCmdCopyBufferToImage(underlying_cast<VkCommandBuffer>(command_buffer),
-                           underlying_cast<VkBuffer>(source),
-                           underlying_cast<VkImage>(destination), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                           1, &native_region);
-}
-
-void copy(command_buffer& command_buffer, texture& source, image& destination) noexcept
-{
-    VkBufferImageCopy native_region{};
-    native_region.bufferRowLength = static_cast<std::uint32_t>(destination.width());
-    native_region.bufferImageHeight = static_cast<std::uint32_t>(destination.height());
-    native_region.imageSubresource.aspectMask = static_cast<VkImageAspectFlags>(source.aspect());
-    native_region.imageSubresource.mipLevel = 0;
-    native_region.imageSubresource.layerCount = 1;
-    native_region.imageSubresource.baseArrayLayer = 0;
-    native_region.imageExtent.width = source.width();
-    native_region.imageExtent.height = source.height();
-    native_region.imageExtent.depth = source.depth();
-
-    vkCmdCopyImageToBuffer(underlying_cast<VkCommandBuffer>(command_buffer),
-                           underlying_cast<VkImage>(source), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                           underlying_cast<VkBuffer>(destination),
-                           1, &native_region);
-}
-
-void copy(command_buffer& command_buffer, texture& source, texture& destination) noexcept
-{
-    assert((source.width() <= destination.width() && source.height() <= destination.height() && source.depth() <= destination.depth()) && "tph::cmd::copy called with too small destination texture");
-
-    VkImageCopy native_region{};
-    native_region.srcSubresource.aspectMask = static_cast<VkImageAspectFlags>(source.aspect());
-    native_region.srcSubresource.mipLevel = 0;
-    native_region.srcSubresource.layerCount = 1;
-    native_region.srcSubresource.baseArrayLayer = 0;
-    native_region.dstSubresource.aspectMask = static_cast<VkImageAspectFlags>(destination.aspect());
-    native_region.dstSubresource.mipLevel = 0;
-    native_region.dstSubresource.layerCount = 1;
-    native_region.dstSubresource.baseArrayLayer = 0;
-    native_region.extent.width = source.width();
-    native_region.extent.height = source.height();
-    native_region.extent.depth = source.depth();
-
-    vkCmdCopyImage(underlying_cast<VkCommandBuffer>(command_buffer),
-                   underlying_cast<VkImage>(source), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                   underlying_cast<VkImage>(destination), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                   1, &native_region);
-}
-
 void blit(command_buffer& command_buffer, texture& source, texture& destination, filter filter, const texture_blit& region) noexcept
 {
     VkImageBlit native_region{};
@@ -570,20 +617,38 @@ void blit(command_buffer& command_buffer, texture& source, texture& destination,
     native_region.srcOffsets[1].x = region.source_offset.x + region.source_size.width;
     native_region.srcOffsets[1].y = region.source_offset.y + region.source_size.height;
     native_region.srcOffsets[1].z = region.source_offset.z + region.source_size.depth;
-    native_region.srcSubresource.aspectMask = static_cast<VkImageAspectFlags>(source.aspect());
-    native_region.srcSubresource.mipLevel = 0;
-    native_region.srcSubresource.layerCount = 1;
-    native_region.srcSubresource.baseArrayLayer = 0;
+
+    if(region.source_subresource.aspect == texture_aspect::undefined)
+    {
+        native_region.srcSubresource.aspectMask = static_cast<VkImageAspectFlags>(source.aspect());
+    }
+    else
+    {
+        native_region.srcSubresource.aspectMask = static_cast<VkImageAspectFlags>(region.source_subresource.aspect);
+    }
+
+    native_region.srcSubresource.mipLevel = region.source_subresource.mip_level;
+    native_region.srcSubresource.baseArrayLayer = region.source_subresource.base_array_layer;
+    native_region.srcSubresource.layerCount = region.source_subresource.array_layer_count;
     native_region.dstOffsets[0].x = region.destination_offset.x;
     native_region.dstOffsets[0].y = region.destination_offset.y;
     native_region.dstOffsets[0].z = region.destination_offset.z;
     native_region.dstOffsets[1].x = region.destination_offset.x + region.destination_size.width;
     native_region.dstOffsets[1].y = region.destination_offset.y + region.destination_size.height;
     native_region.dstOffsets[1].z = region.destination_offset.z + region.destination_size.depth;
-    native_region.dstSubresource.aspectMask = static_cast<VkImageAspectFlags>(destination.aspect());
-    native_region.dstSubresource.mipLevel = 0;
-    native_region.dstSubresource.layerCount = 1;
-    native_region.dstSubresource.baseArrayLayer = 0;
+
+    if(region.destination_subresource.aspect == texture_aspect::undefined)
+    {
+        native_region.dstSubresource.aspectMask = static_cast<VkImageAspectFlags>(destination.aspect());
+    }
+    else
+    {
+        native_region.dstSubresource.aspectMask = static_cast<VkImageAspectFlags>(region.destination_subresource.aspect);
+    }
+
+    native_region.dstSubresource.mipLevel = region.destination_subresource.mip_level;
+    native_region.dstSubresource.baseArrayLayer = region.destination_subresource.base_array_layer;
+    native_region.dstSubresource.layerCount = region.destination_subresource.array_layer_count;
 
     vkCmdBlitImage(underlying_cast<VkCommandBuffer>(command_buffer),
                    underlying_cast<VkImage>(source), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
@@ -606,20 +671,38 @@ void blit(command_buffer& command_buffer, texture& source, texture& destination,
         native_region.srcOffsets[1].x = region.source_offset.x + region.source_size.width;
         native_region.srcOffsets[1].y = region.source_offset.y + region.source_size.height;
         native_region.srcOffsets[1].z = region.source_offset.z + region.source_size.depth;
-        native_region.srcSubresource.aspectMask = static_cast<VkImageAspectFlags>(source.aspect());
-        native_region.srcSubresource.mipLevel = 0;
-        native_region.srcSubresource.layerCount = 1;
-        native_region.srcSubresource.baseArrayLayer = 0;
+
+        if(region.source_subresource.aspect == texture_aspect::undefined)
+        {
+            native_region.srcSubresource.aspectMask = static_cast<VkImageAspectFlags>(source.aspect());
+        }
+        else
+        {
+            native_region.srcSubresource.aspectMask = static_cast<VkImageAspectFlags>(region.source_subresource.aspect);
+        }
+
+        native_region.srcSubresource.mipLevel = region.source_subresource.mip_level;
+        native_region.srcSubresource.baseArrayLayer = region.source_subresource.base_array_layer;
+        native_region.srcSubresource.layerCount = region.source_subresource.array_layer_count;
         native_region.dstOffsets[0].x = region.destination_offset.x;
         native_region.dstOffsets[0].y = region.destination_offset.y;
         native_region.dstOffsets[0].z = region.destination_offset.z;
         native_region.dstOffsets[1].x = region.destination_offset.x + region.destination_size.width;
         native_region.dstOffsets[1].y = region.destination_offset.y + region.destination_size.height;
         native_region.dstOffsets[1].z = region.destination_offset.z + region.destination_size.depth;
-        native_region.dstSubresource.aspectMask = static_cast<VkImageAspectFlags>(destination.aspect());
-        native_region.dstSubresource.mipLevel = 0;
-        native_region.dstSubresource.layerCount = 1;
-        native_region.dstSubresource.baseArrayLayer = 0;
+
+        if(region.destination_subresource.aspect == texture_aspect::undefined)
+        {
+            native_region.dstSubresource.aspectMask = static_cast<VkImageAspectFlags>(destination.aspect());
+        }
+        else
+        {
+            native_region.dstSubresource.aspectMask = static_cast<VkImageAspectFlags>(region.destination_subresource.aspect);
+        }
+
+        native_region.dstSubresource.mipLevel = region.destination_subresource.mip_level;
+        native_region.dstSubresource.baseArrayLayer = region.destination_subresource.base_array_layer;
+        native_region.dstSubresource.layerCount = region.destination_subresource.array_layer_count;
     }
 
     vkCmdBlitImage(underlying_cast<VkCommandBuffer>(command_buffer),
@@ -628,49 +711,14 @@ void blit(command_buffer& command_buffer, texture& source, texture& destination,
                    static_cast<std::uint32_t>(std::size(native_regions)), std::data(native_regions), static_cast<VkFilter>(filter));
 }
 
-void blit(command_buffer& command_buffer, texture& source, texture& destination, filter filter) noexcept
-{
-    VkImageBlit native_region{};
-    native_region.srcOffsets[0].x = 0;
-    native_region.srcOffsets[0].y = 0;
-    native_region.srcOffsets[0].z = 0;
-    native_region.srcOffsets[1].x = source.width();
-    native_region.srcOffsets[1].y = source.height();
-    native_region.srcOffsets[1].z = source.depth();
-    native_region.srcSubresource.aspectMask = static_cast<VkImageAspectFlags>(source.aspect());
-    native_region.srcSubresource.mipLevel = 0;
-    native_region.srcSubresource.layerCount = 1;
-    native_region.srcSubresource.baseArrayLayer = 0;
-    native_region.dstOffsets[0].x = 0;
-    native_region.dstOffsets[0].y = 0;
-    native_region.dstOffsets[0].z = 0;
-    native_region.dstOffsets[1].x = destination.width();
-    native_region.dstOffsets[1].y = destination.height();
-    native_region.dstOffsets[1].z = destination.depth();
-    native_region.dstSubresource.aspectMask = static_cast<VkImageAspectFlags>(destination.aspect());
-    native_region.dstSubresource.mipLevel = 0;
-    native_region.dstSubresource.layerCount = 1;
-    native_region.dstSubresource.baseArrayLayer = 0;
-
-    vkCmdBlitImage(underlying_cast<VkCommandBuffer>(command_buffer),
-                   underlying_cast<VkImage>(source), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                   underlying_cast<VkImage>(destination), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                   1, &native_region, static_cast<VkFilter>(filter));
-}
-
-void transition(command_buffer& command_buffer, texture& texture, resource_access source_access, resource_access destination_access, pipeline_stage source_stage, pipeline_stage destination_stage, texture_layout current_layout, texture_layout next_layout) noexcept
-{
-    texture.transition(command_buffer, source_access, destination_access, source_stage, destination_stage, current_layout, next_layout);
-}
-
-void pipeline_barrier(command_buffer& command_buffer, pipeline_stage source_stage, pipeline_stage destination_stage) noexcept
+void pipeline_barrier(command_buffer& command_buffer, pipeline_stage source_stage, pipeline_stage destination_stage, dependency_flags flags) noexcept
 {
     vkCmdPipelineBarrier(underlying_cast<VkCommandBuffer>(command_buffer),
-                         static_cast<VkPipelineStageFlags>(source_stage), static_cast<VkPipelineStageFlags>(destination_stage), 0,
+                         static_cast<VkPipelineStageFlags>(source_stage), static_cast<VkPipelineStageFlags>(destination_stage), static_cast<VkDependencyFlags>(flags),
                          0, nullptr, 0, nullptr, 0, nullptr);
 }
 
-void pipeline_barrier(command_buffer& command_buffer, resource_access source_access, resource_access destination_access, pipeline_stage source_stage, pipeline_stage destination_stage) noexcept
+void pipeline_barrier(command_buffer& command_buffer, resource_access source_access, resource_access destination_access, dependency_flags flags, pipeline_stage source_stage, pipeline_stage destination_stage) noexcept
 {
     VkMemoryBarrier barrier{};
     barrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
@@ -678,8 +726,76 @@ void pipeline_barrier(command_buffer& command_buffer, resource_access source_acc
     barrier.dstAccessMask = static_cast<VkAccessFlags>(destination_access);
 
     vkCmdPipelineBarrier(underlying_cast<VkCommandBuffer>(command_buffer),
-                         static_cast<VkPipelineStageFlags>(source_stage), static_cast<VkPipelineStageFlags>(destination_stage), 0,
+                         static_cast<VkPipelineStageFlags>(source_stage), static_cast<VkPipelineStageFlags>(destination_stage), static_cast<VkDependencyFlags>(flags),
                          1, &barrier, 0, nullptr, 0, nullptr);
+}
+
+void pipeline_barrier(command_buffer& command_buffer, pipeline_stage source_stage, pipeline_stage destination_stage, dependency_flags flags, std::span<const memory_barrier> memory_barriers, std::span<const buffer_memory_barrier> buffer_barriers, std::span<const texture_memory_barrier> texture_barriers)
+{
+    stack_memory_pool<1024 * 4> pool{};
+
+    auto native_memory_barriers{make_stack_vector<VkMemoryBarrier>(pool)};
+    native_memory_barriers.reserve(std::size(memory_barriers));
+
+    for(auto&& barrier : memory_barriers)
+    {
+        auto& native_barrier{native_memory_barriers.emplace_back()};
+        native_barrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+        native_barrier.srcAccessMask = static_cast<VkAccessFlags>(barrier.source_access);
+        native_barrier.dstAccessMask = static_cast<VkAccessFlags>(barrier.destination_access);
+    }
+
+    auto native_buffer_barriers{make_stack_vector<VkBufferMemoryBarrier>(pool)};
+    native_buffer_barriers.reserve(std::size(buffer_barriers));
+
+    for(auto&& barrier : buffer_barriers)
+    {
+        auto& native_barrier{native_buffer_barriers.emplace_back()};
+        native_barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+        native_barrier.srcAccessMask = static_cast<VkAccessFlags>(barrier.source_access);
+        native_barrier.dstAccessMask = static_cast<VkAccessFlags>(barrier.destination_access);
+        native_barrier.srcQueueFamilyIndex = barrier.source_queue_family;
+        native_barrier.dstQueueFamilyIndex = barrier.destination_queue_family;
+        native_barrier.buffer = underlying_cast<VkBuffer>(barrier.buffer.get());
+        native_barrier.offset = barrier.offset;
+        native_barrier.size = barrier.size;
+    }
+
+    auto native_texture_barriers{make_stack_vector<VkImageMemoryBarrier>(pool)};
+    native_texture_barriers.reserve(std::size(texture_barriers));
+
+    for(auto&& barrier : texture_barriers)
+    {
+        auto& native_barrier{native_texture_barriers.emplace_back()};
+        native_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        native_barrier.srcAccessMask = static_cast<VkAccessFlags>(barrier.source_access);
+        native_barrier.dstAccessMask = static_cast<VkAccessFlags>(barrier.destination_access);
+        native_barrier.oldLayout = static_cast<VkImageLayout>(barrier.old_layout);
+        native_barrier.newLayout = static_cast<VkImageLayout>(barrier.new_layout);
+        native_barrier.srcQueueFamilyIndex = barrier.source_queue_family;
+        native_barrier.dstQueueFamilyIndex = barrier.destination_queue_family;
+        native_barrier.image = underlying_cast<VkImage>(barrier.texture.get());
+
+        if(barrier.subresource.aspect == texture_aspect::undefined)
+        {
+            native_barrier.subresourceRange.aspectMask = static_cast<VkImageAspectFlags>(barrier.texture.get().aspect());
+        }
+        else
+        {
+            native_barrier.subresourceRange.aspectMask = static_cast<VkImageAspectFlags>(barrier.subresource.aspect);
+        }
+
+        native_barrier.subresourceRange.baseArrayLayer = barrier.subresource.base_array_layer;
+        native_barrier.subresourceRange.layerCount = barrier.subresource.array_layer_count;
+        native_barrier.subresourceRange.baseMipLevel = barrier.subresource.base_mip_level;
+        native_barrier.subresourceRange.levelCount = barrier.subresource.mip_level_count;
+    }
+
+    vkCmdPipelineBarrier(underlying_cast<VkCommandBuffer>(command_buffer),
+                         static_cast<VkPipelineStageFlags>(source_stage), static_cast<VkPipelineStageFlags>(destination_stage), static_cast<VkDependencyFlags>(flags),
+                         std::size(native_memory_barriers),  std::data(native_memory_barriers),
+                         std::size(native_buffer_barriers),  std::data(native_buffer_barriers),
+                         std::size(native_texture_barriers), std::data(native_texture_barriers));
 }
 
 void update_buffer(command_buffer& command_buffer, tph::buffer& buffer, std::uint64_t offset, std::uint64_t size, const void* data) noexcept
@@ -704,7 +820,7 @@ void begin_render_pass(command_buffer& command_buffer, const render_pass& render
 
 void begin_render_pass(command_buffer& command_buffer, const render_pass& render_pass, const framebuffer& framebuffer, const scissor& area, render_pass_content content) noexcept
 {
-    stack_memory_pool<1024 * 2> pool{};
+    stack_memory_pool<1024> pool{};
     auto clear_values{make_stack_vector<VkClearValue>(pool)};
     clear_values.reserve(std::size(framebuffer.clear_values()));
 
@@ -716,24 +832,7 @@ void begin_render_pass(command_buffer& command_buffer, const render_pass& render
         {
             const auto color{std::get<clear_color_value>(value)};
 
-            if(std::holds_alternative<clear_color_float_value>(color))
-            {
-                auto float_color{std::get<clear_color_float_value>(color)};
-
-                native_value.color = VkClearColorValue{.float32{float_color.red, float_color.green, float_color.blue, float_color.alpha}};
-            }
-            else if(std::holds_alternative<clear_color_int_value>(color))
-            {
-                auto int_color{std::get<clear_color_int_value>(color)};
-
-                native_value.color = VkClearColorValue{.int32{int_color.red, int_color.green, int_color.blue, int_color.alpha}};
-            }
-            else
-            {
-                auto uint_color{std::get<clear_color_uint_value>(color)};
-
-                native_value.color = VkClearColorValue{.uint32{uint_color.red, uint_color.green, uint_color.blue, uint_color.alpha}};
-            }
+            native_value.color = to_vk_clear_color(color);
         }
         else
         {
@@ -781,16 +880,6 @@ void bind_index_buffer(command_buffer& command_buffer, buffer& buffer, std::uint
     vkCmdBindIndexBuffer(underlying_cast<VkCommandBuffer>(command_buffer), underlying_cast<VkBuffer>(buffer), offset, static_cast<VkIndexType>(type));
 }
 
-void reset_event(command_buffer& command_buffer, event& event, pipeline_stage stage) noexcept
-{
-    vkCmdResetEvent(underlying_cast<VkCommandBuffer>(command_buffer), underlying_cast<VkEvent>(event), static_cast<VkPipelineStageFlags>(stage));
-}
-
-void set_event(command_buffer& command_buffer, event& event, pipeline_stage stage) noexcept
-{
-    vkCmdSetEvent(underlying_cast<VkCommandBuffer>(command_buffer), underlying_cast<VkEvent>(event), static_cast<VkPipelineStageFlags>(stage));
-}
-
 void bind_descriptor_set(command_buffer& command_buffer, std::uint32_t index, descriptor_set& set, pipeline_layout& layout, pipeline_type bind_point) noexcept
 {
     VkDescriptorSet native_set{underlying_cast<VkDescriptorSet>(set)};
@@ -811,6 +900,174 @@ void bind_descriptor_set(command_buffer& command_buffer, std::uint32_t index, st
 
     vkCmdBindDescriptorSets(underlying_cast<VkCommandBuffer>(command_buffer), static_cast<VkPipelineBindPoint>(bind_point), underlying_cast<VkPipelineLayout>(layout),
                             index, static_cast<std::uint32_t>(std::size(native_sets)), std::data(native_sets), 0, nullptr);
+}
+
+void reset_event(command_buffer& command_buffer, event& event, pipeline_stage stage) noexcept
+{
+    vkCmdResetEvent(underlying_cast<VkCommandBuffer>(command_buffer), underlying_cast<VkEvent>(event), static_cast<VkPipelineStageFlags>(stage));
+}
+
+void set_event(command_buffer& command_buffer, event& event, pipeline_stage stage) noexcept
+{
+    vkCmdSetEvent(underlying_cast<VkCommandBuffer>(command_buffer), underlying_cast<VkEvent>(event), static_cast<VkPipelineStageFlags>(stage));
+}
+
+void wait_event(command_buffer& command_buffer, event& event, pipeline_stage source_stage, pipeline_stage destination_stage) noexcept
+{
+    VkEvent native_event{underlying_cast<VkEvent>(event)};
+
+    vkCmdWaitEvents(underlying_cast<VkCommandBuffer>(command_buffer), 1, &native_event,
+                    static_cast<VkPipelineStageFlags>(source_stage), static_cast<VkPipelineStageFlags>(destination_stage),
+                    0, nullptr, 0, nullptr, 0, nullptr);
+}
+
+void wait_event(command_buffer& command_buffer, event& event, resource_access source_access, resource_access destination_access, pipeline_stage source_stage, pipeline_stage destination_stage) noexcept
+{
+    VkEvent native_event{underlying_cast<VkEvent>(event)};
+
+    VkMemoryBarrier barrier{};
+    barrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+    barrier.srcAccessMask = static_cast<VkAccessFlags>(source_access);
+    barrier.dstAccessMask = static_cast<VkAccessFlags>(destination_access);
+
+    vkCmdWaitEvents(underlying_cast<VkCommandBuffer>(command_buffer), 1, &native_event,
+                    static_cast<VkPipelineStageFlags>(source_stage), static_cast<VkPipelineStageFlags>(destination_stage),
+                    1, &barrier, 0, nullptr, 0, nullptr);
+}
+
+void resolve_image(command_buffer& command_buffer, texture& source, texture_layout source_layout, texture& destination, texture_layout destination_layout, std::span<const texture_resolve> resolves)
+{
+    stack_memory_pool<1024 * 2> pool{};
+    auto native_resolves{make_stack_vector<VkImageResolve>(pool)};
+    native_resolves.reserve(std::size(resolves));
+
+    for(auto&& resolve : resolves)
+    {
+        auto& native_resolve{native_resolves.emplace_back()};
+        native_resolve.srcOffset.x = resolve.source_offset.x;
+        native_resolve.srcOffset.y = resolve.source_offset.y;
+        native_resolve.srcOffset.z = resolve.source_offset.z;
+        native_resolve.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        native_resolve.srcSubresource.mipLevel = resolve.source_subresource.mip_level;
+        native_resolve.srcSubresource.baseArrayLayer = resolve.source_subresource.base_array_layer;
+        native_resolve.srcSubresource.layerCount = resolve.source_subresource.array_layer_count;
+        native_resolve.dstOffset.x = resolve.destination_offset.x;
+        native_resolve.dstOffset.y = resolve.destination_offset.y;
+        native_resolve.dstOffset.z = resolve.destination_offset.z;
+        native_resolve.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        native_resolve.dstSubresource.mipLevel = resolve.destination_subresource.mip_level;
+        native_resolve.dstSubresource.baseArrayLayer = resolve.destination_subresource.base_array_layer;
+        native_resolve.dstSubresource.layerCount = resolve.destination_subresource.array_layer_count;
+        native_resolve.extent.width  = resolve.size.width;
+        native_resolve.extent.height = resolve.size.height;
+        native_resolve.extent.depth  = resolve.size.depth;
+    }
+
+    vkCmdResolveImage(underlying_cast<VkCommandBuffer>(command_buffer),
+                      underlying_cast<VkImage>(source), static_cast<VkImageLayout>(source_layout),
+                      underlying_cast<VkImage>(destination), static_cast<VkImageLayout>(destination_layout),
+                      std::size(native_resolves), std::data(native_resolves));
+}
+
+void clear_attachments(command_buffer& command_buffer, std::span<const clear_attachment> attachments, std::span<const clear_rect> rects)
+{
+    stack_memory_pool<1024> pool{};
+
+    auto native_attachments{make_stack_vector<VkClearAttachment>(pool)};
+    native_attachments.reserve(std::size(attachments));
+
+    for(auto&& attachment : attachments)
+    {
+        auto& native_attachment{native_attachments.emplace_back()};
+        native_attachment.aspectMask = static_cast<VkImageAspectFlags>(attachment.aspect);
+        native_attachment.colorAttachment = attachment.attachment;
+
+        if(std::holds_alternative<clear_color_value>(attachment.clear_value))
+        {
+            const auto color{std::get<clear_color_value>(attachment.clear_value)};
+
+            native_attachment.clearValue.color = to_vk_clear_color(color);
+        }
+        else
+        {
+            const auto depth_stencil{std::get<clear_depth_stencil_value>(attachment.clear_value)};
+
+            native_attachment.clearValue.depthStencil = VkClearDepthStencilValue{depth_stencil.depth, depth_stencil.stencil};
+        }
+    }
+
+    auto native_rects{make_stack_vector<VkClearRect>(pool)};
+    native_rects.reserve(std::size(rects));
+
+    for(auto&& rect : rects)
+    {
+        auto& native_rect{native_rects.emplace_back()};
+        native_rect.rect.offset.x = rect.x;
+        native_rect.rect.offset.y = rect.y;
+        native_rect.rect.extent.width = rect.width;
+        native_rect.rect.extent.height = rect.height;
+        native_rect.baseArrayLayer = rect.base_array_layer;
+        native_rect.layerCount = rect.array_layer_count;
+    }
+
+    vkCmdClearAttachments(underlying_cast<VkCommandBuffer>(command_buffer),
+                          std::size(native_attachments), std::data(native_attachments),
+                          std::size(native_rects), std::data(native_rects));
+}
+
+void clear_color_image(command_buffer& command_buffer, texture& texture, texture_layout layout, const clear_color_value& color, std::span<const texture_subresource_range> subresources)
+{
+    stack_memory_pool<1024> pool{};
+    auto native_subresources{make_stack_vector<VkImageSubresourceRange>(pool)};
+    native_subresources.reserve(std::size(subresources));
+
+    for(auto&& subresource : subresources)
+    {
+        auto& native_subresource{native_subresources.emplace_back()};
+        native_subresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        native_subresource.baseArrayLayer = subresource.base_array_layer;
+        native_subresource.layerCount = subresource.array_layer_count;
+        native_subresource.baseMipLevel = subresource.base_mip_level;
+        native_subresource.levelCount = subresource.mip_level_count;
+    }
+
+    const VkClearColorValue native_color{to_vk_clear_color(color)};
+
+    vkCmdClearColorImage(underlying_cast<VkCommandBuffer>(command_buffer),
+                         underlying_cast<VkImage>(texture), static_cast<VkImageLayout>(layout), &native_color,
+                         std::size(native_subresources), std::data(native_subresources));
+}
+
+void clear_depth_stencil_image(command_buffer& command_buffer, texture& texture, texture_layout layout, const clear_depth_stencil_value& value, std::span<const texture_subresource_range> subresources)
+{
+    stack_memory_pool<1024> pool{};
+    auto native_subresources{make_stack_vector<VkImageSubresourceRange>(pool)};
+    native_subresources.reserve(std::size(subresources));
+
+    for(auto&& subresource : subresources)
+    {
+        auto& native_subresource{native_subresources.emplace_back()};
+
+        if(subresource.aspect == texture_aspect::undefined)
+        {
+            native_subresource.aspectMask = static_cast<VkImageAspectFlags>(texture.aspect());
+        }
+        else
+        {
+            native_subresource.aspectMask = static_cast<VkImageAspectFlags>(subresource.aspect);
+        }
+
+        native_subresource.baseArrayLayer = subresource.base_array_layer;
+        native_subresource.layerCount = subresource.array_layer_count;
+        native_subresource.baseMipLevel = subresource.base_mip_level;
+        native_subresource.levelCount = subresource.mip_level_count;
+    }
+
+    const VkClearDepthStencilValue native_value{value.depth, value.stencil};
+
+    vkCmdClearDepthStencilImage(underlying_cast<VkCommandBuffer>(command_buffer),
+                                underlying_cast<VkImage>(texture), static_cast<VkImageLayout>(layout), &native_value,
+                                std::size(native_subresources), std::data(native_subresources));
 }
 
 void set_viewport(command_buffer& command_buffer, const viewport& viewport, std::uint32_t index) noexcept
@@ -999,6 +1256,137 @@ void execute(command_buffer& buffer, std::span<const std::reference_wrapper<comm
     }
 
     vkCmdExecuteCommands(underlying_cast<VkCommandBuffer>(buffer), static_cast<std::uint32_t>(std::size(native_secondary_buffers)), std::data(native_secondary_buffers));
+}
+
+void generate_mipmaps(command_buffer& command_buffer, pipeline_stage source_stage, pipeline_stage destination_stage, dependency_flags flags, std::span<const mipmap_generation_info> infos)
+{
+    assert(!std::empty(infos) && "tph::cmd::generate_mipmaps info must not be empty.");
+
+    for(auto&& info : infos)
+    {
+        VkImageMemoryBarrier first_barrier{};
+        first_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        first_barrier.srcAccessMask = static_cast<VkAccessFlags>(info.source_access);
+        first_barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+        first_barrier.oldLayout = static_cast<VkImageLayout>(info.old_layout);
+        first_barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+
+        if(info.source_queue_family != VK_QUEUE_FAMILY_IGNORED)
+        {
+            first_barrier.srcQueueFamilyIndex = info.source_queue_family;
+            first_barrier.dstQueueFamilyIndex = command_buffer.queue_family();
+        }
+        else
+        {
+            first_barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            first_barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        }
+
+        first_barrier.image = underlying_cast<VkImage>(info.texture.get());
+        first_barrier.subresourceRange.aspectMask = static_cast<VkImageAspectFlags>(info.texture.get().aspect());
+        first_barrier.subresourceRange.baseArrayLayer = info.base_array_layer;
+        first_barrier.subresourceRange.layerCount = info.array_layer_count;
+        first_barrier.subresourceRange.baseMipLevel = 0;
+        first_barrier.subresourceRange.levelCount = 1;
+
+        vkCmdPipelineBarrier(underlying_cast<VkCommandBuffer>(command_buffer),
+                             static_cast<VkPipelineStageFlags>(source_stage), VK_PIPELINE_STAGE_TRANSFER_BIT, static_cast<VkDependencyFlags>(flags),
+                             0, nullptr, 0, nullptr, 1, &first_barrier);
+
+        VkImageMemoryBarrier first_mip_barrier{};
+        first_mip_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        first_mip_barrier.srcAccessMask = 0;
+        first_mip_barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+        first_mip_barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        first_mip_barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+        first_mip_barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        first_mip_barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        first_mip_barrier.image = underlying_cast<VkImage>(info.texture.get());
+        first_mip_barrier.subresourceRange.aspectMask = static_cast<VkImageAspectFlags>(info.texture.get().aspect());
+        first_mip_barrier.subresourceRange.baseArrayLayer = info.base_array_layer;
+        first_mip_barrier.subresourceRange.layerCount = info.array_layer_count;
+        first_mip_barrier.subresourceRange.levelCount = 1;
+
+        VkImageBlit blit{};
+        blit.srcSubresource.aspectMask = static_cast<VkImageAspectFlags>(info.texture.get().aspect());
+        blit.srcSubresource.baseArrayLayer = info.base_array_layer;
+        blit.srcSubresource.layerCount = info.array_layer_count;
+        blit.dstSubresource.aspectMask = static_cast<VkImageAspectFlags>(info.texture.get().aspect());
+        blit.dstSubresource.baseArrayLayer = info.base_array_layer;
+        blit.dstSubresource.layerCount = info.array_layer_count;
+
+        VkImageMemoryBarrier second_mip_barrier{};
+        second_mip_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        second_mip_barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+        second_mip_barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+        second_mip_barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+        second_mip_barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+        second_mip_barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        second_mip_barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        second_mip_barrier.image = underlying_cast<VkImage>(info.texture.get());
+        second_mip_barrier.subresourceRange.aspectMask = static_cast<VkImageAspectFlags>(info.texture.get().aspect());
+        second_mip_barrier.subresourceRange.baseArrayLayer = info.base_array_layer;
+        second_mip_barrier.subresourceRange.layerCount = info.array_layer_count;
+        second_mip_barrier.subresourceRange.levelCount = 1;
+
+        for(std::uint32_t mip_level{1}; mip_level < info.texture.get().mip_levels(); ++mip_level)
+        {
+            first_mip_barrier.subresourceRange.baseMipLevel = mip_level;
+
+            vkCmdPipelineBarrier(underlying_cast<VkCommandBuffer>(command_buffer),
+                                 VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, static_cast<VkDependencyFlags>(flags),
+                                 0, nullptr, 0, nullptr, 1, &first_mip_barrier);
+
+            blit.srcSubresource.mipLevel = mip_level - 1;
+            blit.srcOffsets[1].x = std::max(std::int32_t(info.texture.get().width()  >> (mip_level - 1)), 1);
+            blit.srcOffsets[1].y = std::max(std::int32_t(info.texture.get().height() >> (mip_level - 1)), 1);
+            blit.srcOffsets[1].z = std::max(std::int32_t(info.texture.get().depth()  >> (mip_level - 1)), 1);
+            blit.dstSubresource.mipLevel = mip_level;
+            blit.dstOffsets[1].x = std::max(std::int32_t(info.texture.get().width()  >> mip_level), 1);
+            blit.dstOffsets[1].y = std::max(std::int32_t(info.texture.get().height() >> mip_level), 1);
+            blit.dstOffsets[1].z = std::max(std::int32_t(info.texture.get().depth()  >> mip_level), 1);
+
+            vkCmdBlitImage(underlying_cast<VkCommandBuffer>(command_buffer),
+                           underlying_cast<VkImage>(info.texture.get()), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                           underlying_cast<VkImage>(info.texture.get()), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                           1, &blit, static_cast<VkFilter>(info.filter));
+
+            second_mip_barrier.subresourceRange.baseMipLevel = mip_level;
+
+            vkCmdPipelineBarrier(underlying_cast<VkCommandBuffer>(command_buffer),
+                                 VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, static_cast<VkDependencyFlags>(flags),
+                                 0, nullptr, 0, nullptr, 1, &second_mip_barrier);
+        }
+
+        VkImageMemoryBarrier last_barrier{};
+        last_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        last_barrier.srcAccessMask = 0;
+        last_barrier.dstAccessMask = static_cast<VkAccessFlags>(info.destination_access);
+        last_barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+        last_barrier.newLayout = static_cast<VkImageLayout>(info.new_layout);
+
+        if(info.destination_queue_family != VK_QUEUE_FAMILY_IGNORED)
+        {
+            last_barrier.srcQueueFamilyIndex = command_buffer.queue_family();
+            last_barrier.dstQueueFamilyIndex = info.destination_queue_family;
+        }
+        else
+        {
+            last_barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            last_barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        }
+
+        last_barrier.image = underlying_cast<VkImage>(info.texture.get());
+        last_barrier.subresourceRange.aspectMask = static_cast<VkImageAspectFlags>(info.texture.get().aspect());
+        last_barrier.subresourceRange.baseArrayLayer = info.base_array_layer;
+        last_barrier.subresourceRange.layerCount = info.array_layer_count;
+        last_barrier.subresourceRange.baseMipLevel = 0;
+        last_barrier.subresourceRange.levelCount = info.texture.get().mip_levels();
+
+        vkCmdPipelineBarrier(underlying_cast<VkCommandBuffer>(command_buffer),
+                             VK_PIPELINE_STAGE_TRANSFER_BIT, static_cast<VkPipelineStageFlags>(destination_stage), static_cast<VkDependencyFlags>(flags),
+                             0, nullptr, 0, nullptr, 1, &last_barrier);
+    }
 }
 
 }

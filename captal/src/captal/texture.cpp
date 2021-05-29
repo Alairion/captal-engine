@@ -8,7 +8,11 @@ namespace cpt
 #ifdef CAPTAL_DEBUG
 void texture::set_name(std::string_view name)
 {
-    tph::set_object_name(engine::instance().renderer(), m_texture, std::string{name});
+    const std::string string_name{name};
+
+    tph::set_object_name(engine::instance().renderer(), m_texture, string_name);
+    tph::set_object_name(engine::instance().renderer(), m_texture_view, string_name + " view");
+    tph::set_object_name(engine::instance().renderer(), m_sampler, string_name + " sampler");
 }
 #endif
 
@@ -34,24 +38,33 @@ static tph::image make_image(Args&&... args)
     return output;
 }
 
-static texture_ptr make_texture_impl(const tph::sampling_options& sampling, tph::texture_format format, tph::image image)
+static texture_ptr make_texture_impl(const tph::sampler_info& sampling, tph::texture_format format, tph::image image)
 {
     const tph::texture_info info{format, tph::texture_usage::sampled | tph::texture_usage::transfer_destination};
-    texture_ptr texture{make_texture(static_cast<std::uint32_t>(image.width()), static_cast<std::uint32_t>(image.height()), info, sampling)};
+    texture_ptr texture{make_texture(sampling, static_cast<std::uint32_t>(image.width()), static_cast<std::uint32_t>(image.height()), info)};
 
-    auto&& [command_buffer, signal, keeper] = cpt::engine::instance().begin_transfer();
+    auto&& [buffer, signal, keeper] = cpt::engine::instance().begin_transfer();
 
-    tph::cmd::transition(command_buffer, texture->get_texture(),
-                         tph::resource_access::none, tph::resource_access::transfer_write,
-                         tph::pipeline_stage::top_of_pipe, tph::pipeline_stage::transfer,
-                         tph::texture_layout::undefined, tph::texture_layout::transfer_destination_optimal);
+    tph::texture_memory_barrier barrier{texture->get_texture()};
+    barrier.source_access      = tph::resource_access::none;
+    barrier.destination_access = tph::resource_access::transfer_write;
+    barrier.old_layout         = tph::texture_layout::undefined;
+    barrier.new_layout         = tph::texture_layout::transfer_destination_optimal;
 
-    tph::cmd::copy(command_buffer, image, texture->get_texture());
+    tph::cmd::pipeline_barrier(buffer, tph::pipeline_stage::top_of_pipe, tph::pipeline_stage::transfer, tph::dependency_flags::none, {}, {}, std::span{&barrier, 1});
 
-    tph::cmd::transition(command_buffer, texture->get_texture(),
-                         tph::resource_access::transfer_write, tph::resource_access::shader_read,
-                         tph::pipeline_stage::transfer, tph::pipeline_stage::fragment_shader,
-                         tph::texture_layout::transfer_destination_optimal,  tph::texture_layout::shader_read_only_optimal);
+    tph::image_texture_copy region{};
+    region.texture_size.width  = image.width();
+    region.texture_size.height = image.height();
+
+    tph::cmd::copy(buffer, image, texture->get_texture(), region);
+
+    barrier.source_access      = tph::resource_access::transfer_write;
+    barrier.destination_access = tph::resource_access::shader_read;
+    barrier.old_layout         = tph::texture_layout::transfer_destination_optimal;
+    barrier.new_layout         = tph::texture_layout::shader_read_only_optimal;
+
+    tph::cmd::pipeline_barrier(buffer, tph::pipeline_stage::transfer, tph::pipeline_stage::fragment_shader, tph::dependency_flags::none, {}, {}, std::span{&barrier, 1});
 
     signal.connect([image = std::move(image)](){});
     keeper.keep(texture);
@@ -59,27 +72,27 @@ static texture_ptr make_texture_impl(const tph::sampling_options& sampling, tph:
     return texture;
 }
 
-texture_ptr make_texture(const std::filesystem::path& file, const tph::sampling_options& sampling, color_space space)
+texture_ptr make_texture(const std::filesystem::path& file, const tph::sampler_info& sampling, color_space space)
 {
     return make_texture_impl(sampling, format_from_color_space(space), make_image(file));
 }
 
-texture_ptr make_texture(std::span<const std::uint8_t> data, const tph::sampling_options& sampling, color_space space)
+texture_ptr make_texture(std::span<const std::uint8_t> data, const tph::sampler_info& sampling, color_space space)
 {
     return make_texture_impl(sampling, format_from_color_space(space), make_image(data));
 }
 
-texture_ptr make_texture(std::istream& stream, const tph::sampling_options& sampling, color_space space)
+texture_ptr make_texture(std::istream& stream, const tph::sampler_info& sampling, color_space space)
 {
     return make_texture_impl(sampling, format_from_color_space(space), make_image(stream));
 }
 
-texture_ptr make_texture(std::uint32_t width, std::uint32_t height, const std::uint8_t* rgba, const tph::sampling_options& sampling, color_space space)
+texture_ptr make_texture(std::uint32_t width, std::uint32_t height, const std::uint8_t* rgba, const tph::sampler_info& sampling, color_space space)
 {
     return make_texture_impl(sampling, format_from_color_space(space), make_image(width, height, rgba));
 }
 
-texture_ptr make_texture(tph::image image, const tph::sampling_options& sampling, color_space space)
+texture_ptr make_texture(tph::image&& image, const tph::sampler_info& sampling, color_space space)
 {
     return make_texture_impl(sampling, format_from_color_space(space), std::move(image));
 }
@@ -90,7 +103,7 @@ tph::renderer& texture::get_renderer() noexcept
 }
 
 
-cpt::texture_ptr texture_pool::default_load_callback(const std::filesystem::path& path, const tph::sampling_options& sampling, color_space space)
+cpt::texture_ptr texture_pool::default_load_callback(const std::filesystem::path& path, const tph::sampler_info& sampling, color_space space)
 {
     auto output{make_texture(path, sampling, space)};
 
@@ -113,12 +126,12 @@ texture_pool::texture_pool(load_callback_t load_callback)
 
 }
 
-cpt::texture_ptr texture_pool::load(const std::filesystem::path& path, const tph::sampling_options& sampling, color_space space)
+cpt::texture_ptr texture_pool::load(const std::filesystem::path& path, const tph::sampler_info& sampling, color_space space)
 {
     return load(path, m_load_callback, sampling, space);
 }
 
-cpt::texture_ptr texture_pool::load(const std::filesystem::path& path, const load_callback_t& load_callback, const tph::sampling_options& sampling, color_space space)
+cpt::texture_ptr texture_pool::load(const std::filesystem::path& path, const load_callback_t& load_callback, const tph::sampler_info& sampling, color_space space)
 {
     const auto it{m_pool.find(path)};
     if(it != std::end(m_pool))

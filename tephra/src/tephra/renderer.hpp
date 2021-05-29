@@ -27,7 +27,6 @@ enum class renderer_options : std::uint32_t
     standalone_compute_queue = 0x20
 };
 
-
 enum class renderer_layer : std::uint32_t
 {
     none = 0x00,
@@ -82,14 +81,19 @@ public:
         return m_extensions;
     }
 
-    std::uint32_t queue_family_index(queue queue) const noexcept
+    std::uint32_t queue_family(queue queue) const noexcept
     {
         return m_queue_families[static_cast<std::size_t>(queue)];
     }
 
+    const queue_families_t& queue_families() const noexcept
+    {
+        return m_queue_families;
+    }
+
     bool is_same_queue(queue first, queue second) const noexcept
     {
-        return queue_family_index(first) == queue_family_index(second);
+        return queue_family(first) == queue_family(second);
     }
 
     const transfer_granularity& transfer_queue_granularity() const noexcept

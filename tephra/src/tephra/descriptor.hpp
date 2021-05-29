@@ -16,6 +16,8 @@ namespace tph
 class renderer;
 class buffer;
 class texture;
+class texture_view;
+class sampler;
 
 struct descriptor_set_layout_binding
 {
@@ -150,29 +152,43 @@ inline VkDescriptorSet underlying_cast(const descriptor_set& descriptor_set) noe
 
 struct descriptor_texture_info
 {
-    texture& texture;
+    sampler* sampler{};
+    texture_view* texture_view{};
     tph::texture_layout layout{};
 };
 
 struct descriptor_buffer_info
 {
-    buffer& buffer;
+    std::reference_wrapper<buffer> buffer;
     std::uint64_t offset{};
     std::uint64_t size{};
 };
 
+using descriptor_info = std::variant<std::monostate, descriptor_texture_info, descriptor_buffer_info>;
+
 struct descriptor_write
 {
-    descriptor_set& descriptor_set;
+    std::reference_wrapper<descriptor_set> descriptor_set;
     std::uint32_t binding{};
     std::uint32_t array_index{};
     descriptor_type type{};
-    std::variant<std::monostate, descriptor_texture_info, descriptor_buffer_info> info{};
+    descriptor_info info{};
 };
 
-TEPHRA_API void write_descriptor(renderer& renderer, descriptor_set& descriptor_set, std::uint32_t binding, std::uint32_t array_index, descriptor_type type, buffer& buffer, std::uint64_t offset, std::uint64_t size);
-TEPHRA_API void write_descriptor(renderer& renderer, descriptor_set& descriptor_set, std::uint32_t binding, std::uint32_t array_index, descriptor_type type, texture& texture, tph::texture_layout layout);
+struct descriptor_copy
+{
+    std::reference_wrapper<descriptor_set> source_set;
+    std::uint32_t source_binding{};
+    std::uint32_t source_array_index{};
+    std::reference_wrapper<descriptor_set> destination_set;
+    std::uint32_t destination_binding{};
+    std::uint32_t destination_array_index{};
+    std::uint32_t count{1};
+};
+
 TEPHRA_API void write_descriptors(renderer& renderer, std::span<const descriptor_write> writes);
+TEPHRA_API void copy_descriptors(renderer& renderer, std::span<const descriptor_copy> copies);
+TEPHRA_API void update_descriptors(renderer& renderer, std::span<const descriptor_write> writes, std::span<const descriptor_copy> copies);
 
 }
 

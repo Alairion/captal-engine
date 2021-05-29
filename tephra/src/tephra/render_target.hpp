@@ -70,40 +70,6 @@ struct render_pass_info
 
 class render_pass;
 
-struct clear_color_float_value
-{
-    float red{};
-    float green{};
-    float blue{};
-    float alpha{};
-};
-
-struct clear_color_int_value
-{
-    std::int32_t red{};
-    std::int32_t green{};
-    std::int32_t blue{};
-    std::int32_t alpha{};
-};
-
-struct clear_color_uint_value
-{
-    std::uint32_t red{};
-    std::uint32_t green{};
-    std::uint32_t blue{};
-    std::uint32_t alpha{};
-};
-
-using clear_color_value = std::variant<clear_color_float_value, clear_color_int_value, clear_color_uint_value>;
-
-struct clear_depth_stencil_value
-{
-    float depth{};
-    std::uint32_t stencil{};
-};
-
-using clear_value_t = std::variant<clear_color_value, clear_depth_stencil_value>;
-
 class TEPHRA_API framebuffer
 {
     template<typename VulkanObject, typename... Args>
@@ -111,7 +77,7 @@ class TEPHRA_API framebuffer
 
 public:
     constexpr framebuffer() = default;
-    explicit framebuffer(renderer& renderer, const render_pass& render_pass, std::span<const std::reference_wrapper<texture>> attachments, std::uint32_t width, std::uint32_t height, std::uint32_t layers);
+    explicit framebuffer(renderer& renderer, const render_pass& render_pass, std::span<const std::reference_wrapper<texture_view>> attachments, std::uint32_t width, std::uint32_t height, std::uint32_t layers);
 
     explicit framebuffer(vulkan::framebuffer framebuffer, std::vector<clear_value_t> clear_values, std::uint32_t width, std::uint32_t height, std::uint32_t layers) noexcept
     :m_framebuffer{std::move(framebuffer)}
@@ -129,8 +95,7 @@ public:
     framebuffer(framebuffer&& other) noexcept = default;
     framebuffer& operator=(framebuffer&& other) noexcept = default;
 
-    void set_clear_value(std::uint32_t attachment_index, const clear_color_value& value);
-    void set_clear_value(std::uint32_t attachment_index, const clear_depth_stencil_value& value);
+    void set_clear_value(std::uint32_t attachment_index, const clear_value_t& value);
     void set_clear_values(std::vector<clear_value_t> clear_values);
 
     std::span<const clear_value_t> clear_values() const noexcept

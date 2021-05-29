@@ -33,6 +33,43 @@ public:
     template<typename... Args> requires std::constructible_from<tph::texture, tph::renderer&, Args...>
     explicit texture(Args&&... args)
     :m_texture{get_renderer(), std::forward<Args>(args)...}
+    ,m_texture_view{get_renderer(), m_texture}
+    ,m_sampler{get_renderer(), tph::sampler_info{}}
+    {
+
+    }
+
+    template<typename... Args> requires std::constructible_from<tph::texture, tph::renderer&, Args...>
+    explicit texture(const tph::sampler_info& sampler, Args&&... args)
+    :m_texture{get_renderer(), std::forward<Args>(args)...}
+    ,m_texture_view{get_renderer(), m_texture}
+    ,m_sampler{get_renderer(), sampler}
+    {
+
+    }
+
+    template<typename... Args> requires std::constructible_from<tph::texture, tph::renderer&, Args...>
+    explicit texture(const tph::component_mapping& mapping, Args&&... args)
+    :m_texture{get_renderer(), std::forward<Args>(args)...}
+    ,m_texture_view{get_renderer(), m_texture, mapping}
+    ,m_sampler{get_renderer(), tph::sampler_info{}}
+    {
+
+    }
+
+    template<typename... Args> requires std::constructible_from<tph::texture, tph::renderer&, Args...>
+    explicit texture(const tph::sampler_info& sampler, const tph::component_mapping& mapping, Args&&... args)
+    :m_texture{get_renderer(), std::forward<Args>(args)...}
+    ,m_texture_view{get_renderer(), m_texture, mapping}
+    ,m_sampler{get_renderer(), sampler}
+    {
+
+    }
+
+    explicit texture(tph::texture&& texture, tph::texture_view&& texture_view, tph::sampler&& sampler) noexcept
+    :m_texture{std::move(texture)}
+    ,m_texture_view{std::move(texture_view)}
+    ,m_sampler{std::move(sampler)}
     {
 
     }
@@ -58,6 +95,11 @@ public:
         return m_texture.depth();
     }
 
+    bool is_cubemap() const noexcept
+    {
+        return m_texture.is_cubemap();
+    }
+
     tph::texture_format format() const noexcept
     {
         return m_texture.format();
@@ -66,6 +108,16 @@ public:
     tph::texture_aspect aspect() const noexcept
     {
         return m_texture.aspect();
+    }
+
+    std::uint32_t mip_levels() const noexcept
+    {
+        return m_texture.mip_levels();
+    }
+
+    std::uint32_t array_layers() const noexcept
+    {
+        return m_texture.array_layers();
     }
 
     tph::sample_count sample_count() const noexcept
@@ -83,6 +135,26 @@ public:
         return m_texture;
     }
 
+    tph::texture_view& get_texture_view() noexcept
+    {
+        return m_texture_view;
+    }
+
+    const tph::texture_view& get_texture_view() const noexcept
+    {
+        return m_texture_view;
+    }
+
+    tph::sampler& get_sampler() noexcept
+    {
+        return m_sampler;
+    }
+
+    const tph::sampler& get_sampler() const noexcept
+    {
+        return m_sampler;
+    }
+
 #ifdef CAPTAL_DEBUG
     void set_name(std::string_view name);
 #else
@@ -97,22 +169,24 @@ private:
 
 private:
     tph::texture m_texture{};
+    tph::texture_view m_texture_view{};
+    tph::sampler m_sampler{};
 };
 
 using texture_ptr = std::shared_ptr<texture>;
 using texture_weak_ptr = std::weak_ptr<texture>;
 
-template<typename... Args> requires std::constructible_from<tph::texture, tph::renderer&, Args...>
+template<typename... Args> requires std::constructible_from<texture, Args...>
 texture_ptr make_texture(Args&&... args)
 {
     return std::make_shared<texture>(std::forward<Args>(args)...);
 }
 
-CAPTAL_API texture_ptr make_texture(const std::filesystem::path& file, const tph::sampling_options& sampling = tph::sampling_options{}, color_space space = color_space::srgb);
-CAPTAL_API texture_ptr make_texture(std::span<const std::uint8_t> data, const tph::sampling_options& sampling = tph::sampling_options{}, color_space space = color_space::srgb);
-CAPTAL_API texture_ptr make_texture(std::istream& stream, const tph::sampling_options& sampling = tph::sampling_options{}, color_space space = color_space::srgb);
-CAPTAL_API texture_ptr make_texture(std::uint32_t width, std::uint32_t height, const std::uint8_t* rgba, const tph::sampling_options& sampling = tph::sampling_options{}, color_space space = color_space::srgb);
-CAPTAL_API texture_ptr make_texture(tph::image image, const tph::sampling_options& sampling = tph::sampling_options{}, color_space space = color_space::srgb);
+CAPTAL_API texture_ptr make_texture(const std::filesystem::path& file, const tph::sampler_info& sampling = tph::sampler_info{}, color_space space = color_space::srgb);
+CAPTAL_API texture_ptr make_texture(std::span<const std::uint8_t> data, const tph::sampler_info& sampling = tph::sampler_info{}, color_space space = color_space::srgb);
+CAPTAL_API texture_ptr make_texture(std::istream& stream, const tph::sampler_info& sampling = tph::sampler_info{}, color_space space = color_space::srgb);
+CAPTAL_API texture_ptr make_texture(std::uint32_t width, std::uint32_t height, const std::uint8_t* rgba, const tph::sampler_info& sampling = tph::sampler_info{}, color_space space = color_space::srgb);
+CAPTAL_API texture_ptr make_texture(tph::image&& image, const tph::sampler_info& sampling = tph::sampler_info{}, color_space space = color_space::srgb);
 
 class CAPTAL_API texture_pool
 {
@@ -125,10 +199,10 @@ class CAPTAL_API texture_pool
     };
 
 public:
-    static cpt::texture_ptr default_load_callback(const std::filesystem::path& path, const tph::sampling_options& sampling, color_space space);
+    static cpt::texture_ptr default_load_callback(const std::filesystem::path& path, const tph::sampler_info& sampling, color_space space);
 
 public:
-    using load_callback_t = std::function<cpt::texture_ptr(const std::filesystem::path& path, const tph::sampling_options& sampling, color_space space)>;
+    using load_callback_t = std::function<cpt::texture_ptr(const std::filesystem::path& path, const tph::sampler_info& sampling, color_space space)>;
 
 public:
     texture_pool();
@@ -140,8 +214,8 @@ public:
     texture_pool(texture_pool&&) noexcept = default;
     texture_pool& operator=(texture_pool&&) noexcept = default;
 
-    cpt::texture_ptr load(const std::filesystem::path& path, const tph::sampling_options& sampling = tph::sampling_options{}, color_space space = color_space::srgb);
-    cpt::texture_ptr load(const std::filesystem::path& path, const load_callback_t& load_callback, const tph::sampling_options& sampling = tph::sampling_options{}, color_space space = color_space::srgb);
+    cpt::texture_ptr load(const std::filesystem::path& path, const tph::sampler_info& sampling = tph::sampler_info{}, color_space space = color_space::srgb);
+    cpt::texture_ptr load(const std::filesystem::path& path, const load_callback_t& load_callback, const tph::sampler_info& sampling = tph::sampler_info{}, color_space space = color_space::srgb);
     cpt::texture_weak_ptr weak_load(const std::filesystem::path& path) const;
     std::pair<cpt::texture_ptr, bool> emplace(std::filesystem::path path, texture_ptr texture);
 
@@ -217,7 +291,7 @@ public:
     {
         texture_rect output{};
 
-        const float width{static_cast<float>(m_texture->width())};
+        const float width {static_cast<float>(m_texture->width())};
         const float height{static_cast<float>(m_texture->height())};
 
         output.top_left     = vec2f{static_cast<float>(( col      * m_tile_width)) / width, static_cast<float>(( row      * m_tile_height)) / height};

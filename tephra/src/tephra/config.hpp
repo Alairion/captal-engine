@@ -18,6 +18,8 @@
     #define TEPHRA_API
 #endif
 
+#include <variant>
+
 namespace tph
 {
 
@@ -35,24 +37,6 @@ VulkanObject underlying_cast(const Args&...) noexcept
 }
 
 using bool32_t = std::uint32_t;
-
-struct viewport
-{
-    float x{};
-    float y{};
-    float width{};
-    float height{};
-    float min_depth{};
-    float max_depth{};
-};
-
-struct scissor
-{
-    std::int32_t x{};
-    std::int32_t y{};
-    std::uint32_t width{};
-    std::uint32_t height{};
-};
 
 }
 

@@ -173,6 +173,8 @@ public:
     }
 
 #ifdef CAPTAL_DEBUG
+    friend class basic_renderable;
+
     void set_name(std::string_view name);
 #else
     void set_name(std::string_view name [[maybe_unused]]) const noexcept

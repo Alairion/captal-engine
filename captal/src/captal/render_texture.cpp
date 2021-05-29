@@ -94,11 +94,11 @@ static std::vector<texture_ptr> make_attachments(texture_ptr user, tph::sample_c
 
     if(has_multisampling)
     {
-        output.emplace_back(make_texture(width, height, tph::texture_info{user->format(), tph::texture_usage::color_attachment, {}, sample_count}));
+        output.emplace_back(make_texture(width, height, tph::texture_info{.format = user->format(), .usage = tph::texture_usage::color_attachment, .sample_count = sample_count}));
 
         if(has_depth_stencil)
         {
-            output.emplace_back(make_texture(width, height, tph::texture_info{depth_format, tph::texture_usage::depth_stencil_attachment, {}, sample_count}));
+            output.emplace_back(make_texture(width, height, tph::texture_info{.format = depth_format, .usage = tph::texture_usage::depth_stencil_attachment, .sample_count = sample_count}));
         }
 
         output.emplace_back(std::move(user));
@@ -109,21 +109,21 @@ static std::vector<texture_ptr> make_attachments(texture_ptr user, tph::sample_c
 
         if(has_depth_stencil)
         {
-            output.emplace_back(make_texture(width, height, tph::texture_info{depth_format, tph::texture_usage::depth_stencil_attachment, {}, sample_count}));
+            output.emplace_back(make_texture(width, height, tph::texture_info{.format = depth_format, .usage = tph::texture_usage::depth_stencil_attachment, .sample_count = sample_count}));
         }
     }
 
     return output;
 }
 
-static std::vector<std::reference_wrapper<tph::texture>> convert_framebuffer_attachments(std::span<const texture_ptr> attachments)
+static std::vector<std::reference_wrapper<tph::texture_view>> convert_framebuffer_attachments(std::span<const texture_ptr> attachments)
 {
-    std::vector<std::reference_wrapper<tph::texture>> output{};
+    std::vector<std::reference_wrapper<tph::texture_view>> output{};
     output.reserve(std::size(attachments));
 
     for(auto&& attachment : attachments)
     {
-        output.emplace_back(attachment->get_texture());
+        output.emplace_back(attachment->get_texture_view());
     }
 
     return output;

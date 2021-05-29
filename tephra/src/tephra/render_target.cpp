@@ -15,13 +15,13 @@ using namespace tph::vulkan::functions;
 namespace tph
 {
 
-static vulkan::framebuffer make_framebuffer(renderer& renderer, const render_pass& render_pass, std::span<const std::reference_wrapper<texture>> attachments, std::uint32_t width, std::uint32_t height, std::uint32_t layers)
+static vulkan::framebuffer make_framebuffer(renderer& renderer, const render_pass& render_pass, std::span<const std::reference_wrapper<texture_view>> attachments, std::uint32_t width, std::uint32_t height, std::uint32_t layers)
 {
     stack_memory_pool<512> pool{};
 
     auto native_attachments{make_stack_vector<VkImageView>(pool)};
     native_attachments.reserve(std::size(attachments));
-    for(const tph::texture& attachment : attachments)
+    for(const tph::texture_view& attachment : attachments)
     {
         native_attachments.emplace_back(underlying_cast<VkImageView>(attachment));
     }
@@ -29,27 +29,15 @@ static vulkan::framebuffer make_framebuffer(renderer& renderer, const render_pas
     return vulkan::framebuffer{underlying_cast<VkDevice>(renderer), underlying_cast<VkRenderPass>(render_pass), native_attachments, VkExtent2D{width, height}, layers};
 }
 
-static std::vector<clear_value_t> make_clear_values(std::span<const std::reference_wrapper<texture>> attachments)
+static std::vector<clear_value_t> make_clear_values(std::span<const std::reference_wrapper<texture_view>> attachments)
 {
     std::vector<clear_value_t> output{};
-    output.reserve(std::size(attachments));
-
-    for(const tph::texture& attachment : attachments)
-    {
-        if(static_cast<bool>(attachment.aspect() & texture_aspect::color))
-        {
-            output.emplace_back(clear_color_value{});
-        }
-        else
-        {
-            output.emplace_back(clear_depth_stencil_value{});
-        }
-    }
+    output.resize(std::size(attachments));
 
     return output;
 }
 
-framebuffer::framebuffer(renderer& renderer, const render_pass& render_pass, std::span<const std::reference_wrapper<texture>> attachments, std::uint32_t width, std::uint32_t height, std::uint32_t layers)
+framebuffer::framebuffer(renderer& renderer, const render_pass& render_pass, std::span<const std::reference_wrapper<texture_view>> attachments, std::uint32_t width, std::uint32_t height, std::uint32_t layers)
 :m_framebuffer{make_framebuffer(renderer, render_pass, attachments, width, height, layers)}
 ,m_clear_values{make_clear_values(attachments)}
 ,m_width{width}
@@ -59,17 +47,8 @@ framebuffer::framebuffer(renderer& renderer, const render_pass& render_pass, std
 
 }
 
-void framebuffer::set_clear_value(std::uint32_t attachment_index, const clear_color_value& value)
+void framebuffer::set_clear_value(std::uint32_t attachment_index, const clear_value_t& value)
 {
-    assert(std::holds_alternative<clear_color_value>(m_clear_values[attachment_index]) && "Clear value type does not correspond to attachment's aspect.");
-
-    m_clear_values[attachment_index] = value;
-}
-
-void framebuffer::set_clear_value(std::uint32_t attachment_index, const clear_depth_stencil_value& value)
-{
-    assert(std::holds_alternative<clear_depth_stencil_value>(m_clear_values[attachment_index]) && "Clear value type does not correspond to attachment's aspect.");
-
     m_clear_values[attachment_index] = value;
 }
 

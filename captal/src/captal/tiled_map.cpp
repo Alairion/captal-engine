@@ -44,7 +44,7 @@ static constexpr std::array<std::uint8_t, 128> base64_table
 
 static constexpr std::uint32_t from_base64(char value) noexcept
 {
-    return base64_table[static_cast<std::uint8_t>(value)];
+    return base64_table[static_cast<std::uint8_t>(value) & 0x7Fu];
 }
 
 static std::vector<std::uint8_t> parse_base64(std::string_view data)

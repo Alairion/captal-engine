@@ -130,7 +130,7 @@ struct specialisation_info
 
 struct pipeline_shader_stage
 {
-    shader& shader;
+    std::reference_wrapper<shader> shader;
     std::string name{"main"};
     specialisation_info specialisation_info{};
 };

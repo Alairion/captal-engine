@@ -5,32 +5,67 @@ L: low
 I: just an idea
 
 Captal Foundation:
-
+    -
 
 Tephra:
-A: Complete commands list (WIP)
-A: Queue family ownership transfer support (tph::texture::transition and tph::buffer::???, and free functions)
-A: Texture with array layers et mip levels support
-I: Multiple applications/renderer support ?
-I: Is tph::image a good idea ? Should it be extended to more than r8g8b8a8 ?
+    A: Complete commands list (WIP)
+    A: Queue family ownership transfer support (tph::texture::transition and tph::buffer::???, and free functions)
+    A: Texture with array layers et mip levels support
+    I: Multiple applications/renderer support ?
+    I: Is tph::image a good idea ? Should it be extended to more than r8g8b8a8 ?
 
 Swell:
-A: Rework mixer (already a bit reworked, but not the definitive one) (WIP)
-A: Wave block awareness
-L: Support other platforms (as of 18 may 2020 only Win32/OSX/Linux are supported (Portaudio limitation))
-L: Custom exception type
+    A: Rework mixer (already a bit reworked, but not the definitive one) (WIP)
+    A: Wave block awareness
+    L: Support other platforms (as of 18 may 2020 only Win32/OSX/Linux are supported (Portaudio limitation))
+    L: Custom exception type
 
 Apyre:
-A: Game controller / joystick support
-A: Clipboard support
-L: Custom exception type
+    A: Game controller / joystick support
+    A: Clipboard support
+    L: Custom exception type
 
 Captal:
-H: Test initialization
-A: Widgets (WIP)
-A: Complete text rendering support (alignments, stylized) (WIP)
-A: More primitive shapes (circles, ellipses, convex polygons) (WIP)
-A: Particles support
-A: Make use of GPU pipeline cache
-L: Custom exception type
-I: Virtual file archive system ? (based on something i wrote few years ago)
+    H: Test initialization
+    A: Widgets (WIP)
+    A: Complete text rendering support (alignments, stylized) (WIP)
+    A: More primitive shapes (circles, ellipses, convex polygons) (WIP)
+    A: Particles support
+    A: Make use of GPU pipeline cache
+    L: GPU compute utilities
+    L: Custom exception type
+    I: Virtual file archive system ? (based on something i wrote few years ago)
+
+
+Docs:
+
+Captal:
+    -Beaware of signal and their callbacks' memory accesses, especially within classes (with **this** pointer), destructor of **cpt::render_target**s can trigger them, and corrupt memory if the signal use already destroyed variable. Example:
+        ```cpp
+        struct my_target
+        {
+            cpt::render_target_ptr target{};
+            std::vector<int> data{}; 
+
+            my_target()
+            {
+                auto render{target.begin_render()};
+                render->signal.connect([this]() //connect the signal somewhere
+                {
+                    std::cout << data[0] << std::endl;
+                });
+            }
+
+            //when this struct is destroyed, the *data* variable is destroyed **before** the *target* variable,
+            //if there is a signal triggered from *target* destructor, this will result in UB because:
+            //step 1: data is destroyed
+            //step 2: target is destroyed
+            //step 3: if target as unflushed frame data, it will trigger the frame presentation (or frame time) signal
+            //step 4: the signal's callback accesses *data[0]* which is already freed.
+            //step 5: cry because if you don't use sanitizer or similar tools this error is **very hard** to debug (since it may not provoke an immediate crash, but a delayed one that triggers at random point after the memory corruption).
+        };
+        ```
+    There are few easy ways to correct this (choose the best one for your case, it may exist other solutions):
+        -Always put render targets as the last members of your classes (so the signals trigger before other members destruction)
+        -Or call target->wait() in you destructor (it will trigger the signals before any members are destroyed)
+        -Use shared_ptr for data that are used with signals

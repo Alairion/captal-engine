@@ -130,7 +130,9 @@ private:
     video_mode m_mode{};
     std::optional<tph::swapchain> m_swapchain{};
     tph::texture m_msaa_texture{};
+    tph::texture_view m_msaa_texture_view{};
     tph::texture m_depth_texture{};
+    tph::texture_view m_depth_texture_view{};
     tph::clear_color_value m_clear_color{};
     tph::clear_depth_stencil_value m_clear_depth_stencil{};
     std::uint32_t m_epoch{1};

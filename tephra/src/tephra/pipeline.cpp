@@ -184,8 +184,8 @@ pipeline::pipeline(renderer& renderer, render_pass& render_pass, std::uint32_t s
     {
         auto& native_stage{stages.emplace_back()};
         native_stage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-        native_stage.stage = static_cast<VkShaderStageFlagBits>(stage.shader.stage());
-        native_stage.module = underlying_cast<VkShaderModule>(stage.shader);
+        native_stage.stage = static_cast<VkShaderStageFlagBits>(stage.shader.get().stage());
+        native_stage.module = underlying_cast<VkShaderModule>(stage.shader.get());
         native_stage.pName = reinterpret_cast<const char*>(std::data(stage.name));
 
         if(!std::empty(stage.specialisation_info.entries))
@@ -342,8 +342,8 @@ pipeline::pipeline(renderer& renderer, const compute_pipeline_info& info, const 
     create_info.flags = static_cast<VkPipelineCreateFlags>(info.options);
 
     create_info.stage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    create_info.stage.stage = static_cast<VkShaderStageFlagBits>(info.stage.shader.stage());
-    create_info.stage.module = underlying_cast<VkShaderModule>(info.stage.shader);
+    create_info.stage.stage = static_cast<VkShaderStageFlagBits>(info.stage.shader.get().stage());
+    create_info.stage.module = underlying_cast<VkShaderModule>(info.stage.shader.get());
     create_info.stage.pName = reinterpret_cast<const char*>(std::data(info.stage.name));
 
     VkSpecializationInfo specialisation_info{};

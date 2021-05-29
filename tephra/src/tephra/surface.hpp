@@ -88,8 +88,8 @@ public:
     explicit surface(application& application, const vulkan::wayland_surface_info& info);
 #endif
 
-    explicit surface(vulkan::surface native_surface) noexcept
-    :m_surface{std::move(native_surface)}
+    explicit surface(vulkan::surface surface) noexcept
+    :m_surface{std::move(surface)}
     {
 
     }

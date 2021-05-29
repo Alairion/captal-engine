@@ -59,7 +59,7 @@ class CAPTAL_API font_atlas
 {
 public:
     font_atlas() = default;
-    explicit font_atlas(glyph_format format, const tph::sampling_options& sampling = tph::sampling_options{});
+    explicit font_atlas(glyph_format format, const tph::sampler_info& sampling = tph::sampler_info{});
 
     ~font_atlas() = default;
     font_atlas(const font_atlas&) = delete;
@@ -87,7 +87,7 @@ public:
 
     bool has_padding() const noexcept
     {
-        return m_sampling.magnification_filter != tph::filter::nearest || m_sampling.minification_filter != tph::filter::nearest;
+        return m_sampling.mag_filter != tph::filter::nearest || m_sampling.min_filter != tph::filter::nearest;
     }
 
 #ifdef CAPTAL_DEBUG
@@ -112,7 +112,7 @@ private:
 private:
     glyph_format m_format{};
     texture_ptr m_texture{};
-    tph::sampling_options m_sampling{};
+    tph::sampler_info m_sampling{};
     font_atlas_resize_signal m_signal{};
     bin_packer m_packer{};
     std::vector<transfer_buffer> m_buffers{};

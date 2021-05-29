@@ -40,6 +40,16 @@ public:
         return m_attachments;
     }
 
+    tph::framebuffer& framebuffer() noexcept
+    {
+        return m_framebuffer;
+    }
+
+    const tph::framebuffer& framebuffer() const noexcept
+    {
+        return m_framebuffer;
+    }
+
 #ifdef CAPTAL_DEBUG
     void set_name(std::string_view name);
 #else

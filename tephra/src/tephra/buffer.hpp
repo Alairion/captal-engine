@@ -12,6 +12,7 @@ namespace tph
 {
 
 class renderer;
+class command_buffer;
 
 enum class buffer_usage : std::uint32_t
 {

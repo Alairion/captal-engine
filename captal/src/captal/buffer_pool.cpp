@@ -240,7 +240,7 @@ bool buffer_heap::begin_upload(tph::command_buffer& command_buffer)
         m_current_staging = staging_index;
         m_current_mask = mask;
 
-        for(std::size_t i{}; i < 4; ++i)
+        for(std::size_t i{}; i < 4; ++i) //find base index of the staging
         {
             if(((m_current_mask >> i) & 0x01) != 0)
             {
@@ -425,8 +425,8 @@ void buffer_pool::upload(memory_transfer_info info)
         m_to_end[i] = m_heaps[i]->begin_upload(info.buffer);
     }
 
-    tph::cmd::pipeline_barrier(info.buffer, tph::resource_access::transfer_write, tph::resource_access::transfer_read,
-                                               tph::pipeline_stage::transfer, tph::pipeline_stage::transfer);
+    tph::cmd::pipeline_barrier(info.buffer, tph::resource_access::transfer_write, tph::resource_access::transfer_read, tph::dependency_flags::none,
+                                            tph::pipeline_stage::transfer, tph::pipeline_stage::transfer);
 
     for(std::size_t i{}; i < std::size(m_heaps); ++i)
     {

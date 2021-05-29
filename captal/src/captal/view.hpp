@@ -267,6 +267,10 @@ private:
 
     bool m_need_upload{true};
     bool m_need_descriptor_update{true};
+
+#ifdef CAPTAL_DEBUG
+    std::string m_name{};
+#endif
 };
 
 }

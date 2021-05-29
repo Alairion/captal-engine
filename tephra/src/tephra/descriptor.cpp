@@ -106,52 +106,24 @@ void set_object_name(renderer& renderer, const descriptor_set& object, const std
         throw vulkan::error{result};
 }
 
-void write_descriptor(renderer& renderer, descriptor_set& descriptor_set, std::uint32_t binding, std::uint32_t array_index, descriptor_type type, buffer& buffer, std::uint64_t offset, std::uint64_t size)
-{
-    VkDescriptorBufferInfo buffer_info{};
-    buffer_info.buffer = underlying_cast<VkBuffer>(buffer);
-    buffer_info.offset = offset;
-    buffer_info.range = size;
-
-    VkWriteDescriptorSet write{};
-    write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    write.dstSet = underlying_cast<VkDescriptorSet>(descriptor_set);
-    write.dstBinding = binding;
-    write.dstArrayElement = array_index;
-    write.descriptorType = static_cast<VkDescriptorType>(type);
-    write.descriptorCount = 1;
-    write.pBufferInfo = &buffer_info;
-
-    vkUpdateDescriptorSets(underlying_cast<VkDevice>(renderer), 1, &write, 0, nullptr);
-}
-
-void write_descriptor(renderer& renderer, descriptor_set& descriptor_set, std::uint32_t binding, std::uint32_t array_index, descriptor_type type, texture& texture, texture_layout layout)
-{
-    VkDescriptorImageInfo image_info{};
-    image_info.imageLayout = static_cast<VkImageLayout>(layout);
-    image_info.imageView = underlying_cast<VkImageView>(texture);
-    image_info.sampler = underlying_cast<VkSampler>(texture); //will be null if the texture has no sampler
-
-    VkWriteDescriptorSet write{};
-    write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    write.dstSet = underlying_cast<VkDescriptorSet>(descriptor_set);
-    write.dstBinding = binding;
-    write.dstArrayElement = array_index;
-    write.descriptorType = static_cast<VkDescriptorType>(type);
-    write.descriptorCount = 1;
-    write.pImageInfo = &image_info;
-
-    vkUpdateDescriptorSets(underlying_cast<VkDevice>(renderer), 1, &write, 0, nullptr);
-}
-
 void write_descriptors(renderer& renderer, std::span<const descriptor_write> writes)
+{
+    update_descriptors(renderer, writes, std::span<const descriptor_copy>{});
+}
+
+void copy_descriptors(renderer& renderer, std::span<const descriptor_copy> copies)
+{
+    update_descriptors(renderer, std::span<const descriptor_write>{}, copies);
+}
+
+void update_descriptors(renderer& renderer, std::span<const descriptor_write> writes, std::span<const descriptor_copy> copies)
 {
     std::size_t image_count{};
     std::size_t buffer_count{};
 
     for(auto&& write : writes)
     {
-        assert(!std::holds_alternative<std::monostate>(write.info) && "tph::write_descriptors contains underfined write target.");
+        assert(!std::holds_alternative<std::monostate>(write.info) && "tph::write_descriptors contains undefined write target.");
 
         if(std::holds_alternative<descriptor_texture_info>(write.info))
         {
@@ -177,7 +149,7 @@ void write_descriptors(renderer& renderer, std::span<const descriptor_write> wri
     {
         VkWriteDescriptorSet native_write{};
         native_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        native_write.dstSet = underlying_cast<VkDescriptorSet>(write.descriptor_set);
+        native_write.dstSet = underlying_cast<VkDescriptorSet>(write.descriptor_set.get());
         native_write.dstBinding = write.binding;
         native_write.dstArrayElement = write.array_index;
         native_write.descriptorType = static_cast<VkDescriptorType>(write.type);
@@ -188,9 +160,9 @@ void write_descriptors(renderer& renderer, std::span<const descriptor_write> wri
             auto& write_info{std::get<descriptor_texture_info>(write.info)};
 
             VkDescriptorImageInfo image_info{};
+            image_info.sampler = write_info.sampler ? underlying_cast<VkSampler>(*write_info.sampler) : VkSampler{};
+            image_info.imageView = write_info.texture_view ? underlying_cast<VkImageView>(*write_info.texture_view) : VkImageView{};
             image_info.imageLayout = static_cast<VkImageLayout>(write_info.layout);
-            image_info.imageView = underlying_cast<VkImageView>(write_info.texture);
-            image_info.sampler = underlying_cast<VkSampler>(write_info.texture); //will be null if the texture has no sampler
 
             native_write.pImageInfo = &native_images.emplace_back(image_info);
         }
@@ -199,7 +171,7 @@ void write_descriptors(renderer& renderer, std::span<const descriptor_write> wri
             auto& write_info{std::get<descriptor_buffer_info>(write.info)};
 
             VkDescriptorBufferInfo buffer_info{};
-            buffer_info.buffer = underlying_cast<VkBuffer>(write_info.buffer);
+            buffer_info.buffer = underlying_cast<VkBuffer>(write_info.buffer.get());
             buffer_info.offset = write_info.offset;
             buffer_info.range = write_info.size;
 
@@ -209,7 +181,23 @@ void write_descriptors(renderer& renderer, std::span<const descriptor_write> wri
         native_writes.emplace_back(native_write);
     }
 
-    vkUpdateDescriptorSets(underlying_cast<VkDevice>(renderer), static_cast<std::uint32_t>(std::size(native_writes)), std::data(native_writes), 0, nullptr);
+    auto native_copies{make_stack_vector<VkCopyDescriptorSet>(pool)};
+    native_copies.reserve(std::size(copies));
+
+    for(auto&& copy : copies)
+    {
+        VkCopyDescriptorSet& native_copy{native_copies.emplace_back()};
+        native_copy.sType = VK_STRUCTURE_TYPE_COPY_DESCRIPTOR_SET;
+        native_copy.srcSet = underlying_cast<VkDescriptorSet>(copy.source_set.get());
+        native_copy.srcBinding = copy.source_binding;
+        native_copy.srcArrayElement = copy.source_array_index;
+        native_copy.dstSet = underlying_cast<VkDescriptorSet>(copy.destination_set.get());
+        native_copy.dstBinding = copy.destination_binding;
+        native_copy.dstArrayElement = copy.destination_array_index;
+        native_copy.descriptorCount = copy.count;
+    }
+
+    vkUpdateDescriptorSets(underlying_cast<VkDevice>(renderer), static_cast<std::uint32_t>(std::size(native_writes)), std::data(native_writes), static_cast<std::uint32_t>(std::size(native_copies)), std::data(native_copies));
 }
 
 }

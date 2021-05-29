@@ -38,12 +38,16 @@ public:
     template<typename T>
     void keep(T&& resource)
     {
+        static_assert(!std::is_pointer_v<T>, "cpt::asynchronous_resource_keeper::keep called with raw pointer.");
+
         m_resources.emplace_back(std::forward<T>(resource));
     }
 
     template<std::input_iterator InputIt>
     void keep(InputIt begin, InputIt end)
     {
+        static_assert(!std::is_pointer_v<typename std::iterator_traits<InputIt>::value_type>, "cpt::asynchronous_resource_keeper::keep called with raw pointer.");
+
         m_resources.insert(std::end(m_resources), begin, end);
     }
 
