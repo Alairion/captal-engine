@@ -6,31 +6,15 @@
 #include <fstream>
 #include <filesystem>
 #include <span>
+#include <variant>
 
 #include "sound_reader.hpp"
 
 namespace swl
 {
 
-class SWELL_API wave_reader : public sound_reader
+class SWELL_API wave_reader final : public sound_reader
 {
-    struct header
-    {
-        std::array<std::uint8_t, 4> file_type_block_id{};
-        std::uint32_t file_size{};
-        std::array<std::uint8_t, 4> file_format_id{};
-        std::array<std::uint8_t, 4> format_block_id{};
-        std::uint32_t block_size{};
-        std::uint16_t format{};
-        std::uint16_t channel_count{};
-        std::uint32_t frequency{};
-        std::uint32_t byte_per_second{};
-        std::uint16_t byte_per_block{};
-        std::uint16_t bits_per_sample{};
-        std::array<std::uint8_t, 4> data_bloc_id{};
-        std::uint32_t data_size{};
-    };
-
 public:
     wave_reader() = default;
     wave_reader(const std::filesystem::path& file, sound_reader_options options = sound_reader_options::none);
@@ -48,10 +32,6 @@ public:
     std::uint64_t tell() override;
 
 private:
-    void read_header(const std::array<std::uint8_t, 44>& data);
-    void check_header();
-    void fill_info();
-
     std::size_t sample_size(std::size_t frame_count);
     std::size_t byte_size(std::size_t frame_count);
 
@@ -60,11 +40,18 @@ private:
     bool read_samples_from_stream(float* output, std::size_t frame_count);
 
 private:
-    header m_header{};
+    using buffered_state = std::variant<std::vector<float>, std::vector<std::uint8_t>, std::span<const std::uint8_t>>;
+
+private:
     sound_reader_options m_options{};
-    std::uint32_t m_current_frame{};
-    std::vector<float> m_buffer{};
+    std::uint64_t m_current_frame{};
+    std::size_t m_data_offset{};
+    std::size_t m_bits_per_sample{};
+
+    std::vector<std::uint8_t> m_source_buffer{};
     std::ifstream m_file{};
+
+    std::vector<float> m_decoded_buffer{};
     std::span<const std::uint8_t> m_source{};
     std::istream* m_stream{};
 };

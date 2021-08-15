@@ -5,36 +5,41 @@ project(swell VERSION 0.1.0)
 include(cmake/buildportaudio.cmake)
 include(cmake/buildogg.cmake)
 include(cmake/buildvorbis.cmake)
+include(cmake/buildflac.cmake)
 
 set(SWELL_SOURCES
     #Headers
     src/swell/config.hpp
     src/swell/application.hpp
     src/swell/physical_device.hpp
+    src/swell/audio_world.hpp
     src/swell/sound_reader.hpp
-    src/swell/mixer.hpp
     src/swell/stream.hpp
+    src/swell/audio_pulser.hpp
     src/swell/wave.hpp
     src/swell/ogg.hpp
+    src/swell/flac.hpp
     src/swell/sound_file.hpp
 
     #Sources:
     src/swell/application.cpp
-    src/swell/mixer.cpp
+    src/swell/audio_world.cpp
     src/swell/stream.cpp
+    src/swell/audio_pulser.cpp
     src/swell/wave.cpp
     src/swell/ogg.cpp
+    src/swell/flac.cpp
     src/swell/sound_file.cpp
 )
 
 if(CAPTAL_BUILD_SWELL_STATIC)
     add_library(swell STATIC ${SWELL_SOURCES})
     target_compile_definitions(swell PUBLIC SWELL_STATIC_BUILD)
-    set(TO_EXPORT ${TO_EXPORT} swell portaudio_static vorbisfile vorbis ogg PARENT_SCOPE)
+    set(TO_EXPORT ${TO_EXPORT} swell portaudio_static vorbisfile vorbis ogg not_enough_standards PARENT_SCOPE)
 else()
     add_library(swell SHARED ${SWELL_SOURCES})
     target_compile_definitions(swell PUBLIC SWELL_SHARED_BUILD)
-    set(TO_EXPORT ${TO_EXPORT} swell PARENT_SCOPE)
+    set(TO_EXPORT ${TO_EXPORT} swell not_enough_standards PARENT_SCOPE)
 endif()
 
 set_target_properties(swell PROPERTIES PREFIX "")
@@ -59,8 +64,10 @@ target_link_libraries(swell
     PRIVATE
         portaudio_static
         vorbisfile
+        FLAC
     PUBLIC
         captal_foundation
+        not_enough_standards
 )
 
 if(WIN32)

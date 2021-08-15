@@ -13,7 +13,6 @@
 
     static void increase_thread_priority() noexcept
     {
-        //Return value is not checked, we don't care if it failed since it's just a slight optimization
         SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST);
     }
 
@@ -79,7 +78,7 @@ static float get_volume_multiplier(float value) noexcept
         return 0.0f;
     }
 
-    return std::sqrt(std::pow(10.0f, value * 3.0f) / 1e3f);
+    return std::sqrt(std::pow(10.0f, value * 3.0f) / 1000.0f);
 }
 
 sound::sound(mixer& mixer, std::unique_ptr<sound_reader> reader)

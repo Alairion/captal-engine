@@ -1,35 +1,60 @@
-#include "src/application.hpp"
-#include "src/mixer.hpp"
-#include "src/wave.hpp"
-#include "src/ogg.hpp"
-#include "src/stream.hpp"
-#include "src/sound_file.hpp"
+#include <swell/application.hpp>
+#include <swell/audio_pulser.hpp>
+#include <swell/wave.hpp>
+#include <swell/ogg.hpp>
+#include <swell/stream.hpp>
+#include <swell/sound_file.hpp>
 
 #include <cmath>
 
 int main()
 {
+    const std::filesystem::path path{u8"input.ogg"};
+
     swl::application application{};
-    const swl::physical_device& device{application.default_device()};
+    const swl::physical_device& device{application.default_output_device()};
 
-    swl::mixer mixer{device.default_low_latency_buffer_size(44100), 2, 44100};
-    //Swap y and z axis
-    mixer.set_up(0.0f, 0.0f, 1.0f);
-    mixer.set_listener_direction(0.0f, 1.0f, 0.0f);
+    swl::audio_world world{44100};
+    world.set_up(swl::vec3f{0.0f, 0.0f, 1.0f});
 
-    swl::sound_file_reader reader{"car_alarm.wav", swl::load_from_file};
-    swl::sound sound{mixer, reader};
-    sound.enable_spatialization();
-    sound.move(-1.0f, 1.0f, 0.0f);
-    sound.set_volume(0.75f);
-    sound.set_loop_points(3352, 43316);
+    auto reader{swl::open_file(path)};
+    std::vector<float> buffer{};
+    buffer.resize(reader->info().frame_count * reader->info().channel_count);
+    reader->read(std::data(buffer), reader->info().frame_count);
+    std::ofstream ofs{"test.raw", std::ios_base::binary};
+    ofs.write(reinterpret_cast<const char*>(std::data(buffer)), std::size(buffer) * sizeof(float));
 
-    swl::stream stream{application, device, mixer};
+    swl::sound sound{world, swl::open_file(path)};
+    //sound.enable_spatialization();
+    sound.move_to(swl::vec3f{-1.0f, 0.0f, 0.0f});
+
+    swl::audio_pulser pulser{world};
+    swl::listener_bind listener{pulser.bind(swl::listener{2})};
+    listener->set_direction(swl::vec3f{0.0f, 1.0f, 0.0f});
+
+    const swl::stream_info info
+    {
+        .format        = swl::sample_format::float32,
+        .channel_count = 2,
+        .sample_rate   = 44100,
+        .latency       = device.default_low_output_latency()
+    };
+
+    swl::stream stream{application, device, info, swl::listener_bridge{*listener}};
+
+    pulser.start();
+    sound.start();
     stream.start();
 
-    for(std::size_t i{}; i < 10; ++i)
-    {
-        sound.start();
-        std::this_thread::sleep_for(std::chrono::milliseconds{500});
-    }
+    std::this_thread::sleep_for(std::chrono::milliseconds{1000});
+
+    sound.change_reader(swl::open_file(path, swl::sound_reader_options::buffered));
+    sound.start();
+
+    std::this_thread::sleep_for(std::chrono::milliseconds{1000});
+
+    sound.change_reader(swl::open_file(path, swl::sound_reader_options::decoded));
+    sound.start();
+
+    std::this_thread::sleep_for(std::chrono::milliseconds{1000});
 }

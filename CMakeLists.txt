@@ -8,6 +8,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_POLICY_DEFAULT_CMP0069 NEW)
 
 option(CAPTAL_USE_LTO "Build Captal and its submodules with LTO enabled, if supported" OFF)
+option(CAPTAL_USE_CUSTOM_C_FLAGS "Build Captal and its submodules with predefined compiler options, if supported." ON)
 
 option(CAPTAL_BUILD_FOUNDATION_EXAMPLES "Build Captal Foundation's examples if ON" OFF)
 option(CAPTAL_BUILD_FOUNDATION_TESTS "Build Captal Foundation's unit tests if ON" OFF)
@@ -55,6 +56,32 @@ if(CAPTAL_USE_LTO)
     endif()
 else()
     set(CMAKE_INTERPROCEDURAL_OPTIMIZATION OFF CACHE BOOL "" FORCE)
+endif()
+
+if(CAPTAL_USE_CUSTOM_C_FLAGS)
+    # We always define NDEBUG because some dependencies (chipmunk, flac) spam the stdout and stderr with debug info.
+    # We always use optimisation for the C libraries even in debug. In release we use speed optimisation.
+
+    set(GCC_CLANG_FLAGS_DEBUG "-DNDEBUG -O0 -g")
+    set(GCC_CLANG_FLAGS_RELEASE "-DNDEBUG -O3 -s")
+    set(MSVC_FLAGS_DEBUG "/DNDEBUG /O1 /DEBUG")
+    set(MSVC_FLAGS_RELEASE "/DNDEBUG /O2")
+
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+        if(CMAKE_C_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
+            set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} ${MSVC_FLAGS_DEBUG}")
+            set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_RELEASE} ${MSVC_FLAGS_RELEASE}")
+        elseif(CMAKE_C_COMPILER_FRONTEND_VARIANT STREQUAL "GNU")
+            set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} ${GCC_CLANG_FLAGS_DEBUG}")
+            set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_RELEASE} ${GCC_CLANG_FLAGS_RELEASE}")
+        endif()
+    elseif(CMAKE_C_COMPILER_ID STREQUAL "GNU")
+        set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} ${GCC_CLANG_FLAGS_DEBUG}")
+        set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_RELEASE} ${GCC_CLANG_FLAGS_RELEASE}")
+    elseif(CMAKE_C_COMPILER_ID STREQUAL "MSVC")
+        set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} ${MSVC_FLAGS_DEBUG}")
+        set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_RELEASE} ${MSVC_FLAGS_RELEASE}")
+    endif()
 endif()
 
 include(cmake/download_submodule.cmake)

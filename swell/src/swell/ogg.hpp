@@ -14,11 +14,17 @@ struct OggVorbis_File;
 namespace swl
 {
 
-struct memory_stream
+namespace impl
+{
+
+struct ogg_memory_stream
 {
     std::span<const std::uint8_t> data{};
     std::size_t position{};
 };
+
+}
+
 
 class SWELL_API ogg_reader : public sound_reader
 {
@@ -40,10 +46,13 @@ public:
     ogg_reader& operator=(ogg_reader&& other) noexcept = default;
 
     bool read(float* output, std::size_t frame_count) override;
-    void seek(std::uint64_t frame_offset) override;
+    void seek(std::uint64_t frame) override;
     std::uint64_t tell() override;
 
 private:
+    void init_from_memory();
+    void init_from_stream();
+
     void fill_info();
     void fill_buffer();
     void close();
@@ -57,10 +66,13 @@ private:
     sound_reader_options m_options{};
     std::unique_ptr<OggVorbis_File, vorbis_deleter> m_vorbis{};
     int m_current_section{};
-    std::uint32_t m_current_frame{};
-    std::vector<float> m_buffer{};
-    std::ifstream m_file{};
-    memory_stream m_source{};
+    std::uint64_t m_current_frame{};
+
+    std::vector<std::uint8_t> m_source_buffer{};
+    std::unique_ptr<std::ifstream> m_file{};
+
+    std::vector<float> m_decoded_buffer{};
+    std::unique_ptr<impl::ogg_memory_stream> m_source{};
     std::istream* m_stream{};
 };
 

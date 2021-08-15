@@ -17,7 +17,8 @@ enum class audio_file_format : std::uint32_t
 {
     unknown = 0,
     wave = 1,
-    ogg = 2
+    ogg = 2,
+    flac = 3
 };
 
 SWELL_API audio_file_format file_format(std::span<const std::uint8_t> data) noexcept;
