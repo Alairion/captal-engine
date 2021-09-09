@@ -5,8 +5,6 @@
 
 #include <portaudio.h>
 
-#include "mixer.hpp"
-
 namespace swl
 {
 
