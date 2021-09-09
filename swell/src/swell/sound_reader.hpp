@@ -11,7 +11,8 @@ namespace swl
 enum class sound_reader_options : std::uint32_t
 {
     none = 0x00,
-    buffered = 0x01
+    buffered = 0x01,
+    decoded = 0x02
 };
 
 struct sound_info

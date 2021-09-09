@@ -34,3 +34,6 @@
 [submodule "captal/external/zlib"]
 	path = captal/external/zlib
 	url = https://github.com/zlib-ng/zlib-ng.git
+[submodule "swell/external/flac"]
+	path = swell/external/flac
+	url = https://github.com/xiph/flac.git

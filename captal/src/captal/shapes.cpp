@@ -21,10 +21,10 @@ std::vector<vec2f> circle(float radius, std::uint32_t point_count)
     std::vector<vec2f> points{};
     points.reserve(point_count);
 
-    const float step{(2.0f * std::numbers::pi_v<float>) / point_count};
+    const float step{(2.0f * std::numbers::pi_v<float>) / static_cast<float>(point_count)};
     for(std::uint32_t i{}; i < point_count; ++i)
     {
-        const float angle{step * i};
+        const float angle{step * static_cast<float>(i)};
         points.emplace_back(std::cos(angle) * radius, std::sin(angle) * radius);
     }
 
@@ -50,10 +50,10 @@ std::vector<vec2f> ellipse(float width, float height, std::uint32_t point_count)
     std::vector<vec2f> points{};
     points.reserve(point_count);
 
-    const float step{(2.0f * std::numbers::pi_v<float>) / point_count};
+    const float step{(2.0f * std::numbers::pi_v<float>) / static_cast<float>(point_count)};
     for(std::uint32_t i{}; i < point_count; ++i)
     {
-        const float angle{step * i};
+        const float angle{step * static_cast<float>(i)};
         points.emplace_back(std::cos(angle) * width, std::sin(angle) * height);
     }
 

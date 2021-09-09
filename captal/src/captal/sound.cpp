@@ -26,7 +26,7 @@ sound::sound(std::istream& stream, swl::sound_reader_options options)
 }
 
 sound::sound(std::unique_ptr<swl::sound_reader> reader)
-:swl::sound{engine::instance().audio_mixer(), std::move(reader)}
+:swl::sound{engine::instance().audio_world(), std::move(reader)}
 {
 
 }

@@ -54,8 +54,8 @@ static texture_ptr make_texture_impl(const tph::sampler_info& sampling, tph::tex
     tph::cmd::pipeline_barrier(buffer, tph::pipeline_stage::top_of_pipe, tph::pipeline_stage::transfer, tph::dependency_flags::none, {}, {}, std::span{&barrier, 1});
 
     tph::image_texture_copy region{};
-    region.texture_size.width  = image.width();
-    region.texture_size.height = image.height();
+    region.texture_size.width  = static_cast<std::uint32_t>(image.width());
+    region.texture_size.height = static_cast<std::uint32_t>(image.height());
 
     tph::cmd::copy(buffer, image, texture->get_texture(), region);
 

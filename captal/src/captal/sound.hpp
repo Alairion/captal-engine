@@ -7,7 +7,7 @@
 #include <span>
 #include <istream>
 
-#include <swell/mixer.hpp>
+#include <swell/audio_world.hpp>
 
 namespace cpt
 {
@@ -55,7 +55,6 @@ public:
     using swl::sound::attenuation;
     using swl::sound::position;
     using swl::sound::tell;
-    using swl::sound::reader;
 
     using swl::sound::frames_to_time;
     using swl::sound::time_to_frame;

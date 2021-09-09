@@ -793,9 +793,9 @@ void pipeline_barrier(command_buffer& command_buffer, pipeline_stage source_stag
 
     vkCmdPipelineBarrier(underlying_cast<VkCommandBuffer>(command_buffer),
                          static_cast<VkPipelineStageFlags>(source_stage), static_cast<VkPipelineStageFlags>(destination_stage), static_cast<VkDependencyFlags>(flags),
-                         std::size(native_memory_barriers),  std::data(native_memory_barriers),
-                         std::size(native_buffer_barriers),  std::data(native_buffer_barriers),
-                         std::size(native_texture_barriers), std::data(native_texture_barriers));
+                         static_cast<std::uint32_t>(std::size(native_memory_barriers)),  std::data(native_memory_barriers),
+                         static_cast<std::uint32_t>(std::size(native_buffer_barriers)),  std::data(native_buffer_barriers),
+                         static_cast<std::uint32_t>(std::size(native_texture_barriers)), std::data(native_texture_barriers));
 }
 
 void update_buffer(command_buffer& command_buffer, tph::buffer& buffer, std::uint64_t offset, std::uint64_t size, const void* data) noexcept
@@ -966,7 +966,7 @@ void resolve_image(command_buffer& command_buffer, texture& source, texture_layo
     vkCmdResolveImage(underlying_cast<VkCommandBuffer>(command_buffer),
                       underlying_cast<VkImage>(source), static_cast<VkImageLayout>(source_layout),
                       underlying_cast<VkImage>(destination), static_cast<VkImageLayout>(destination_layout),
-                      std::size(native_resolves), std::data(native_resolves));
+                      static_cast<std::uint32_t>(std::size(native_resolves)), std::data(native_resolves));
 }
 
 void clear_attachments(command_buffer& command_buffer, std::span<const clear_attachment> attachments, std::span<const clear_rect> rects)
@@ -1011,8 +1011,8 @@ void clear_attachments(command_buffer& command_buffer, std::span<const clear_att
     }
 
     vkCmdClearAttachments(underlying_cast<VkCommandBuffer>(command_buffer),
-                          std::size(native_attachments), std::data(native_attachments),
-                          std::size(native_rects), std::data(native_rects));
+                          static_cast<std::uint32_t>(std::size(native_attachments)), std::data(native_attachments),
+                          static_cast<std::uint32_t>(std::size(native_rects)), std::data(native_rects));
 }
 
 void clear_color_image(command_buffer& command_buffer, texture& texture, texture_layout layout, const clear_color_value& color, std::span<const texture_subresource_range> subresources)
@@ -1035,7 +1035,7 @@ void clear_color_image(command_buffer& command_buffer, texture& texture, texture
 
     vkCmdClearColorImage(underlying_cast<VkCommandBuffer>(command_buffer),
                          underlying_cast<VkImage>(texture), static_cast<VkImageLayout>(layout), &native_color,
-                         std::size(native_subresources), std::data(native_subresources));
+                         static_cast<std::uint32_t>(std::size(native_subresources)), std::data(native_subresources));
 }
 
 void clear_depth_stencil_image(command_buffer& command_buffer, texture& texture, texture_layout layout, const clear_depth_stencil_value& value, std::span<const texture_subresource_range> subresources)
@@ -1067,7 +1067,7 @@ void clear_depth_stencil_image(command_buffer& command_buffer, texture& texture,
 
     vkCmdClearDepthStencilImage(underlying_cast<VkCommandBuffer>(command_buffer),
                                 underlying_cast<VkImage>(texture), static_cast<VkImageLayout>(layout), &native_value,
-                                std::size(native_subresources), std::data(native_subresources));
+                                static_cast<std::uint32_t>(std::size(native_subresources)), std::data(native_subresources));
 }
 
 void set_viewport(command_buffer& command_buffer, const viewport& viewport, std::uint32_t index) noexcept

@@ -14,8 +14,9 @@ class physical_device
 public:
     physical_device() = default;
 
-    physical_device(std::int32_t id, std::uint32_t output_channel, seconds default_low_output_latency, seconds default_high_output_latency, std::uint32_t default_sample_rate, std::string name)
+    physical_device(std::int32_t id, std::uint32_t host, std::uint32_t output_channel, seconds default_low_output_latency, seconds default_high_output_latency, std::uint32_t default_sample_rate, std::string name)
     :m_id{id}
+    ,m_host{host}
     ,m_max_output_channel{output_channel}
     ,m_default_low_output_latency{default_low_output_latency}
     ,m_default_high_output_latency{default_high_output_latency}
@@ -34,6 +35,11 @@ public:
     std::int32_t id() const noexcept
     {
         return m_id;
+    }
+
+    std::uint32_t host_api() const noexcept
+    {
+        return m_host;
     }
 
     std::uint32_t max_output_channel() const noexcept
@@ -83,6 +89,7 @@ public:
 
 private:
     std::int32_t m_id{};
+    std::uint32_t m_host{};
     std::uint32_t m_max_output_channel{};
     seconds m_default_low_output_latency{};
     seconds m_default_high_output_latency{};

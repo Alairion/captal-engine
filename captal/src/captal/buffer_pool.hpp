@@ -137,7 +137,7 @@ private:
     struct staging_buffer
     {
         tph::buffer buffer{};
-        std::uint32_t used{}; //only 4 bits are used
+        std::uint64_t used{}; //only 4 bits are used
         std::array<cpt::scoped_connection, 4> connection{};
     };
 
@@ -154,8 +154,8 @@ private:
 
     std::vector<tph::buffer_copy> m_upload_ranges{};
     std::size_t m_current_staging{};
-    std::uint32_t m_current_mask{};
-    std::uint32_t m_current_mask_index{};
+    std::uint64_t m_current_mask{};
+    std::uint64_t m_current_mask_index{};
     std::mutex m_upload_mutex{};
 
 #ifdef CAPTAL_DEBUG

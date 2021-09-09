@@ -7,7 +7,7 @@
 #include <memory>
 
 #include <swell/stream.hpp>
-#include <swell/mixer.hpp>
+#include <swell/audio_pulser.hpp>
 
 #include <tephra/renderer.hpp>
 #include <tephra/commands.hpp>
@@ -34,6 +34,8 @@ struct audio_parameters
 {
     std::uint32_t channel_count{};
     std::uint32_t frequency{};
+    swl::seconds minimum_latency{0.010};
+    swl::seconds resync_threshold{0.050};
     optional_ref<const swl::physical_device> physical_device{};
 };
 
@@ -107,14 +109,34 @@ public:
         return m_audio_device;
     }
 
-    swl::mixer& audio_mixer() noexcept
+    swl::audio_world& audio_world() noexcept
     {
-        return m_audio_mixer;
+        return m_audio_world;
     }
 
-    const swl::mixer& audio_mixer() const noexcept
+    const swl::audio_world& audio_world() const noexcept
     {
-        return m_audio_mixer;
+        return m_audio_world;
+    }
+
+    swl::audio_pulser& audio_pulser() noexcept
+    {
+        return m_audio_pulser;
+    }
+
+    const swl::audio_pulser& audio_pulser() const noexcept
+    {
+        return m_audio_pulser;
+    }
+
+    swl::listener& listener() noexcept
+    {
+        return *m_listener;
+    }
+
+    const swl::listener& listener() const noexcept
+    {
+        return *m_listener;
     }
 
     swl::stream& audio_stream() noexcept
@@ -232,7 +254,9 @@ private:
     cpt::application m_application;
 
     const swl::physical_device& m_audio_device;
-    swl::mixer m_audio_mixer;
+    swl::audio_world m_audio_world;
+    swl::audio_pulser m_audio_pulser;
+    swl::listener_bind m_listener;
     swl::stream m_audio_stream;
 
     const tph::physical_device& m_graphics_device;

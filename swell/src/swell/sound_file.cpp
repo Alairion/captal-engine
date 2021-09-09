@@ -4,12 +4,14 @@
 
 #include "wave.hpp"
 #include "ogg.hpp"
+#include "flac.hpp"
 
 namespace swl
 {
 
 static constexpr std::array<std::uint8_t, 4> wave_header{0x52, 0x49, 0x46, 0x46};
-static constexpr std::array<std::uint8_t, 4> ogg_header{0x4F, 0x67, 0x67, 0x53};
+static constexpr std::array<std::uint8_t, 4> ogg_header {0x4F, 0x67, 0x67, 0x53};
+static constexpr std::array<std::uint8_t, 4> flac_header{0x66, 0x4c, 0x61, 0x43};
 
 audio_file_format file_format(std::span<const std::uint8_t> data) noexcept
 {
@@ -22,6 +24,10 @@ audio_file_format file_format(std::span<const std::uint8_t> data) noexcept
     else if(std::equal(std::begin(header_data), std::end(header_data), std::begin(ogg_header), std::end(ogg_header)))
     {
         return audio_file_format::ogg;
+    }
+    else if(std::equal(std::begin(header_data), std::end(header_data), std::begin(flac_header), std::end(flac_header)))
+    {
+        return audio_file_format::flac;
     }
 
     return audio_file_format::unknown;
@@ -59,6 +65,10 @@ std::unique_ptr<sound_reader> make_reader(audio_file_format format, Args&&... ar
     else if(format == audio_file_format::ogg)
     {
         return std::make_unique<ogg_reader>(std::forward<Args>(args)...);
+    }
+    else if(format == audio_file_format::flac)
+    {
+        return std::make_unique<flac_reader>(std::forward<Args>(args)...);
     }
 
     throw std::runtime_error{"File contains unknown audio format."};

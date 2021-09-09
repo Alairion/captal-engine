@@ -24,6 +24,24 @@ namespace swl
 using namespace cpt::foundation;
 
 using seconds = std::chrono::duration<double>;
+using clock   = std::chrono::steady_clock;
+
+enum class sample_format : std::uint32_t
+{
+    float32 = 0x01,
+    int32   = 0x02,
+    int24   = 0x04,
+    int16   = 0x08,
+    int8    = 0x10,
+    uint8   = 0x20,
+};
+
+enum class stream_callback_result : std::uint32_t
+{
+    play = 0,
+    stop = 1,
+    abort = 2
+};
 
 }
 
