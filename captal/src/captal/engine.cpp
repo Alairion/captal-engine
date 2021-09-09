@@ -31,11 +31,18 @@ using clock = std::chrono::steady_clock;
 
 engine* engine::m_instance{nullptr};
 
+static swl::stream_info make_stream_info(const swl::listener& listener, const swl::audio_world& audio_world, const swl::physical_device& audio_device)
+{
+    return swl::stream_info{swl::sample_format::float32, listener.channel_count(), audio_world.sample_rate(), audio_device.default_low_output_latency()};
+}
+
 engine::engine(const std::string& application_name, cpt::version version)
 :m_application{application_name, version}
-,m_audio_device{m_application.audio_application().default_physical_device()}
-,m_audio_mixer{m_audio_device.default_sample_rate(), std::min(m_audio_device.max_output_channel(), 2u)}
-,m_audio_stream{m_application.audio_application(), m_audio_device, m_audio_mixer}
+,m_audio_device{m_application.audio_application().default_output_device()}
+,m_audio_world{m_audio_device.default_sample_rate()}
+,m_audio_pulser{m_audio_world}
+,m_listener{m_audio_pulser.bind(swl::listener{std::min(m_audio_device.max_output_channel(), 2u)})}
+,m_audio_stream{m_application.audio_application(), m_audio_device, make_stream_info(*m_listener, m_audio_world, m_audio_device), swl::listener_bridge{*m_listener}}
 ,m_graphics_device{m_application.graphics_application().default_physical_device()}
 ,m_renderer{m_graphics_device, graphics_layers, graphics_extensions}
 ,m_uniform_pool{tph::buffer_usage::uniform | tph::buffer_usage::vertex | tph::buffer_usage::index}
@@ -51,7 +58,7 @@ static const swl::physical_device& default_audio_device(const swl::application& 
         return *parameters.physical_device;
     }
 
-    const swl::physical_device& default_device{application.default_physical_device()};
+    const swl::physical_device& default_device{application.default_output_device()};
 
     if(default_device.max_output_channel() >= parameters.channel_count && default_device.default_sample_rate() == parameters.frequency)
     {
@@ -116,8 +123,10 @@ engine::engine(const std::string& application_name, cpt::version version, const 
 engine::engine(cpt::application application, const system_parameters& system [[maybe_unused]], const audio_parameters& audio, const graphics_parameters& graphics)
 :m_application{std::move(application)}
 ,m_audio_device{default_audio_device(m_application.audio_application(), audio)}
-,m_audio_mixer{audio.frequency, audio.channel_count}
-,m_audio_stream{m_application.audio_application(), m_audio_device, m_audio_mixer}
+,m_audio_world{audio.frequency}
+,m_audio_pulser{m_audio_world}
+,m_listener{m_audio_pulser.bind(swl::listener{audio.channel_count})}
+,m_audio_stream{m_application.audio_application(), m_audio_device, make_stream_info(*m_listener, m_audio_world, m_audio_device), swl::listener_bridge{*m_listener}}
 ,m_graphics_device{default_graphics_device(m_application.graphics_application(), graphics)}
 ,m_renderer{m_graphics_device, graphics_layers | graphics.layers, graphics_extensions | graphics.extensions, graphics.features, graphics.options}
 ,m_uniform_pool{tph::buffer_usage::uniform | tph::buffer_usage::vertex | tph::buffer_usage::index}
@@ -206,8 +215,9 @@ void engine::init()
 
     m_instance = this;
 
-    m_audio_mixer.set_up(vec3f{0.0f, 0.0f, 1.0f});
-    m_audio_mixer.set_listener_direction(vec3f{0.0f, 1.0f, 0.0f});
+    m_audio_world.set_up(vec3f{0.0f, 0.0f, 1.0f});
+    m_listener->set_direction(vec3f{0.0f, 1.0f, 0.0f});
+    m_audio_pulser.start();
     m_audio_stream.start();
 
     set_default_vertex_shader(tph::shader{m_renderer, tph::shader_stage::vertex, default_vertex_shader_spv});
@@ -317,8 +327,8 @@ void engine::init()
         }
 
         std::cout << "  Audio device: " << m_audio_device.name() << "\n";
-        std::cout << "    Channels: " << m_audio_mixer.channel_count() << "\n";
-        std::cout << "    Sample rate: " << m_audio_mixer.sample_rate() << "Hz\n";
+        std::cout << "    Channels: " << m_listener->channel_count() << "\n";
+        std::cout << "    Sample rate: " << m_audio_world.sample_rate() << "Hz\n";
         std::cout << "    Output latency: " << m_audio_device.default_low_output_latency().count() << "s\n";
 
         std::cout << "  Graphics device: " << m_graphics_device.properties().name << "\n";

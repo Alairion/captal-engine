@@ -97,7 +97,7 @@ static float compute_space(font& font)
         return space->advance;
     }
 
-    return font.info().size / 4.0f;
+    return static_cast<float>(font.info().size) / 4.0f;
 }
 
 static std::uint64_t make_key(codepoint_t codepoint, std::uint64_t font_size, std::uint64_t outline, std::uint64_t adjustment, bool embolden, bool italic) noexcept
@@ -955,7 +955,7 @@ const text_drawer::glyph_info& text_drawer::load(cpt::font& font, std::uint64_t 
 
         if(deferred)
         {
-            const auto glyph{font.load_no_render(codepoint, need_embolden, outline / 64.0f, lean, adjust / 64.0f)};
+            const auto glyph{font.load_no_render(codepoint, need_embolden, static_cast<float>(outline) / 64.0f, lean, static_cast<float>(adjust) / 64.0f)};
 
             info.origin = glyph->origin;
             info.advance = glyph->advance;
@@ -965,7 +965,7 @@ const text_drawer::glyph_info& text_drawer::load(cpt::font& font, std::uint64_t 
         }
         else
         {
-            const auto glyph{font.load(codepoint, m_format, need_embolden, outline / 64.0f, lean, adjust / 64.0f)};
+            const auto glyph{font.load(codepoint, m_format, need_embolden, static_cast<float>(outline) / 64.0f, lean, static_cast<float>(adjust) / 64.0f)};
 
             info.origin = glyph->origin;
             info.advance = glyph->advance;
@@ -993,7 +993,7 @@ const text_drawer::glyph_info& text_drawer::load(cpt::font& font, std::uint64_t 
 
     if(!deferred && it->second.deferred)
     {
-        const auto glyph{font.load_render(codepoint, m_format, need_embolden, outline / 64.0f, lean, adjust / 64.0f)};
+        const auto glyph{font.load_render(codepoint, m_format, need_embolden, static_cast<float>(outline) / 64.0f, lean, static_cast<float>(adjust) / 64.0f)};
 
         if(glyph->width != 0)
         {
@@ -1029,7 +1029,7 @@ const text_drawer::glyph_info& text_drawer::load_line_filler(cpt::font& font, st
     {
         const auto line{std::max(font.info().underline_thickness, 0.25f)};
 
-        const auto upshift  {adjustment / 64.0f};
+        const auto upshift  {static_cast<float>(adjustment) / 64.0f};
         const auto fheight  {upshift + line};
         const auto downshift{fheight - std::floor(fheight)};
         const auto height   {static_cast<std::uint32_t>(std::ceil(fheight))};

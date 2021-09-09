@@ -20,7 +20,7 @@ inline void audio(entt::registry& world)
     {
         if(node.is_updated())
         {
-            engine::instance().audio_mixer().move_listener_to(node.position());
+            engine::instance().listener().move_to(node.position());
         }
     };
 

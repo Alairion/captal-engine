@@ -225,8 +225,8 @@ sampler::sampler(renderer& renderer, const sampler_info& info)
     create_info.addressModeW = static_cast<VkSamplerAddressMode>(info.address_mode);
     create_info.borderColor = static_cast<VkBorderColor>(info.border_color);
     create_info.mipLodBias = info.mip_lod_bias;
-    create_info.anisotropyEnable = info.anisotropy_level > 1.0f ? VK_TRUE : VK_FALSE;
-    create_info.maxAnisotropy = info.anisotropy_level;
+    create_info.anisotropyEnable = info.anisotropy_level > 1 ? VK_TRUE : VK_FALSE;
+    create_info.maxAnisotropy = static_cast<float>(info.anisotropy_level);
     create_info.unnormalizedCoordinates = static_cast<VkBool32>(info.unnormalized_coordinates);
     create_info.compareEnable = static_cast<VkBool32>(info.compare);
     create_info.compareOp = static_cast<VkCompareOp>(info.compare_op);

@@ -126,6 +126,9 @@ private:
     audio_world* m_world{};
     seconds m_minimum_latency{};
     seconds m_resync_threshold{};
+    seconds m_elapsed{};
+    double m_frequency{};
+    double m_period{};
     clock::time_point m_last{};
     pulser_status m_status{};
     std::thread m_thread{};

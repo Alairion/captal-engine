@@ -285,10 +285,10 @@ void sprite::set_color(const color& color) noexcept
 
 void sprite::set_texture_coords(std::int32_t x1, std::int32_t y1, std::int32_t x2, std::int32_t y2) noexcept
 {
-    set_relative_texture_coords(static_cast<float>(x1) / texture()->width(),
-                                static_cast<float>(y1) / texture()->height(),
-                                static_cast<float>(x2) / texture()->width(),
-                                static_cast<float>(y2) / texture()->height());
+    set_relative_texture_coords(static_cast<float>(x1) / static_cast<float>(texture()->width()),
+                                static_cast<float>(y1) / static_cast<float>(texture()->height()),
+                                static_cast<float>(x2) / static_cast<float>(texture()->width()),
+                                static_cast<float>(y2) / static_cast<float>(texture()->height()));
 }
 
 void sprite::set_texture_rect(std::int32_t x, std::int32_t y, std::uint32_t width, std::uint32_t height) noexcept
@@ -438,10 +438,10 @@ void tilemap::set_color(std::uint32_t row, std::uint32_t col, const color& color
 void tilemap::set_texture_coords(std::uint32_t row, std::uint32_t col, std::int32_t x1, std::int32_t y1, std::int32_t x2, std::int32_t y2) noexcept
 {
     set_relative_texture_coords(row, col,
-                                static_cast<float>(x1) / texture()->width(),
-                                static_cast<float>(y1) / texture()->height(),
-                                static_cast<float>(x2) / texture()->width(),
-                                static_cast<float>(y2) / texture()->height());
+                                static_cast<float>(x1) / static_cast<float>(texture()->width()),
+                                static_cast<float>(y1) / static_cast<float>(texture()->height()),
+                                static_cast<float>(x2) / static_cast<float>(texture()->width()),
+                                static_cast<float>(y2) / static_cast<float>(texture()->height()));
 }
 
 void tilemap::set_texture_rect(std::uint32_t row, std::uint32_t col, std::int32_t x, std::int32_t y, std::uint32_t width, std::uint32_t height) noexcept

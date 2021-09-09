@@ -56,6 +56,8 @@ audio_pulser::audio_pulser(audio_world& world, seconds minimum_latency, seconds 
 :m_world{&world}
 ,m_minimum_latency{minimum_latency}
 ,m_resync_threshold{resync_threshold}
+,m_frequency{static_cast<double>(world.sample_rate())}
+,m_period{1.0 / m_frequency}
 ,m_thread{&audio_pulser::process, this}
 {
     assert(m_minimum_latency < m_resync_threshold);
@@ -131,32 +133,38 @@ void audio_pulser::process() noexcept
                 break;
             }
 
-            const auto now    {clock::now()};
-            const auto elapsed{std::chrono::duration_cast<seconds>(now - m_last)};
+            const auto now{clock::now()};
+            m_elapsed += std::chrono::duration_cast<seconds>(now - m_last);
+            m_last = now;
 
-            if(elapsed >= m_resync_threshold)
+            if(m_elapsed >= m_resync_threshold)
             {
-                m_last = now;
+                const auto jump{std::floor((m_elapsed - m_minimum_latency).count())};
 
-                const auto jump{elapsed - m_minimum_latency};
+                const auto discard_count{std::floor(jump * m_frequency)};
+                m_elapsed -= seconds{discard_count * m_period};
 
                 lock.unlock();
-                m_world->discard(static_cast<std::size_t>(jump.count() * static_cast<double>(m_world->sample_rate())));
+                m_world->discard(static_cast<std::size_t>(discard_count));
 
                 lock.lock();
                 register_listeners();
                 lock.unlock();
 
-                m_world->generate(static_cast<std::size_t>(m_minimum_latency.count() * static_cast<double>(m_world->sample_rate())));
-            }
-            else if(elapsed >= m_minimum_latency)
-            {
-                m_last = now;
+                const auto count{std::floor(m_elapsed.count() * m_frequency)};
+                m_elapsed -= seconds{count * m_period};
 
+                m_world->generate(static_cast<std::size_t>(m_minimum_latency.count()));
+            }
+            else if(m_elapsed >= m_minimum_latency)
+            {
                 register_listeners();
                 lock.unlock();
 
-                m_world->generate(static_cast<std::size_t>(elapsed.count() * static_cast<double>(m_world->sample_rate())));
+                const auto count{std::floor(m_elapsed.count() * m_frequency)};
+                m_elapsed -= seconds{count * m_period};
+
+                m_world->generate(static_cast<std::size_t>(count));
             }
             else
             {

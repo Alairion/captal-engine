@@ -337,10 +337,10 @@ private:
 static glyph make_glyph(FT_Glyph_Metrics metrics) noexcept
 {
     glyph output{};
-    output.origin = vec2f{metrics.horiBearingX / 64.0f, -metrics.horiBearingY / 64.0f};
-    output.advance = metrics.horiAdvance / 64.0f;
-    output.ascent = metrics.horiBearingY / 64.0f;
-    output.descent = (metrics.height / 64.0f) - (metrics.horiBearingY / 64.0f);
+    output.origin  = vec2f{static_cast<float>(metrics.horiBearingX) / 64.0f, -static_cast<float>(metrics.horiBearingY) / 64.0f};
+    output.advance = static_cast<float>(metrics.horiAdvance) / 64.0f;
+    output.ascent  = static_cast<float>(metrics.horiBearingY) / 64.0f;
+    output.descent = (static_cast<float>(metrics.height) / 64.0f) - (static_cast<float>(metrics.horiBearingY) / 64.0f);
 
     return output;
 }
@@ -744,7 +744,7 @@ vec2f font::kerning(codepoint_t left, codepoint_t right) const noexcept
 
     const float factor{FT_IS_SCALABLE(face) ? 1.0f / 64.0f : 1.0f};
 
-    return vec2f{output.x * factor, output.y * factor};
+    return vec2f{static_cast<float>(output.x) * factor, static_cast<float>(output.y) * factor};
 }
 
 void font::resize(std::uint32_t pixels_size)
@@ -756,23 +756,23 @@ void font::resize(std::uint32_t pixels_size)
         if(FT_Set_Pixel_Sizes(face, 0, pixels_size))
             throw std::runtime_error{"Can not set font size."};
 
-        m_info.size = pixels_size;
-        m_info.max_glyph_width = FT_MulFix(face->bbox.xMax - face->bbox.xMin, face->size->metrics.x_scale) / 64 + 1;
-        m_info.max_glyph_height = FT_MulFix(face->bbox.yMax - face->bbox.yMin, face->size->metrics.y_scale) / 64 + 1;
-        m_info.max_ascent = FT_MulFix(face->bbox.yMax, face->size->metrics.y_scale) / 64 + 1;
-        m_info.line_height = std::floor(FT_MulFix(face->height, face->size->metrics.y_scale) / 64.0f);
-        m_info.underline_position = -FT_MulFix(face->underline_position, face->size->metrics.y_scale) / 64.0f;
-        m_info.underline_thickness = FT_MulFix(face->underline_thickness, face->size->metrics.y_scale) / 64.0f;
+        m_info.size                = pixels_size;
+        m_info.max_glyph_width     = FT_MulFix(face->bbox.xMax - face->bbox.xMin, face->size->metrics.x_scale) / 64 + 1;
+        m_info.max_glyph_height    = FT_MulFix(face->bbox.yMax - face->bbox.yMin, face->size->metrics.y_scale) / 64 + 1;
+        m_info.max_ascent          = FT_MulFix(face->bbox.yMax, face->size->metrics.y_scale) / 64 + 1;
+        m_info.line_height         = std::floor(static_cast<float>(FT_MulFix(face->height, face->size->metrics.y_scale)) / 64.0f);
+        m_info.underline_position  = static_cast<float>(-FT_MulFix(face->underline_position, face->size->metrics.y_scale)) / 64.0f;
+        m_info.underline_thickness = static_cast<float>(FT_MulFix(face->underline_thickness, face->size->metrics.y_scale)) / 64.0f;
 
         const auto x_glyph{load_no_render(U'x')};
 
         if(x_glyph)
         {
-            m_info.strikeout_position = x_glyph->height / 2.0f;
+            m_info.strikeout_position = static_cast<float>(x_glyph->height) / 2.0f;
         }
         else
         {
-            m_info.strikeout_position = m_info.size / 3.0f;
+            m_info.strikeout_position = static_cast<float>(m_info.size) / 3.0f;
         }
     }
 }

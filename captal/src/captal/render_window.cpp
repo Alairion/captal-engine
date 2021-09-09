@@ -502,8 +502,8 @@ void render_window::time_results(frame_data& data)
     std::array<std::uint64_t, 2> results;
     data.query_pool.results(0, 2, std::size(results) * sizeof(std::uint64_t), std::data(results), sizeof(std::uint64_t), tph::query_results::uint64 | tph::query_results::wait);
 
-    const auto period{static_cast<double>(cpt::engine::instance().graphics_device().limits().timestamp_period)};
-    const frame_time_t time{static_cast<std::uint64_t>((results[1] - results[0]) * period)};
+    const auto         period{static_cast<double>(cpt::engine::instance().graphics_device().limits().timestamp_period)};
+    const frame_time_t time  {static_cast<std::uint64_t>(static_cast<double>(results[1] - results[0]) * period)};
 
     data.time_signal(time);
 }
