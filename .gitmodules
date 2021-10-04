@@ -37,3 +37,6 @@
 [submodule "swell/external/flac"]
 	path = swell/external/flac
 	url = https://github.com/xiph/flac.git
+[submodule "captal/external/fastfloat"]
+	path = captal/external/fastfloat
+	url = https://github.com/fastfloat/fast_float.git
