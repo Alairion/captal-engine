@@ -62,7 +62,7 @@ if(CAPTAL_USE_CUSTOM_C_FLAGS)
     # We always define NDEBUG because some dependencies (chipmunk, flac) spam the stdout and stderr with debug info.
     # We always use optimisation for the C libraries even in debug. In release we use speed optimisation.
 
-    set(GCC_CLANG_FLAGS_DEBUG "-DNDEBUG -O0 -g")
+    set(GCC_CLANG_FLAGS_DEBUG "-DNDEBUG -Og -g")
     set(GCC_CLANG_FLAGS_RELEASE "-DNDEBUG -O3 -s")
     set(MSVC_FLAGS_DEBUG "/DNDEBUG /O1 /DEBUG")
     set(MSVC_FLAGS_RELEASE "/DNDEBUG /O2")

@@ -1,7 +1,7 @@
 /**
- * pugixml parser - version 1.10
+ * pugixml parser - version 1.11
  * --------------------------------------------------------
- * Copyright (C) 2006-2019, by Arseny Kapoulkine (arseny.kapoulkine@gmail.com)
+ * Copyright (C) 2006-2020, by Arseny Kapoulkine (arseny.kapoulkine@gmail.com)
  * Report bugs and download new versions at https://pugixml.org/
  *
  * This library is distributed under the MIT License. See notice at the end
@@ -11,10 +11,15 @@
  * Copyright (C) 2003, by Kristen Wegner (kristen@tima.net)
  */
 
+// This file is a modified version for Captal engine, it uses the same license.
+
 #ifndef SOURCE_PUGIXML_CPP
 #define SOURCE_PUGIXML_CPP
 
 #include "pugixml.hpp"
+
+#include <fast_float/fast_float.h>
+#include <charconv>
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -378,7 +383,7 @@ PUGI__NS_BEGIN
 
 		static PUGI__UNSIGNED_OVERFLOW unsigned int hash(const void* key)
 		{
-			unsigned int h = static_cast<unsigned int>(reinterpret_cast<uintptr_t>(key));
+			unsigned int h = static_cast<unsigned int>(reinterpret_cast<uintptr_t>(key) & 0xffffffff);
 
 			// MurmurHash3 32-bit finalizer
 			h ^= h >> 16;
@@ -4494,86 +4499,15 @@ PUGI__NS_BEGIN
 	}
 
 	// get value with conversion functions
-	template <typename U> PUGI__FN PUGI__UNSIGNED_OVERFLOW U string_to_integer(const char_t* value, U minv, U maxv)
+    template <typename U> PUGI__FN U string_to_integer(const char_t* value, U minv [[maybe_unused]], U maxv [[maybe_unused]])
 	{
-		U result = 0;
-		const char_t* s = value;
+        U output;
+        if(std::from_chars(value, value + std::strlen(value), output).ec == std::errc{})
+        {
+            return output;
+        }
 
-		while (PUGI__IS_CHARTYPE(*s, ct_space))
-			s++;
-
-		bool negative = (*s == '-');
-
-		s += (*s == '+' || *s == '-');
-
-		bool overflow = false;
-
-		if (s[0] == '0' && (s[1] | ' ') == 'x')
-		{
-			s += 2;
-
-			// since overflow detection relies on length of the sequence skip leading zeros
-			while (*s == '0')
-				s++;
-
-			const char_t* start = s;
-
-			for (;;)
-			{
-				if (static_cast<unsigned>(*s - '0') < 10)
-					result = result * 16 + (*s - '0');
-				else if (static_cast<unsigned>((*s | ' ') - 'a') < 6)
-					result = result * 16 + ((*s | ' ') - 'a' + 10);
-				else
-					break;
-
-				s++;
-			}
-
-			size_t digits = static_cast<size_t>(s - start);
-
-			overflow = digits > sizeof(U) * 2;
-		}
-		else
-		{
-			// since overflow detection relies on length of the sequence skip leading zeros
-			while (*s == '0')
-				s++;
-
-			const char_t* start = s;
-
-			for (;;)
-			{
-				if (static_cast<unsigned>(*s - '0') < 10)
-					result = result * 10 + (*s - '0');
-				else
-					break;
-
-				s++;
-			}
-
-			size_t digits = static_cast<size_t>(s - start);
-
-			PUGI__STATIC_ASSERT(sizeof(U) == 8 || sizeof(U) == 4 || sizeof(U) == 2);
-
-			const size_t max_digits10 = sizeof(U) == 8 ? 20 : sizeof(U) == 4 ? 10 : 5;
-			const char_t max_lead = sizeof(U) == 8 ? '1' : sizeof(U) == 4 ? '4' : '6';
-			const size_t high_bit = sizeof(U) * 8 - 1;
-
-			overflow = digits >= max_digits10 && !(digits == max_digits10 && (*start < max_lead || (*start == max_lead && result >> high_bit)));
-		}
-
-		if (negative)
-		{
-			// Workaround for crayc++ CC-3059: Expected no overflow in routine.
-		#ifdef _CRAYC
-			return (overflow || result > ~minv + 1) ? minv : ~result + 1;
-		#else
-			return (overflow || result > 0 - minv) ? minv : 0 - result;
-		#endif
-		}
-		else
-			return (overflow || result > maxv) ? maxv : result;
+        return 0;
 	}
 
 	PUGI__FN int get_value_int(const char_t* value)
@@ -4590,8 +4524,14 @@ PUGI__NS_BEGIN
 	{
 	#ifdef PUGIXML_WCHAR_MODE
 		return wcstod(value, 0);
-	#else
-		return strtod(value, 0);
+    #else
+        double output;
+        if(fast_float::from_chars(value, value + std::strlen(value), output).ec == std::errc{})
+        {
+            return output;
+        }
+
+        return 0.0;
 	#endif
 	}
 
@@ -4599,8 +4539,14 @@ PUGI__NS_BEGIN
 	{
 	#ifdef PUGIXML_WCHAR_MODE
 		return static_cast<float>(wcstod(value, 0));
-	#else
-		return static_cast<float>(strtod(value, 0));
+    #else
+        float output;
+        if(fast_float::from_chars(value, value + std::strlen(value), output).ec == std::errc{})
+        {
+            return output;
+        }
+
+        return 0.0f;
 	#endif
 	}
 
@@ -4981,7 +4927,12 @@ PUGI__NS_BEGIN
 #if defined(PUGI__MSVC_CRT_VERSION) || defined(__BORLANDC__) || (defined(__MINGW32__) && (!defined(__STRICT_ANSI__) || defined(__MINGW64_VERSION_MAJOR)))
 	PUGI__FN FILE* open_file_wide(const wchar_t* path, const wchar_t* mode)
 	{
+#if defined(PUGI__MSVC_CRT_VERSION) && PUGI__MSVC_CRT_VERSION >= 1400
+		FILE* file = 0;
+		return _wfopen_s(&file, path, mode) == 0 ? file : 0;
+#else
 		return _wfopen(path, mode);
+#endif
 	}
 #else
 	PUGI__FN char* convert_path_heap(const wchar_t* str)
@@ -5024,6 +4975,16 @@ PUGI__NS_BEGIN
 		return result;
 	}
 #endif
+
+	PUGI__FN FILE* open_file(const char* path, const char* mode)
+	{
+#if defined(PUGI__MSVC_CRT_VERSION) && PUGI__MSVC_CRT_VERSION >= 1400
+		FILE* file = 0;
+		return fopen_s(&file, path, mode) == 0 ? file : 0;
+#else
+		return fopen(path, mode);
+#endif
+	}
 
 	PUGI__FN bool save_file_impl(const xml_document& doc, FILE* file, const char_t* indent, unsigned int flags, xml_encoding encoding)
 	{
@@ -6127,13 +6088,13 @@ namespace pugi
 		impl::xml_allocator& alloc = impl::get_allocator(_root);
 		if (!alloc.reserve()) return false;
 
-		for (xml_node_struct* child = _root->first_child; child; )
+		for (xml_node_struct* cur = _root->first_child; cur; )
 		{
-			xml_node_struct* next = child->next_sibling;
+			xml_node_struct* next = cur->next_sibling;
 
-			impl::destroy_node(child, alloc);
+			impl::destroy_node(cur, alloc);
 
-			child = next;
+			cur = next;
 		}
 
 		_root->first_child = 0;
@@ -7187,7 +7148,7 @@ namespace pugi
 		reset();
 
 		using impl::auto_deleter; // MSVC7 workaround
-		auto_deleter<FILE> file(fopen(path_, "rb"), impl::close_file);
+		auto_deleter<FILE> file(impl::open_file(path_, "rb"), impl::close_file);
 
 		return impl::load_file_impl(static_cast<impl::xml_document_struct*>(_root), file.data, options, encoding, &_buffer);
 	}
@@ -7270,7 +7231,7 @@ namespace pugi
 	PUGI__FN bool xml_document::save_file(const char* path_, const char_t* indent, unsigned int flags, xml_encoding encoding) const
 	{
 		using impl::auto_deleter; // MSVC7 workaround
-		auto_deleter<FILE> file(fopen(path_, (flags & format_save_file_text) ? "w" : "wb"), impl::close_file);
+		auto_deleter<FILE> file(impl::open_file(path_, (flags & format_save_file_text) ? "w" : "wb"), impl::close_file);
 
 		return impl::save_file_impl(*this, file.data, indent, flags, encoding);
 	}
@@ -11143,6 +11104,14 @@ PUGI__NS_BEGIN
 		}
 	};
 
+	static const size_t xpath_ast_depth_limit =
+	#ifdef PUGIXML_XPATH_DEPTH_LIMIT
+		PUGIXML_XPATH_DEPTH_LIMIT
+	#else
+		1024
+	#endif
+		;
+
 	struct xpath_parser
 	{
 		xpath_allocator* _alloc;
@@ -11154,6 +11123,8 @@ PUGI__NS_BEGIN
 		xpath_parse_result* _result;
 
 		char_t _scratch[32];
+
+		size_t _depth;
 
 		xpath_ast_node* error(const char* message)
 		{
@@ -11169,6 +11140,11 @@ PUGI__NS_BEGIN
 			*_alloc->_error = true;
 
 			return 0;
+		}
+
+		xpath_ast_node* error_rec()
+		{
+			return error("Exceeded maximum allowed query depth");
 		}
 
 		void* alloc_node()
@@ -11526,6 +11502,8 @@ PUGI__NS_BEGIN
 					return error("Unrecognized function call");
 				_lexer.next();
 
+				size_t old_depth = _depth;
+
 				while (_lexer.current() != lex_close_brace)
 				{
 					if (argc > 0)
@@ -11534,6 +11512,9 @@ PUGI__NS_BEGIN
 							return error("No comma between function arguments");
 						_lexer.next();
 					}
+
+					if (++_depth > xpath_ast_depth_limit)
+						return error_rec();
 
 					xpath_ast_node* n = parse_expression();
 					if (!n) return 0;
@@ -11546,6 +11527,8 @@ PUGI__NS_BEGIN
 				}
 
 				_lexer.next();
+
+				_depth = old_depth;
 
 				return parse_function(function, argc, args);
 			}
@@ -11563,9 +11546,14 @@ PUGI__NS_BEGIN
 			xpath_ast_node* n = parse_primary_expression();
 			if (!n) return 0;
 
+			size_t old_depth = _depth;
+
 			while (_lexer.current() == lex_open_square_brace)
 			{
 				_lexer.next();
+
+				if (++_depth > xpath_ast_depth_limit)
+					return error_rec();
 
 				if (n->rettype() != xpath_type_node_set)
 					return error("Predicate has to be applied to node set");
@@ -11581,6 +11569,8 @@ PUGI__NS_BEGIN
 
 				_lexer.next();
 			}
+
+			_depth = old_depth;
 
 			return n;
 		}
@@ -11733,11 +11723,16 @@ PUGI__NS_BEGIN
 			xpath_ast_node* n = alloc_node(ast_step, set, axis, nt_type, nt_name_copy);
 			if (!n) return 0;
 
+			size_t old_depth = _depth;
+
 			xpath_ast_node* last = 0;
 
 			while (_lexer.current() == lex_open_square_brace)
 			{
 				_lexer.next();
+
+				if (++_depth > xpath_ast_depth_limit)
+					return error_rec();
 
 				xpath_ast_node* expr = parse_expression();
 				if (!expr) return 0;
@@ -11755,6 +11750,8 @@ PUGI__NS_BEGIN
 				last = pred;
 			}
 
+			_depth = old_depth;
+
 			return n;
 		}
 
@@ -11764,10 +11761,15 @@ PUGI__NS_BEGIN
 			xpath_ast_node* n = parse_step(set);
 			if (!n) return 0;
 
+			size_t old_depth = _depth;
+
 			while (_lexer.current() == lex_slash || _lexer.current() == lex_double_slash)
 			{
 				lexeme_t l = _lexer.current();
 				_lexer.next();
+
+				if (++_depth > xpath_ast_depth_limit)
+					return error_rec();
 
 				if (l == lex_double_slash)
 				{
@@ -11778,6 +11780,8 @@ PUGI__NS_BEGIN
 				n = parse_step(n);
 				if (!n) return 0;
 			}
+
+			_depth = old_depth;
 
 			return n;
 		}
@@ -11964,6 +11968,9 @@ PUGI__NS_BEGIN
 			{
 				_lexer.next();
 
+				if (++_depth > xpath_ast_depth_limit)
+					return error_rec();
+
 				xpath_ast_node* rhs = parse_path_or_unary_expression();
 				if (!rhs) return 0;
 
@@ -12009,13 +12016,22 @@ PUGI__NS_BEGIN
 		//						  | MultiplicativeExpr 'mod' UnaryExpr
 		xpath_ast_node* parse_expression(int limit = 0)
 		{
+			size_t old_depth = _depth;
+
+			if (++_depth > xpath_ast_depth_limit)
+				return error_rec();
+
 			xpath_ast_node* n = parse_path_or_unary_expression();
 			if (!n) return 0;
 
-			return parse_expression_rec(n, limit);
+			n = parse_expression_rec(n, limit);
+
+			_depth = old_depth;
+
+			return n;
 		}
 
-		xpath_parser(const char_t* query, xpath_variable_set* variables, xpath_allocator* alloc, xpath_parse_result* result): _alloc(alloc), _lexer(query), _query(query), _variables(variables), _result(result)
+		xpath_parser(const char_t* query, xpath_variable_set* variables, xpath_allocator* alloc, xpath_parse_result* result): _alloc(alloc), _lexer(query), _query(query), _variables(variables), _result(result), _depth(0)
 		{
 		}
 
@@ -12023,6 +12039,8 @@ PUGI__NS_BEGIN
 		{
 			xpath_ast_node* n = parse_expression();
 			if (!n) return 0;
+
+			assert(_depth == 0);
 
 			// check if there are unparsed tokens left
 			if (_lexer.current() != lex_eof)
@@ -12923,7 +12941,7 @@ namespace pugi
 #endif
 
 /**
- * Copyright (c) 2006-2019 Arseny Kapoulkine
+ * Copyright (c) 2006-2020 Arseny Kapoulkine
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation

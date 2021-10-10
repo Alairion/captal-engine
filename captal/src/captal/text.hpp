@@ -112,6 +112,23 @@ struct font_set
     std::optional<font> bold{};
     std::optional<font> italic_bold{};
 };
+/*
+struct rich_text_fragment
+{
+    std::string string{};
+    text_style style{text_style::regular};
+    cpt::color color{colors::black};
+    cpt::color outline_color{colors::white};
+    cpt::color underline_color{colors::black};
+};
+
+struct rich_text_paragraph
+{
+    std::vector<rich_text_fragment> fragments{};
+    std::uint32_t size{12};
+    text_align align{text_align::left};
+    float outline{};
+};*/
 
 class CAPTAL_API text_drawer
 {
@@ -324,6 +341,15 @@ private:
     std::string m_name{};
 #endif
 };
+
+// Rich text format is a HTML subset
+// <i></i> : italic
+// <b></b> : bold
+// <p [color="#RRGGBB[AA]"]></p> : paragraph (if more than one), color in format #RRGGBB[AA] (optional alpha), default color is black
+// <span = [color="#RRGGBB[AA]"]></span> : , outside color blocks the text has the color given to draw_text
+// <br/> : break line
+//
+//std::vector<rich_text_paragraph> parse_rich_text(std::string_view string);
 
 }
 

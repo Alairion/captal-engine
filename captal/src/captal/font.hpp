@@ -49,7 +49,7 @@ private:
 
 enum class glyph_format : std::uint32_t
 {
-    gray = 0,
+    gray  = 0,
     color = 1
 };
 
@@ -185,7 +185,7 @@ class CAPTAL_API font
         void operator()(void* ptr) const noexcept;
     };
 
-    using face_handle_type = std::unique_ptr<void, face_deleter>;
+    using face_handle_type    = std::unique_ptr<void, face_deleter>;
     using stroker_handle_type = std::unique_ptr<void, stroker_deleter>;
 
 public:

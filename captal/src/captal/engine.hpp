@@ -249,8 +249,6 @@ private:
     void update_frame();
 
 private:
-
-private:
     cpt::application m_application;
 
     const swl::physical_device& m_audio_device;

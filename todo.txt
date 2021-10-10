@@ -8,15 +8,10 @@ Captal Foundation:
     -
 
 Tephra:
-    A: Complete commands list (WIP)
-    A: Queue family ownership transfer support (tph::texture::transition and tph::buffer::???, and free functions)
-    A: Texture with array layers et mip levels support
     I: Multiple applications/renderer support ?
     I: Is tph::image a good idea ? Should it be extended to more than r8g8b8a8 ?
 
 Swell:
-    A: Rework mixer (already a bit reworked, but not the definitive one) (WIP)
-    A: Wave block awareness
     L: Support other platforms (as of 18 may 2020 only Win32/OSX/Linux are supported (Portaudio limitation))
     L: Custom exception type
 
@@ -26,14 +21,14 @@ Apyre:
     L: Custom exception type
 
 Captal:
-    H: Test initialization
     A: Widgets (WIP)
     A: Complete text rendering support (alignments, stylized) (WIP)
-    A: More primitive shapes (circles, ellipses, convex polygons) (WIP)
+    A: Rich text support
     A: Particles support
-    A: Make use of GPU pipeline cache
+    L: More primitive shapes (circles, ellipses, convex polygons) (WIP)
     L: GPU compute utilities
     L: Custom exception type
+    L: Make use of GPU pipeline cache
     I: Virtual file archive system ? (based on something i wrote few years ago)
 
 

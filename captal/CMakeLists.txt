@@ -7,6 +7,7 @@ include(cmake/buildfreetype.cmake)
 include(cmake/buildzlib.cmake)
 captal_download_submodule(captal/external/entt TRUE)
 captal_download_submodule(captal/external/sigslots TRUE)
+captal_download_submodule(captal/external/fastfloat TRUE)
 
 set(CAPTAL_SOURCES
     #Headers:
@@ -61,6 +62,9 @@ set(CAPTAL_SOURCES
 
     src/captal/signal.hpp
 
+    src/captal/external/pugixml.hpp
+    src/captal/external/pugiconfig.hpp
+
     #Sources:
     src/captal/application.cpp
     src/captal/memory_transfer.cpp
@@ -86,6 +90,8 @@ set(CAPTAL_SOURCES
     src/captal/tiled_map.cpp
     src/captal/physics.cpp
     src/captal/widgets.cpp
+
+    src/captal/external/pugixml.cpp
 )
 
 if(CAPTAL_BUILD_CAPTAL_STATIC)
@@ -121,6 +127,7 @@ target_include_directories(captal
     PUBLIC
         ${PROJECT_SOURCE_DIR}/external/entt/src
         ${PROJECT_SOURCE_DIR}/external/sigslots/include
+        ${PROJECT_SOURCE_DIR}/external/fastfloat/include
 )
 
 target_link_libraries(captal

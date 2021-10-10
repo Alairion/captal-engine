@@ -453,7 +453,7 @@ std::optional<glyph> font::load(codepoint_t codepoint, glyph_format format, bool
     assert((0.0f <= shift   && shift   <= 1.0f) && "cpt::font::load called with shift not in range [0; 1]");
 
     const auto library{reinterpret_cast<FT_Library>(m_engine.get())};
-    const auto face{reinterpret_cast<FT_Face>(m_face.get())};
+    const auto face   {reinterpret_cast<FT_Face>(m_face.get())};
     const auto stroker{reinterpret_cast<FT_Stroker>(m_stroker.get())};
 
     std::int32_t flags{};
@@ -554,7 +554,7 @@ std::optional<glyph> font::load_no_render(codepoint_t codepoint, bool embolden, 
     assert((0.0f <= lean    && lean    <= 1.0f) && "cpt::font::load called with lean not in range [0; 1]");
     assert((0.0f <= shift   && shift   <= 1.0f) && "cpt::font::load called with shift not in range [0; 1]");
 
-    const auto face{reinterpret_cast<FT_Face>(m_face.get())};
+    const auto face   {reinterpret_cast<FT_Face>(m_face.get())};
     const auto stroker{reinterpret_cast<FT_Stroker>(m_stroker.get())};
 
     std::int32_t flags{};
@@ -645,7 +645,7 @@ std::optional<glyph> font::load_render(codepoint_t codepoint, glyph_format forma
     assert((0.0f <= shift   && shift   <= 1.0f) && "cpt::font::load called with shift not in range [0; 1]");
 
     const auto library{reinterpret_cast<FT_Library>(m_engine.get())};
-    const auto face{reinterpret_cast<FT_Face>(m_face.get())};
+    const auto face   {reinterpret_cast<FT_Face>(m_face.get())};
     const auto stroker{reinterpret_cast<FT_Stroker>(m_stroker.get())};
 
     std::int32_t flags{};

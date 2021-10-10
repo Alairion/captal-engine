@@ -85,7 +85,7 @@ static std::vector<std::uint8_t> uncompress(const std::vector<std::uint8_t>& dat
     return output;
 }
 
-static tmx_data_t parse_data(const pugi::xml_node& node, std::uint32_t width, std::uint32_t height)
+static tmx_data_t parse_data(pugi::xml_node node, std::uint32_t width, std::uint32_t height)
 {
     const std::string_view encoding{node.attribute("encoding").as_string()};
     const std::string_view compression{node.attribute("compression").as_string()};
@@ -170,7 +170,7 @@ static cpt::color parse_color(std::string_view attribute)
     throw std::runtime_error{"Invalid color in tmx map."};
 }
 
-static image parse_image(const pugi::xml_node& node, const std::filesystem::path& root, const external_load_callback_type& load_callback)
+static image parse_image(pugi::xml_node node, const std::filesystem::path& root, const external_load_callback_type& load_callback)
 {
     image output{};
     output.source = convert_to<utf8>(load_callback(root / node.attribute("source").as_string(), external_resource_type::image));
@@ -180,7 +180,7 @@ static image parse_image(const pugi::xml_node& node, const std::filesystem::path
     return output;
 }
 
-static properties_set parse_properties(const pugi::xml_node& node, const std::filesystem::path& root, const external_load_callback_type& load_callback)
+static properties_set parse_properties(pugi::xml_node node, const std::filesystem::path& root, const external_load_callback_type& load_callback)
 {
     properties_set output{};
 
@@ -229,7 +229,7 @@ static properties_set parse_properties(const pugi::xml_node& node, const std::fi
     return output;
 }
 
-static std::vector<tile::animation> parse_animations(const pugi::xml_node& node)
+static std::vector<tile::animation> parse_animations(pugi::xml_node node)
 {
     std::vector<tile::animation> output{};
 
@@ -248,7 +248,7 @@ static std::vector<tile::animation> parse_animations(const pugi::xml_node& node)
     return output;
 }
 
-static object parse_object(const pugi::xml_node& node, const std::filesystem::path& root, const external_load_callback_type& load_callback)
+static object parse_object(pugi::xml_node node, const std::filesystem::path& root, const external_load_callback_type& load_callback)
 {
     object output{};
     output.id = node.attribute("id").as_uint();
@@ -347,7 +347,7 @@ static object parse_object(const pugi::xml_node& node, const std::filesystem::pa
     return output;
 }
 
-static std::vector<object> parse_hitboxes(const pugi::xml_node& node, const std::filesystem::path& root, const external_load_callback_type& load_callback)
+static std::vector<object> parse_hitboxes(pugi::xml_node node, const std::filesystem::path& root, const external_load_callback_type& load_callback)
 {
     std::vector<object> output{};
 
@@ -362,7 +362,7 @@ static std::vector<object> parse_hitboxes(const pugi::xml_node& node, const std:
     return output;
 }
 
-static tile parse_tile(const pugi::xml_node& node, const std::filesystem::path& root, const external_load_callback_type& load_callback)
+static tile parse_tile(pugi::xml_node node, const std::filesystem::path& root, const external_load_callback_type& load_callback)
 {
     tile output{};
     output.type = node.attribute("type").as_string();
@@ -390,7 +390,7 @@ static tile parse_tile(const pugi::xml_node& node, const std::filesystem::path& 
     return output;
 }
 
-static void parse_tileset(const pugi::xml_node& node, tileset& output, const std::filesystem::path& root, const external_load_callback_type& load_callback)
+static void parse_tileset(pugi::xml_node node, tileset& output, const std::filesystem::path& root, const external_load_callback_type& load_callback)
 {
     output.tile_width = node.attribute("tilewidth").as_uint();
     output.tile_height = node.attribute("tileheight").as_uint();
@@ -422,7 +422,7 @@ static void parse_tileset(const pugi::xml_node& node, tileset& output, const std
     }
 }
 
-static tileset parse_map_tileset(const pugi::xml_node& node, const external_load_callback_type& load_callback)
+static tileset parse_map_tileset(pugi::xml_node node, const external_load_callback_type& load_callback)
 {
     tileset output{};
     output.first_gid = node.attribute("firstgid").as_uint();
@@ -446,7 +446,7 @@ static tileset parse_map_tileset(const pugi::xml_node& node, const external_load
     return output;
 }
 
-static layer parse_layer(const pugi::xml_node& node, const std::filesystem::path& root, const external_load_callback_type& load_callback)
+static layer parse_layer(pugi::xml_node node, const std::filesystem::path& root, const external_load_callback_type& load_callback)
 {
     layer output{};
     output.name = node.attribute("name").as_string();
@@ -476,7 +476,7 @@ static layer parse_layer(const pugi::xml_node& node, const std::filesystem::path
     return output;
 }
 
-static layer parse_object_group(const pugi::xml_node& node, const std::filesystem::path& root, const external_load_callback_type& load_callback)
+static layer parse_object_group(pugi::xml_node node, const std::filesystem::path& root, const external_load_callback_type& load_callback)
 {
     layer output{};
     output.name = node.attribute("name").as_string();
@@ -505,7 +505,7 @@ static layer parse_object_group(const pugi::xml_node& node, const std::filesyste
     return output;
 }
 
-static layer parse_image_layer(const pugi::xml_node& node, const std::filesystem::path& root, const external_load_callback_type& load_callback)
+static layer parse_image_layer(pugi::xml_node node, const std::filesystem::path& root, const external_load_callback_type& load_callback)
 {
     layer output{};
     output.name = node.attribute("name").as_string();
@@ -529,7 +529,7 @@ static layer parse_image_layer(const pugi::xml_node& node, const std::filesystem
     return output;
 }
 
-static layer parse_group_layer(const pugi::xml_node& node, const std::filesystem::path& root, const external_load_callback_type& load_callback)
+static layer parse_group_layer(pugi::xml_node node, const std::filesystem::path& root, const external_load_callback_type& load_callback)
 {
     layer output{};
     output.name = node.attribute("name").as_string();
@@ -568,7 +568,7 @@ static layer parse_group_layer(const pugi::xml_node& node, const std::filesystem
     return output;
 }
 
-static map parse_map(const pugi::xml_node& node, const external_load_callback_type& load_callback)
+static map parse_map(pugi::xml_node node, const external_load_callback_type& load_callback)
 {
     map output{};
 
