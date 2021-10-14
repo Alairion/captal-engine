@@ -11,6 +11,7 @@
 #include <string>
 #include <cstring>
 #include <vector>
+#include <type_traits>
 
 namespace cpt
 {
@@ -23,7 +24,7 @@ class stack_memory_pool
 {
 public:
     static constexpr std::size_t block_align{alignof(std::max_align_t)};
-    static constexpr std::size_t block_size{block_align};
+    static constexpr std::size_t block_size {block_align};
 
 private:
     static constexpr std::size_t align(std::size_t size) noexcept
@@ -36,34 +37,42 @@ public:
 
 private:
     static constexpr std::size_t block_count{stack_size / block_size};
-    static constexpr std::size_t used_mask{0x01};
+    static constexpr std::size_t used_mask  {0x01};
     using block_type = std::array<std::uint8_t, block_size>;
 
 private:
-    static constexpr std::size_t& as_header(block_type& block) noexcept
+    static void write_header(block_type& block, std::size_t value) noexcept
     {
-        return *std::launder(reinterpret_cast<std::size_t*>(&block));
+        std::memcpy(&block, &value, sizeof(std::size_t));
     }
 
-    static constexpr bool is_empty(block_type block) noexcept
+    static std::size_t read_header(block_type& block) noexcept
     {
-        return as_header(block) == 0;
+        std::size_t output;
+        std::memcpy(&output, &block, sizeof(std::size_t));
+
+        return output;
     }
 
-    static constexpr bool is_used(block_type block) noexcept
+    static bool is_empty(block_type block) noexcept
     {
-        return (as_header(block) & used_mask) != 0;
+        return read_header(block) == 0;
     }
 
-    static constexpr std::size_t get_size(block_type block) noexcept
+    static bool is_used(block_type block) noexcept
     {
-        return as_header(block) & ~used_mask;
+        return (read_header(block) & used_mask) != 0;
+    }
+
+    static std::size_t get_size(block_type block) noexcept
+    {
+        return read_header(block) & ~used_mask;
     }
 
 public:
-    constexpr stack_memory_pool() noexcept
+    stack_memory_pool() noexcept
     {
-        as_header(m_memory[0]) = std::numeric_limits<std::size_t>::max(); //We do lazy initialization
+        write_header(m_memory[0], std::numeric_limits<std::size_t>::max()); //We do lazy initialization
     }
 
      ~stack_memory_pool() = default;
@@ -72,7 +81,7 @@ public:
     stack_memory_pool(stack_memory_pool&&) noexcept = delete;
     stack_memory_pool& operator=(stack_memory_pool&&) noexcept = delete;
 
-    constexpr void* allocate(std::size_t size) noexcept
+    void* allocate(std::size_t size) noexcept
     {
         assert(size > 0);
 
@@ -82,7 +91,7 @@ public:
             return nullptr;
         }
 
-        if(as_header(m_memory[0]) == std::numeric_limits<std::size_t>::max())
+        if(read_header(m_memory[0]) == std::numeric_limits<std::size_t>::max())
         {
             std::memset(std::data(m_memory), 0, std::size(m_memory) * block_size);
         }
@@ -100,30 +109,30 @@ public:
         return nullptr;
     }
 
-    constexpr void deallocate(void* user_pointer) noexcept
+    void deallocate(void* user_pointer) noexcept
     {
-        auto* const pointer{reinterpret_cast<block_type*>(user_pointer) - 1};
+        const auto pointer{reinterpret_cast<block_type*>(user_pointer) - 1};
 
         assert(own(pointer));
         assert(is_used(*pointer));
 
-        as_header(*pointer) &= ~used_mask;
+        write_header(*pointer, read_header(*pointer) & ~used_mask);
     }
 
-    constexpr bool own(void* pointer) const noexcept
+    bool own(void* pointer) const noexcept
     {
         return std::data(m_memory) <= pointer && pointer < std::data(m_memory) + std::size(m_memory);
     }
 
 private:
-    constexpr block_type* find_block(std::size_t size) noexcept
+    block_type* find_block(std::size_t size) noexcept
     {
-        block_type* begin{std::data(m_memory)};
-        block_type* const end{std::data(m_memory) + std::size(m_memory)};
+        block_type*       begin{std::data(m_memory)};
+        block_type* const end  {std::data(m_memory) + std::size(m_memory)};
 
-        while(as_header(*begin) && begin != end) //Header with value 0 indicates end of used space
+        while(read_header(*begin) && begin < end) //Header with value 0 indicates end of used space
         {
-            const block_type header{*begin};
+            const block_type  header     {*begin};
             const std::size_t header_size{get_size(header)};
 
             if(!is_used(header) && header_size >= size)
@@ -137,7 +146,7 @@ private:
         return begin;
     }
 
-    constexpr void write_size(block_type* block, std::size_t size) noexcept
+    void write_size(block_type* block, std::size_t size) noexcept
     {
         const std::size_t old_size{get_size(*block)};
         if(old_size > 0 && old_size != size) //check if block has been used at least once
@@ -145,21 +154,21 @@ private:
             block_type* const next{block + (old_size / block_size)};
             if(next < std::data(m_memory) + std::size(m_memory) && get_size(*next)) //check if block is not the last
             {
-                block_type* const inter{block + (size / block_size)};
+                block_type* const inter     {block + (size / block_size)};
                 const std::size_t inter_size{old_size - (size + block_size)};
 
                 if(inter_size > 0) //prevent from wasting space
                 {
-                    as_header(*inter) = inter_size;
+                    write_header(*inter, inter_size);
                 }
                 else
                 {
-                    as_header(*block) = old_size | used_mask; //keep old size and mark it as used
+                    write_header(*block,  old_size | used_mask); //keep old size and mark it as used
                 }
             }
         }
 
-        as_header(*block) = size | used_mask; //change it's size and mark it as used
+        write_header(*block, size | used_mask); //change it's size and mark it as used
     }
 
 private:
@@ -190,31 +199,40 @@ public:
     };
 
 public:
-    constexpr stack_allocator() noexcept = default;
+    stack_allocator() noexcept = default;
 
-    constexpr stack_allocator(memory_pool_type& pool) noexcept
+    stack_allocator(memory_pool_type& pool) noexcept
     :m_pool{&pool}
     {
 
     }
 
     template<typename U>
-    constexpr stack_allocator(const stack_allocator<U, stack_size, new_fallback>& other) noexcept
+    stack_allocator(const stack_allocator<U, stack_size, new_fallback>& other) noexcept
     :m_pool{other.m_pool}
     {
 
     }
 
-    constexpr ~stack_allocator() = default;
-    constexpr stack_allocator(const stack_allocator&) noexcept = default;
-    constexpr stack_allocator& operator=(const stack_allocator&) noexcept = default;
-    constexpr stack_allocator(stack_allocator&&) noexcept = default;
-    constexpr stack_allocator& operator=(stack_allocator&&) noexcept = default;
+    ~stack_allocator() = default;
+    stack_allocator(const stack_allocator&) noexcept = default;
+    stack_allocator& operator=(const stack_allocator&) noexcept = default;
+    stack_allocator(stack_allocator&&) noexcept = default;
+    stack_allocator& operator=(stack_allocator&&) noexcept = default;
 
-    constexpr T* allocate(std::size_t count)
+    T* allocate(std::size_t count)
     {
-        const auto ptr{m_pool->allocate(type_size * count)};
+        if constexpr(new_fallback) //If the pool was default constructed and has new fallback, we do fallback
+        {
+            if(!m_pool)
+            {
+                return reinterpret_cast<T*>(::operator new(type_size * count));
+            }
+        }
 
+        assert(m_pool && "cpt::foundation::stack_allocator::allocate called on default constructed, without new fallback, allocator.");
+            
+        const auto ptr{m_pool->allocate(type_size * count)};
         if(!ptr)
         {
             if constexpr(new_fallback)
@@ -230,11 +248,11 @@ public:
         return reinterpret_cast<T*>(ptr);
     }
 
-    constexpr void deallocate(T* ptr, std::size_t count) noexcept
+    void deallocate(T* ptr, std::size_t count) noexcept
     {
         if constexpr(new_fallback)
         {
-            if(m_pool->own(ptr))
+            if(m_pool && m_pool->own(ptr))
             {
                 m_pool->deallocate(ptr);
             }
@@ -245,27 +263,29 @@ public:
         }
         else
         {
+            assert(m_pool && "cpt::foundation::stack_allocator::deallocate called on default constructed, without new fallback, allocator.");
+
             m_pool->deallocate(ptr);
         }
     }
 
-    constexpr memory_pool_type& memory_pool() const noexcept
+    memory_pool_type& memory_pool() const noexcept
     {
         return *m_pool;
     }
 
-private:
-    memory_pool_type* m_pool{};
+public:
+    memory_pool_type* m_pool{}; //This member is public because MSVC don't let access to it in the rebind constructor.
 };
 
 template<typename T, typename U, std::size_t StackSize, bool NewFallback>
-constexpr bool operator==(const stack_allocator<T, StackSize, NewFallback>& right, const stack_allocator<U, StackSize, NewFallback>& left) noexcept
+bool operator==(const stack_allocator<T, StackSize, NewFallback>& right, const stack_allocator<U, StackSize, NewFallback>& left) noexcept
 {
-    return right.memory_pool() == left.memory_pool();
+    return &right.memory_pool() == &left.memory_pool();
 }
 
 template<typename T, typename U, std::size_t StackSize, bool NewFallback>
-constexpr bool operator!=(const stack_allocator<T, StackSize, NewFallback>& right, const stack_allocator<U, StackSize, NewFallback>& left) noexcept
+bool operator!=(const stack_allocator<T, StackSize, NewFallback>& right, const stack_allocator<U, StackSize, NewFallback>& left) noexcept
 {
     return !(left == right);
 }
@@ -274,7 +294,7 @@ template<typename T, std::size_t StackSize>
 using stack_vector = std::vector<T, stack_allocator<T, StackSize>>;
 
 template<typename T, std::size_t StackSize>
-constexpr stack_vector<T, StackSize> make_stack_vector(stack_memory_pool<StackSize>& pool) noexcept
+stack_vector<T, StackSize> make_stack_vector(stack_memory_pool<StackSize>& pool) noexcept
 {
     return stack_vector<T, StackSize>{pool};
 }
@@ -289,31 +309,31 @@ template<std::size_t StackSize> using stack_u16string = stack_basic_string<Stack
 template<std::size_t StackSize> using stack_u32string = stack_basic_string<StackSize, char32_t>;
 
 template<typename T, std::size_t StackSize>
-constexpr stack_string<StackSize> make_stack_string(stack_memory_pool<StackSize>& pool) noexcept
+stack_string<StackSize> make_stack_string(stack_memory_pool<StackSize>& pool) noexcept
 {
     return stack_string<StackSize>{pool};
 }
 
 template<typename T, std::size_t StackSize>
-constexpr stack_wstring<StackSize> make_stack_wstring(stack_memory_pool<StackSize>& pool) noexcept
+stack_wstring<StackSize> make_stack_wstring(stack_memory_pool<StackSize>& pool) noexcept
 {
     return stack_wstring<StackSize>{pool};
 }
 
 template<typename T, std::size_t StackSize>
-constexpr stack_u8string<StackSize> make_stack_u8string(stack_memory_pool<StackSize>& pool) noexcept
+stack_u8string<StackSize> make_stack_u8string(stack_memory_pool<StackSize>& pool) noexcept
 {
     return stack_u8string<StackSize>{pool};
 }
 
 template<typename T, std::size_t StackSize>
-constexpr stack_u16string<StackSize> make_stack_u16string(stack_memory_pool<StackSize>& pool) noexcept
+stack_u16string<StackSize> make_stack_u16string(stack_memory_pool<StackSize>& pool) noexcept
 {
     return stack_u16string<StackSize>{pool};
 }
 
 template<typename T, std::size_t StackSize>
-constexpr stack_u32string<StackSize> make_stack_u32string(stack_memory_pool<StackSize>& pool) noexcept
+stack_u32string<StackSize> make_stack_u32string(stack_memory_pool<StackSize>& pool) noexcept
 {
     return stack_u32string<StackSize>{pool};
 }

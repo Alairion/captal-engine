@@ -4,12 +4,12 @@
 #include <iostream>
 #include <stdexcept>
 
+#include "application.hpp"
+#include "monitor.hpp"
+
 #include <SDL.h>
 #include <SDL_vulkan.h>
 #include <SDL_syswm.h>
-
-#include "application.hpp"
-#include "monitor.hpp"
 
 #ifdef _WIN32
     #include <windowsx.h>
@@ -82,7 +82,7 @@ static SDL_HitTestResult hit_test_callback(SDL_Window*, const SDL_Point* area, v
 }
 
 #ifdef _WIN32
-using winproc = LRESULT CALLBACK (*)(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam);
+using winproc = LRESULT (CALLBACK *)(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam);
 
 static LRESULT CALLBACK extended_client_area_proc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam) noexcept
 {
@@ -213,7 +213,7 @@ void window::change_limits(std::uint32_t min_width, std::uint32_t min_height, st
 
 void window::move(std::int32_t relative_x, std::int32_t relative_y)
 {
-    move(x() + relative_x, y() + relative_y);
+    move_to(x() + relative_x, y() + relative_y);
 }
 
 void window::move_to(std::int32_t x, std::int32_t y)
@@ -241,7 +241,7 @@ void window::move_to(std::int32_t x, std::int32_t y)
 
 void window::move_to(const monitor& monitor, std::int32_t x, std::int32_t y)
 {
-    move(monitor.x() + x, monitor.y() + y);
+    move_to(monitor.x() + x, monitor.y() + y);
 }
 
 void window::hide()

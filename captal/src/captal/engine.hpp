@@ -80,19 +80,8 @@ public:
 
     bool run();
 
-    static engine& instance() noexcept
-    {
-        assert(m_instance && "cpt::engine::instance called before engine creation.");
-
-        return *m_instance;
-    }
-
-    static const engine& cinstance() noexcept
-    {
-        assert(m_instance && "cpt::engine::cinstance called before engine creation.");
-
-        return *m_instance;
-    }
+    static engine& instance() noexcept;
+    static const engine& cinstance() noexcept;
 
     cpt::application& application() noexcept
     {

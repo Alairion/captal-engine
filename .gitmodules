@@ -37,3 +37,6 @@
 [submodule "captal/external/fastfloat"]
 	path = captal/external/fastfloat
 	url = https://github.com/fastfloat/fast_float.git
+[submodule "apyre/external/sdl"]
+	path = apyre/external/sdl
+	url = https://github.com/libsdl-org/SDL.git

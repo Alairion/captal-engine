@@ -279,7 +279,7 @@ static object parse_object(pugi::xml_node node, const std::filesystem::path& roo
         else if(child.name() == "text"sv)
         {
             object::text text{};
-            text.text = child.child_value();
+            text.string = child.child_value();
             text.font_family = child.attribute("fontfamily").as_string();
             text.pixel_size = child.attribute("pixelsize").as_uint();
             text.position.x() = node.attribute("x").as_float();
@@ -492,7 +492,7 @@ static layer parse_object_group(pugi::xml_node node, const std::filesystem::path
     {
         if(child.name() == "object"sv)
         {
-            objects.objects.emplace_back(parse_object(child, root, load_callback));
+            objects.childrens.emplace_back(parse_object(child, root, load_callback));
         }
         else if(child.name() == "properties"sv)
         {

@@ -32,8 +32,8 @@ public:
     ~deflate_base();
     deflate_base(const deflate_base&) = delete;
     deflate_base& operator=(const deflate_base&) = delete;
-    deflate_base(deflate_base&&) noexcept = default;
-    deflate_base& operator=(deflate_base&&) noexcept = default;
+    deflate_base(deflate_base&&) noexcept;
+    deflate_base& operator=(deflate_base&&) noexcept;
 
     template<std::contiguous_iterator InContiguousIt, std::contiguous_iterator OutContiguousIt>
     bool compress(InContiguousIt& input_begin, InContiguousIt input_end, OutContiguousIt& output_begin, OutContiguousIt output_end, bool flush = false)
@@ -136,8 +136,8 @@ public:
     ~inflate_base();
     inflate_base(const inflate_base&) = delete;
     inflate_base& operator=(const inflate_base&) = delete;
-    inflate_base(inflate_base&&) noexcept = default;
-    inflate_base& operator=(inflate_base&&) noexcept = default;
+    inflate_base(inflate_base&&) noexcept;
+    inflate_base& operator=(inflate_base&&) noexcept;
 
     template<std::contiguous_iterator InContiguousIt, std::contiguous_iterator OutContiguousIt>
     bool decompress(InContiguousIt& input_begin, InContiguousIt input_end, OutContiguousIt& output_begin, OutContiguousIt output_end, bool flush)
@@ -247,11 +247,11 @@ class CAPTAL_API gzip_deflate : public impl::deflate_base
 {
 public:
     explicit gzip_deflate(std::uint32_t compression_level = 6);
-    ~gzip_deflate() = default;
+    ~gzip_deflate();
     gzip_deflate(const gzip_deflate&) = delete;
     gzip_deflate& operator=(const gzip_deflate&) = delete;
-    gzip_deflate(gzip_deflate&&) noexcept = default;
-    gzip_deflate& operator=(gzip_deflate&&) noexcept = default;
+    gzip_deflate(gzip_deflate&&) noexcept;
+    gzip_deflate& operator=(gzip_deflate&&) noexcept;
 
     void set_header(std::string_view name, std::string_view comment, std::string extra = std::string{}, std::time_t time = std::time(nullptr));
 
@@ -291,11 +291,11 @@ class CAPTAL_API gzip_inflate : public impl::inflate_base
 
 public:
     explicit gzip_inflate();
-    ~gzip_inflate() = default;
+    ~gzip_inflate();
     gzip_inflate(const gzip_inflate&) = delete;
     gzip_inflate& operator=(const gzip_inflate&) = delete;
-    gzip_inflate(gzip_inflate&&) noexcept = default;
-    gzip_inflate& operator=(gzip_inflate&&) noexcept = default;
+    gzip_inflate(gzip_inflate&&) noexcept;
+    gzip_inflate& operator=(gzip_inflate&&) noexcept;
 
     void grab_header();
     bool is_header_ready() const noexcept;
@@ -306,7 +306,7 @@ public:
     std::chrono::system_clock::time_point time() const noexcept;
 
 private:
-    std::unique_ptr<gzip_info> m_header{};
+    std::unique_ptr<gzip_inflate::gzip_info> m_header{};
 };
 
 template<typename Compressor, std::contiguous_iterator InContiguousIt, std::contiguous_iterator OutContiguousIt, typename... Args>

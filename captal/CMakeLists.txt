@@ -108,6 +108,7 @@ set_target_properties(captal PROPERTIES PREFIX "")
 
 if(WIN32)
     target_sources(captal PRIVATE src/captal/resources.rc)
+    target_compile_definitions(captal PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
 endif()
 
 target_compile_definitions(captal

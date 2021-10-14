@@ -120,6 +120,7 @@ target_include_directories(tephra
 
 if(WIN32)
     target_sources(tephra PRIVATE src/tephra/resources.rc)
+    target_compile_definitions(tephra PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
 endif()
 
 if(CAPTAL_BUILD_TEPHRA_EXAMPLES)

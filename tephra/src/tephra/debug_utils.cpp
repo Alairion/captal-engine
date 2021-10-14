@@ -4,6 +4,7 @@
 #include <iostream>
 #include <mutex>
 #include <charconv>
+#include <algorithm>
 
 #include "vulkan/vulkan_functions.hpp"
 

@@ -246,10 +246,10 @@ static tph::graphics_pipeline_info make_info(const render_technique_info& info, 
         output.stages.emplace_back(engine::instance().default_fragment_shader());
     }
 
-    output.vertex_input.bindings.emplace_back(0, sizeof(vertex));
-    output.vertex_input.attributes.emplace_back(0, 0, tph::vertex_format::vec3f, offsetof(vertex, position));
-    output.vertex_input.attributes.emplace_back(1, 0, tph::vertex_format::vec4f, offsetof(vertex, color));
-    output.vertex_input.attributes.emplace_back(2, 0, tph::vertex_format::vec2f, offsetof(vertex, texture_coord));
+    output.vertex_input.bindings.emplace_back(0, static_cast<std::uint32_t>(sizeof(vertex)));
+    output.vertex_input.attributes.emplace_back(0, 0, tph::vertex_format::vec3f, static_cast<std::uint32_t>(offsetof(vertex, position)));
+    output.vertex_input.attributes.emplace_back(1, 0, tph::vertex_format::vec4f, static_cast<std::uint32_t>(offsetof(vertex, color)));
+    output.vertex_input.attributes.emplace_back(2, 0, tph::vertex_format::vec2f, static_cast<std::uint32_t>(offsetof(vertex, texture_coord)));
     output.tesselation = info.tesselation;
     output.viewport.viewport_count = 1;
     output.rasterization = info.rasterization;

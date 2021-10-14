@@ -15,6 +15,7 @@
 
 #include "color.hpp"
 #include "text.hpp"
+#include "zlib.hpp"
 
 namespace cpt
 {
@@ -58,7 +59,7 @@ struct object
 
     struct text
     {
-        std::string text{};
+        std::string string{};
         std::string font_family{};
         std::uint32_t pixel_size{};
         vec2f position{};
@@ -105,7 +106,7 @@ struct layer
     struct objects
     {
         objects_layer_draw_order draw_order{};
-        std::vector<object> objects{};
+        std::vector<object> childrens{};
     };
 
     struct group

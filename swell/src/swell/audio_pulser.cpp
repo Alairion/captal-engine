@@ -1,5 +1,7 @@
 #include "audio_pulser.hpp"
 
+#include <captal_foundation/stack_allocator.hpp>
+
 #include <cassert>
 #include <numbers>
 #include <iostream>
@@ -27,8 +29,6 @@
 
     }
 #endif
-
-#include <captal_foundation/stack_allocator.hpp>
 
 namespace swl
 {

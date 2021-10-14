@@ -3,9 +3,9 @@
 #include <stdexcept>
 #include <utility>
 
-#include <SDL.h>
-
 #include "window.hpp"
+
+#include <SDL.h>
 
 namespace apr
 {

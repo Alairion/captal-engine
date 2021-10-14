@@ -26,6 +26,22 @@ memory_transfer_scheduler::memory_transfer_scheduler(tph::renderer& renderer) no
 
     m_thread_pools.reserve(4);
     m_buffers.reserve(4);
+
+    //Main thread pool
+    const auto thread{std::this_thread::get_id()};
+
+    thread_transfer_pool main_pool{};
+    main_pool.pool = tph::command_pool{*m_renderer, tph::command_pool_options::reset | tph::command_pool_options::transient};
+    main_pool.buffers.reserve(4);
+
+    if(debug_enabled)
+    {
+        const auto name{thread_name(thread)};
+
+        tph::set_object_name(*m_renderer, main_pool.pool, "cpt::engine's thread transfer pool (thread: " + name + ")");
+    }
+
+    m_thread_pools.emplace(thread, std::move(main_pool));
 }
 
 memory_transfer_scheduler::~memory_transfer_scheduler()
@@ -42,7 +58,7 @@ memory_transfer_info memory_transfer_scheduler::begin_transfer(std::thread::id t
 {
     std::unique_lock lock{m_mutex};
 
-    auto& pool{get_transfer_pool(thread)};
+    auto& pool  {get_transfer_pool(thread)};
     auto& buffer{next_thread_buffer(pool, thread)};
 
     m_begin = true;
@@ -98,7 +114,7 @@ memory_transfer_scheduler::transfer_buffer& memory_transfer_scheduler::add_buffe
 {
     transfer_buffer data{};
     data.buffer = tph::cmd::begin(m_pool, tph::command_buffer_level::primary, tph::command_buffer_options::one_time_submit);
-    data.fence = tph::fence{*m_renderer, true};
+    data.fence  = tph::fence{*m_renderer, true};
 
     if constexpr(debug_enabled)
     {

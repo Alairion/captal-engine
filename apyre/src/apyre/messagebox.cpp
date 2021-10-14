@@ -3,11 +3,11 @@
 #include <stdexcept>
 #include <vector>
 
-#include <SDL.h>
-
 #include <captal_foundation/stack_allocator.hpp>
 
 #include "window.hpp"
+
+#include <SDL.h>
 
 namespace apr
 {

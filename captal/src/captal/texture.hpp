@@ -8,6 +8,7 @@
 #include <filesystem>
 #include <istream>
 #include <memory>
+#include <functional>
 
 #include <tephra/image.hpp>
 #include <tephra/texture.hpp>

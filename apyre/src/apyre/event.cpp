@@ -4,13 +4,13 @@
 #include <algorithm>
 #include <iostream>
 
-#include <SDL.h>
-#include <SDL_vulkan.h>
-
 #include <captal_foundation/encoding.hpp>
 
 #include "application.hpp"
 #include "window.hpp"
+
+#include <SDL.h>
+#include <SDL_vulkan.h>
 
 namespace apr
 {

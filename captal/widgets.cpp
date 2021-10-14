@@ -4,6 +4,8 @@
 #include <captal/widgets.hpp>
 #include <captal/renderable.hpp>
 #include <captal/external/pugixml.hpp>
+
+#include <captal_foundation/stack_allocator.hpp>
 /*
 static_assert(cpt::tuple_like<std::tuple<int, float, double>>);
 static_assert(cpt::tuple_like<std::array<int, 42>>);

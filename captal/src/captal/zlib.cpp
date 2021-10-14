@@ -28,6 +28,9 @@ deflate_base::~deflate_base()
     deflateEnd(m_stream.get());
 }
 
+deflate_base::deflate_base(deflate_base&&) noexcept = default;
+deflate_base& deflate_base::operator=(deflate_base&&) noexcept = default;
+
 void deflate_base::compress_impl(const std::uint8_t*& input, std::size_t input_size, std::uint8_t*& output, std::size_t output_size, bool finish)
 {
     assert(valid() && "cpt::impl::deflate::compress called on an invalid stream.");
@@ -78,6 +81,9 @@ inflate_base::~inflate_base()
 {
     inflateEnd(m_stream.get());
 }
+
+inflate_base::inflate_base(inflate_base&&) noexcept = default;
+inflate_base& inflate_base::operator=(inflate_base&&) noexcept = default;
 
 void inflate_base::decompress_impl(const std::uint8_t*& input, std::size_t input_size, std::uint8_t*& output, std::size_t output_size, bool flush)
 {
@@ -130,6 +136,10 @@ gzip_deflate::gzip_deflate(std::uint32_t compression_level)
 {
 
 }
+
+gzip_deflate::~gzip_deflate() = default;
+gzip_deflate::gzip_deflate(gzip_deflate&&) noexcept = default;
+gzip_deflate& gzip_deflate::operator=(gzip_deflate&&) noexcept = default;
 
 void gzip_deflate::set_header(std::string_view name, std::string_view comment, std::string extra, std::time_t time)
 {
@@ -190,6 +200,10 @@ gzip_inflate::gzip_inflate()
 
 }
 
+gzip_inflate::~gzip_inflate() = default;
+gzip_inflate::gzip_inflate(gzip_inflate&&) noexcept = default;
+gzip_inflate& gzip_inflate::operator=(gzip_inflate&&) noexcept = default;
+
 void gzip_inflate::grab_header()
 {
     if(!m_header)
@@ -201,11 +215,11 @@ void gzip_inflate::grab_header()
         m_header->header = gz_header{};
     }
 
-    m_header->header.name = reinterpret_cast<Bytef*>(std::data(m_header->name));
-    m_header->header.name_max = static_cast<uInt>(std::size(m_header->name) - 1);
-    m_header->header.comment = reinterpret_cast<Bytef*>(std::data(m_header->comment));
-    m_header->header.comm_max = static_cast<uInt>(std::size(m_header->comment) - 1);
-    m_header->header.extra = reinterpret_cast<Bytef*>(std::data(m_header->extra));
+    m_header->header.name      = reinterpret_cast<Bytef*>(std::data(m_header->name));
+    m_header->header.name_max  = static_cast<uInt>(std::size(m_header->name) - 1);
+    m_header->header.comment   = reinterpret_cast<Bytef*>(std::data(m_header->comment));
+    m_header->header.comm_max  = static_cast<uInt>(std::size(m_header->comment) - 1);
+    m_header->header.extra     = reinterpret_cast<Bytef*>(std::data(m_header->extra));
     m_header->header.extra_max = static_cast<uInt>(std::size(m_header->extra));
 
     if(inflateGetHeader(&get_zstream(), &m_header->header) != Z_OK)

@@ -13,8 +13,19 @@ add_compile_definitions(CP_COLLISION_TYPE_TYPE=uint64_t
                         CP_BITMASK_TYPE=uint64_t
                         CP_TIMESTAMP_TYPE=uint64_t)
 
+#The library contains an error only present when NDEBUG isn't defined
+#Chipmunk tells MSVC to compile it as C++ not C, so we enfore the definition of NDEBUG in CMAKE_CXX_FLAGS temporarily 
+if(MSVC) 
+    set(OLD_CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /DNDEBUG")
+endif()
+
 captal_download_submodule(captal/external/chipmunk TRUE)
 add_subdirectory(external/chipmunk EXCLUDE_FROM_ALL)
+
+if(MSVC)
+    set(CMAKE_CXX_FLAGS "${OLD_CMAKE_CXX_FLAGS}")
+endif()
 
 unset(LIB_INSTALL_DIR    CACHE)
 unset(BIN_INSTALL_DIR    CACHE)

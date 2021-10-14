@@ -4,6 +4,8 @@
 #include "config.hpp"
 
 #include <span>
+#include <array>
+#include <vector>
 
 #include "vulkan/vulkan.hpp"
 

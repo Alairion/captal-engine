@@ -209,6 +209,20 @@ bool engine::run()
     return true;
 }
 
+engine& engine::instance() noexcept
+{
+    assert(m_instance && "cpt::engine::instance called before engine creation.");
+
+    return *m_instance;
+}
+
+const engine& engine::cinstance() noexcept
+{
+    assert(m_instance && "cpt::engine::cinstance called before engine creation.");
+
+    return *m_instance;
+}
+
 void engine::init()
 {
     assert(!m_instance && "Can not create a new engine if one already exists.");

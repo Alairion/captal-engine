@@ -47,7 +47,7 @@ private:
     struct splits
     {
         std::size_t count{};
-        std::array<rect, 2> splits{};
+        std::array<rect, 2> parts{};
     };
 
 private:

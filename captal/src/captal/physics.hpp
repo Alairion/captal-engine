@@ -8,6 +8,7 @@
 #include <functional>
 #include <variant>
 #include <span>
+#include <optional>
 
 #include <captal_foundation/math.hpp>
 

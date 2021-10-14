@@ -27,7 +27,7 @@ set(APYRE_SOURCES
 if(CAPTAL_BUILD_APYRE_STATIC)
     add_library(apyre STATIC ${APYRE_SOURCES})
     target_compile_definitions(apyre PUBLIC APYRE_STATIC_BUILD)
-    set(TO_EXPORT ${TO_EXPORT} apyre SDL2main SDL2-static PARENT_SCOPE)
+    set(TO_EXPORT ${TO_EXPORT} apyre sdl-build-options SDL2main SDL2-static PARENT_SCOPE)
 else()
     add_library(apyre SHARED ${APYRE_SOURCES})
     target_compile_definitions(apyre PUBLIC APYRE_SHARED_BUILD)
@@ -51,8 +51,8 @@ target_include_directories(apyre
 
 target_link_libraries(apyre
     PRIVATE
-        SDL2main
-        SDL2-static
+        SDL2::SDL2main
+        SDL2::SDL2-static
     PUBLIC
         captal_foundation
 )
@@ -60,6 +60,7 @@ target_link_libraries(apyre
 if(WIN32)
     target_sources(apyre PRIVATE src/apyre/resources.rc)
     target_link_libraries(apyre PRIVATE dwmapi)
+    target_compile_definitions(apyre PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
 endif()
 
 if(CAPTAL_BUILD_APYRE_EXAMPLES)
