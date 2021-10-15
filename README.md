@@ -13,6 +13,8 @@ Captal is composed of 5 modules:
 * Tephra: A low-level GPU API based on Vulkan. 
 * Captal: The actual game engine, depends of the 4 other modules.
 
+Apyre, Swell and Tephra can be used independently from each others.
+
 ## Features
 
 * Captal foundation
