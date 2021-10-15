@@ -18,11 +18,11 @@ Captal is composed of 5 modules:
 * Captal foundation
   * Maths (vectors, matrices and associated functions)
   * Stack allocators
-  * Unicode 
+  * Unicode encoding conversion, few text transformation functions (to upper/lower that support more than ASCII)
   * Utility types and functions.
 * Apyre
   * Windowing
-  * Input management
+  * Input management (no joystick/game constroller support, yet)
   * Monitors informations
   * Power informations
 * Swell
@@ -42,47 +42,68 @@ Captal is composed of 5 modules:
   * Text rendering (rich text support planned)
   * 2D physics
   * Signals/slots, using [sigslot](https://github.com/palacaze/sigslot)
-  * ECS, using [Entt](https://github.com/skypjack/entt), with additional prebuild systems
-  * Support for [Tiled](https://www.mapeditor.org/) TMX files
-  * Custom translation files support (parser and writter)
+  * ECS, using [Entt](https://github.com/skypjack/entt), with additional prebuild systems and components
+  * Parser for [Tiled](https://www.mapeditor.org/) TMX files
+  * Custom translation files support (parser, editor and high-level translator)
   * State machine
   * Zlib wrapper
+
+## Planned Features
+
+* Apyre
+  * Game controllers and Joysticks support
+* Swell
+  * File encoder for OGG, WAV and FLAC
+* Tephra
+* Captal
+  * Rich text
+  * Widgets
+  * Virtual file system (archives)
+  * Higher level interface for compute shaders
+  * Particules
 
 ## Platforms
 
 Captal is known to build and run on Windows 10, compiled with either MinGW GCC 10.3, or MSVC v142 (VS 16.11).
-Because Captal uses cross-platform or standard-compliant dependencies, it should theoretically compile and run on Linux, and Mac. 
+Because Captal uses cross-platform or standard-compliant dependencies, it should theoretically compile and run on Linux, and maybe OSX. 
 Even Android may work, but it will probably need some adjustments. 
-For now, I do plan to support Linux and Android but I can't know when I will do it.
+For now, I do plan to support Linux and Android "officialy" but I can't know when I will do it.
 
 ## License
 
-Not Enough Standards use the [MIT license](https://opensource.org/licenses/MIT).
+Captal uses the [MIT license](https://opensource.org/licenses/MIT).
 
 ## Build
 
 Captal is currently build with **CMake 3.15.7+**, you **must have Git installed** on your system, because the CMake file will download and compile all dependencies.
-Here is the list of available options for the CMakeFiles.
+Here is the list of available options for the CMakeFiles:
 
-|  Option                          |  Description 
-|:--------------------------------:|:------------------------------------------------------------------:
-| CAPTAL_USE_LTO                   | Build Captal and its submodules with LTO enabled, if supported
-| CAPTAL_USE_CUSTOM_C_FLAGS        | Build Captal and its submodules with predefined compiler options, if supported
-| CAPTAL_BUILD_FOUNDATION_EXAMPLES | Build Captal Foundation's examples if ON
-| CAPTAL_BUILD_FOUNDATION_TESTS    | Build Captal Foundation's unit tests if ON
-| CAPTAL_BUILD_APYRE               | Build Apyre if ON
-| CAPTAL_BUILD_APYRE_STATIC        | Build Apyre as a static library if ON
-| CAPTAL_BUILD_APYRE_EXAMPLES      | Build Apyre's examples if ON, does nothing if CAPTAL_BUILD_APYRE is off
-| CAPTAL_BUILD_APYRE_TESTS         | Build Apyre's unit tests if ON, does nothing if CAPTAL_BUILD_APYRE is off
-| CAPTAL_BUILD_TEPHRA              | Build Tephra if ON
-| CAPTAL_BUILD_TEPHRA_STATIC       | Build Tephra as a static library if ON
-| CAPTAL_BUILD_TEPHRA_EXAMPLES     | Build Tephra's examples if ON, implies CAPTAL_BUILD_APYRE. Does nothing if CAPTAL_BUILD_TEPHRA is off
-| CAPTAL_BUILD_TEPHRA_TESTS        | Build Tephra's unit tests if ON, implies CAPTAL_BUILD_APYRE. Does nothing if CAPTAL_BUILD_TEPHRA is off
-| CAPTAL_BUILD_SWELL               | Build Swell if ON
-| CAPTAL_BUILD_SWELL_STATIC        | Build Swell as a static library if ON
-| CAPTAL_BUILD_SWELL_EXAMPLES      | Build Swell's examples if ON. Does nothing if CAPTAL_BUILD_SWELL is off
-| CAPTAL_BUILD_SWELL_TESTS         | Build Swell's unit tests if ON. Does nothing if CAPTAL_BUILD_SWELL is off
-| CAPTAL_BUILD_CAPTAL              | Build Captal if ON, implies CAPTAL_BUILD_TEPHRA, CAPTAL_BUILD_APYRE and CAPTAL_BUILD_SWELL if ON
-| CAPTAL_BUILD_CAPTAL_STATIC       | Build Captal as a static library if ON
-| CAPTAL_BUILD_CAPTAL_EXAMPLES     | Build Captal's examples if ON. Does nothing if CAPTAL_BUILD_CAPTAL is off
-| CAPTAL_BUILD_CAPTAL_TESTS        | Build Captal's unit tests if ON. Does nothing if CAPTAL_BUILD_CAPTAL is off
+|  Option                          | Default |  Description 
+| :------------------------------: | :-----: | :---:
+| CAPTAL_USE_LTO                   | OFF     | Build Captal and its submodules with LTO enabled, if supported
+| CAPTAL_USE_CUSTOM_C_FLAGS        | ON      | Build C submodules with predefined compiler options, if supported
+| CAPTAL_BUILD_FOUNDATION_EXAMPLES | OFF     | Build Captal Foundation's examples if ON
+| CAPTAL_BUILD_FOUNDATION_TESTS    | OFF     | Build Captal Foundation's unit tests if ON
+| CAPTAL_BUILD_APYRE               | OFF     | Build Apyre if ON
+| CAPTAL_BUILD_APYRE_STATIC        | OFF     | Build Apyre as a static library if ON
+| CAPTAL_BUILD_APYRE_EXAMPLES      | OFF     | Build Apyre's examples if ON, does nothing if CAPTAL_BUILD_APYRE is off
+| CAPTAL_BUILD_APYRE_TESTS         | OFF     | Build Apyre's unit tests if ON, does nothing if CAPTAL_BUILD_APYRE is off
+| CAPTAL_BUILD_TEPHRA              | OFF     | Build Tephra if ON
+| CAPTAL_BUILD_TEPHRA_STATIC       | OFF     | Build Tephra as a static library if ON
+| CAPTAL_BUILD_TEPHRA_EXAMPLES     | OFF     | Build Tephra's examples if ON, implies CAPTAL_BUILD_APYRE. Does nothing if CAPTAL_BUILD_TEPHRA is off
+| CAPTAL_BUILD_TEPHRA_TESTS        | OFF     | Build Tephra's unit tests if ON, implies CAPTAL_BUILD_APYRE. Does nothing if CAPTAL_BUILD_TEPHRA is off
+| CAPTAL_BUILD_SWELL               | OFF     | Build Swell if ON
+| CAPTAL_BUILD_SWELL_STATIC        | OFF     | Build Swell as a static library if ON
+| CAPTAL_BUILD_SWELL_EXAMPLES      | OFF     | Build Swell's examples if ON. Does nothing if CAPTAL_BUILD_SWELL is off
+| CAPTAL_BUILD_SWELL_TESTS         | OFF     | Build Swell's unit tests if ON. Does nothing if CAPTAL_BUILD_SWELL is off
+| CAPTAL_BUILD_CAPTAL              | OFF     | Build Captal if ON, implies CAPTAL_BUILD_TEPHRA, CAPTAL_BUILD_APYRE and CAPTAL_BUILD_SWELL if ON
+| CAPTAL_BUILD_CAPTAL_STATIC       | OFF     | Build Captal as a static library if ON
+| CAPTAL_BUILD_CAPTAL_EXAMPLES     | OFF     | Build Captal's examples if ON. Does nothing if CAPTAL_BUILD_CAPTAL is off
+| CAPTAL_BUILD_CAPTAL_TESTS        | OFF     | Build Captal's unit tests if ON. Does nothing if CAPTAL_BUILD_CAPTAL is off
+
+For most usages, you will just want to enable CAPTAL_BUILD_CAPTAL (which will compile also all other modules), and CAPTAL_USE_LTO for release build.  
+CAPTAL_BUILD_XXX_STATIC creates of a static library for the specified modules. Because both Captal and your application will link to Apyre, Swell and Tephra, I recommend to use one of the following combination of parameters to prevent code duplication:
+
+* All dynamic (none) 
+* Only Captal as a static library (CAPTAL_BUILD_CAPTAL_STATIC)
+* All static (CAPTAL_BUILD_APYRE_STATIC + CAPTAL_BUILD_TEPHRA_STATIC + CAPTAL_BUILD_SWELL_STATIC + CAPTAL_BUILD_CAPTAL_STATIC)
