@@ -42,7 +42,7 @@ Captal:
             cpt::render_target_ptr target{};
             std::vector<int> data{}; 
 
-            my_target()
+            void foo()
             {
                 auto render{target.begin_render()};
                 render->signal.connect([this]() //connect the signal somewhere
