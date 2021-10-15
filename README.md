@@ -64,7 +64,8 @@ Captal is composed of 5 modules:
 
 ## Platforms
 
-Captal is known to build and run on Windows 10, compiled with either MinGW GCC 10.3, or MSVC v142 (VS 16.11).
+Captal is known to build and run on Windows 10, compiled with either MinGW GCC 10.3, or MSVC v142 (VS 16.11). Windows 7+ should be OK to.  
+Also note that **Captal requires a Vulkan capable GPU**, most GPU released in 2012 or later support it with up-to-date drivers (the only exception I know are Intel integrated GPU, only on Windows where you need a chip released in 2015 or later).  
 Because Captal uses cross-platform or standard-compliant dependencies, it should theoretically compile and run on Linux, and maybe OSX. 
 Even Android may work, but it will probably need some adjustments. 
 For now, I do plan to support Linux and Android "officialy" but I can't know when I will do it.
