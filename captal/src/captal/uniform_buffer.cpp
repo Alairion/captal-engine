@@ -7,6 +7,13 @@
 namespace cpt
 {
 
+uniform_buffer::uniform_buffer(const buffer_part& part)
+:m_parts{buffer_part_info{0, part.size}}
+,m_buffer{engine::instance().uniform_pool().allocate(part.size, engine::instance().graphics_device().limits().min_uniform_buffer_alignment)}
+{
+
+}
+
 uniform_buffer::uniform_buffer(std::span<const buffer_part> parts)
 :m_parts{compute_part_info(parts)}
 ,m_buffer{engine::instance().uniform_pool().allocate(m_parts.back().offset + m_parts.back().size, engine::instance().graphics_device().limits().min_uniform_buffer_alignment)}

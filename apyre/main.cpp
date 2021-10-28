@@ -10,7 +10,7 @@ using namespace apr::enum_operations;
 int main()
 {
     //Initialize Apyre.
-    apr::application application{apr::application_extension::extended_client_area};
+    apr::application application{};
 
     //Create a window.
     //The parameters are pretty simple, the app, the window's title, it's size (width then height), and some additionnal options.

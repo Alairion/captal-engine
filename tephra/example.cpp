@@ -122,47 +122,66 @@ static void run()
     tph::image image{renderer, std::filesystem::path{u8"fronce.jpg"}, tph::image_usage::transfer_source};
 
     //GPU side data
-    constexpr tph::texture_info     texture_info {tph::texture_format::r8g8b8a8_srgb, tph::texture_usage::sampled | tph::texture_usage::transfer_destination};
-    constexpr tph::texture_info     target_info  {color_format, tph::texture_usage::color_attachment | tph::texture_usage::transfer_source};
-    constexpr tph::sampling_options sampling_info{tph::filter::linear, tph::filter::linear};
-    constexpr tph::buffer_usage     buffer_usage {tph::buffer_usage::device_only | tph::buffer_usage::vertex | tph::buffer_usage::uniform | tph::buffer_usage::transfer_destination};
+    constexpr tph::texture_info texture_info{tph::texture_format::r8g8b8a8_srgb, tph::texture_usage::sampled | tph::texture_usage::transfer_destination};
+    constexpr tph::texture_info target_info {color_format, tph::texture_usage::color_attachment | tph::texture_usage::transfer_source};
+    constexpr tph::sampler_info sampler_info{tph::filter::linear, tph::filter::linear};
+    constexpr tph::buffer_usage buffer_usage{tph::buffer_usage::device_only | tph::buffer_usage::vertex | tph::buffer_usage::uniform | tph::buffer_usage::transfer_destination};
 
-    tph::buffer  buffer {renderer, std::size(vertices) * sizeof(vertex) + sizeof(ubo), buffer_usage};
-    tph::texture texture{renderer, static_cast<std::uint32_t>(image.width()), static_cast<std::uint32_t>(image.height()), texture_info, sampling_info};
-    tph::texture target {renderer, 640, 480, target_info};
+    tph::buffer buffer{renderer, std::size(vertices) * sizeof(vertex) + sizeof(ubo), buffer_usage};
+
+    tph::texture      texture{renderer, static_cast<std::uint32_t>(image.width()), static_cast<std::uint32_t>(image.height()), texture_info};
+    tph::sampler      sampler{renderer, sampler_info};
+    tph::texture_view view{renderer, texture};
+
+    tph::texture      target{renderer, 640, 480, target_info};
+    tph::texture_view target_view{renderer, target};
 
     //The descriptor set, to tell the shaders what resources to use
-    std::vector<tph::descriptor_pool_size> pool_sizes{};
-    pool_sizes.emplace_back(tph::descriptor_type::uniform_buffer, 1);
-    pool_sizes.emplace_back(tph::descriptor_type::image_sampler, 1);
+    constexpr std::array pool_sizes
+    {
+        tph::descriptor_pool_size{tph::descriptor_type::uniform_buffer, 1},
+        tph::descriptor_pool_size{tph::descriptor_type::image_sampler, 1}
+    };
+
     tph::descriptor_pool descriptor_pool{renderer, pool_sizes};
 
     tph::descriptor_set descriptor_set{renderer, descriptor_pool, descriptor_set_layout};
-    tph::write_descriptor(renderer, descriptor_set, 0, 0, tph::descriptor_type::uniform_buffer, buffer, 0, sizeof(ubo));
-    tph::write_descriptor(renderer, descriptor_set, 1, 0, tph::descriptor_type::image_sampler,  texture, tph::texture_layout::shader_read_only_optimal);
+    const std::array writes
+    {
+        tph::descriptor_write{descriptor_set, 0, 0, tph::descriptor_type::uniform_buffer, tph::descriptor_buffer_info {buffer, 0, sizeof(ubo)}},
+        tph::descriptor_write{descriptor_set, 1, 0, tph::descriptor_type::image_sampler,  tph::descriptor_texture_info{&sampler, &view, tph::texture_layout::shader_read_only_optimal}}
+    };
+
+    tph::write_descriptors(renderer, writes);
 
     //The output
     tph::image output{renderer, 640, 480, tph::image_usage::transfer_destination};
 
-    const std::array attachments{std::ref(target)};
+    const std::array attachments{std::ref(target_view)};
     tph::framebuffer framebuffer{renderer, render_pass, attachments, 640, 480, 1};
 
     tph::command_pool   command_pool  {renderer};
     tph::command_buffer command_buffer{tph::cmd::begin(command_pool, tph::command_buffer_level::primary, tph::command_buffer_options::one_time_submit)};
 
-    tph::cmd::copy(command_buffer, staging_buffer, buffer);
+    tph::cmd::copy(command_buffer, staging_buffer, buffer, tph::buffer_copy{0, 0, std::size(vertices) * sizeof(vertex) +  sizeof(ubo)});
 
-    tph::cmd::transition(command_buffer, texture,
-                         tph::resource_access::none, tph::resource_access::transfer_write,
-                         tph::pipeline_stage::top_of_pipe, tph::pipeline_stage::transfer,
-                         tph::texture_layout::undefined, tph::texture_layout::transfer_destination_optimal);
+    const std::array first_barrier{tph::texture_memory_barrier
+    {
+        texture, {},
+        tph::resource_access::none, tph::resource_access::transfer_write,
+        tph::texture_layout::undefined, tph::texture_layout::transfer_destination_optimal
+    }};
 
-    tph::cmd::copy(command_buffer, image, texture);
+    const std::array second_barrier{tph::texture_memory_barrier
+    {
+        texture, {},
+        tph::resource_access::transfer_write, tph::resource_access::shader_read,
+        tph::texture_layout::transfer_destination_optimal, tph::texture_layout::shader_read_only_optimal
+    }};
 
-    tph::cmd::transition(command_buffer, texture,
-                         tph::resource_access::transfer_write, tph::resource_access::shader_read,
-                         tph::pipeline_stage::transfer, tph::pipeline_stage::fragment_shader,
-                         tph::texture_layout::transfer_destination_optimal, tph::texture_layout::shader_read_only_optimal);
+    tph::cmd::pipeline_barrier(command_buffer, tph::pipeline_stage::top_of_pipe, tph::pipeline_stage::transfer, tph::dependency_flags::none, {}, {}, first_barrier);
+    tph::cmd::copy(command_buffer, image, texture, tph::image_texture_copy{{}, {}, tph::copy_extent{640, 480, 1}});
+    tph::cmd::pipeline_barrier(command_buffer, tph::pipeline_stage::transfer, tph::pipeline_stage::fragment_shader, tph::dependency_flags::none, {}, {}, second_barrier);
 
     tph::cmd::begin_render_pass(command_buffer, render_pass, framebuffer);
     tph::cmd::bind_pipeline(command_buffer, pipeline);
@@ -171,7 +190,7 @@ static void run()
     tph::cmd::draw(command_buffer, std::size(vertices), 1, 0, 0);
     tph::cmd::end_render_pass(command_buffer);
 
-    tph::cmd::copy(command_buffer, target, output);
+    tph::cmd::copy(command_buffer, target, output, tph::image_texture_copy{{}, {}, tph::copy_extent{640, 480, 1}});
 
     tph::cmd::end(command_buffer);
 

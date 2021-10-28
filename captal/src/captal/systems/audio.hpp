@@ -31,7 +31,7 @@
 
 #include "../components/node.hpp"
 #include "../components/listener.hpp"
-#include "../components/audio_emiter.hpp"
+#include "../components/audio_emitter.hpp"
 
 namespace cpt::systems
 {
@@ -46,16 +46,16 @@ inline void audio(entt::registry& world)
         }
     };
 
-    const auto update_emiters = [](components::audio_emiter& emiter, const components::node& node)
+    const auto update_emitters = [](components::audio_emitter& emitter, const components::node& node)
     {
-        if(node.is_updated() && emiter.has_attachment())
+        if(node.is_updated() && emitter.has_attachment())
         {
-            emiter->move_to(node.position());
+            emitter->move_to(node.position());
         }
     };
 
     world.view<components::listener, const components::node>().each(update_listener);
-    world.view<components::audio_emiter, const components::node>().each(update_emiters);
+    world.view<components::audio_emitter, const components::node>().each(update_emitters);
 }
 
 }

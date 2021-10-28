@@ -13,7 +13,7 @@
 #include <captal/components/node.hpp>
 #include <captal/components/camera.hpp>
 #include <captal/components/drawable.hpp>
-#include <captal/components/audio_emiter.hpp>
+#include <captal/components/audio_emitter.hpp>
 #include <captal/components/listener.hpp>
 #include <captal/components/rigid_body.hpp>
 #include <captal/components/controller.hpp>
@@ -98,7 +98,7 @@ static entt::entity add_player(entt::registry& world, cpt::physical_world& physi
     world.emplace<cpt::components::node>(player, cpt::vec3f{320.0f, 240.0f, 0.5f});
 
     //The player will emit sounds when a wall is hit
-    world.emplace<cpt::components::audio_emiter>(player, std::make_unique<sinewave_generator>(44100, 2, 100.0f))->set_volume(0.5f);
+    world.emplace<cpt::components::audio_emitter>(player, std::make_unique<sinewave_generator>(44100, 2, 100.0f))->set_volume(0.5f);
 
     //The player sprite, we use an ellipse. Why ? Because why not !
     const auto points{cpt::ellipse(48.0f, 32.0f)};
@@ -274,7 +274,7 @@ static void add_logic(cpt::render_window_ptr target, entt::registry& world, cpt:
         //Start the sawtooth when we first collide.
         if(*current_collisions == 1)
         {
-            world.get<cpt::components::audio_emiter>(player)->start();
+            world.get<cpt::components::audio_emitter>(player)->start();
         }
 
         return true;
@@ -287,7 +287,7 @@ static void add_logic(cpt::render_window_ptr target, entt::registry& world, cpt:
         //Stop the sawtooth when we no longer collide with any wall.
         if(*current_collisions == 0)
         {
-            world.get<cpt::components::audio_emiter>(player)->stop();
+            world.get<cpt::components::audio_emitter>(player)->stop();
         }
 
         return true;

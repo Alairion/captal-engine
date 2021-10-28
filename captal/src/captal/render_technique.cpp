@@ -162,8 +162,6 @@ render_layout::render_layout(const render_layout_info& view_info, const render_l
 
 descriptor_set_ptr render_layout::make_set(std::uint32_t layout_index)
 {
-    assert(layout_index < 2 && "cpt::render_layout does not support custom descriptor set layouts yet.");
-
     std::lock_guard lock{m_mutex};
 
     auto& data{m_layout_data[layout_index]};

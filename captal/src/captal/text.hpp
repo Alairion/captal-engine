@@ -182,12 +182,12 @@ public:
         m_options = options;
     }
 
-    void set_adjustement(subpixel_adjustment adjustment) noexcept
+    void set_adjustment(subpixel_adjustment adjustment) noexcept
     {
         m_adjustment = adjustment;
     }
 
-    void set_line_adjustement(subpixel_adjustment adjustment) noexcept
+    void set_line_adjustment(subpixel_adjustment adjustment) noexcept
     {
         m_line_adjustment = adjustment;
     }

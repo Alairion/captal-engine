@@ -1,17 +1,4 @@
-#include "sound.hpp"
-
-#include "engine.hpp"
-
-#include <swell/sound_file.hpp>
-
-namespace cpt
-{
-
-sound::sound(const std::filesystem::path& file, swl::sound_reader_options options)
-:sound{swl::open_file(file, options)}
-{
-
-}//MIT License
+//MIT License
 //
 //Copyright (c) 2021 Alexy Pellegrini
 //
@@ -33,7 +20,20 @@ sound::sound(const std::filesystem::path& file, swl::sound_reader_options option
 //OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //SOFTWARE.
 
+#include "sound.hpp"
 
+#include "engine.hpp"
+
+#include <swell/sound_file.hpp>
+
+namespace cpt
+{
+
+sound::sound(const std::filesystem::path& file, swl::sound_reader_options options)
+:sound{swl::open_file(file, options)}
+{
+
+}
 
 sound::sound(std::span<const std::uint8_t> data, swl::sound_reader_options options)
 :sound{swl::open_file(data, options)}

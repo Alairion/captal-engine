@@ -967,7 +967,7 @@ const text_drawer::glyph_info& text_drawer::load(cpt::font& font, std::uint64_t 
             //Load the fallback in case the requested codepoint does not have a glyph inside the font
             if(codepoint != m_fallback)
             {
-                return load(font, make_key(m_fallback, font.info().size, outline, adjust, bold, italic));
+                return load(font, make_key(m_fallback, font.info().size, outline, adjust, bold, italic), deferred);
             }
             else
             {

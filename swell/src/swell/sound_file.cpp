@@ -37,6 +37,11 @@ static constexpr std::array<std::uint8_t, 4> flac_header{0x66, 0x4c, 0x61, 0x43}
 
 audio_file_format file_format(std::span<const std::uint8_t> data) noexcept
 {
+    if(std::size(data) < 4)
+    {
+        return audio_file_format::unknown;
+    }
+
     const auto header_data{data.subspan(0, 4)};
 
     if(std::equal(std::begin(header_data), std::end(header_data), std::begin(wave_header), std::end(wave_header)))
@@ -61,11 +66,7 @@ audio_file_format file_format(std::istream& stream)
     if(!stream.read(reinterpret_cast<char*>(std::data(header_data)), std::size(header_data)))
         throw std::runtime_error{"Can not detect audio file format from stream."};
 
-    stream.seekg(0, std::ios_base::beg);
-    const auto output{file_format(header_data)};
-    stream.seekg(0, std::ios_base::beg);
-
-    return output;
+    return file_format(header_data);
 }
 
 audio_file_format file_format(const std::filesystem::path& file)

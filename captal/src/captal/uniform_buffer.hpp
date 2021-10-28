@@ -69,6 +69,7 @@ private:
 
 public:
     uniform_buffer() = default;
+    explicit uniform_buffer(const buffer_part& part);
     explicit uniform_buffer(std::span<const buffer_part> parts);
 
     ~uniform_buffer() = default;

@@ -52,7 +52,7 @@ set(CAPTAL_SOURCES
     src/captal/components/attachment.hpp
     src/captal/components/drawable.hpp
     src/captal/components/camera.hpp
-    src/captal/components/audio_emiter.hpp
+    src/captal/components/audio_emitter.hpp
 
     src/captal/systems/frame.hpp
     src/captal/systems/sorting.hpp
@@ -165,6 +165,10 @@ if(CAPTAL_BUILD_CAPTAL_EXAMPLES)
     add_executable(captal_example main.cpp)
     target_link_libraries(captal_example PRIVATE captal captal_sansation)
     target_include_directories(captal_example PRIVATE ${GLOBAL_INCLUDES})
+
+    add_executable(captal_example_easy example_easy.cpp)
+    target_link_libraries(captal_example_easy PRIVATE captal captal_sansation)
+    target_include_directories(captal_example_easy PRIVATE ${GLOBAL_INCLUDES})
 
     add_executable(captal_text text.cpp)
     target_link_libraries(captal_text PRIVATE captal captal_sansation)

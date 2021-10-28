@@ -420,7 +420,7 @@ void copy(command_buffer& command_buffer, texture& source, buffer& destination, 
     native_region.imageExtent.depth = region.texture_size.depth;
 
     vkCmdCopyImageToBuffer(underlying_cast<VkCommandBuffer>(command_buffer),
-                           underlying_cast<VkImage>(source), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                           underlying_cast<VkImage>(source), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                            underlying_cast<VkBuffer>(destination),
                            1, &native_region);
 }
@@ -459,7 +459,7 @@ void copy(command_buffer& command_buffer, texture& source, buffer& destination, 
     }
 
     vkCmdCopyImageToBuffer(underlying_cast<VkCommandBuffer>(command_buffer),
-                           underlying_cast<VkImage>(source), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                           underlying_cast<VkImage>(source), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                            underlying_cast<VkBuffer>(destination),
                            static_cast<std::uint32_t>(std::size(native_regions)), std::data(native_regions));
 }
@@ -490,7 +490,7 @@ void copy(command_buffer& command_buffer, texture& source, image& destination, c
     native_region.imageExtent.depth = region.texture_size.depth;
 
     vkCmdCopyImageToBuffer(underlying_cast<VkCommandBuffer>(command_buffer),
-                           underlying_cast<VkImage>(source), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                           underlying_cast<VkImage>(source), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                            underlying_cast<VkBuffer>(destination),
                            1, &native_region);
 }
@@ -528,7 +528,7 @@ void copy(command_buffer& command_buffer, texture& source, image& destination, s
     }
 
     vkCmdCopyImageToBuffer(underlying_cast<VkCommandBuffer>(command_buffer),
-                           underlying_cast<VkImage>(source), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                           underlying_cast<VkImage>(source), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                            underlying_cast<VkBuffer>(destination),
                            static_cast<std::uint32_t>(std::size(native_regions)), std::data(native_regions));
 }
