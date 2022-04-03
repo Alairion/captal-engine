@@ -2,10 +2,11 @@ cmake_minimum_required(VERSION 3.15.7)
 
 project(swell VERSION 0.1.0)
 
-include(cmake/buildportaudio.cmake)
-include(cmake/buildogg.cmake)
-include(cmake/buildvorbis.cmake)
-include(cmake/buildflac.cmake)
+find_package(NotEnoughStandards REQUIRED)
+find_package(portaudio REQUIRED)
+find_package(Ogg REQUIRED)
+find_package(Vorbis REQUIRED)
+find_package(FLAC REQUIRED)
 
 set(SWELL_SOURCES
     #Headers
@@ -45,8 +46,6 @@ endif()
 set_target_properties(swell PROPERTIES PREFIX "")
 
 target_compile_definitions(swell
-    PRIVATE
-        OV_EXCLUDE_STATIC_CALLBACKS
     PUBLIC
         SWELL_MAJOR_VERSION=${PROJECT_VERSION_MAJOR}
         SWELL_MINOR_VERSION=${PROJECT_VERSION_MINOR}
@@ -57,17 +56,18 @@ target_include_directories(swell
     SYSTEM PRIVATE
         ${PORTAUDIO_INCLUDES}
     INTERFACE
-        ${PROJECT_SOURCE_DIR}/src
+        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src>
+        $<INSTALL_INTERFACE:include>
 )
 
 target_link_libraries(swell
     PRIVATE
         portaudio_static
-        vorbisfile
-        FLAC
+        Vorbis::vorbisfile
+        FLAC::FLAC
     PUBLIC
         captal_foundation
-        not_enough_standards
+        NotEnoughStandards::NotEnoughStandards
 )
 
 if(WIN32)

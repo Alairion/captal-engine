@@ -4,7 +4,7 @@ option(CAPTAL_SUPERBUILD_EXCLUDE_FLAC "Does not build Flac as a part of the supe
 
 if(NOT CAPTAL_SUPERBUILD_EXCLUDE_FLAC)
     set(CAPTAL_SUPERBUILD_FLAC_GIT_URL "https://github.com/xiph/flac.git" CACHE STRING "Used url for Flac git clone (allow usage of mirrors or interal repo)")
-    set(CAPTAL_SUPERBUILD_FLAC_GIT_TAG "v1.3.5" CACHE STRING "Used tag for Flac git clone")
+    set(CAPTAL_SUPERBUILD_FLAC_GIT_TAG "1.3.4" CACHE STRING "Used tag for Flac git clone")
 
     mark_as_advanced(CAPTAL_SUPERBUILD_FLAC_GIT_URL)
     mark_as_advanced(CAPTAL_SUPERBUILD_FLAC_GIT_TAG)
@@ -19,12 +19,9 @@ if(NOT CAPTAL_SUPERBUILD_EXCLUDE_FLAC)
             "-Wno-dev"
 
             "-DINSTALL_CMAKE_CONFIG_MODULE=ON"
-            "-DINSTALL_PKG_CONFIG_MODULE=OFF"
-            "-DINSTALL_DOCS=OFF"
             "-DBUILD_TESTING=OFF"
             "-DBUILD_EXAMPLES=OFF"
             "-DBUILD_PROGRAMS=OFF"
-            "-DBUILD_FRAMEWORK=OFF"
             "-DBUILD_SHARED_LIBS=OFF"
             "-DBUILD_CXXLIBS=OFF"
             "-DBUILD_DOCS=OFF"
@@ -41,5 +38,6 @@ if(NOT CAPTAL_SUPERBUILD_EXCLUDE_FLAC)
             "-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=${CMAKE_INTERPROCEDURAL_OPTIMIZATION}"
     )
 
-    list(APPEND CMAKE_ADDITIONAL_ARGS "-DFLAC_DIR=${CMAKE_BINARY_DIR}/dependencies/flac/install/lib/cmake/flac")
+    list(APPEND CMAKE_ADDITIONAL_ARGS "-DFLAC_DIR=${CMAKE_BINARY_DIR}/dependencies/flac/install/share/FLAC/cmake")
+    list(APPEND DEPENDENCIES "Flac")
 endif()

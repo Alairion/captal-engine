@@ -10,14 +10,14 @@ target_include_directories(captal_foundation INTERFACE
 )
 
 target_sources(captal_foundation INTERFACE
-    ${PROJECT_SOURCE_DIR}/src/captal_foundation/base.hpp
-    ${PROJECT_SOURCE_DIR}/src/captal_foundation/encoding.hpp
-    ${PROJECT_SOURCE_DIR}/src/captal_foundation/enum_operations.hpp
-    ${PROJECT_SOURCE_DIR}/src/captal_foundation/optional_ref.hpp
-    ${PROJECT_SOURCE_DIR}/src/captal_foundation/stack_allocator.hpp
-    ${PROJECT_SOURCE_DIR}/src/captal_foundation/utility.hpp
-    ${PROJECT_SOURCE_DIR}/src/captal_foundation/math.hpp
-    ${PROJECT_SOURCE_DIR}/src/captal_foundation/version.hpp
+    "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src>$<INSTALL_INTERFACE:include>/captal_foundation/base.hpp"
+    "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src>$<INSTALL_INTERFACE:include>/captal_foundation/encoding.hpp"
+    "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src>$<INSTALL_INTERFACE:include>/captal_foundation/enum_operations.hpp"
+    "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src>$<INSTALL_INTERFACE:include>/captal_foundation/optional_ref.hpp"
+    "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src>$<INSTALL_INTERFACE:include>/captal_foundation/stack_allocator.hpp"
+    "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src>$<INSTALL_INTERFACE:include>/captal_foundation/utility.hpp"
+    "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src>$<INSTALL_INTERFACE:include>/captal_foundation/math.hpp"
+    "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src>$<INSTALL_INTERFACE:include>/captal_foundation/version.hpp"
 )
 
 if(CAPTAL_BUILD_FOUNDATION_TESTS)
@@ -26,10 +26,10 @@ if(CAPTAL_BUILD_FOUNDATION_TESTS)
 endif()
 
 install(TARGETS captal_foundation
-        INCLUDES DESTINATION ${PROJECT_SOURCE_DIR}/include)
+        INCLUDES DESTINATION ${PROJECT_SOURCE_DIR}/src)
 
 install(DIRECTORY ${PROJECT_SOURCE_DIR}/src/captal_foundation
-        DESTINATION ${PROJECT_SOURCE_DIR}/include
+        DESTINATION ${PROJECT_SOURCE_DIR}/src
         FILES_MATCHING PATTERN *.hpp)
 
 

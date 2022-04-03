@@ -47,6 +47,9 @@ endif()
 set(DEPENDENCIES)
 set(CMAKE_ADDITIONAL_ARGS)
 
+# Shared dependencies
+include(cmake/superbuild_not_enough_standards.cmake)
+
 if(CAPTAL_BUILD_APYRE)
     include(cmake/superbuild_sdl2.cmake)
 endif()
@@ -60,12 +63,19 @@ if(CAPTAL_BUILD_SWELL)
     include(cmake/superbuild_flac.cmake)
 endif()
 
+if(CAPTAL_BUILD_CAPTAL)
+
+endif()
+
+message(STATUS "Additional parameters: ${CMAKE_ADDITIONAL_ARGS}")
+
 ExternalProject_Add(Captal
     DEPENDS ${DEPENDENCIES}
     SOURCE_DIR ${PROJECT_SOURCE_DIR}
     CMAKE_ARGS
        "-DCAPTAL_SUPERBUILD=OFF"
        "-DCAPTAL_BUILD_APYRE=${CAPTAL_BUILD_APYRE}"
+       "-DCAPTAL_BUILD_TEPHRA=${CAPTAL_BUILD_TEPHRA}"
        "-DCAPTAL_BUILD_SWELL=${CAPTAL_BUILD_SWELL}"
        ${CMAKE_ADDITIONAL_ARGS})
 

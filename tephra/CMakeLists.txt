@@ -11,7 +11,7 @@ option(TEPHRA_USE_PLATFORM_XCB "If on, enable the Linux XCB surface extension" O
 option(TEPHRA_USE_PLATFORM_WAYLAND "If on, enable the Linux Wayland surface extension" OFF)
 
 find_package(Vulkan REQUIRED)
-captal_download_submodule(tephra/external/stb FALSE)
+find_package(NotEnoughStandards REQUIRED)
 
 set(TEPHRA_SOURCES
     #Headers:
@@ -84,10 +84,9 @@ target_compile_definitions(tephra
 )
 
 target_link_libraries(tephra
-    PRIVATE
-        not_enough_standards
     PUBLIC
         captal_foundation
+        NotEnoughStandards::NotEnoughStandards
 )
 
 target_compile_definitions(tephra
@@ -111,11 +110,12 @@ target_compile_definitions(tephra
 
 target_include_directories(tephra
     SYSTEM PRIVATE
-        ${PROJECT_SOURCE_DIR}/external/stb
+        ${PROJECT_SOURCE_DIR}/src/tephra/stb
     PUBLIC
         ${Vulkan_INCLUDE_DIRS}
     INTERFACE
-        ${PROJECT_SOURCE_DIR}/src
+        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src>
+        $<INSTALL_INTERFACE:include>
 )
 
 if(WIN32)

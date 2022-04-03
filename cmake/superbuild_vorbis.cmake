@@ -15,6 +15,7 @@ if(NOT CAPTAL_SUPERBUILD_EXCLUDE_VORBIS)
         GIT_SHALLOW    TRUE
         GIT_PROGRESS   TRUE
         PREFIX         "${CMAKE_BINARY_DIR}/dependencies/vorbis"
+        DEPENDS Ogg
         CMAKE_ARGS
             "-Wno-dev"
 
@@ -24,6 +25,7 @@ if(NOT CAPTAL_SUPERBUILD_EXCLUDE_VORBIS)
             "-DBUILD_TESTING=OFF"
             "-DBUILD_FRAMEWORK=OFF"
             "-DBUILD_SHARED_LIBS=OFF"
+            "-DOGG_ROOT=${CMAKE_BINARY_DIR}/dependencies/ogg/install"
 
             "-DCMAKE_C_FLAGS=${EXTERNAL_FLAGS}"
             "-DCMAKE_C_FLAGS_DEBUG=${EXTERNAL_FLAGS_DEBUG}"
@@ -31,10 +33,10 @@ if(NOT CAPTAL_SUPERBUILD_EXCLUDE_VORBIS)
             "-DCMAKE_C_FLAGS_RELEASE=${EXTERNAL_FLAGS_RELEASE}"
             "-DCMAKE_C_FLAGS_MINSIZEREL=${EXTERNAL_FLAGS_MINSIZEREL}"
 
-            "-DCMAKE_PREFIX_PATH=${CMAKE_BINARY_DIR}/dependencies/ogg/install/lib/cmake/Ogg"
             "-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/dependencies/vorbis/install"
             "-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=${CMAKE_INTERPROCEDURAL_OPTIMIZATION}"
     )
 
-    list(APPEND CMAKE_ADDITIONAL_ARGS "-DVORBIS_DIR=${CMAKE_BINARY_DIR}/dependencies/vorbis/install/lib/cmake/vorbis")
+    list(APPEND CMAKE_ADDITIONAL_ARGS "-DVorbis_DIR=${CMAKE_BINARY_DIR}/dependencies/vorbis/install/lib/cmake/vorbis")
+    list(APPEND DEPENDENCIES "Vorbis")
 endif()

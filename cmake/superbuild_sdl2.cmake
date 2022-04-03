@@ -58,4 +58,5 @@ if(NOT CAPTAL_SUPERBUILD_EXCLUDE_SDL2)
     )
 
     list(APPEND CMAKE_ADDITIONAL_ARGS "-DSDL2_DIR=${CMAKE_BINARY_DIR}/dependencies/sdl/install/lib/cmake/SDL2")
+    list(APPEND DEPENDENCIES "SDL2")
 endif()

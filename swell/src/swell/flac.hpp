@@ -27,6 +27,7 @@
 
 #include <fstream>
 #include <filesystem>
+#include <optional>
 #include <span>
 
 #include "sound_reader.hpp"

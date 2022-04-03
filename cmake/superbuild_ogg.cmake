@@ -35,5 +35,6 @@ if(NOT CAPTAL_SUPERBUILD_EXCLUDE_OGG)
             "-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=${CMAKE_INTERPROCEDURAL_OPTIMIZATION}"
     )
 
-    list(APPEND CMAKE_ADDITIONAL_ARGS "-DOGG_DIR=${CMAKE_BINARY_DIR}/dependencies/ogg/install/lib/cmake/Ogg")
+    list(APPEND CMAKE_ADDITIONAL_ARGS "-DOgg_DIR=${CMAKE_BINARY_DIR}/dependencies/ogg/install/lib/cmake/Ogg")
+    list(APPEND DEPENDENCIES "Ogg")
 endif()
