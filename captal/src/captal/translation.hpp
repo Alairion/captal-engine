@@ -33,6 +33,7 @@
 #include <numeric>
 #include <variant>
 #include <span>
+#include <vector>
 
 #include <captal_foundation/encoding.hpp>
 

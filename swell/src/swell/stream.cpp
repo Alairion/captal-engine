@@ -24,6 +24,7 @@
 
 #include <stdexcept>
 #include <iostream>
+#include <utility>
 
 #include <portaudio.h>
 

@@ -24,6 +24,7 @@
 
 #include <algorithm>
 #include <stdexcept>
+#include <utility>
 
 #include <SDL.h>
 #include <SDL_syswm.h>

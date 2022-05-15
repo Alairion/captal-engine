@@ -29,6 +29,7 @@
 #include <span>
 #include <exception>
 #include <algorithm>
+#include <utility>
 
 #include <vulkan/vulkan_core.h>
 

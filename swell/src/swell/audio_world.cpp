@@ -24,6 +24,7 @@
 
 #include <cassert>
 #include <numbers>
+#include <utility>
 
 namespace swl
 {

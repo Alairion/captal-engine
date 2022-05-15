@@ -29,6 +29,7 @@
 #include <filesystem>
 #include <span>
 #include <variant>
+#include <vector>
 
 #include "sound_reader.hpp"
 

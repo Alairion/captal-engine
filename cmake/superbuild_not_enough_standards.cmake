@@ -4,7 +4,7 @@ option(CAPTAL_SUPERBUILD_EXCLUDE_NOT_ENOUGH_STANDARDS "Does not build Not Enough
 
 if(NOT CAPTAL_SUPERBUILD_EXCLUDE_NOT_ENOUGH_STANDARDS)
     set(CAPTAL_SUPERBUILD_NOT_ENOUGH_STANDARDS_GIT_URL "https://github.com/Alairion/not-enough-standards.git" CACHE STRING "Used url for Not Enough Standards git clone (allow usage of mirrors or interal repo)")
-    set(CAPTAL_SUPERBUILD_NOT_ENOUGH_STANDARDS_GIT_TAG "v1.0.2" CACHE STRING "Used tag for NES git clone")
+    set(CAPTAL_SUPERBUILD_NOT_ENOUGH_STANDARDS_GIT_TAG "v1.0.3" CACHE STRING "Used tag for NES git clone")
 
     mark_as_advanced(CAPTAL_SUPERBUILD_NOT_ENOUGH_STANDARDS_GIT_URL)
     mark_as_advanced(CAPTAL_SUPERBUILD_NOT_ENOUGH_STANDARDS_GIT_TAG)

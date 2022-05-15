@@ -23,6 +23,7 @@
 #include "wave.hpp"
 
 #include <cassert>
+#include <algorithm>
 
 #include <captal_foundation/stack_allocator.hpp>
 

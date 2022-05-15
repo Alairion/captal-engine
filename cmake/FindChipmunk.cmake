@@ -5,6 +5,7 @@ find_library(CHIPMUNK_LIBS
         chipmunk
     PATH_SUFFIXES
         lib
+        OFF
     PATHS
         ${Chipmunk_DIR}
 )
