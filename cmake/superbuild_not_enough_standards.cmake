@@ -17,9 +17,11 @@ if(NOT CAPTAL_SUPERBUILD_EXCLUDE_NOT_ENOUGH_STANDARDS)
         PREFIX         "${CMAKE_BINARY_DIR}/dependencies/NotEnoughStandards"
         CMAKE_ARGS
             "-Wno-dev"
-            "-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/dependencies/NotEnoughStandards/install"
+
+            "-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/dependencies/nes/install"
+            "-DCMAKE_INSTALL_MESSAGE=LAZY"
     )
 
-    list(APPEND CMAKE_ADDITIONAL_ARGS "-DNotEnoughStandards_DIR=${CMAKE_BINARY_DIR}/dependencies/NotEnoughStandards/install/lib/cmake/NotEnoughStandards")
+    list(APPEND ADDITIONAL_CMAKE_ARGS "-DNotEnoughStandards_DIR=${CMAKE_BINARY_DIR}/dependencies/nes/install/lib/cmake/NotEnoughStandards")
     list(APPEND DEPENDENCIES "NotEnoughStandards")
 endif()

@@ -11,7 +11,6 @@ option(TEPHRA_USE_PLATFORM_XCB "If on, enable the Linux XCB surface extension" O
 option(TEPHRA_USE_PLATFORM_WAYLAND "If on, enable the Linux Wayland surface extension" OFF)
 
 find_package(Vulkan REQUIRED)
-find_package(NotEnoughStandards REQUIRED)
 
 set(TEPHRA_SOURCES
     #Headers:

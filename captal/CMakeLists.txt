@@ -2,12 +2,19 @@ cmake_minimum_required(VERSION 3.15.7)
 
 project(captal VERSION 0.1.0)
 
-include(cmake/buildchipmunk.cmake)
-include(cmake/buildfreetype.cmake)
-include(cmake/buildzlib.cmake)
-captal_download_submodule(captal/external/entt TRUE)
-captal_download_submodule(captal/external/sigslots TRUE)
-captal_download_submodule(captal/external/fastfloat TRUE)
+find_package(ZLIB REQUIRED)
+
+if(CAPTAL_INTERNAL_FREETYPE)
+    find_package(Freetype REQUIRED NO_DEFAULT_PATH)
+else()
+    find_package(Freetype REQUIRED)
+endif()
+
+find_package(Chipmunk REQUIRED)
+find_package(EnTT REQUIRED)
+find_package(PalSigslot REQUIRED)
+find_package(FastFloat REQUIRED)
+find_package(pugixml REQUIRED)
 
 set(CAPTAL_SOURCES
     #Headers:
@@ -43,6 +50,7 @@ set(CAPTAL_SOURCES
     src/captal/tiled_map.hpp
     src/captal/physics.hpp
     src/captal/widgets.hpp
+    src/captal/signal.hpp
 
     src/captal/components/node.hpp
     src/captal/components/draw_index.hpp
@@ -59,11 +67,6 @@ set(CAPTAL_SOURCES
     src/captal/systems/audio.hpp
     src/captal/systems/render.hpp
     src/captal/systems/physics.hpp
-
-    src/captal/signal.hpp
-
-    src/captal/external/pugixml.hpp
-    src/captal/external/pugiconfig.hpp
 
     #Sources:
     src/captal/application.cpp
@@ -90,8 +93,6 @@ set(CAPTAL_SOURCES
     src/captal/tiled_map.cpp
     src/captal/physics.cpp
     src/captal/widgets.cpp
-
-    src/captal/external/pugixml.cpp
 )
 
 if(CAPTAL_BUILD_CAPTAL_STATIC)
@@ -120,15 +121,9 @@ target_compile_definitions(captal
 )
 
 target_include_directories(captal
-    SYSTEM PRIVATE
-        ${PROJECT_SOURCE_DIR}/external/chipmunk/include
     INTERFACE
         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src>
         $<INSTALL_INTERFACE:include>
-    PUBLIC
-        ${PROJECT_SOURCE_DIR}/external/entt/src
-        ${PROJECT_SOURCE_DIR}/external/sigslots/include
-        ${PROJECT_SOURCE_DIR}/external/fastfloat/include
 )
 
 target_link_libraries(captal
@@ -136,11 +131,15 @@ target_link_libraries(captal
         tephra
         swell
         apyre
+        EnTT::EnTT
+        Pal::Sigslot
     PRIVATE
         freetype
-        chipmunk_static
-        zlib
-        not_enough_standards
+        chipmunk::chipmunk_static
+        ZLIB::ZLIB
+        pugixml::pugixml
+        FastFloat::fast_float
+        NotEnoughStandards::NotEnoughStandards
 )
 
 install(TARGETS captal

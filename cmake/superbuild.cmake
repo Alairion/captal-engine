@@ -32,7 +32,7 @@ macro(external_flags_msvc)
     set(EXTERNAL_FLAGS_MINSIZEREL     ${MSVC_FLAGS_MINSIZEREL})
 endmacro()
 
-if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+if(CMAKE_C_COMPILER_ID STREQUAL "Clang")
     if(CMAKE_C_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
         external_flags_msvc()
     elseif(CMAKE_C_COMPILER_FRONTEND_VARIANT STREQUAL "GNU")
@@ -47,20 +47,15 @@ endif()
 set(DEPENDENCIES)
 set(ADDITIONAL_CMAKE_ARGS)
 
-include(cmake/superbuild_nes.cmake)
-
 # Shared dependencies
 include(cmake/superbuild_not_enough_standards.cmake)
 
 if(CAPTAL_BUILD_APYRE)
     include(cmake/superbuild_sdl2.cmake)
-
-    list(APPEND ADDITIONAL_CMAKE_ARGS "-DCAPTAL_BUILD_APYRE=ON")
 endif()
 
 if(CAPTAL_BUILD_TEPHRA)
     # Tephra has no dependency
-    list(APPEND ADDITIONAL_CMAKE_ARGS "-DCAPTAL_BUILD_TEPHRA=ON")
 endif()
 
 if(CAPTAL_BUILD_SWELL)
@@ -68,19 +63,22 @@ if(CAPTAL_BUILD_SWELL)
     include(cmake/superbuild_ogg.cmake)
     include(cmake/superbuild_vorbis.cmake)
     include(cmake/superbuild_flac.cmake)
-
-    list(APPEND ADDITIONAL_CMAKE_ARGS "-DCAPTAL_BUILD_SWELL=ON")
 endif()
 
 if(CAPTAL_BUILD_CAPTAL)
-
+    include(cmake/superbuild_zlib.cmake)
+    include(cmake/superbuild_freetype.cmake)
+    include(cmake/superbuild_chipmunk.cmake)
+    include(cmake/superbuild_pugixml.cmake)
+    include(cmake/superbuild_sigslot.cmake)
+    include(cmake/superbuild_fastfloat.cmake)
+    include(cmake/superbuild_entt.cmake)
 endif()
 
-if(CAPTAL_BUILD_CAPTAL)
-
-endif()
-
-message(STATUS "Additional parameters: ${CMAKE_ADDITIONAL_ARGS}")
+message(STATUS "Additional parameters: ")
+foreach(param ${ADDITIONAL_CMAKE_ARGS})
+    message(STATUS ${param})
+endforeach()
 
 ExternalProject_Add(Captal
     DEPENDS ${DEPENDENCIES}
@@ -106,5 +104,6 @@ ExternalProject_Add(Captal
        "-DCAPTAL_BUILD_CAPTAL_STATIC=${CAPTAL_BUILD_CAPTAL_STATIC}"
        "-DCAPTAL_BUILD_CAPTAL_EXAMPLES=${CAPTAL_BUILD_CAPTAL_EXAMPLES}"
        "-DCAPTAL_BUILD_CAPTAL_TESTS=${CAPTAL_BUILD_CAPTAL_TESTS}"
-       ${ADDITIONAL_CMAKE_ARGS})
+       ${ADDITIONAL_CMAKE_ARGS}
+   )
 

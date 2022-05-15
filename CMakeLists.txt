@@ -62,15 +62,16 @@ if(CAPTAL_SUPERBUILD)
     return()
 endif()
 
-include(cmake/download_submodule.cmake)
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake)
 
 if(CAPTAL_BUILD_FOUNDATION_TESTS OR CAPTAL_BUILD_APYRE_TESTS OR CAPTAL_BUILD_TEPHRA_TESTS OR CAPTAL_BUILD_SWELL_TESTS OR CAPTAL_BUILD_CAPTAL_TESTS)
+    include(cmake/download_submodule.cmake)
     include(cmake/buildcatch.cmake)
 endif()
 
-include(cmake/buildnes.cmake)
-
 set(TO_EXPORT "")
+
+find_package(NotEnoughStandards REQUIRED)
 
 add_subdirectory(captal_foundation)
 

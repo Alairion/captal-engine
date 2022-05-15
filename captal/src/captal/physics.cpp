@@ -26,7 +26,7 @@
 
 #include <captal_foundation/stack_allocator.hpp>
 
-#include <chipmunk/chipmunk.h>
+#include <chipmunk.h>
 
 namespace cpt
 {

@@ -40,7 +40,7 @@ if(CAPTAL_BUILD_SWELL_STATIC)
 else()
     add_library(swell SHARED ${SWELL_SOURCES})
     target_compile_definitions(swell PUBLIC SWELL_SHARED_BUILD)
-    set(TO_EXPORT ${TO_EXPORT} swell not_enough_standards PARENT_SCOPE)
+    set(TO_EXPORT ${TO_EXPORT} swell PARENT_SCOPE)
 endif()
 
 set_target_properties(swell PROPERTIES PREFIX "")
