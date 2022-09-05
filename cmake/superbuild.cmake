@@ -4,6 +4,8 @@ include(ExternalProject)
 # We disable warnings for CMake, C and C++.
 # We always use optimisation for the C libraries even in debug (but low opti level). In release we use speed optimisation.
 
+# TODO: Pass down compiler flags and build type ?
+
 set(GNU_FLAGS                "-DNDEBUG -w")
 set(GNU_FLAGS_DEBUG          "-Og -g")
 set(GNU_FLAGS_RELWITHDEBINFO "-O2 -g")
