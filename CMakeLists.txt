@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.18)
+cmake_minimum_required(VERSION 3.21.0)
 
 project(captal_engine VERSION 0.1.0
                       DESCRIPTION "Captal Game Engine")
@@ -69,37 +69,61 @@ if(CAPTAL_BUILD_FOUNDATION_TESTS OR CAPTAL_BUILD_APYRE_TESTS OR CAPTAL_BUILD_TEP
     include(cmake/buildcatch.cmake)
 endif()
 
-set(TO_EXPORT "")
 
 find_package(NotEnoughStandards REQUIRED)
 
 add_subdirectory(captal_foundation)
+set(TO_EXPORT CaptalFoundation)
 
 if(CAPTAL_BUILD_APYRE)
     add_subdirectory(apyre)
+    list(APPEND TO_EXPORT Apyre)
 endif()
 
 if(CAPTAL_BUILD_TEPHRA)
     add_subdirectory(tephra)
+    list(APPEND TO_EXPORT Tephra)
 endif()
 
 if(CAPTAL_BUILD_SWELL)
     add_subdirectory(swell)
+    list(APPEND TO_EXPORT Swell)
 endif()
 
 if(CAPTAL_BUILD_CAPTAL)
     add_subdirectory(captal)
+    list(APPEND TO_EXPORT Captal)
 endif()
 
-list(REMOVE_DUPLICATES TO_EXPORT)
-message("Exporting: ${TO_EXPORT}")
+include(CMakePackageConfigHelpers)
 
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    export(TARGETS captal_foundation ${TO_EXPORT}
-           NAMESPACE captal::
-           FILE ${PROJECT_SOURCE_DIR}/captal_debug.cmake)
-else()
-    export(TARGETS captal_foundation ${TO_EXPORT}
-           NAMESPACE captal::
-           FILE ${PROJECT_SOURCE_DIR}/captal_release.cmake)
-endif()
+configure_package_config_file(
+    ${PROJECT_SOURCE_DIR}/cmake/CaptalConfig.cmake.in
+    ${PROJECT_BINARY_DIR}/CaptalConfig.cmake
+    INSTALL_DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/cmake
+)
+
+write_basic_package_version_file(
+    ${PROJECT_BINARY_DIR}/CaptalConfigVersion.cmake
+    VERSION ${PROJECT_VERSION}
+    COMPATIBILITY SameMajorVersion
+)
+
+install(TARGETS ${TO_EXPORT}
+        EXPORT CaptalTargets
+        ARCHIVE DESTINATION "lib/${CMAKE_BUILD_TYPE}"
+        RUNTIME DESTINATION "bin/${CMAKE_BUILD_TYPE}"
+        LIBRARY DESTINATION "bin/${CMAKE_BUILD_TYPE}"
+        FRAMEWORK DESTINATION "lib/${CMAKE_BUILD_TYPE}"
+        COMPONENT library)
+
+install(EXPORT CaptalTargets
+        DESTINATION lib/cmake/captal
+        NAMESPACE Captal::)
+
+install(FILES
+        ${PROJECT_BINARY_DIR}/CaptalConfig.cmake
+        ${PROJECT_BINARY_DIR}/CaptalConfigVersion.cmake
+        DESTINATION lib/cmake/captal)
+
+export(PACKAGE Captal)

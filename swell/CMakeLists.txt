@@ -1,6 +1,6 @@
-cmake_minimum_required(VERSION 3.15.7)
+cmake_minimum_required(VERSION 3.21.0)
 
-project(swell VERSION 0.1.0)
+project(Swell VERSION 0.1.0)
 
 find_package(NotEnoughStandards REQUIRED)
 find_package(portaudio REQUIRED)
@@ -34,25 +34,23 @@ set(SWELL_SOURCES
 )
 
 if(CAPTAL_BUILD_SWELL_STATIC)
-    add_library(swell STATIC ${SWELL_SOURCES})
-    target_compile_definitions(swell PUBLIC SWELL_STATIC_BUILD)
-    set(TO_EXPORT ${TO_EXPORT} swell portaudio_static vorbisfile vorbis ogg not_enough_standards PARENT_SCOPE)
+    add_library(Swell STATIC ${SWELL_SOURCES})
+    target_compile_definitions(Swell PUBLIC SWELL_STATIC_BUILD)
 else()
-    add_library(swell SHARED ${SWELL_SOURCES})
-    target_compile_definitions(swell PUBLIC SWELL_SHARED_BUILD)
-    set(TO_EXPORT ${TO_EXPORT} swell PARENT_SCOPE)
+    add_library(Swell SHARED ${SWELL_SOURCES})
+    target_compile_definitions(Swell PUBLIC SWELL_SHARED_BUILD)
 endif()
 
-set_target_properties(swell PROPERTIES PREFIX "")
+set_target_properties(Swell PROPERTIES PREFIX "" OUTPUT_NAME "swell")
 
-target_compile_definitions(swell
+target_compile_definitions(Swell
     PUBLIC
         SWELL_MAJOR_VERSION=${PROJECT_VERSION_MAJOR}
         SWELL_MINOR_VERSION=${PROJECT_VERSION_MINOR}
         SWELL_PATCH_VERSION=${PROJECT_VERSION_PATCH}
 )
 
-target_include_directories(swell
+target_include_directories(Swell
     SYSTEM PRIVATE
         ${PORTAUDIO_INCLUDES}
     INTERFACE
@@ -60,38 +58,26 @@ target_include_directories(swell
         $<INSTALL_INTERFACE:include>
 )
 
-target_link_libraries(swell
+target_link_libraries(Swell
     PRIVATE
         portaudio_static
         Vorbis::vorbisfile
         FLAC::FLAC
     PUBLIC
-        captal_foundation
+        CaptalFoundation
         NotEnoughStandards::NotEnoughStandards
 )
 
 if(WIN32)
-    target_sources(swell PRIVATE src/swell/resources.rc)
-    target_compile_definitions(swell PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+    target_sources(Swell PRIVATE src/swell/resources.rc)
+    target_compile_definitions(Swell PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
 endif()
 
 if(CAPTAL_BUILD_SWELL_EXAMPLES)
-    add_executable(swell_test "main.cpp")
-    target_link_libraries(swell_test swell)
+    add_executable(SwellTest "main.cpp")
+    target_link_libraries(SwellTest Swell)
 endif()
 
-install(TARGETS swell
-        CONFIGURATIONS Debug
-        RUNTIME DESTINATION "${PROJECT_SOURCE_DIR}/../libs/debug"
-        ARCHIVE DESTINATION "${PROJECT_SOURCE_DIR}/../libs/debug"
-        COMPONENT library)
-
-install(TARGETS swell
-        CONFIGURATIONS Release
-        RUNTIME DESTINATION "${PROJECT_SOURCE_DIR}/../libs/release"
-        ARCHIVE DESTINATION "${PROJECT_SOURCE_DIR}/../libs/release"
-        COMPONENT library)
-
 install(DIRECTORY ${PROJECT_SOURCE_DIR}/src/swell
-        DESTINATION ${PROJECT_SOURCE_DIR}/include
+        DESTINATION include
         FILES_MATCHING PATTERN *.hpp)

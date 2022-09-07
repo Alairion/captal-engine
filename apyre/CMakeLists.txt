@@ -1,6 +1,6 @@
-cmake_minimum_required(VERSION 3.15.7)
+﻿cmake_minimum_required(VERSION 3.21.0)
 
-project(apyre VERSION 0.1.0)
+project(Apyre VERSION 0.1.0)
 
 find_package(SDL2 REQUIRED)
 
@@ -25,61 +25,47 @@ set(APYRE_SOURCES
 )
 
 if(CAPTAL_BUILD_APYRE_STATIC)
-    add_library(apyre STATIC ${APYRE_SOURCES})
-    target_compile_definitions(apyre PUBLIC APYRE_STATIC_BUILD)
-    set(TO_EXPORT ${TO_EXPORT} apyre sdl-build-options SDL2main SDL2-static PARENT_SCOPE)
+    add_library(Apyre STATIC ${APYRE_SOURCES})
+    target_compile_definitions(Apyre PUBLIC APYRE_STATIC_BUILD)
 else()
-    add_library(apyre SHARED ${APYRE_SOURCES})
-    target_compile_definitions(apyre PUBLIC APYRE_SHARED_BUILD)
-    set(TO_EXPORT ${TO_EXPORT} apyre PARENT_SCOPE)
+    add_library(Apyre SHARED ${APYRE_SOURCES})
+    target_compile_definitions(Apyre PUBLIC APYRE_SHARED_BUILD)
 endif()
 
-set_target_properties(apyre PROPERTIES PREFIX "")
+set_target_properties(Apyre PROPERTIES PREFIX "" OUTPUT_NAME "apyre")
 
-target_compile_definitions(apyre
+target_compile_definitions(Apyre
     PUBLIC
         APYRE_MAJOR_VERSION=${PROJECT_VERSION_MAJOR}
         APYRE_MINOR_VERSION=${PROJECT_VERSION_MINOR}
         APYRE_PATCH_VERSION=${PROJECT_VERSION_PATCH}
 )
 
-target_include_directories(apyre
+target_include_directories(Apyre
     INTERFACE
         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src>
-        $<INSTALL_INTERFACE:include>
+        $<INSTALL_INTERFACE:include/apyre>
 )
 
-target_link_libraries(apyre
+target_link_libraries(Apyre
     PRIVATE
         SDL2::SDL2main
         SDL2::SDL2-static
     PUBLIC
-        captal_foundation
+        CaptalFoundation
 )
 
 if(WIN32)
-    target_sources(apyre PRIVATE src/apyre/resources.rc)
-    target_link_libraries(apyre PRIVATE dwmapi)
-    target_compile_definitions(apyre PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+    target_sources(Apyre PRIVATE src/apyre/resources.rc)
+    target_link_libraries(Apyre PRIVATE dwmapi)
+    target_compile_definitions(Apyre PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
 endif()
 
 if(CAPTAL_BUILD_APYRE_EXAMPLES)
-    add_executable(apyre_test "main.cpp")
-    target_link_libraries(apyre_test PRIVATE apyre)
+    add_executable(ApyreTest "main.cpp")
+    target_link_libraries(ApyreTest PRIVATE Apyre)
 endif()
 
-install(TARGETS apyre
-        CONFIGURATIONS Debug
-        RUNTIME DESTINATION "${PROJECT_SOURCE_DIR}/../libs/debug"
-        ARCHIVE DESTINATION "${PROJECT_SOURCE_DIR}/../libs/debug"
-        COMPONENT library)
-
-install(TARGETS apyre
-        CONFIGURATIONS Release
-        RUNTIME DESTINATION "${PROJECT_SOURCE_DIR}/../libs/release"
-        ARCHIVE DESTINATION "${PROJECT_SOURCE_DIR}/../libs/release"
-        COMPONENT library)
-
 install(DIRECTORY ${PROJECT_SOURCE_DIR}/src/apyre
-        DESTINATION ${PROJECT_SOURCE_DIR}/include
+        DESTINATION include
         FILES_MATCHING PATTERN *.hpp)

@@ -1,6 +1,6 @@
-cmake_minimum_required(VERSION 3.15.7)
+cmake_minimum_required(VERSION 3.21.0)
 
-project(captal VERSION 0.1.0)
+project(Captal VERSION 0.1.0)
 
 find_package(ZLIB REQUIRED)
 
@@ -96,23 +96,21 @@ set(CAPTAL_SOURCES
 )
 
 if(CAPTAL_BUILD_CAPTAL_STATIC)
-    add_library(captal STATIC ${CAPTAL_SOURCES})
-    target_compile_definitions(captal PUBLIC CAPTAL_STATIC_BUILD)
-    set(TO_EXPORT ${TO_EXPORT} captal freetype chipmunk_static zlib not_enough_standards PARENT_SCOPE)
+    add_library(Captal STATIC ${CAPTAL_SOURCES})
+    target_compile_definitions(Captal PUBLIC CAPTAL_STATIC_BUILD)
 else()
-    add_library(captal SHARED ${CAPTAL_SOURCES})
-    target_compile_definitions(captal PUBLIC CAPTAL_SHARED_BUILD)
-    set(TO_EXPORT ${TO_EXPORT} captal PARENT_SCOPE)
+    add_library(Captal SHARED ${CAPTAL_SOURCES})
+    target_compile_definitions(Captal PUBLIC CAPTAL_SHARED_BUILD)
 endif()
 
-set_target_properties(captal PROPERTIES PREFIX "")
+set_target_properties(Captal PROPERTIES PREFIX "" OUTPUT_NAME "captal")
 
 if(WIN32)
-    target_sources(captal PRIVATE src/captal/resources.rc)
-    target_compile_definitions(captal PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+    target_sources(Captal PRIVATE src/captal/resources.rc)
+    target_compile_definitions(Captal PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
 endif()
 
-target_compile_definitions(captal
+target_compile_definitions(Captal
     PUBLIC
         $<$<CONFIG:Debug>:CAPTAL_DEBUG>
         CAPTAL_MAJOR_VERSION=${PROJECT_VERSION_MAJOR}
@@ -120,17 +118,17 @@ target_compile_definitions(captal
         CAPTAL_PATCH_VERSION=${PROJECT_VERSION_PATCH}
 )
 
-target_include_directories(captal
+target_include_directories(Captal
     INTERFACE
         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src>
         $<INSTALL_INTERFACE:include>
 )
 
-target_link_libraries(captal
+target_link_libraries(Captal
     PUBLIC
-        tephra
-        swell
-        apyre
+        Tephra
+        Swell
+        Apyre
         EnTT::EnTT
         Pal::Sigslot
     PRIVATE
@@ -142,38 +140,26 @@ target_link_libraries(captal
         NotEnoughStandards::NotEnoughStandards
 )
 
-install(TARGETS captal
-        CONFIGURATIONS Debug
-        RUNTIME DESTINATION ${PROJECT_SOURCE_DIR}/../libs/debug
-        ARCHIVE DESTINATION ${PROJECT_SOURCE_DIR}/../libs/debug
-        COMPONENT library)
+if(CAPTAL_BUILD_CAPTAL_EXAMPLES)
+    add_library(CaptalSansation STATIC sansation.hpp sansation.cpp)
 
-install(TARGETS captal
-        CONFIGURATIONS Release
-        RUNTIME DESTINATION ${PROJECT_SOURCE_DIR}/../libs/release
-        ARCHIVE DESTINATION ${PROJECT_SOURCE_DIR}/../libs/release
-        COMPONENT library)
+    add_executable(CaptalExample main.cpp)
+    target_link_libraries(CaptalExample PRIVATE Captal CaptalSansation)
+    target_include_directories(CaptalExample PRIVATE ${GLOBAL_INCLUDES})
+
+    add_executable(CaptalExampleEasy example_easy.cpp)
+    target_link_libraries(CaptalExampleEasy PRIVATE Captal CaptalSansation)
+    target_include_directories(CaptalExampleEasy PRIVATE ${GLOBAL_INCLUDES})
+
+    add_executable(CaptalText text.cpp)
+    target_link_libraries(CaptalText PRIVATE Captal CaptalSansation)
+    target_include_directories(CaptalText PRIVATE ${GLOBAL_INCLUDES})
+
+    add_executable(CaptalWidgets widgets.cpp)
+    target_link_libraries(CaptalWidgets PRIVATE Captal CaptalSansation)
+    target_include_directories(CaptalWidgets PRIVATE ${GLOBAL_INCLUDES})
+endif()
 
 install(DIRECTORY ${PROJECT_SOURCE_DIR}/src/captal
-        DESTINATION ${PROJECT_SOURCE_DIR}/include
+        DESTINATION include
         FILES_MATCHING PATTERN *.hpp)
-
-if(CAPTAL_BUILD_CAPTAL_EXAMPLES)
-    add_library(captal_sansation STATIC sansation.hpp sansation.cpp)
-
-    add_executable(captal_example main.cpp)
-    target_link_libraries(captal_example PRIVATE captal captal_sansation)
-    target_include_directories(captal_example PRIVATE ${GLOBAL_INCLUDES})
-
-    add_executable(captal_example_easy example_easy.cpp)
-    target_link_libraries(captal_example_easy PRIVATE captal captal_sansation)
-    target_include_directories(captal_example_easy PRIVATE ${GLOBAL_INCLUDES})
-
-    add_executable(captal_text text.cpp)
-    target_link_libraries(captal_text PRIVATE captal captal_sansation)
-    target_include_directories(captal_text PRIVATE ${GLOBAL_INCLUDES})
-
-    add_executable(captal_widgets widgets.cpp)
-    target_link_libraries(captal_widgets PRIVATE captal captal_sansation)
-    target_include_directories(captal_widgets PRIVATE ${GLOBAL_INCLUDES})
-endif()

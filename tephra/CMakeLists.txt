@@ -1,6 +1,6 @@
-cmake_minimum_required(VERSION 3.15.7)
+cmake_minimum_required(VERSION 3.21.0)
 
-project(tephra VERSION 0.1.0)
+project(Tephra VERSION 0.1.0)
 
 option(TEPHRA_USE_PLATFORM_ANDROID "If on, enable the Android surface extension" OFF)
 option(TEPHRA_USE_PLATFORM_IOS "If on, enable the IOS surface extension" OFF)
@@ -63,18 +63,16 @@ set(TEPHRA_SOURCES
 )
 
 if(CAPTAL_BUILD_TEPHRA_STATIC)
-    add_library(tephra STATIC ${TEPHRA_SOURCES})
-    target_compile_definitions(tephra PUBLIC TEPHRA_STATIC_BUILD)
-    set(TO_EXPORT ${TO_EXPORT} tephra not_enough_standards PARENT_SCOPE)
+    add_library(Tephra STATIC ${TEPHRA_SOURCES})
+    target_compile_definitions(Tephra PUBLIC TEPHRA_STATIC_BUILD)
 else()
-    add_library(tephra SHARED ${TEPHRA_SOURCES})
-    target_compile_definitions(tephra PUBLIC TEPHRA_SHARED_BUILD)
-    set(TO_EXPORT ${TO_EXPORT} tephra PARENT_SCOPE)
+    add_library(Tephra SHARED ${TEPHRA_SOURCES})
+    target_compile_definitions(Tephra PUBLIC TEPHRA_SHARED_BUILD)
 endif()
 
-set_target_properties(tephra PROPERTIES PREFIX "")
+set_target_properties(Tephra PROPERTIES PREFIX "" OUTPUT_NAME "tephra")
 
-target_compile_definitions(tephra
+target_compile_definitions(Tephra
     PUBLIC
         VK_NO_PROTOTYPES
         TEPHRA_MAJOR_VERSION=${PROJECT_VERSION_MAJOR}
@@ -82,13 +80,14 @@ target_compile_definitions(tephra
         TEPHRA_PATCH_VERSION=${PROJECT_VERSION_PATCH}
 )
 
-target_link_libraries(tephra
+target_link_libraries(Tephra
     PUBLIC
-        captal_foundation
+        CaptalFoundation
         NotEnoughStandards::NotEnoughStandards
+        Vulkan::Headers
 )
 
-target_compile_definitions(tephra
+target_compile_definitions(Tephra
     PUBLIC
         $<$<BOOL:${TEPHRA_USE_PLATFORM_ANDROID}>:TPH_PLATFORM_ANDROID>
         $<$<BOOL:${TEPHRA_USE_PLATFORM_IOS}>:TPH_PLATFORM_IOS>
@@ -107,48 +106,29 @@ target_compile_definitions(tephra
         $<$<BOOL:${TEPHRA_USE_PLATFORM_WAYLAND}>:VK_USE_PLATFORM_WAYLAND_KHR>
 )
 
-target_include_directories(tephra
+target_include_directories(Tephra
     SYSTEM PRIVATE
         ${PROJECT_SOURCE_DIR}/src/tephra/stb
-    PUBLIC
-        ${Vulkan_INCLUDE_DIRS}
     INTERFACE
         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src>
         $<INSTALL_INTERFACE:include>
 )
 
 if(WIN32)
-    target_sources(tephra PRIVATE src/tephra/resources.rc)
-    target_compile_definitions(tephra PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+    target_sources(Tephra PRIVATE src/tephra/resources.rc)
+    target_compile_definitions(Tephra PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
 endif()
 
 if(CAPTAL_BUILD_TEPHRA_EXAMPLES)
-    add_executable(tephra_example "example.cpp")
-    target_link_libraries(tephra_example PRIVATE tephra)
-
-    install(TARGETS tephra tephra_example
-            RUNTIME DESTINATION ${PROJECT_SOURCE_DIR}/example
-            ARCHIVE DESTINATION ${PROJECT_SOURCE_DIR}/example
-            COMPONENT executable)
+    add_executable(TephraExample "example.cpp")
+    target_link_libraries(TephraExample PRIVATE Tephra)
 endif()
 
 if(CAPTAL_BUILD_TEPHRA_TESTS)
-    add_executable(tephra_test "test.cpp")
-    target_link_libraries(tephra_test PRIVATE tephra apyre Catch2)
+    add_executable(TephraTest "test.cpp")
+    target_link_libraries(TephraTest PRIVATE Tephra Apyre Catch2)
 endif()
 
-install(TARGETS tephra
-        CONFIGURATIONS Debug
-        RUNTIME DESTINATION ${PROJECT_SOURCE_DIR}/../libs/debug
-        ARCHIVE DESTINATION ${PROJECT_SOURCE_DIR}/../libs/debug
-        COMPONENT library)
-
-install(TARGETS tephra
-        CONFIGURATIONS Release
-        RUNTIME DESTINATION ${PROJECT_SOURCE_DIR}/../libs/release
-        ARCHIVE DESTINATION ${PROJECT_SOURCE_DIR}/../libs/release
-        COMPONENT library)
-
 install(DIRECTORY ${PROJECT_SOURCE_DIR}/src/tephra
-        DESTINATION ${PROJECT_SOURCE_DIR}/include
+        DESTINATION include
         FILES_MATCHING PATTERN *.hpp)

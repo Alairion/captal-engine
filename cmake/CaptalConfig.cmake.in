@@ -1,0 +1,12 @@
+@PACKAGE_INIT@
+
+if(@CAPTAL_BUILD_TEPHRA@)
+    find_package(VULKAN REQUIRED)
+endif()
+
+set(EnTT_DIR "@EnTT_DIR@" CACHE PATH INTERNAL "")
+set(PalSigslot_DIR "@PalSigslot_DIR@" CACHE PATH INTERNAL "")
+set(NotEnoughStandards_DIR "@NotEnoughStandards_DIR@" CACHE PATH INTERNAL "")
+
+include("${CMAKE_CURRENT_LIST_DIR}/CaptalTargets.cmake")
+check_required_components("@PROJECT_NAME@")

@@ -78,7 +78,7 @@ Captal uses the [MIT license](https://opensource.org/licenses/MIT).
 
 ## Build
 
-Captal is currently build with **CMake 3.15.7+**, you **must have Git installed** on your system, because the CMake file will download and compile all dependencies.
+Captal is currently build with **CMake 3.21+**, you **must have Git installed** on your system, because the CMake file will download and compile all dependencies.
 Here is the list of available options for the CMakeFiles:
 
 |  Option                          | Default |  Description 
