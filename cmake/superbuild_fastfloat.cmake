@@ -22,6 +22,6 @@ if(NOT CAPTAL_SUPERBUILD_EXCLUDE_FASTFLOAT)
             "-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/dependencies/fastfloat/install"
     )
 
-    list(APPEND ADDITIONAL_CMAKE_ARGS "-DFastFloat_DIR=${CMAKE_BINARY_DIR}/dependencies/fastfloat/install/share/FastFloat")
+    list(APPEND ADDITIONAL_CMAKE_ARGS "-DFastFloat_DIR:PATH=${CMAKE_BINARY_DIR}/dependencies/fastfloat/install/share/FastFloat")
     list(APPEND DEPENDENCIES "fastfloat")
 endif()

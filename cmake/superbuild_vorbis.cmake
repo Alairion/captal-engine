@@ -36,8 +36,9 @@ if(NOT CAPTAL_SUPERBUILD_EXCLUDE_VORBIS)
             "-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/dependencies/vorbis/install"
             "-DCMAKE_INSTALL_MESSAGE=LAZY"
             "-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=${CMAKE_INTERPROCEDURAL_OPTIMIZATION}"
+            "-DCMAKE_POSITION_INDEPENDENT_CODE=ON"
     )
 
-    list(APPEND ADDITIONAL_CMAKE_ARGS "-DVorbis_DIR=${CMAKE_BINARY_DIR}/dependencies/vorbis/install/lib/cmake/vorbis")
+    list(APPEND ADDITIONAL_CMAKE_ARGS "-DVorbis_DIR:PATH=${CMAKE_BINARY_DIR}/dependencies/vorbis/install/lib/cmake/Vorbis")
     list(APPEND DEPENDENCIES "Vorbis")
 endif()

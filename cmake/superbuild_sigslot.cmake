@@ -22,6 +22,6 @@ if(NOT CAPTAL_SUPERBUILD_EXCLUDE_SIGSLOT)
             "-DCMAKE_INSTALL_MESSAGE=LAZY"
     )
 
-    list(APPEND ADDITIONAL_CMAKE_ARGS "-DPalSigslot_DIR=${CMAKE_BINARY_DIR}/dependencies/sigslot/install/lib/cmake/PalSigslot")
+    list(APPEND ADDITIONAL_CMAKE_ARGS "-DPalSigslot_DIR:PATH=${CMAKE_BINARY_DIR}/dependencies/sigslot/install/lib/cmake/PalSigslot")
     list(APPEND DEPENDENCIES "sigslot")
 endif()

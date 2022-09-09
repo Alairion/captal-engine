@@ -22,6 +22,6 @@ if(NOT CAPTAL_SUPERBUILD_EXCLUDE_NOT_ENOUGH_STANDARDS)
             "-DCMAKE_INSTALL_MESSAGE=LAZY"
     )
 
-    list(APPEND ADDITIONAL_CMAKE_ARGS "-DNotEnoughStandards_DIR=${CMAKE_BINARY_DIR}/dependencies/nes/install/lib/cmake/NotEnoughStandards")
+    list(APPEND ADDITIONAL_CMAKE_ARGS "-DNotEnoughStandards_DIR:PATH=${CMAKE_BINARY_DIR}/dependencies/nes/install/lib/cmake/NotEnoughStandards")
     list(APPEND DEPENDENCIES "NotEnoughStandards")
 endif()

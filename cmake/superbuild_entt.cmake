@@ -22,6 +22,6 @@ if(NOT CAPTAL_SUPERBUILD_EXCLUDE_ENTT)
             "-DCMAKE_INSTALL_MESSAGE=LAZY"
     )
 
-    list(APPEND ADDITIONAL_CMAKE_ARGS "-DEnTT_DIR=${CMAKE_BINARY_DIR}/dependencies/entt/install/lib/EnTT/cmake")
+    list(APPEND ADDITIONAL_CMAKE_ARGS "-DEnTT_DIR:PATH=${CMAKE_BINARY_DIR}/dependencies/entt/install/lib/EnTT/cmake")
     list(APPEND DEPENDENCIES "EnTT")
 endif()

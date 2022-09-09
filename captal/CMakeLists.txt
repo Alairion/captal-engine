@@ -101,6 +101,7 @@ if(CAPTAL_BUILD_CAPTAL_STATIC)
 else()
     add_library(Captal SHARED ${CAPTAL_SOURCES})
     target_compile_definitions(Captal PUBLIC CAPTAL_SHARED_BUILD)
+    set_target_properties(Captal PROPERTIES POSITION_INDEPENDENT_CODE ON)
 endif()
 
 set_target_properties(Captal PROPERTIES PREFIX "" OUTPUT_NAME "captal")

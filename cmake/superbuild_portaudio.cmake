@@ -34,8 +34,9 @@ if(NOT CAPTAL_SUPERBUILD_EXCLUDE_PORTAUDIO)
             "-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/dependencies/portaudio/install"
             "-DCMAKE_INSTALL_MESSAGE=LAZY"
             "-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=${CMAKE_INTERPROCEDURAL_OPTIMIZATION}"
+            "-DCMAKE_POSITION_INDEPENDENT_CODE=ON"
     )
 
-    list(APPEND ADDITIONAL_CMAKE_ARGS "-Dportaudio_DIR=${CMAKE_BINARY_DIR}/dependencies/portaudio/install/lib/cmake/portaudio")
+    list(APPEND ADDITIONAL_CMAKE_ARGS "-Dportaudio_DIR:PATH=${CMAKE_BINARY_DIR}/dependencies/portaudio/install/lib/cmake/portaudio")
     list(APPEND DEPENDENCIES "PortAudio")
 endif()

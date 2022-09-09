@@ -36,8 +36,9 @@ if(NOT CAPTAL_SUPERBUILD_EXCLUDE_CHIPMUNK)
             "-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/dependencies/chipmunk/install"
             "-DCMAKE_INSTALL_MESSAGE=LAZY"
             "-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=${CMAKE_INTERPROCEDURAL_OPTIMIZATION}"
+            "-DCMAKE_POSITION_INDEPENDENT_CODE=ON"
     )
 
-    list(APPEND ADDITIONAL_CMAKE_ARGS "-DChipmunk_DIR=${CMAKE_BINARY_DIR}/dependencies/chipmunk/install")
+    list(APPEND ADDITIONAL_CMAKE_ARGS "-DChipmunk_DIR:PATH=${CMAKE_BINARY_DIR}/dependencies/chipmunk/install")
     list(APPEND DEPENDENCIES "Chipmunk")
 endif()

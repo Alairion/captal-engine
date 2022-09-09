@@ -29,6 +29,6 @@ if(NOT CAPTAL_SUPERBUILD_EXCLUDE_PUGIXML)
             "-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=${CMAKE_INTERPROCEDURAL_OPTIMIZATION}"
     )
 
-    list(APPEND ADDITIONAL_CMAKE_ARGS "-Dpugixml_DIR=${CMAKE_BINARY_DIR}/dependencies/pugixml/install/lib/cmake/pugixml")
+    list(APPEND ADDITIONAL_CMAKE_ARGS "-Dpugixml_DIR:PATH=${CMAKE_BINARY_DIR}/dependencies/pugixml/install/lib/cmake/pugixml")
     list(APPEND DEPENDENCIES "pugixml")
 endif()

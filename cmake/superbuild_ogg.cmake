@@ -34,8 +34,9 @@ if(NOT CAPTAL_SUPERBUILD_EXCLUDE_OGG)
             "-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/dependencies/ogg/install"
             "-DCMAKE_INSTALL_MESSAGE=LAZY"
             "-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=${CMAKE_INTERPROCEDURAL_OPTIMIZATION}"
+            "-DCMAKE_POSITION_INDEPENDENT_CODE=ON"
     )
 
-    list(APPEND ADDITIONAL_CMAKE_ARGS "-DOgg_DIR=${CMAKE_BINARY_DIR}/dependencies/ogg/install/lib/cmake/Ogg")
+    list(APPEND ADDITIONAL_CMAKE_ARGS "-DOgg_DIR:PATH=${CMAKE_BINARY_DIR}/dependencies/ogg/install/lib/cmake/Ogg")
     list(APPEND DEPENDENCIES "Ogg")
 endif()

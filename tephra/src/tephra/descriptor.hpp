@@ -174,14 +174,14 @@ inline VkDescriptorSet underlying_cast(const descriptor_set& descriptor_set) noe
 
 struct descriptor_texture_info
 {
-    sampler* sampler{};
-    texture_view* texture_view{};
+    tph::sampler* sampler{};
+    tph::texture_view* texture_view{};
     tph::texture_layout layout{};
 };
 
 struct descriptor_buffer_info
 {
-    std::reference_wrapper<buffer> buffer;
+    std::reference_wrapper<tph::buffer> buffer;
     std::uint64_t offset{};
     std::uint64_t size{};
 };
@@ -190,7 +190,7 @@ using descriptor_info = std::variant<std::monostate, descriptor_texture_info, de
 
 struct descriptor_write
 {
-    std::reference_wrapper<descriptor_set> descriptor_set;
+    std::reference_wrapper<tph::descriptor_set> descriptor_set;
     std::uint32_t binding{};
     std::uint32_t array_index{};
     descriptor_type type{};
@@ -199,10 +199,10 @@ struct descriptor_write
 
 struct descriptor_copy
 {
-    std::reference_wrapper<descriptor_set> source_set;
+    std::reference_wrapper<tph::descriptor_set> source_set;
     std::uint32_t source_binding{};
     std::uint32_t source_array_index{};
-    std::reference_wrapper<descriptor_set> destination_set;
+    std::reference_wrapper<tph::descriptor_set> destination_set;
     std::uint32_t destination_binding{};
     std::uint32_t destination_array_index{};
     std::uint32_t count{1};

@@ -88,7 +88,7 @@ struct object
         float width{};
         float height{};
         float angle{};
-        color color{};
+        cpt::color color{};
         text_style style{};
         bool italic{};
         text_drawer_options drawer_options{};
@@ -155,7 +155,7 @@ struct tile
     };
 
     std::string type{};
-    image image{};
+    cpt::tiled::image image{};
     std::vector<object> hitboxes{};
     std::vector<animation> animations{};
     properties_set properties{};
@@ -172,7 +172,7 @@ struct tileset
     std::int32_t spacing{};
     std::int32_t margin{};
     vec2f offset{};
-    image image{};
+    cpt::tiled::image image{};
     std::vector<tile> tiles{};
     properties_set properties{};
 };

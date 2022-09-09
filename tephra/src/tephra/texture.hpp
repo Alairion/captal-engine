@@ -163,7 +163,7 @@ public:
         return m_array_layers;
     }
 
-    sample_count sample_count() const noexcept
+    tph::sample_count sample_count() const noexcept
     {
         return m_sample_count;
     }
@@ -274,13 +274,13 @@ struct sampler_info
 {
     filter mag_filter{filter::nearest};
     filter min_filter{filter::nearest};
-    mipmap_mode mipmap_mode{mipmap_mode::nearest};
-    address_mode address_mode{address_mode::clamp_to_border};
-    border_color border_color{border_color::transparent};
+    tph::mipmap_mode mipmap_mode{tph::mipmap_mode::nearest};
+    tph::address_mode address_mode{tph::address_mode::clamp_to_border};
+    tph::border_color border_color{tph::border_color::transparent};
     float mip_lod_bias{0.0f};
     std::uint32_t anisotropy_level{1};
     bool compare{false};
-    compare_op compare_op{compare_op::always};
+    tph::compare_op compare_op{tph::compare_op::always};
     float min_lod{0.0f};
     float max_lod{0.0f};
     bool unnormalized_coordinates{false};

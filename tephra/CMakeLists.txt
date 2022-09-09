@@ -68,6 +68,7 @@ if(CAPTAL_BUILD_TEPHRA_STATIC)
 else()
     add_library(Tephra SHARED ${TEPHRA_SOURCES})
     target_compile_definitions(Tephra PUBLIC TEPHRA_SHARED_BUILD)
+    set_target_properties(Tephra PROPERTIES POSITION_INDEPENDENT_CODE ON)
 endif()
 
 set_target_properties(Tephra PROPERTIES PREFIX "" OUTPUT_NAME "tephra")

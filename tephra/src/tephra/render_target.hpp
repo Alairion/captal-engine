@@ -80,7 +80,7 @@ struct subpass_dependency
     pipeline_stage destination_stage{};
     resource_access source_access{};
     resource_access destination_access{};
-    dependency_flags dependency_flags{};
+    tph::dependency_flags dependency_flags{};
 };
 
 struct render_pass_info
