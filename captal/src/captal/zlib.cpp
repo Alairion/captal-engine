@@ -57,7 +57,11 @@ void deflate_base::compress_impl(const std::uint8_t*& input, std::size_t input_s
 {
     assert(valid() && "cpt::impl::deflate::compress called on an invalid stream.");
 
+#ifdef ZLIB_CONST
     m_stream->next_in = reinterpret_cast<const Bytef*>(input);
+#else
+    m_stream->next_in = const_cast<Bytef*>(reinterpret_cast<const Bytef*>(input));
+#endif
     m_stream->avail_in = static_cast<uInt>(input_size);
     m_stream->next_out = reinterpret_cast<Bytef*>(output);
     m_stream->avail_out = static_cast<uInt>(output_size);
@@ -111,7 +115,11 @@ void inflate_base::decompress_impl(const std::uint8_t*& input, std::size_t input
 {
     assert(valid() && "cpt::impl::inflate::compress called on an invalid stream.");
 
+#ifdef ZLIB_CONST
     m_stream->next_in = reinterpret_cast<const Bytef*>(input);
+#else
+    m_stream->next_in = const_cast<Bytef*>(reinterpret_cast<const Bytef*>(input));
+#endif
     m_stream->avail_in = static_cast<uInt>(input_size);
     m_stream->next_out = reinterpret_cast<Bytef*>(output);
     m_stream->avail_out = static_cast<uInt>(output_size);

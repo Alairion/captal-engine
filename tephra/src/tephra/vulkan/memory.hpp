@@ -107,7 +107,7 @@ class TEPHRA_API memory_heap
     friend class memory_heap_chunk;
 
 private:
-    struct range
+    struct memory_range
     {
         std::uint64_t offset{};
         std::uint64_t size{};
@@ -126,13 +126,13 @@ private:
         std::uint64_t granularity{};
         std::uint64_t non_coherent_atom_size{};
         std::uint64_t map_count{};
-        std::vector<range> ranges{};
+        std::vector<memory_range> ranges{};
         mutable std::mutex mutex{};
     };
 
     struct dedicated_heap
     {
-        std::optional<range> range{};
+        std::optional<memory_range> range{};
     };
 
 public:

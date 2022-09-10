@@ -23,6 +23,7 @@
 #include "bin_packing.hpp"
 
 #include <cassert>
+#include <algorithm>
 
 namespace cpt
 {

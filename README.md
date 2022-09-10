@@ -78,13 +78,13 @@ Captal uses the [MIT license](https://opensource.org/licenses/MIT).
 
 ## Build
 
-Captal is currently build with **CMake 3.15.7+**, you **must have Git installed** on your system, because the CMake file will download and compile all dependencies.
+Captal is currently build with **CMake 3.21+**, you **must have Git installed** on your system, because the CMake file will download and compile all dependencies.
 Here is the list of available options for the CMakeFiles:
 
 |  Option                          | Default |  Description 
 | :------------------------------: | :-----: | :---:
 | CAPTAL_USE_LTO                   | OFF     | Build Captal and its submodules with LTO enabled, if supported
-| CAPTAL_USE_CUSTOM_C_FLAGS        | ON      | Build C submodules with predefined compiler options, if supported
+| CAPTAL_USE_SUPERBUILD            | ON      | Build all dependencies before building captal
 | CAPTAL_BUILD_FOUNDATION_EXAMPLES | OFF     | Build Captal Foundation's examples if ON
 | CAPTAL_BUILD_FOUNDATION_TESTS    | OFF     | Build Captal Foundation's unit tests if ON
 | CAPTAL_BUILD_APYRE               | OFF     | Build Apyre if ON

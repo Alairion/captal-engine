@@ -23,6 +23,7 @@
 #include "flac.hpp"
 
 #include <cassert>
+#include <algorithm>
 
 #include <FLAC/stream_decoder.h>
 

@@ -278,7 +278,7 @@ struct memory_barrier
 
 struct buffer_memory_barrier
 {
-    std::reference_wrapper<buffer> buffer;
+    std::reference_wrapper<tph::buffer> buffer;
     std::uint64_t offset{};
     std::uint64_t size{VK_WHOLE_SIZE};
     resource_access source_access{};
@@ -289,7 +289,7 @@ struct buffer_memory_barrier
 
 struct texture_memory_barrier
 {
-    std::reference_wrapper<texture> texture;
+    std::reference_wrapper<tph::texture> texture;
     texture_subresource_range subresource{};
     resource_access source_access{};
     resource_access destination_access{};
@@ -429,8 +429,8 @@ TEPHRA_API void execute(command_buffer& buffer, std::span<const std::reference_w
 
 struct mipmap_generation_info
 {
-    std::reference_wrapper<texture> texture;
-    filter filter{filter::linear};
+    std::reference_wrapper<tph::texture> texture;
+    tph::filter filter{tph::filter::linear};
     std::uint32_t base_array_layer{};
     std::uint32_t array_layer_count{1};
     resource_access source_access{};

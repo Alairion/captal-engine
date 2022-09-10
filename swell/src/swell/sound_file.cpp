@@ -23,6 +23,7 @@
 #include "sound_file.hpp"
 
 #include <fstream>
+#include <array>
 
 #include "wave.hpp"
 #include "ogg.hpp"

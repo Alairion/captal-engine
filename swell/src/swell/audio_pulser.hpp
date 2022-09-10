@@ -35,6 +35,7 @@
 #include <future>
 #include <span>
 #include <chrono>
+#include <utility>
 
 #include "audio_world.hpp"
 #include "stream.hpp"
@@ -47,7 +48,7 @@ namespace impl
 
 struct listener_bind_data
 {
-    listener listener{};
+    swl::listener listener{};
 };
 
 }

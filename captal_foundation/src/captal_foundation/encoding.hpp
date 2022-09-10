@@ -25,6 +25,7 @@
 
 #include <string>
 #include <array>
+#include <numeric>
 #include <iterator>
 #include <concepts>
 #include <ranges>

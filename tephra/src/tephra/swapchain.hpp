@@ -47,9 +47,9 @@ struct swapchain_info
     std::uint32_t height{};
     tph::texture_format format{};
     tph::texture_usage usage{tph::texture_usage::color_attachment};
-    surface_transform transform{surface_transform::identity};
-    surface_composite composite{surface_composite::opaque};
-    present_mode present_mode{present_mode::fifo};
+    tph::surface_transform transform{tph::surface_transform::identity};
+    tph::surface_composite composite{tph::surface_composite::opaque};
+    tph::present_mode present_mode{tph::present_mode::fifo};
     bool clipping{true};
 };
 

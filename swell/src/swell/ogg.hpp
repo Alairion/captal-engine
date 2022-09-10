@@ -28,6 +28,8 @@
 #include <fstream>
 #include <filesystem>
 #include <span>
+#include <vector>
+#include <memory>
 
 #include "sound_reader.hpp"
 

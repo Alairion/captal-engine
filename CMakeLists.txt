@@ -1,14 +1,13 @@
-cmake_minimum_required(VERSION 3.15.7)
+cmake_minimum_required(VERSION 3.21.0)
 
 project(captal_engine VERSION 0.1.0
                       DESCRIPTION "Captal Game Engine")
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_POLICY_DEFAULT_CMP0069 NEW)
 
+option(CAPTAL_SUPERBUILD "Build all Captal's dependencies" ON)
 option(CAPTAL_USE_LTO "Build Captal and its submodules with LTO enabled, if supported" OFF)
-option(CAPTAL_USE_CUSTOM_C_FLAGS "Build Captal and its submodules with predefined compiler options, if supported." ON)
 
 option(CAPTAL_BUILD_FOUNDATION_EXAMPLES "Build Captal Foundation's examples if ON" OFF)
 option(CAPTAL_BUILD_FOUNDATION_TESTS "Build Captal Foundation's unit tests if ON" OFF)
@@ -39,6 +38,22 @@ if(CAPTAL_BUILD_CAPTAL)
     set(CAPTAL_BUILD_SWELL  ON CACHE BOOL "Build Swell if ON"  FORCE)
 endif()
 
+if(CAPTAL_BUILD_TEPHRA)
+    include(CMakeDependentOption)
+
+    cmake_dependent_option(TEPHRA_USE_PLATFORM_ANDROID "If on, enable the Android surface extension" ON "${CMAKE_SYSTEM_NAME} STREQUAL Android" OFF)
+    cmake_dependent_option(TEPHRA_USE_PLATFORM_IOS "If on, enable the IOS surface extension" ON "${CMAKE_SYSTEM_NAME} STREQUAL iOS" OFF)
+    cmake_dependent_option(TEPHRA_USE_PLATFORM_WIN32 "If on, enable the Windows surface extension" ON "${CMAKE_SYSTEM_NAME} STREQUAL Windows" OFF)
+    cmake_dependent_option(TEPHRA_USE_PLATFORM_MACOS "If on, enable the OSX surface extension" ON "${CMAKE_SYSTEM_NAME} STREQUAL Darwin" OFF)
+    cmake_dependent_option(TEPHRA_USE_PLATFORM_XLIB "If on, enable the Linux Xlib surface extension" ON "${CMAKE_SYSTEM_NAME} STREQUAL Linux" OFF)
+
+    #Other linux platforms
+    if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+        option(TEPHRA_USE_PLATFORM_XCB "If on, enable the Linux XCB surface extension" OFF)
+        option(TEPHRA_USE_PLATFORM_WAYLAND "If on, enable the Linux Wayland surface extension" OFF)
+    endif()
+endif()
+
 if(CAPTAL_BUILD_TEPHRA AND (CAPTAL_BUILD_TEPHRA_EXAMPLES OR CAPTAL_BUILD_TEPHRA_TESTS))
     set(CAPTAL_BUILD_APYRE ON CACHE BOOL "Build Apyre if ON" FORCE)
 endif()
@@ -58,69 +73,91 @@ else()
     set(CMAKE_INTERPROCEDURAL_OPTIMIZATION OFF CACHE BOOL "" FORCE)
 endif()
 
-if(CAPTAL_USE_CUSTOM_C_FLAGS)
-    # We always define NDEBUG because some dependencies (chipmunk, flac) spam the stdout and stderr with debug info.
-    # We always use optimisation for the C libraries even in debug. In release we use speed optimisation.
-
-    set(GCC_CLANG_FLAGS_DEBUG "-DNDEBUG -Og -g")
-    set(GCC_CLANG_FLAGS_RELEASE "-DNDEBUG -O3 -s")
-    set(MSVC_FLAGS_DEBUG "/DNDEBUG /O1 /DEBUG")
-    set(MSVC_FLAGS_RELEASE "/DNDEBUG /O2")
-
-    if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-        if(CMAKE_C_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
-            set(CMAKE_C_FLAGS_DEBUG   "${MSVC_FLAGS_DEBUG}" CACHE STRING "" FORCE)
-            set(CMAKE_C_FLAGS_RELEASE "${MSVC_FLAGS_RELEASE}" CACHE STRING "" FORCE)
-        elseif(CMAKE_C_COMPILER_FRONTEND_VARIANT STREQUAL "GNU")
-            set(CMAKE_C_FLAGS_DEBUG   "${GCC_CLANG_FLAGS_DEBUG}" CACHE STRING "" FORCE)
-            set(CMAKE_C_FLAGS_RELEASE "${GCC_CLANG_FLAGS_RELEASE}" CACHE STRING "" FORCE)
-        endif()
-    elseif(CMAKE_C_COMPILER_ID STREQUAL "GNU")
-        set(CMAKE_C_FLAGS_DEBUG   "${GCC_CLANG_FLAGS_DEBUG}" CACHE STRING "" FORCE)
-        set(CMAKE_C_FLAGS_RELEASE "${GCC_CLANG_FLAGS_RELEASE}" CACHE STRING "" FORCE)
-    elseif(CMAKE_C_COMPILER_ID STREQUAL "MSVC")
-        set(CMAKE_C_FLAGS_DEBUG   "${MSVC_FLAGS_DEBUG}" CACHE STRING "" FORCE)
-        set(CMAKE_C_FLAGS_RELEASE "${MSVC_FLAGS_RELEASE}" CACHE STRING "" FORCE)
-    endif()
+if(CAPTAL_SUPERBUILD)
+    include(cmake/superbuild.cmake)
+    return()
 endif()
 
-include(cmake/download_submodule.cmake)
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake)
 
 if(CAPTAL_BUILD_FOUNDATION_TESTS OR CAPTAL_BUILD_APYRE_TESTS OR CAPTAL_BUILD_TEPHRA_TESTS OR CAPTAL_BUILD_SWELL_TESTS OR CAPTAL_BUILD_CAPTAL_TESTS)
+    include(cmake/download_submodule.cmake)
     include(cmake/buildcatch.cmake)
 endif()
 
-include(cmake/buildnes.cmake)
 
-set(TO_EXPORT "")
+find_package(NotEnoughStandards REQUIRED)
 
 add_subdirectory(captal_foundation)
+set(TO_EXPORT CaptalFoundation)
 
 if(CAPTAL_BUILD_APYRE)
     add_subdirectory(apyre)
+    list(APPEND TO_EXPORT Apyre)
 endif()
 
 if(CAPTAL_BUILD_TEPHRA)
     add_subdirectory(tephra)
+    list(APPEND TO_EXPORT Tephra)
 endif()
 
 if(CAPTAL_BUILD_SWELL)
     add_subdirectory(swell)
+    list(APPEND TO_EXPORT Swell)
 endif()
 
 if(CAPTAL_BUILD_CAPTAL)
     add_subdirectory(captal)
+    list(APPEND TO_EXPORT Captal)
 endif()
 
-list(REMOVE_DUPLICATES TO_EXPORT)
-message("Exporting: ${TO_EXPORT}")
+include(CMakePackageConfigHelpers)
 
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    export(TARGETS captal_foundation ${TO_EXPORT}
-           NAMESPACE captal::
-           FILE ${PROJECT_SOURCE_DIR}/captal_debug.cmake)
-else()
-    export(TARGETS captal_foundation ${TO_EXPORT}
-           NAMESPACE captal::
-           FILE ${PROJECT_SOURCE_DIR}/captal_release.cmake)
+configure_package_config_file(
+    ${PROJECT_SOURCE_DIR}/cmake/CaptalConfig.cmake.in
+    ${PROJECT_BINARY_DIR}/CaptalConfig.cmake
+    INSTALL_DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/cmake
+)
+
+write_basic_package_version_file(
+    ${PROJECT_BINARY_DIR}/CaptalConfigVersion.cmake
+    VERSION ${PROJECT_VERSION}
+    COMPATIBILITY SameMajorVersion
+)
+
+install(TARGETS ${TO_EXPORT}
+        EXPORT CaptalTargets
+        ARCHIVE DESTINATION "lib/${CMAKE_BUILD_TYPE}"
+        RUNTIME DESTINATION "bin/${CMAKE_BUILD_TYPE}"
+        LIBRARY DESTINATION "bin/${CMAKE_BUILD_TYPE}"
+        FRAMEWORK DESTINATION "lib/${CMAKE_BUILD_TYPE}"
+        COMPONENT library)
+
+install(EXPORT CaptalTargets
+        DESTINATION lib/cmake/captal
+        NAMESPACE Captal::)
+
+install(FILES
+        ${PROJECT_BINARY_DIR}/CaptalConfig.cmake
+        ${PROJECT_BINARY_DIR}/CaptalConfigVersion.cmake
+        DESTINATION lib/cmake/captal)
+
+if(CMAKE_C_COMPILER_ID STREQUAL "MSVC")
+    if(CAPTAL_BUILD_APYRE)
+        install(FILES $<TARGET_PDB_FILE:Apyre> DESTINATION bin/${CMAKE_BUILD_TYPE} OPTIONAL)
+    endif()
+
+    if(CAPTAL_BUILD_TEPHRA)
+        install(FILES $<TARGET_PDB_FILE:Tephra> DESTINATION bin/${CMAKE_BUILD_TYPE} OPTIONAL)
+    endif()
+
+    if(CAPTAL_BUILD_SWELL)
+        install(FILES $<TARGET_PDB_FILE:Swell> DESTINATION bin/${CMAKE_BUILD_TYPE} OPTIONAL)
+    endif()
+
+    if(CAPTAL_BUILD_CAPTAL)
+        install(FILES $<TARGET_PDB_FILE:Captal> DESTINATION bin/${CMAKE_BUILD_TYPE} OPTIONAL)
+    endif()
 endif()
+
+export(PACKAGE Captal)

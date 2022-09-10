@@ -223,7 +223,7 @@ memory_heap_chunk memory_heap::allocate_dedicated(std::uint64_t size)
     assert(dedicated() && "tph::vulkan::memory_heap::allocate_dedicated called on a non-dedicated memory heap");
     assert(!std::get<dedicated_heap>(m_heap).range.has_value() && "tph::vulkan::memory_heap::allocate_dedicated called more than once");
 
-    std::get<dedicated_heap>(m_heap).range = range{0, size, memory_resource_type{}};
+    std::get<dedicated_heap>(m_heap).range = memory_range{0, size, memory_resource_type{}};
 
     m_free_space = 0;
     m_allocation_count = 1;
@@ -237,7 +237,7 @@ memory_heap_chunk memory_heap::allocate_pseudo_dedicated(memory_resource_type re
 
     auto& heap{std::get<non_dedicated_heap>(m_heap)};
 
-    heap.ranges.emplace_back(range{0, size, resource_type});
+    heap.ranges.emplace_back(memory_range{0, size, resource_type});
 
     m_free_space -= size;
     m_allocation_count = 1;
@@ -258,7 +258,7 @@ std::optional<memory_heap_chunk> memory_heap::try_allocate(memory_resource_type 
     //Push it at the begginning if the heap is empty
     if(std::empty(heap.ranges) && size <= m_size)
     {
-        heap.ranges.emplace_back(range{0, size, resource_type});
+        heap.ranges.emplace_back(memory_range{0, size, resource_type});
 
         m_free_space -= size;
         m_allocation_count = 1;
@@ -269,7 +269,7 @@ std::optional<memory_heap_chunk> memory_heap::try_allocate(memory_resource_type 
     //Try to push it at the end
     const auto try_push = [this, &heap, resource_type, size, alignment]
     {
-        const range& last{heap.ranges.back()};
+        const memory_range& last{heap.ranges.back()};
 
         if(last.type == resource_type)
         {
@@ -277,7 +277,7 @@ std::optional<memory_heap_chunk> memory_heap::try_allocate(memory_resource_type 
 
             if(m_size - end >= size)
             {
-                heap.ranges.emplace_back(range{end, size, resource_type});
+                heap.ranges.emplace_back(memory_range{end, size, resource_type});
 
                 return std::cend(heap.ranges) - 1;
             }
@@ -289,7 +289,7 @@ std::optional<memory_heap_chunk> memory_heap::try_allocate(memory_resource_type 
 
             if(m_size - end >= size)
             {
-                heap.ranges.emplace_back(range{end, size, resource_type});
+                heap.ranges.emplace_back(memory_range{end, size, resource_type});
 
                 return std::cend(heap.ranges) - 1;
             }
@@ -307,7 +307,7 @@ std::optional<memory_heap_chunk> memory_heap::try_allocate(memory_resource_type 
     }
 
     //Try to insert it at a suitable place
-    const auto try_insert = [&heap, resource_type, size, alignment]() -> std::vector<range>::const_iterator
+    const auto try_insert = [&heap, resource_type, size, alignment]() -> std::vector<memory_range>::const_iterator
     {
         for(auto it{std::cbegin(heap.ranges)}; it != std::cend(heap.ranges) - 1; ++it)
         {
@@ -319,7 +319,7 @@ std::optional<memory_heap_chunk> memory_heap::try_allocate(memory_resource_type 
 
                 if(static_cast<std::int64_t>(next->offset) - static_cast<std::int64_t>(end) >= static_cast<std::int64_t>(size))
                 {
-                    return heap.ranges.insert(next, range{end, size, resource_type});
+                    return heap.ranges.insert(next, memory_range{end, size, resource_type});
                 }
             }
             else
@@ -346,7 +346,7 @@ std::optional<memory_heap_chunk> memory_heap::try_allocate(memory_resource_type 
 
                 if(static_cast<std::int64_t>(end) - static_cast<std::int64_t>(begin) >= static_cast<std::int64_t>(size))
                 {
-                    return heap.ranges.insert(next, range{begin, size, resource_type});
+                    return heap.ranges.insert(next, memory_range{begin, size, resource_type});
                 }
             }
         }
@@ -500,7 +500,7 @@ void memory_heap::unregister_chunk(const memory_heap_chunk& chunk) noexcept
 
         std::lock_guard lock{heap.mutex};
 
-        const auto predicate = [](const range& range, const memory_heap_chunk& chunk)
+        const auto predicate = [](const memory_range& range, const memory_heap_chunk& chunk)
         {
             return range.offset < chunk.m_offset;
         };
