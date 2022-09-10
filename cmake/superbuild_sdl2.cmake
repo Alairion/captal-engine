@@ -25,6 +25,7 @@ if(NOT CAPTAL_SUPERBUILD_EXCLUDE_SDL2)
             "-DSDL_SHARED=OFF"
             "-DSDL_STATIC=ON"
             "-DSDL_STATIC_PIC=ON"
+            "-DSDL_LIBC=ON"
             "-DSDL_TEST=OFF"
 
             "-DSDL_DIRECTFB=OFF"
@@ -59,6 +60,10 @@ if(NOT CAPTAL_SUPERBUILD_EXCLUDE_SDL2)
             "-DCMAKE_POSITION_INDEPENDENT_CODE=ON"
     )
 
-    list(APPEND ADDITIONAL_CMAKE_ARGS "-DSDL2_DIR:PATH=${CMAKE_BINARY_DIR}/dependencies/sdl/install/lib/cmake/SDL2")
+    if(MSVC)
+        list(APPEND ADDITIONAL_CMAKE_ARGS "-DSDL2_DIR:PATH=${CMAKE_BINARY_DIR}/dependencies/sdl/install/cmake")
+    else()
+        list(APPEND ADDITIONAL_CMAKE_ARGS "-DSDL2_DIR:PATH=${CMAKE_BINARY_DIR}/dependencies/sdl/install/lib/cmake/SDL2")
+    endif()
     list(APPEND DEPENDENCIES "SDL2")
 endif()

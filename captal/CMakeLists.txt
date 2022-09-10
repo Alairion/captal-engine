@@ -68,6 +68,9 @@ set(CAPTAL_SOURCES
     src/captal/systems/render.hpp
     src/captal/systems/physics.hpp
 
+    src/captal/external/pugiconfig.hpp
+    src/captal/external/pugixml.hpp
+
     #Sources:
     src/captal/application.cpp
     src/captal/memory_transfer.cpp
@@ -93,15 +96,17 @@ set(CAPTAL_SOURCES
     src/captal/tiled_map.cpp
     src/captal/physics.cpp
     src/captal/widgets.cpp
+
+    src/captal/external/pugixml.cpp
 )
 
 if(CAPTAL_BUILD_CAPTAL_STATIC)
     add_library(Captal STATIC ${CAPTAL_SOURCES})
     target_compile_definitions(Captal PUBLIC CAPTAL_STATIC_BUILD)
+    set_target_properties(Captal PROPERTIES POSITION_INDEPENDENT_CODE ON)
 else()
     add_library(Captal SHARED ${CAPTAL_SOURCES})
     target_compile_definitions(Captal PUBLIC CAPTAL_SHARED_BUILD)
-    set_target_properties(Captal PROPERTIES POSITION_INDEPENDENT_CODE ON)
 endif()
 
 set_target_properties(Captal PROPERTIES PREFIX "" OUTPUT_NAME "captal")

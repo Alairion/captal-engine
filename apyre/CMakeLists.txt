@@ -27,10 +27,10 @@ set(APYRE_SOURCES
 if(CAPTAL_BUILD_APYRE_STATIC)
     add_library(Apyre STATIC ${APYRE_SOURCES})
     target_compile_definitions(Apyre PUBLIC APYRE_STATIC_BUILD)
+    set_target_properties(Apyre PROPERTIES POSITION_INDEPENDENT_CODE ON)
 else()
     add_library(Apyre SHARED ${APYRE_SOURCES})
     target_compile_definitions(Apyre PUBLIC APYRE_SHARED_BUILD)
-    set_target_properties(Apyre PROPERTIES POSITION_INDEPENDENT_CODE ON)
 endif()
 
 set_target_properties(Apyre PROPERTIES PREFIX "" OUTPUT_NAME "apyre")

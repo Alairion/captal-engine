@@ -2,14 +2,6 @@ cmake_minimum_required(VERSION 3.21.0)
 
 project(Tephra VERSION 0.1.0)
 
-option(TEPHRA_USE_PLATFORM_ANDROID "If on, enable the Android surface extension" OFF)
-option(TEPHRA_USE_PLATFORM_IOS "If on, enable the IOS surface extension" OFF)
-option(TEPHRA_USE_PLATFORM_WIN32 "If on, enable the Windows surface extension" OFF)
-option(TEPHRA_USE_PLATFORM_MACOS "If on, enable the OSX surface extension" OFF)
-option(TEPHRA_USE_PLATFORM_XLIB "If on, enable the Linux Xlib surface extension" OFF)
-option(TEPHRA_USE_PLATFORM_XCB "If on, enable the Linux XCB surface extension" OFF)
-option(TEPHRA_USE_PLATFORM_WAYLAND "If on, enable the Linux Wayland surface extension" OFF)
-
 find_package(Vulkan REQUIRED)
 
 set(TEPHRA_SOURCES
@@ -65,10 +57,10 @@ set(TEPHRA_SOURCES
 if(CAPTAL_BUILD_TEPHRA_STATIC)
     add_library(Tephra STATIC ${TEPHRA_SOURCES})
     target_compile_definitions(Tephra PUBLIC TEPHRA_STATIC_BUILD)
+    set_target_properties(Tephra PROPERTIES POSITION_INDEPENDENT_CODE ON)
 else()
     add_library(Tephra SHARED ${TEPHRA_SOURCES})
     target_compile_definitions(Tephra PUBLIC TEPHRA_SHARED_BUILD)
-    set_target_properties(Tephra PROPERTIES POSITION_INDEPENDENT_CODE ON)
 endif()
 
 set_target_properties(Tephra PROPERTIES PREFIX "" OUTPUT_NAME "tephra")

@@ -36,10 +36,10 @@ set(SWELL_SOURCES
 if(CAPTAL_BUILD_SWELL_STATIC)
     add_library(Swell STATIC ${SWELL_SOURCES})
     target_compile_definitions(Swell PUBLIC SWELL_STATIC_BUILD)
+    set_target_properties(Swell PROPERTIES POSITION_INDEPENDENT_CODE ON)
 else()
     add_library(Swell SHARED ${SWELL_SOURCES})
     target_compile_definitions(Swell PUBLIC SWELL_SHARED_BUILD)
-    set_target_properties(Swell PROPERTIES POSITION_INDEPENDENT_CODE ON)
 endif()
 
 set_target_properties(Swell PROPERTIES PREFIX "" OUTPUT_NAME "swell")
