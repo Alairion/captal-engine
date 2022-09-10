@@ -142,7 +142,7 @@ install(FILES
         ${PROJECT_BINARY_DIR}/CaptalConfigVersion.cmake
         DESTINATION lib/cmake/captal)
 
-if(MSVC)
+if(CMAKE_C_COMPILER_ID STREQUAL "MSVC")
     if(CAPTAL_BUILD_APYRE)
         install(FILES $<TARGET_PDB_FILE:Apyre> DESTINATION bin/${CMAKE_BUILD_TYPE} OPTIONAL)
     endif()
