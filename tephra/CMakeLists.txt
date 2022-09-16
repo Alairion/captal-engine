@@ -4,6 +4,10 @@ project(Tephra VERSION 0.1.0)
 
 find_package(Vulkan REQUIRED)
 
+if(TEPHRA_USE_PLATFORM_XLIB)
+    find_package(X11 REQUIRED)
+endif()
+
 set(TEPHRA_SOURCES
     #Headers:
     src/tephra/config.hpp
@@ -78,6 +82,8 @@ target_link_libraries(Tephra
         CaptalFoundation
         NotEnoughStandards::NotEnoughStandards
         Vulkan::Headers
+    PRIVATE
+        X11::X11
 )
 
 target_compile_definitions(Tephra

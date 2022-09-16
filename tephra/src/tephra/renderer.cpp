@@ -249,7 +249,7 @@ static std::uint32_t choose_present_family(VkPhysicalDevice physical_device [[ma
 
 #elif defined(TPH_PLATFORM_XLIB)
 
-    Display* display{XOpenDislay(nullptr)};
+    Display* display{XOpenDisplay(nullptr)};
     Visual*  visual {XDefaultVisual(display, XDefaultScreen(display))};
 
     VisualID id{XVisualIDFromVisual(visual)};

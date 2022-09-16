@@ -4,7 +4,7 @@ option(CAPTAL_SUPERBUILD_EXCLUDE_CHIPMUNK "Does not build Chipmunk as a part of 
 
 if(NOT CAPTAL_SUPERBUILD_EXCLUDE_CHIPMUNK)
     set(CAPTAL_SUPERBUILD_CHIPMUNK_GIT_URL "https://github.com/slembcke/Chipmunk2D.git" CACHE STRING "Used url for Chipmunk git clone (allow usage of mirrors or interal repo)")
-    set(CAPTAL_SUPERBUILD_CHIPMUNK_GIT_TAG "Chipmunk-7.0.3" CACHE STRING "Used tag for Chipmunk git clone")
+    set(CAPTAL_SUPERBUILD_CHIPMUNK_GIT_TAG "master" CACHE STRING "Used tag for Chipmunk git clone")
 
     mark_as_advanced(CAPTAL_SUPERBUILD_CHIPMUNK_GIT_URL)
     mark_as_advanced(CAPTAL_SUPERBUILD_CHIPMUNK_GIT_TAG)
