@@ -83,7 +83,7 @@ target_link_libraries(Tephra
         NotEnoughStandards::NotEnoughStandards
         Vulkan::Headers
     PRIVATE
-        X11::X11
+        $<$<BOOL:${TEPHRA_USE_PLATFORM_XLIB}>:X11::X11>
 )
 
 target_compile_definitions(Tephra
