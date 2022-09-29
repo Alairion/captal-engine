@@ -20,8 +20,8 @@
 //OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //SOFTWARE.
 
-#ifndef TEPHRA_RENDERER_HPP_INCLUDED
-#define TEPHRA_RENDERER_HPP_INCLUDED
+#ifndef TEPHRA_DEVICE_HPP_INCLUDED
+#define TEPHRA_DEVICE_HPP_INCLUDED
 
 #include "config.hpp"
 
@@ -30,6 +30,7 @@
 #include "vulkan/vulkan.hpp"
 #include "vulkan/memory.hpp"
 
+#include "application.hpp"
 #include "hardware.hpp"
 
 namespace tph
@@ -38,7 +39,7 @@ namespace tph
 class application;
 class command_buffer;
 
-enum class renderer_options : std::uint32_t
+enum class device_options : std::uint32_t
 {
     none = 0x00,
     tiny_memory_heaps = 0x01,
@@ -49,19 +50,19 @@ enum class renderer_options : std::uint32_t
     standalone_compute_queue = 0x20
 };
 
-enum class renderer_layer : std::uint32_t
+enum class device_layer : std::uint32_t
 {
     none = 0x00,
     validation = 0x01
 };
 
-enum class renderer_extension : std::uint32_t
+enum class device_extension : std::uint32_t
 {
     none = 0x00,
     swapchain = 0x01
 };
 
-class TEPHRA_API renderer
+class TEPHRA_API device
 {
     template<typename VulkanObject, typename... Args>
     friend VulkanObject underlying_cast(const Args&...) noexcept;
@@ -79,26 +80,36 @@ public:
     };
 
 public:
-    constexpr renderer() = default;
-    explicit renderer(const physical_device& physical_device, renderer_layer layers, renderer_extension extensions, const physical_device_features& enabled_features = physical_device_features{}, renderer_options options = renderer_options::none);
+    constexpr device() = default;
+    explicit device(application& application, const physical_device& physical_device, device_layer layers, device_extension extensions, const physical_device_features& enabled_features = physical_device_features{}, device_options options = device_options::none);
 
-    explicit renderer(const physical_device& physical_device, vulkan::device device, renderer_layer layers, renderer_extension extensions,
-                      const queue_families_t& queue_families, const queues_t& queues, const vulkan::memory_allocator::heap_sizes& sizes);
+    explicit device(application& application, const physical_device& physical_device, vulkan::device device, device_layer layers, device_extension extensions,
+                    const queue_families_t& queue_families, const queues_t& queues, const vulkan::memory_allocator::heap_sizes& sizes);
 
-    ~renderer() = default;
-    renderer(const renderer&) = delete;
-    renderer& operator=(const renderer&) = delete;
-    renderer(renderer&& other) noexcept = default;
-    renderer& operator=(renderer&& other) noexcept = default;
+    ~device() = default;
+    device(const device&) = delete;
+    device& operator=(const device&) = delete;
+    device(device&& other) noexcept = default;
+    device& operator=(device&& other) noexcept = default;
 
     void wait();
 
-    renderer_layer enabled_layers() const noexcept
+    vulkan::device_context context() const noexcept
+    {
+        return m_device.context();
+    }
+
+    const vulkan::functions::device_level_functions* operator->() const noexcept
+    {
+        return m_device.operator->();
+    }
+
+    device_layer enabled_layers() const noexcept
     {
         return m_layers;
     }
 
-    renderer_extension enabled_extensions() const noexcept
+    device_extension enabled_extensions() const noexcept
     {
         return m_extensions;
     }
@@ -136,41 +147,41 @@ public:
 private:
     VkPhysicalDevice m_physical_device{};
     vulkan::device m_device{};
-    renderer_layer m_layers{};
-    renderer_extension m_extensions{};
+    device_layer m_layers{};
+    device_extension m_extensions{};
     queue_families_t m_queue_families{};
     queues_t m_queues{};
     transfer_granularity m_transfer_queue_granularity{};
     std::unique_ptr<vulkan::memory_allocator> m_allocator{};
 };
 
-TEPHRA_API void set_object_name(renderer& renderer, const std::string& name);
-TEPHRA_API void begin_queue_label(renderer& renderer, queue queue, const std::string& name, float red = 0.0f, float green = 0.0f, float blue = 0.0f, float alpha = 0.0f) noexcept;
-TEPHRA_API void end_queue_label(renderer& renderer, queue queue) noexcept;
-TEPHRA_API void insert_queue_label(renderer& renderer, queue queue, const std::string& name, float red = 0.0f, float green = 0.0f, float blue = 0.0f, float alpha = 0.0f) noexcept;
+TEPHRA_API void set_object_name(device& device, const std::string& name);
+TEPHRA_API void begin_queue_label(device& device, queue queue, const std::string& name, float red = 0.0f, float green = 0.0f, float blue = 0.0f, float alpha = 0.0f) noexcept;
+TEPHRA_API void end_queue_label(device& device, queue queue) noexcept;
+TEPHRA_API void insert_queue_label(device& device, queue queue, const std::string& name, float red = 0.0f, float green = 0.0f, float blue = 0.0f, float alpha = 0.0f) noexcept;
 
 template<>
-inline VkPhysicalDevice underlying_cast(const renderer& renderer) noexcept
+inline VkPhysicalDevice underlying_cast(const device& device) noexcept
 {
-    return renderer.m_physical_device;
-}
-
-template<>
-inline VkDevice underlying_cast(const renderer& renderer) noexcept
-{
-    return renderer.m_device;
+    return device.m_physical_device;
 }
 
 template<>
-inline VkQueue underlying_cast(const renderer& renderer, const queue& index) noexcept
+inline VkDevice underlying_cast(const device& device) noexcept
 {
-    return renderer.m_queues[static_cast<std::size_t>(index)];
+    return device.m_device;
+}
+
+template<>
+inline VkQueue underlying_cast(const device& device, const queue& index) noexcept
+{
+    return device.m_queues[static_cast<std::size_t>(index)];
 }
 
 }
 
-template<> struct tph::enable_enum_operations<tph::renderer_options> {static constexpr bool value{true};};
-template<> struct tph::enable_enum_operations<tph::renderer_layer> {static constexpr bool value{true};};
-template<> struct tph::enable_enum_operations<tph::renderer_extension> {static constexpr bool value{true};};
+template<> struct tph::enable_enum_operations<tph::device_options> {static constexpr bool value{true};};
+template<> struct tph::enable_enum_operations<tph::device_layer> {static constexpr bool value{true};};
+template<> struct tph::enable_enum_operations<tph::device_extension> {static constexpr bool value{true};};
 
 #endif

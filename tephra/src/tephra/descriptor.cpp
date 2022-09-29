@@ -28,7 +28,7 @@
 
 #include "vulkan/vulkan_functions.hpp"
 
-#include "renderer.hpp"
+#include "device.hpp"
 #include "buffer.hpp"
 #include "texture.hpp"
 
@@ -37,7 +37,7 @@ using namespace tph::vulkan::functions;
 namespace tph
 {
 
-descriptor_set_layout::descriptor_set_layout(renderer& renderer, std::span<const descriptor_set_layout_binding> bindings)
+descriptor_set_layout::descriptor_set_layout(device& device, std::span<const descriptor_set_layout_binding> bindings)
 {
     stack_memory_pool<1024 * 2> pool{};
 
@@ -55,10 +55,10 @@ descriptor_set_layout::descriptor_set_layout(renderer& renderer, std::span<const
         native_bindings.emplace_back(native_binding);
     }
 
-    m_layout = vulkan::descriptor_set_layout{underlying_cast<VkDevice>(renderer), native_bindings};
+    m_layout = vulkan::descriptor_set_layout{device.context(), native_bindings};
 }
 
-void set_object_name(renderer& renderer, const descriptor_set_layout& object, const std::string& name)
+void set_object_name(device& device, const descriptor_set_layout& object, const std::string& name)
 {
     VkDebugUtilsObjectNameInfoEXT info{};
     info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
@@ -66,11 +66,10 @@ void set_object_name(renderer& renderer, const descriptor_set_layout& object, co
     info.objectHandle = reinterpret_cast<std::uint64_t>(underlying_cast<VkDescriptorSetLayout>(object));
     info.pObjectName = std::data(name);
 
-    if(auto result{vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(renderer), &info)}; result != VK_SUCCESS)
-        throw vulkan::error{result};
+    vulkan::check(device->vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(device), &info));
 }
 
-descriptor_pool::descriptor_pool(renderer& renderer, std::span<const descriptor_pool_size> sizes, std::optional<std::uint32_t> max_sets)
+descriptor_pool::descriptor_pool(device& device, std::span<const descriptor_pool_size> sizes, std::optional<std::uint32_t> max_sets)
 {
     stack_memory_pool<1024> pool{};
 
@@ -95,10 +94,10 @@ descriptor_pool::descriptor_pool(renderer& renderer, std::span<const descriptor_
         max_sets = total_size;
     }
 
-    m_descriptor_pool = vulkan::descriptor_pool{underlying_cast<VkDevice>(renderer), native_sizes, *max_sets};
+    m_descriptor_pool = vulkan::descriptor_pool{device.context(), native_sizes, *max_sets};
 }
 
-void set_object_name(renderer& renderer, const descriptor_pool& object, const std::string& name)
+void set_object_name(device& device, const descriptor_pool& object, const std::string& name)
 {
     VkDebugUtilsObjectNameInfoEXT info{};
     info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
@@ -106,17 +105,16 @@ void set_object_name(renderer& renderer, const descriptor_pool& object, const st
     info.objectHandle = reinterpret_cast<std::uint64_t>(underlying_cast<VkDescriptorPool>(object));
     info.pObjectName = std::data(name);
 
-    if(auto result{vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(renderer), &info)}; result != VK_SUCCESS)
-        throw vulkan::error{result};
+    vulkan::check(device->vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(device), &info));
 }
 
-descriptor_set::descriptor_set(renderer& renderer, descriptor_pool& pool, descriptor_set_layout& layout)
-:m_descriptor_set{underlying_cast<VkDevice>(renderer), underlying_cast<VkDescriptorPool>(pool), underlying_cast<VkDescriptorSetLayout>(layout)}
+descriptor_set::descriptor_set(device& device, descriptor_pool& pool, descriptor_set_layout& layout)
+:m_descriptor_set{device.context(), underlying_cast<VkDescriptorPool>(pool), underlying_cast<VkDescriptorSetLayout>(layout)}
 {
 
 }
 
-void set_object_name(renderer& renderer, const descriptor_set& object, const std::string& name)
+void set_object_name(device& device, const descriptor_set& object, const std::string& name)
 {
     VkDebugUtilsObjectNameInfoEXT info{};
     info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
@@ -124,21 +122,20 @@ void set_object_name(renderer& renderer, const descriptor_set& object, const std
     info.objectHandle = reinterpret_cast<std::uint64_t>(underlying_cast<VkDescriptorSet>(object));
     info.pObjectName = std::data(name);
 
-    if(auto result{vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(renderer), &info)}; result != VK_SUCCESS)
-        throw vulkan::error{result};
+    vulkan::check(device->vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(device), &info));
 }
 
-void write_descriptors(renderer& renderer, std::span<const descriptor_write> writes)
+void write_descriptors(device& device, std::span<const descriptor_write> writes)
 {
-    update_descriptors(renderer, writes, std::span<const descriptor_copy>{});
+    update_descriptors(device, writes, std::span<const descriptor_copy>{});
 }
 
-void copy_descriptors(renderer& renderer, std::span<const descriptor_copy> copies)
+void copy_descriptors(device& device, std::span<const descriptor_copy> copies)
 {
-    update_descriptors(renderer, std::span<const descriptor_write>{}, copies);
+    update_descriptors(device, std::span<const descriptor_write>{}, copies);
 }
 
-void update_descriptors(renderer& renderer, std::span<const descriptor_write> writes, std::span<const descriptor_copy> copies)
+void update_descriptors(device& device, std::span<const descriptor_write> writes, std::span<const descriptor_copy> copies)
 {
     std::size_t image_count{};
     std::size_t buffer_count{};
@@ -219,7 +216,7 @@ void update_descriptors(renderer& renderer, std::span<const descriptor_write> wr
         native_copy.descriptorCount = copy.count;
     }
 
-    vkUpdateDescriptorSets(underlying_cast<VkDevice>(renderer), static_cast<std::uint32_t>(std::size(native_writes)), std::data(native_writes), static_cast<std::uint32_t>(std::size(native_copies)), std::data(native_copies));
+    device->vkUpdateDescriptorSets(underlying_cast<VkDevice>(device), static_cast<std::uint32_t>(std::size(native_writes)), std::data(native_writes), static_cast<std::uint32_t>(std::size(native_copies)), std::data(native_copies));
 }
 
 }

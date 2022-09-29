@@ -35,7 +35,7 @@
 namespace tph
 {
 
-class renderer;
+class device;
 class command_buffer;
 class render_target;
 class swapchain;
@@ -88,10 +88,10 @@ class TEPHRA_API texture
 
 public:
     constexpr texture() = default;
-    explicit texture(renderer& renderer, std::uint32_t width, const texture_info& info);
-    explicit texture(renderer& renderer, std::uint32_t width, std::uint32_t height, const texture_info& info);
-    explicit texture(renderer& renderer, std::uint32_t width, std::uint32_t height, std::uint32_t depth, const texture_info& info);
-    explicit texture(renderer& renderer, cubemap_t, std::uint32_t size, const texture_info& info);
+    explicit texture(device& device, std::uint32_t width, const texture_info& info);
+    explicit texture(device& device, std::uint32_t width, std::uint32_t height, const texture_info& info);
+    explicit texture(device& device, std::uint32_t width, std::uint32_t height, std::uint32_t depth, const texture_info& info);
+    explicit texture(device& device, cubemap_t, std::uint32_t size, const texture_info& info);
 
     explicit texture(vulkan::image image, vulkan::memory_heap_chunk memory,
                      std::uint32_t dimensions, std::uint32_t width, std::uint32_t height, std::uint32_t depth, bool is_cubemap,
@@ -117,6 +117,11 @@ public:
     texture& operator=(const texture&) = delete;
     texture(texture&& other) noexcept = default;
     texture& operator=(texture&& other) noexcept = default;
+
+    vulkan::device_context context() const noexcept
+    {
+        return m_image.context();
+    }
 
     std::uint32_t dimensions() const noexcept
     {
@@ -183,7 +188,7 @@ private:
     tph::sample_count m_sample_count{};
 };
 
-TEPHRA_API void set_object_name(renderer& renderer, const texture& object, const std::string& name);
+TEPHRA_API void set_object_name(device& device, const texture& object, const std::string& name);
 
 template<>
 inline VkDevice underlying_cast(const texture& texture) noexcept
@@ -215,8 +220,8 @@ public:
 
 public:
     texture_view() = default;
-    texture_view(renderer& renderer, const texture& texture, const component_mapping& mapping = identity_mapping);
-    texture_view(renderer& renderer, const texture& texture, const texture_subresource_range& subresource_range, const component_mapping& mapping = identity_mapping);
+    texture_view(device& device, const texture& texture, const component_mapping& mapping = identity_mapping);
+    texture_view(device& device, const texture& texture, const texture_subresource_range& subresource_range, const component_mapping& mapping = identity_mapping);
 
     texture_view(vulkan::image_view image_view) noexcept
     :m_image_view{std::move(image_view)}
@@ -230,11 +235,16 @@ public:
     texture_view(texture_view&& other) noexcept = default;
     texture_view& operator=(texture_view&& other) noexcept = default;
 
+    vulkan::device_context context() const noexcept
+    {
+        return m_image_view.context();
+    }
+
 private:
     vulkan::image_view m_image_view{};
 };
 
-TEPHRA_API void set_object_name(renderer& renderer, const texture_view& object, const std::string& name);
+TEPHRA_API void set_object_name(device& device, const texture_view& object, const std::string& name);
 
 template<>
 inline VkDevice underlying_cast(const texture_view& view) noexcept
@@ -293,7 +303,7 @@ class TEPHRA_API sampler
 
 public:
     sampler() = default;
-    sampler(renderer& renderer, const sampler_info& info);
+    sampler(device& device, const sampler_info& info);
 
     sampler(vulkan::sampler sampler) noexcept
     :m_sampler{std::move(sampler)}
@@ -307,11 +317,16 @@ public:
     sampler(sampler&& other) noexcept = default;
     sampler& operator=(sampler&& other) noexcept = default;
 
+    vulkan::device_context context() const noexcept
+    {
+        return m_sampler.context();
+    }
+
 private:
     vulkan::sampler m_sampler{};
 };
 
-TEPHRA_API void set_object_name(renderer& renderer, const sampler& object, const std::string& name);
+TEPHRA_API void set_object_name(device& device, const sampler& object, const std::string& name);
 
 template<>
 inline VkDevice underlying_cast(const sampler& sampler) noexcept

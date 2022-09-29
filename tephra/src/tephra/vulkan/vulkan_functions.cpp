@@ -25,7 +25,10 @@
 #include <mutex>
 #include <nes/shared_library.hpp>
 
-namespace tph::vulkan::functions
+namespace tph::vulkan
+{
+
+namespace functions
 {
 
 #ifdef _WIN32
@@ -38,19 +41,16 @@ namespace tph::vulkan::functions
 
 #define TEPHRA_EXTERNAL_LEVEL_FUNCTION(function) PFN_##function function = nullptr;
 #define TEPHRA_GLOBAL_LEVEL_FUNCTION(function) PFN_##function function = nullptr;
-#define TEPHRA_INSTANCE_LEVEL_FUNCTION(function) PFN_##function function = nullptr;
-#define TEPHRA_DEVICE_LEVEL_FUNCTION(function) PFN_##function function = nullptr;
 
 #include "vulkan_functions_list"
 
 void load_external_level_functions()
 {
     static std::mutex mutex{};
-    std::lock_guard lock{mutex};
-
     static nes::shared_library vulkan_library{};
     static bool loaded{};
 
+    std::lock_guard lock{mutex};
     if(!std::exchange(loaded, true))
     {
         vulkan_library = nes::shared_library{vulkan_path};
@@ -63,10 +63,9 @@ void load_external_level_functions()
 void load_global_level_functions()
 {
     static std::mutex mutex{};
-    std::lock_guard lock{mutex};
-
     static bool loaded{};
 
+    std::lock_guard lock{mutex};
     if(!std::exchange(loaded, true))
     {
         #define TEPHRA_GLOBAL_LEVEL_FUNCTION(function) function = reinterpret_cast<PFN_##function>(vkGetInstanceProcAddr(nullptr, #function));
@@ -74,16 +73,18 @@ void load_global_level_functions()
     }
 }
 
-void load_instance_level_functions(VkInstance instance)
+void load_instance_level_functions(VkInstance instance, instance_level_functions& instance_functions) noexcept
 {
-    #define TEPHRA_INSTANCE_LEVEL_FUNCTION(function) function = reinterpret_cast<PFN_##function>(vkGetInstanceProcAddr(instance, #function));
+    #define TEPHRA_INSTANCE_LEVEL_FUNCTION(function) instance_functions.function = reinterpret_cast<PFN_##function>(vkGetInstanceProcAddr(instance, #function));
     #include "vulkan_functions_list"
 }
 
-void load_device_level_functions(VkDevice device)
+void load_device_level_functions(VkDevice device, const instance_level_functions& instance_functions, device_level_functions& device_functions) noexcept
 {
-    #define TEPHRA_DEVICE_LEVEL_FUNCTION(function) function = reinterpret_cast<PFN_##function>(vkGetDeviceProcAddr(device, #function));
+    #define TEPHRA_DEVICE_LEVEL_FUNCTION(function) device_functions.function = reinterpret_cast<PFN_##function>(instance_functions.vkGetDeviceProcAddr(device, #function));
     #include "vulkan_functions_list"
+}
+
 }
 
 }

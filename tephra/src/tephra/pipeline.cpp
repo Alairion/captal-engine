@@ -29,7 +29,7 @@
 
 #include "vulkan/vulkan_functions.hpp"
 
-#include "renderer.hpp"
+#include "device.hpp"
 #include "shader.hpp"
 #include "render_target.hpp"
 #include "descriptor.hpp"
@@ -39,7 +39,7 @@ using namespace tph::vulkan::functions;
 namespace tph
 {
 
-pipeline_layout::pipeline_layout(renderer& renderer, std::span<descriptor_set_layout> layouts, std::span<const push_constant_range> ranges)
+pipeline_layout::pipeline_layout(device& device, std::span<descriptor_set_layout> layouts, std::span<const push_constant_range> ranges)
 {
     stack_memory_pool<1024> pool{};
 
@@ -62,10 +62,10 @@ pipeline_layout::pipeline_layout(renderer& renderer, std::span<descriptor_set_la
         native_ranges.emplace_back(native_range);
     }
 
-    m_pipeline_layout = vulkan::pipeline_layout{underlying_cast<VkDevice>(renderer), native_layouts, native_ranges};
+    m_pipeline_layout = vulkan::pipeline_layout{device.context(), native_layouts, native_ranges};
 }
 
-pipeline_layout::pipeline_layout(renderer& renderer, std::span<std::reference_wrapper<descriptor_set_layout> > layouts, std::span<const push_constant_range> ranges)
+pipeline_layout::pipeline_layout(device& device, std::span<std::reference_wrapper<descriptor_set_layout> > layouts, std::span<const push_constant_range> ranges)
 {
     stack_memory_pool<1024> pool{};
 
@@ -88,10 +88,10 @@ pipeline_layout::pipeline_layout(renderer& renderer, std::span<std::reference_wr
         native_ranges.emplace_back(native_range);
     }
 
-    m_pipeline_layout = vulkan::pipeline_layout{underlying_cast<VkDevice>(renderer), native_layouts, native_ranges};
+    m_pipeline_layout = vulkan::pipeline_layout{device.context(), native_layouts, native_ranges};
 }
 
-void set_object_name(renderer& renderer, const pipeline_layout& object, const std::string& name)
+void set_object_name(device& device, const pipeline_layout& object, const std::string& name)
 {
     VkDebugUtilsObjectNameInfoEXT info{};
     info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
@@ -99,42 +99,40 @@ void set_object_name(renderer& renderer, const pipeline_layout& object, const st
     info.objectHandle = reinterpret_cast<std::uint64_t>(underlying_cast<VkPipelineLayout>(object));
     info.pObjectName = std::data(name);
 
-    if(auto result{vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(renderer), &info)}; result != VK_SUCCESS)
-        throw vulkan::error{result};
+    vulkan::check(device->vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(device), &info));
 }
 
-pipeline_cache::pipeline_cache(renderer& renderer)
-:m_pipeline_cache{underlying_cast<VkDevice>(renderer)}
+pipeline_cache::pipeline_cache(device& device)
+:m_pipeline_cache{device.context()}
 {
 
 }
 
-pipeline_cache::pipeline_cache(renderer& renderer, std::span<const uint8_t> data)
-:m_pipeline_cache{underlying_cast<VkDevice>(renderer), std::data(data), std::size(data)}
+pipeline_cache::pipeline_cache(device& device, std::span<const uint8_t> data)
+:m_pipeline_cache{device.context(), std::data(data), std::size(data)}
 {
 
 }
 
-pipeline_cache::pipeline_cache(renderer& renderer, const std::filesystem::path& file)
-:pipeline_cache{renderer, read_file<std::vector<std::uint8_t>>(file)}
+pipeline_cache::pipeline_cache(device& device, const std::filesystem::path& file)
+:pipeline_cache{device, read_file<std::vector<std::uint8_t>>(file)}
 {
 
 }
 
-pipeline_cache::pipeline_cache(renderer& renderer, std::istream& stream)
+pipeline_cache::pipeline_cache(device& device, std::istream& stream)
 {
     assert(stream && "Invalid stream.");
 
     const std::string initial_data{std::istreambuf_iterator<char>{stream}, std::istreambuf_iterator<char>{}};
-    m_pipeline_cache = vulkan::pipeline_cache{underlying_cast<VkDevice>(renderer), std::data(initial_data), std::size(initial_data)};
+    m_pipeline_cache = vulkan::pipeline_cache{device.context(), std::data(initial_data), std::size(initial_data)};
 }
 
 pipeline_cache& pipeline_cache::merge_with(pipeline_cache& other)
 {
     VkPipelineCache native_pipeline_cache{other.m_pipeline_cache};
 
-    if(auto result{vkMergePipelineCaches(m_pipeline_cache.device(), m_pipeline_cache, 1, &native_pipeline_cache)}; result != VK_SUCCESS)
-        throw vulkan::error{result};
+    vulkan::check(context()->vkMergePipelineCaches(m_pipeline_cache.device(), m_pipeline_cache, 1, &native_pipeline_cache));
 
     return *this;
 }
@@ -148,8 +146,7 @@ pipeline_cache& pipeline_cache::merge_with(const std::vector<std::reference_wrap
         native_pipeline_caches.emplace_back(other.m_pipeline_cache);
     }
 
-    if(auto result{vkMergePipelineCaches(m_pipeline_cache.device(), m_pipeline_cache, static_cast<std::uint32_t>(std::size(native_pipeline_caches)), std::data(native_pipeline_caches))}; result != VK_SUCCESS)
-        throw vulkan::error{result};
+    vulkan::check(context()->vkMergePipelineCaches(m_pipeline_cache.device(), m_pipeline_cache, static_cast<std::uint32_t>(std::size(native_pipeline_caches)), std::data(native_pipeline_caches)));
 
     return *this;
 }
@@ -157,19 +154,17 @@ pipeline_cache& pipeline_cache::merge_with(const std::vector<std::reference_wrap
 std::string pipeline_cache::data() const
 {
     std::size_t size{};
-    if(auto result{vkGetPipelineCacheData(m_pipeline_cache.device(), m_pipeline_cache, &size, nullptr)}; result != VK_SUCCESS)
-        throw vulkan::error{result};
+    vulkan::check(context()->vkGetPipelineCacheData(m_pipeline_cache.device(), m_pipeline_cache, &size, nullptr));
 
     std::string output{};
     output.resize(size);
 
-    if(auto result{vkGetPipelineCacheData(m_pipeline_cache.device(), m_pipeline_cache, &size, std::data(output))}; result != VK_SUCCESS)
-        throw vulkan::error{result};
+    vulkan::check(context()->vkGetPipelineCacheData(m_pipeline_cache.device(), m_pipeline_cache, &size, std::data(output)));
 
     return output;
 }
 
-void set_object_name(renderer& renderer, const pipeline_cache& object, const std::string& name)
+void set_object_name(device& device, const pipeline_cache& object, const std::string& name)
 {
     VkDebugUtilsObjectNameInfoEXT info{};
     info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
@@ -177,17 +172,16 @@ void set_object_name(renderer& renderer, const pipeline_cache& object, const std
     info.objectHandle = reinterpret_cast<std::uint64_t>(underlying_cast<VkPipelineCache>(object));
     info.pObjectName = std::data(name);
 
-    if(auto result{vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(renderer), &info)}; result != VK_SUCCESS)
-        throw vulkan::error{result};
+    vulkan::check(device->vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(device), &info));
 }
 
-pipeline::pipeline(renderer& renderer, render_pass& render_pass, const graphics_pipeline_info& info, const pipeline_layout& layout, optional_ref<pipeline_cache> cache, optional_ref<pipeline> parent)
-:pipeline{renderer, render_pass, 0, info, layout, cache, parent}
+pipeline::pipeline(device& device, render_pass& render_pass, const graphics_pipeline_info& info, const pipeline_layout& layout, optional_ref<pipeline_cache> cache, optional_ref<pipeline> parent)
+:pipeline{device, render_pass, 0, info, layout, cache, parent}
 {
 
 }
 
-pipeline::pipeline(renderer& renderer, render_pass& render_pass, std::uint32_t subpass, const graphics_pipeline_info& info, const pipeline_layout& layout, optional_ref<pipeline_cache> cache, optional_ref<pipeline> parent)
+pipeline::pipeline(device& device, render_pass& render_pass, std::uint32_t subpass, const graphics_pipeline_info& info, const pipeline_layout& layout, optional_ref<pipeline_cache> cache, optional_ref<pipeline> parent)
 :m_type{pipeline_type::graphics}
 {
     VkGraphicsPipelineCreateInfo create_info{};
@@ -353,10 +347,10 @@ pipeline::pipeline(renderer& renderer, render_pass& render_pass, std::uint32_t s
 
     VkPipelineCache native_cache{cache.has_value() ? underlying_cast<VkPipelineCache>(*cache) : VkPipelineCache{}};
 
-    m_pipeline = vulkan::pipeline{underlying_cast<VkDevice>(renderer), create_info, native_cache};
+    m_pipeline = vulkan::pipeline{device.context(), create_info, native_cache};
 }
 
-pipeline::pipeline(renderer& renderer, const compute_pipeline_info& info, const pipeline_layout& layout, optional_ref<pipeline_cache> cache, optional_ref<pipeline> parent)
+pipeline::pipeline(device& device, const compute_pipeline_info& info, const pipeline_layout& layout, optional_ref<pipeline_cache> cache, optional_ref<pipeline> parent)
 :m_type{pipeline_type::compute}
 {
     VkComputePipelineCreateInfo create_info{};
@@ -389,10 +383,10 @@ pipeline::pipeline(renderer& renderer, const compute_pipeline_info& info, const 
 
     VkPipelineCache native_cache{cache.has_value() ? underlying_cast<VkPipelineCache>(*cache) : VkPipelineCache{}};
 
-    m_pipeline = vulkan::pipeline{underlying_cast<VkDevice>(renderer), create_info, native_cache};
+    m_pipeline = vulkan::pipeline{device.context(), create_info, native_cache};
 }
 
-void set_object_name(renderer& renderer, const pipeline& object, const std::string& name)
+void set_object_name(device& device, const pipeline& object, const std::string& name)
 {
     VkDebugUtilsObjectNameInfoEXT info{};
     info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
@@ -400,8 +394,7 @@ void set_object_name(renderer& renderer, const pipeline& object, const std::stri
     info.objectHandle = reinterpret_cast<std::uint64_t>(underlying_cast<VkPipeline>(object));
     info.pObjectName = std::data(name);
 
-    if(auto result{vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(renderer), &info)}; result != VK_SUCCESS)
-        throw vulkan::error{result};
+    vulkan::check(device->vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(device), &info));
 }
 
 }

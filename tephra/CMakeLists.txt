@@ -17,7 +17,7 @@ set(TEPHRA_SOURCES
     src/tephra/swapchain.hpp
     src/tephra/application.hpp
     src/tephra/debug_utils.hpp
-    src/tephra/renderer.hpp
+    src/tephra/device.hpp
     src/tephra/shader.hpp
     src/tephra/render_target.hpp
     src/tephra/synchronization.hpp
@@ -40,7 +40,7 @@ set(TEPHRA_SOURCES
     src/tephra/swapchain.cpp
     src/tephra/application.cpp
     src/tephra/debug_utils.cpp
-    src/tephra/renderer.cpp
+    src/tephra/device.cpp
     src/tephra/shader.cpp
     src/tephra/render_target.cpp
     src/tephra/synchronization.cpp

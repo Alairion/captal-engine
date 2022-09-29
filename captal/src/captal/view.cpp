@@ -71,7 +71,7 @@ void view::bind(frame_render_info info)
         #ifdef CAPTAL_DEBUG
         if(!std::empty(m_name))
         {
-            tph::set_object_name(engine::instance().renderer(), m_set->set(), m_name + " descriptor set");
+            tph::set_object_name(engine::instance().device(), m_set->set(), m_name + " descriptor set");
         }
         #endif
 
@@ -97,7 +97,7 @@ void view::bind(frame_render_info info)
             }
         }
 
-        tph::write_descriptors(engine::instance().renderer(), writes);
+        tph::write_descriptors(engine::instance().device(), writes);
     }
 
     tph::cmd::set_viewport(info.buffer, m_viewport);
@@ -169,7 +169,7 @@ void view::set_name(std::string_view name)
 
     if(m_set)
     {
-        tph::set_object_name(engine::instance().renderer(), m_set->set(), m_name + " descriptor set");
+        tph::set_object_name(engine::instance().device(), m_set->set(), m_name + " descriptor set");
     }
 }
 #endif

@@ -37,7 +37,7 @@
 namespace tph
 {
 
-class renderer;
+class device;
 class surface;
 
 struct swapchain_info
@@ -69,7 +69,7 @@ class TEPHRA_API swapchain
 
 public:
     constexpr swapchain() = default;
-    explicit swapchain(renderer& renderer, surface& surface, const swapchain_info& info, optional_ref<swapchain> old_swapchain = nullref);
+    explicit swapchain(device& device, surface& surface, const swapchain_info& info, optional_ref<swapchain> old_swapchain = nullref);
 
     explicit swapchain(vulkan::swapchain swapchain, VkQueue present_queue, const swapchain_info& info, std::vector<tph::texture> textures) noexcept
     :m_swapchain{std::move(swapchain)}
@@ -85,6 +85,11 @@ public:
     swapchain& operator=(const swapchain&) = delete;
     swapchain(swapchain&&) noexcept = default;
     swapchain& operator=(swapchain&&) noexcept = default;
+
+    vulkan::device_context context() const noexcept
+    {
+        return m_swapchain.context();
+    }
 
     swapchain_status acquire(optional_ref<semaphore> semaphore, optional_ref<fence> fence)
     {
@@ -160,7 +165,7 @@ private:
     std::uint32_t m_image_index{};
 };
 
-TEPHRA_API void set_object_name(renderer& renderer, const swapchain& object, const std::string& name);
+TEPHRA_API void set_object_name(device& device, const swapchain& object, const std::string& name);
 
 template<>
 inline VkDevice underlying_cast(const swapchain& swapchain) noexcept

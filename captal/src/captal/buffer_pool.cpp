@@ -78,8 +78,8 @@ const void* buffer_heap_chunk::map(std::uint64_t offset) const noexcept
 }
 
 buffer_heap::buffer_heap(std::uint64_t size, tph::buffer_usage usage)
-:m_local_data{engine::instance().renderer(), size, usage | tph::buffer_usage::transfer_source}
-,m_device_data{engine::instance().renderer(), size, usage | tph::buffer_usage::transfer_destination | tph::buffer_usage::device_only}
+:m_local_data{engine::instance().device(), size, usage | tph::buffer_usage::transfer_source}
+,m_device_data{engine::instance().device(), size, usage | tph::buffer_usage::transfer_destination | tph::buffer_usage::device_only}
 ,m_size{size}
 ,m_local_map{m_local_data.map()}
 {
@@ -178,12 +178,12 @@ void buffer_heap::set_name(std::string_view name)
 
     m_name = name;
 
-    tph::set_object_name(engine::instance().renderer(), m_local_data, m_name + " host buffer");
-    tph::set_object_name(engine::instance().renderer(), m_device_data, m_name + " device buffer");
+    tph::set_object_name(engine::instance().device(), m_local_data, m_name + " host buffer");
+    tph::set_object_name(engine::instance().device(), m_device_data, m_name + " device buffer");
 
     for(std::size_t i{}; i < std::size(m_stagings); ++i)
     {
-        tph::set_object_name(engine::instance().renderer(), m_stagings[i].buffer, m_name + " staging buffer #" + std::to_string(i));
+        tph::set_object_name(engine::instance().device(), m_stagings[i].buffer, m_name + " staging buffer #" + std::to_string(i));
     }
 }
 #endif
@@ -275,12 +275,12 @@ bool buffer_heap::begin_upload(tph::command_buffer& command_buffer)
     {
         constexpr auto usage{tph::buffer_usage::transfer_source | tph::buffer_usage::transfer_destination};
 
-        m_stagings.emplace_back(staging_buffer{tph::buffer{engine::instance().renderer(), m_size, usage}});
+        m_stagings.emplace_back(staging_buffer{tph::buffer{engine::instance().device(), m_size, usage}});
 
         #ifdef CAPTAL_DEBUG
         if(!std::empty(m_name))
         {
-            tph::set_object_name(engine::instance().renderer(), m_stagings.back().buffer, m_name + " staging buffer #" + std::to_string(std::size(m_stagings) - 1));
+            tph::set_object_name(engine::instance().device(), m_stagings.back().buffer, m_name + " staging buffer #" + std::to_string(std::size(m_stagings) - 1));
         }
         #endif
 

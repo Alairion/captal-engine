@@ -140,7 +140,7 @@ int main()
 
         const cpt::graphics_parameters graphics
         {
-            .options = tph::renderer_options::tiny_memory_heaps,
+            .options = tph::device_options::tiny_memory_heaps,
         };
 
         cpt::engine engine{"captal_test", cpt::version{0, 1, 0}, system, audio, graphics};

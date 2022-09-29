@@ -152,7 +152,7 @@ static tph::render_pass_info make_render_pass_info(tph::texture_format color_for
 
 static std::optional<tph::swapchain> make_swapchain(const cpt::video_mode& mode, window& window, optional_ref<tph::swapchain> old)
 {
-    const auto capabilities{window.surface().capabilities(engine::instance().renderer())};
+    const auto capabilities{window.surface().capabilities(engine::instance().device())};
 
     tph::swapchain_info info{};
 
@@ -181,7 +181,7 @@ static std::optional<tph::swapchain> make_swapchain(const cpt::video_mode& mode,
     info.present_mode = mode.present_mode;
     info.clipping     = mode.clipping;
 
-    return tph::swapchain{engine::instance().renderer(), window.surface(), info, old};
+    return tph::swapchain{engine::instance().device(), window.surface(), info, old};
 }
 
 static std::pair<tph::texture, tph::texture_view> make_msaa_texture(const tph::swapchain& swapchain, tph::texture_format surface_format, tph::sample_count sample_count)
@@ -193,8 +193,8 @@ static std::pair<tph::texture, tph::texture_view> make_msaa_texture(const tph::s
 
     const tph::texture_info info{.format = surface_format, .usage = tph::texture_usage::color_attachment, .sample_count = sample_count};
 
-    tph::texture texture{engine::instance().renderer(), swapchain.info().width, swapchain.info().height, info};
-    tph::texture_view view{engine::instance().renderer(), texture};
+    tph::texture texture{engine::instance().device(), swapchain.info().width, swapchain.info().height, info};
+    tph::texture_view view{engine::instance().device(), texture};
 
     return std::make_pair(std::move(texture), std::move(view));
 }
@@ -208,8 +208,8 @@ static std::pair<tph::texture, tph::texture_view> make_depth_texture(const tph::
 
     const tph::texture_info info{.format = depth_format, .usage = tph::texture_usage::depth_stencil_attachment, .sample_count = sample_count};
 
-    tph::texture texture{engine::instance().renderer(), swapchain.info().width, swapchain.info().height, info};
-    tph::texture_view view{engine::instance().renderer(), texture};
+    tph::texture texture{engine::instance().device(), swapchain.info().width, swapchain.info().height, info};
+    tph::texture_view view{engine::instance().device(), texture};
 
     return std::make_pair(std::move(texture), std::move(view));
 }
@@ -249,7 +249,7 @@ render_window::render_window(window_ptr window, video_mode mode)
 :render_target{make_render_pass_info(choose_surface_format(window->surface(), mode), mode.sample_count, mode.depth_format)}
 ,m_window{std::move(window)}
 ,m_mode{mode}
-,m_pool{engine::instance().renderer(), tph::command_pool_options::reset}
+,m_pool{engine::instance().device(), tph::command_pool_options::reset}
 {
     recreate();
 }
@@ -370,7 +370,7 @@ void render_window::present()
     data.fence.reset();
 
     std::unique_lock lock{engine::instance().submit_mutex()};
-    tph::submit(engine::instance().renderer(), submit_info, data.fence);
+    tph::submit(engine::instance().device(), submit_info, data.fence);
     lock.unlock();
 
     data.submitted = true;
@@ -406,32 +406,32 @@ void render_window::set_name(std::string_view name)
     const bool has_multisampling{m_mode.sample_count != tph::sample_count::msaa_x1};
     const bool has_depth_stencil{m_mode.depth_format != tph::texture_format::undefined};
 
-    tph::set_object_name(engine::instance().renderer(), get_render_pass(), m_name + " render pass");
+    tph::set_object_name(engine::instance().device(), get_render_pass(), m_name + " render pass");
 
     if(m_swapchain)
     {
-        tph::set_object_name(engine::instance().renderer(), *m_swapchain, m_name + " swapchain");
+        tph::set_object_name(engine::instance().device(), *m_swapchain, m_name + " swapchain");
 
         if(has_multisampling)
         {
-            tph::set_object_name(engine::instance().renderer(), m_msaa_texture, m_name + " multisampling texture");
+            tph::set_object_name(engine::instance().device(), m_msaa_texture, m_name + " multisampling texture");
         }
 
         if(has_depth_stencil)
         {
-            tph::set_object_name(engine::instance().renderer(), m_depth_texture, m_name + " depth texture");
+            tph::set_object_name(engine::instance().device(), m_depth_texture, m_name + " depth texture");
         }
 
         for(std::uint32_t i{}; i < m_swapchain->info().image_count; ++i)
         {
-            tph::set_object_name(engine::instance().renderer(), m_swapchain->textures()[i], m_name + " swapchain image #" + std::to_string(i));
-            tph::set_object_name(engine::instance().renderer(), m_framebuffers[i],          m_name + " swapchain framebuffer #" + std::to_string(i));
+            tph::set_object_name(engine::instance().device(), m_swapchain->textures()[i], m_name + " swapchain image #" + std::to_string(i));
+            tph::set_object_name(engine::instance().device(), m_framebuffers[i],          m_name + " swapchain framebuffer #" + std::to_string(i));
 
-            tph::set_object_name(engine::instance().renderer(), m_frames_data[i].buffer,            m_name + " frame #" + std::to_string(i) + " command buffer");
-            tph::set_object_name(engine::instance().renderer(), m_frames_data[i].image_available,   m_name + " frame #" + std::to_string(i) + " available semaphore");
-            tph::set_object_name(engine::instance().renderer(), m_frames_data[i].image_presentable, m_name + " frame #" + std::to_string(i) + " presentable semaphore");
-            tph::set_object_name(engine::instance().renderer(), m_frames_data[i].fence,             m_name + " frame #" + std::to_string(i) + " fence");
-            tph::set_object_name(engine::instance().renderer(), m_frames_data[i].query_pool,        m_name + " frame #" + std::to_string(i) + " query pool");
+            tph::set_object_name(engine::instance().device(), m_frames_data[i].buffer,            m_name + " frame #" + std::to_string(i) + " command buffer");
+            tph::set_object_name(engine::instance().device(), m_frames_data[i].image_available,   m_name + " frame #" + std::to_string(i) + " available semaphore");
+            tph::set_object_name(engine::instance().device(), m_frames_data[i].image_presentable, m_name + " frame #" + std::to_string(i) + " presentable semaphore");
+            tph::set_object_name(engine::instance().device(), m_frames_data[i].fence,             m_name + " frame #" + std::to_string(i) + " fence");
+            tph::set_object_name(engine::instance().device(), m_frames_data[i].query_pool,        m_name + " frame #" + std::to_string(i) + " query pool");
         }
     }
 }
@@ -446,10 +446,10 @@ void render_window::setup_frame_data()
     {
         frame_data data{};
         data.buffer = tph::cmd::begin(m_pool, tph::command_buffer_level::primary);
-        data.image_available = tph::semaphore{engine::instance().renderer()};
-        data.image_presentable = tph::semaphore{engine::instance().renderer()};
-        data.fence = tph::fence{engine::instance().renderer(), true};
-        data.query_pool = tph::query_pool{engine::instance().renderer(), 2, tph::query_type::timestamp};
+        data.image_available = tph::semaphore{engine::instance().device()};
+        data.image_presentable = tph::semaphore{engine::instance().device()};
+        data.fence = tph::fence{engine::instance().device(), true};
+        data.query_pool = tph::query_pool{engine::instance().device(), 2, tph::query_type::timestamp};
 
         m_frames_data.emplace_back(std::move(data));
     }
@@ -464,7 +464,7 @@ void render_window::setup_framebuffers()
     {
         const auto attachments{make_attachments(m_mode, m_swapchain->texture_views()[i], m_msaa_texture_view, m_depth_texture_view)};
 
-        m_framebuffers.emplace_back(engine::instance().renderer(), get_render_pass(), attachments, m_swapchain->info().width, m_swapchain->info().height, 1);
+        m_framebuffers.emplace_back(engine::instance().device(), get_render_pass(), attachments, m_swapchain->info().width, m_swapchain->info().height, 1);
     }
 }
 
@@ -494,7 +494,7 @@ bool render_window::check_renderability()
 {
     try
     {
-        const auto capabilities{m_window->surface().capabilities(engine::instance().renderer())};
+        const auto capabilities{m_window->surface().capabilities(engine::instance().device())};
 
         if(capabilities.current_width != 0 && capabilities.current_height != 0)
         {

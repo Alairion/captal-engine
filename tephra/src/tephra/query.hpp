@@ -32,7 +32,7 @@
 namespace tph
 {
 
-class renderer;
+class device;
 
 // From https://www.khronos.org/registry/vulkan/specs/1.2-extensions/html/chap18.html#vkGetQueryPoolResults
 // Occlusion queries write one integer value - the number of samples passed.
@@ -52,7 +52,7 @@ class TEPHRA_API query_pool
 
 public:
     constexpr query_pool() = default;
-    explicit query_pool(renderer& renderer, std::uint32_t count, query_type type, query_pipeline_statistic statistics = query_pipeline_statistic{});
+    explicit query_pool(device& device, std::uint32_t count, query_type type, query_pipeline_statistic statistics = query_pipeline_statistic{});
 
     explicit query_pool(vulkan::query_pool query_pool) noexcept
     :m_query_pool{std::move(query_pool)}
@@ -66,6 +66,11 @@ public:
     query_pool(query_pool&& other) noexcept = default;
     query_pool& operator=(query_pool&& other) noexcept = default;
 
+    vulkan::device_context context() const noexcept
+    {
+        return m_query_pool.context();
+    }
+
     void reset(std::uint32_t first, std::uint32_t count) noexcept;
     bool results(std::uint32_t first, std::uint32_t count, std::size_t buffer_size, void* buffer, std::uint64_t stride, query_results flags);
 
@@ -73,7 +78,7 @@ private:
     vulkan::query_pool m_query_pool{};
 };
 
-TEPHRA_API void set_object_name(renderer& renderer, const query_pool& object, const std::string& name);
+TEPHRA_API void set_object_name(device& device, const query_pool& object, const std::string& name);
 
 template<>
 inline VkDevice underlying_cast(const query_pool& query_pool) noexcept

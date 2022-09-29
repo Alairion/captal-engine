@@ -33,7 +33,7 @@
 namespace tph
 {
 
-class renderer;
+class device;
 class command_buffer;
 
 enum class buffer_usage : std::uint32_t
@@ -60,7 +60,7 @@ class TEPHRA_API buffer
 
 public:
     constexpr buffer() = default;
-    explicit buffer(renderer& renderer, std::uint64_t size, buffer_usage usage);
+    explicit buffer(device& device, std::uint64_t size, buffer_usage usage);
 
     explicit buffer(vulkan::buffer buffer, vulkan::memory_heap_chunk memory, std::uint64_t size) noexcept
     :m_buffer{std::move(buffer)}
@@ -80,6 +80,11 @@ public:
     const std::uint8_t* map() const;
     void unmap() noexcept;
 
+    vulkan::device_context context() const noexcept
+    {
+        return m_buffer.context();
+    }
+
     std::uint64_t size() const noexcept
     {
         return m_size;
@@ -91,7 +96,7 @@ private:
     std::uint64_t m_size{};
 };
 
-TEPHRA_API void set_object_name(renderer& renderer, const buffer& object, const std::string& name);
+TEPHRA_API void set_object_name(device& device, const buffer& object, const std::string& name);
 
 template<>
 inline VkDevice underlying_cast(const buffer& buffer) noexcept

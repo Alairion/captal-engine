@@ -32,7 +32,7 @@
 namespace tph
 {
 
-class renderer;
+class device;
 
 class TEPHRA_API semaphore
 {
@@ -41,7 +41,7 @@ class TEPHRA_API semaphore
 
 public:
     constexpr semaphore() = default;
-    explicit semaphore(renderer& renderer);
+    explicit semaphore(device& device);
 
     explicit semaphore(vulkan::semaphore semaphore) noexcept
     :m_semaphore{std::move(semaphore)}
@@ -55,11 +55,16 @@ public:
     semaphore(semaphore&& other) noexcept = default;
     semaphore& operator=(semaphore&& other) noexcept = default;
 
+    vulkan::device_context context() const noexcept
+    {
+        return m_semaphore.context();
+    }
+
 private:
     vulkan::semaphore m_semaphore{};
 };
 
-TEPHRA_API void set_object_name(renderer& renderer, const semaphore& object, const std::string& name);
+TEPHRA_API void set_object_name(device& device, const semaphore& object, const std::string& name);
 
 template<>
 inline VkDevice underlying_cast(const semaphore& semaphore) noexcept
@@ -80,7 +85,7 @@ class TEPHRA_API fence
 
 public:
     constexpr fence() = default;
-    explicit fence(renderer& renderer, bool signaled = false);
+    explicit fence(device& device, bool signaled = false);
 
     explicit fence(vulkan::fence fence) noexcept
     :m_fence{std::move(fence)}
@@ -93,6 +98,11 @@ public:
     fence& operator=(const fence&) = delete;
     fence(fence&& other) noexcept = default;
     fence& operator=(fence&& other) noexcept = default;
+
+    vulkan::device_context context() const noexcept
+    {
+        return m_fence.context();
+    }
 
     void wait() const
     {
@@ -131,7 +141,7 @@ private:
     vulkan::fence m_fence{};
 };
 
-TEPHRA_API void set_object_name(renderer& renderer, const fence& object, const std::string& name);
+TEPHRA_API void set_object_name(device& device, const fence& object, const std::string& name);
 
 template<>
 inline VkDevice underlying_cast(const fence& fence) noexcept
@@ -152,7 +162,7 @@ class TEPHRA_API event
 
 public:
     constexpr event() = default;
-    explicit event(renderer& renderer);
+    explicit event(device& device);
 
     explicit event(vulkan::event event) noexcept
     :m_event{std::move(event)}
@@ -166,6 +176,11 @@ public:
     event(event&& other) noexcept = default;
     event& operator=(event&& other) noexcept = default;
 
+    vulkan::device_context context() const noexcept
+    {
+        return m_event.context();
+    }
+
     void set();
     void reset();
 
@@ -173,7 +188,7 @@ private:
     vulkan::event m_event{};
 };
 
-TEPHRA_API void set_object_name(renderer& renderer, const event& object, const std::string& name);
+TEPHRA_API void set_object_name(device& device, const event& object, const std::string& name);
 
 template<>
 inline VkDevice underlying_cast(const event& event) noexcept

@@ -238,14 +238,14 @@ void font_atlas::upload()
         copies.emplace_back(copy);
     }
 
-    tph::buffer staging_buffer{engine::instance().renderer(), std::size(m_buffer_data), tph::buffer_usage::staging | tph::buffer_usage::transfer_source};
+    tph::buffer staging_buffer{engine::instance().device(), std::size(m_buffer_data), tph::buffer_usage::staging | tph::buffer_usage::transfer_source};
     std::memcpy(staging_buffer.map(), std::data(m_buffer_data), std::size(m_buffer_data));
     staging_buffer.unmap();
 
 #ifdef CAPTAL_DEBUG
     if(!std::empty(m_name))
     {
-        tph::set_object_name(engine::instance().renderer(), staging_buffer, m_name + " staging buffer (frame: " + std::to_string(engine::instance().frame()) + ")");
+        tph::set_object_name(engine::instance().device(), staging_buffer, m_name + " staging buffer (frame: " + std::to_string(engine::instance().frame()) + ")");
     }
 #endif
 

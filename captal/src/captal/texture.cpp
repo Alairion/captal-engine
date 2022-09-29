@@ -32,9 +32,9 @@ void texture::set_name(std::string_view name)
 {
     const std::string string_name{name};
 
-    tph::set_object_name(engine::instance().renderer(), m_texture, string_name);
-    tph::set_object_name(engine::instance().renderer(), m_texture_view, string_name + " view");
-    tph::set_object_name(engine::instance().renderer(), m_sampler, string_name + " sampler");
+    tph::set_object_name(engine::instance().device(), m_texture, string_name);
+    tph::set_object_name(engine::instance().device(), m_texture_view, string_name + " view");
+    tph::set_object_name(engine::instance().device(), m_sampler, string_name + " sampler");
 }
 #endif
 
@@ -51,10 +51,10 @@ static tph::texture_format format_from_color_space(color_space space) noexcept
 template<typename... Args>
 static tph::image make_image(Args&&... args)
 {
-    tph::image output{engine::instance().renderer(), std::forward<Args>(args)..., tph::image_usage::transfer_source};
+    tph::image output{engine::instance().device(), std::forward<Args>(args)..., tph::image_usage::transfer_source};
 
 #ifdef CAPTAL_DEBUG
-    tph::set_object_name(engine::instance().renderer(), output, "transfer image");
+    tph::set_object_name(engine::instance().device(), output, "transfer image");
 #endif
 
     return output;
@@ -119,9 +119,9 @@ texture_ptr make_texture(tph::image&& image, const tph::sampler_info& sampling, 
     return make_texture_impl(sampling, format_from_color_space(space), std::move(image));
 }
 
-tph::renderer& texture::get_renderer() noexcept
+tph::device& texture::get_device() noexcept
 {
-    return engine::instance().renderer();
+    return engine::instance().device();
 }
 
 

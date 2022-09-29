@@ -35,7 +35,7 @@
 namespace tph
 {
 
-class renderer;
+class device;
 class buffer;
 class texture;
 class texture_view;
@@ -56,7 +56,7 @@ class TEPHRA_API descriptor_set_layout
 
 public:
     constexpr descriptor_set_layout() = default;
-    explicit descriptor_set_layout(renderer& renderer, std::span<const descriptor_set_layout_binding> bindings);
+    explicit descriptor_set_layout(device& device, std::span<const descriptor_set_layout_binding> bindings);
 
     explicit descriptor_set_layout(vulkan::descriptor_set_layout layout) noexcept
     :m_layout{std::move(layout)}
@@ -74,7 +74,7 @@ private:
     vulkan::descriptor_set_layout m_layout{};
 };
 
-TEPHRA_API void set_object_name(renderer& renderer, const descriptor_set_layout& object, const std::string& name);
+TEPHRA_API void set_object_name(device& device, const descriptor_set_layout& object, const std::string& name);
 
 template<>
 inline VkDevice underlying_cast(const descriptor_set_layout& layout) noexcept
@@ -101,7 +101,7 @@ class TEPHRA_API descriptor_pool
 
 public:
     constexpr descriptor_pool() = default;
-    explicit descriptor_pool(renderer& renderer, std::span<const descriptor_pool_size> sizes, std::optional<std::uint32_t> max_sets = std::nullopt);
+    explicit descriptor_pool(device& device, std::span<const descriptor_pool_size> sizes, std::optional<std::uint32_t> max_sets = std::nullopt);
 
     explicit descriptor_pool(vulkan::descriptor_pool descriptor_pool) noexcept
     :m_descriptor_pool{std::move(descriptor_pool)}
@@ -115,11 +115,16 @@ public:
     descriptor_pool(descriptor_pool&&) noexcept = default;
     descriptor_pool& operator=(descriptor_pool&&) noexcept = default;
 
+    vulkan::device_context context() const noexcept
+    {
+        return m_descriptor_pool.context();
+    }
+
 private:
     vulkan::descriptor_pool m_descriptor_pool{};
 };
 
-TEPHRA_API void set_object_name(renderer& renderer, const descriptor_pool& object, const std::string& name);
+TEPHRA_API void set_object_name(device& device, const descriptor_pool& object, const std::string& name);
 
 template<>
 inline VkDevice underlying_cast(const descriptor_pool& descriptor_pool) noexcept
@@ -140,7 +145,7 @@ class TEPHRA_API descriptor_set
 
 public:
     constexpr descriptor_set() = default;
-    explicit descriptor_set(renderer& renderer, descriptor_pool& pool, descriptor_set_layout& layout);
+    explicit descriptor_set(device& device, descriptor_pool& pool, descriptor_set_layout& layout);
 
     explicit descriptor_set(vulkan::descriptor_set descriptor_set) noexcept
     :m_descriptor_set{std::move(descriptor_set)}
@@ -154,11 +159,16 @@ public:
     descriptor_set(descriptor_set&&) noexcept = default;
     descriptor_set& operator=(descriptor_set&&) noexcept = default;
 
+    vulkan::device_context context() const noexcept
+    {
+        return m_descriptor_set.context();
+    }
+
 private:
     vulkan::descriptor_set m_descriptor_set{};
 };
 
-TEPHRA_API void set_object_name(renderer& renderer, const descriptor_set& object, const std::string& name);
+TEPHRA_API void set_object_name(device& device, const descriptor_set& object, const std::string& name);
 
 template<>
 inline VkDevice underlying_cast(const descriptor_set& descriptor_set) noexcept
@@ -208,9 +218,9 @@ struct descriptor_copy
     std::uint32_t count{1};
 };
 
-TEPHRA_API void write_descriptors(renderer& renderer, std::span<const descriptor_write> writes);
-TEPHRA_API void copy_descriptors(renderer& renderer, std::span<const descriptor_copy> copies);
-TEPHRA_API void update_descriptors(renderer& renderer, std::span<const descriptor_write> writes, std::span<const descriptor_copy> copies);
+TEPHRA_API void write_descriptors(device& device, std::span<const descriptor_write> writes);
+TEPHRA_API void copy_descriptors(device& device, std::span<const descriptor_copy> copies);
+TEPHRA_API void update_descriptors(device& device, std::span<const descriptor_write> writes, std::span<const descriptor_copy> copies);
 
 }
 

@@ -253,7 +253,7 @@ class physical_device;
 namespace vulkan
 {
 
-physical_device make_physical_device(VkPhysicalDevice device, tph::version instance_version) noexcept;
+physical_device make_physical_device(const vulkan::instance_context& context, VkPhysicalDevice device, tph::version instance_version) noexcept;
 
 }
 
@@ -262,7 +262,7 @@ class TEPHRA_API physical_device
     template<typename VulkanObject, typename... Args>
     friend VulkanObject underlying_cast(const Args&...) noexcept;
 
-    friend physical_device vulkan::make_physical_device(VkPhysicalDevice device, tph::version instance_version) noexcept;
+    friend physical_device vulkan::make_physical_device(const vulkan::instance_context& context, VkPhysicalDevice device, tph::version instance_version) noexcept;
 
 public:
     constexpr physical_device() = default;
@@ -303,6 +303,7 @@ public:
     }
 
 private:
+    vulkan::instance_context m_context{};
     VkPhysicalDevice m_physical_device{};
     physical_device_properties m_properties{};
     physical_device_features m_features{};

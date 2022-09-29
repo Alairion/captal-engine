@@ -154,8 +154,8 @@ static std::vector<std::reference_wrapper<tph::texture_view>> convert_framebuffe
 render_texture::render_texture(std::uint32_t width, std::uint32_t height, const tph::render_pass_info& render_pass, std::vector<texture_ptr> attachments)
 :render_target{render_pass}
 ,m_attachments{std::move(attachments)}
-,m_framebuffer{engine::instance().renderer(), get_render_pass(), convert_framebuffer_attachments(m_attachments), width, height, 1}
-,m_pool{engine::instance().renderer(), tph::command_pool_options::reset}
+,m_framebuffer{engine::instance().device(), get_render_pass(), convert_framebuffer_attachments(m_attachments), width, height, 1}
+,m_pool{engine::instance().device(), tph::command_pool_options::reset}
 {
     m_frames_data.reserve(4);
 }
@@ -163,8 +163,8 @@ render_texture::render_texture(std::uint32_t width, std::uint32_t height, const 
 render_texture::render_texture(texture_ptr texture, tph::sample_count sample_count, tph::texture_format depth_format, tph::texture_layout final_layout)
 :render_target{make_render_pass_info(texture->format(), final_layout, sample_count, depth_format)}
 ,m_attachments{make_attachments(texture, sample_count, depth_format)}
-,m_framebuffer{engine::instance().renderer(), get_render_pass(), convert_framebuffer_attachments(m_attachments), texture->width(), texture->height(), 1}
-,m_pool{engine::instance().renderer(), tph::command_pool_options::reset}
+,m_framebuffer{engine::instance().device(), get_render_pass(), convert_framebuffer_attachments(m_attachments), texture->width(), texture->height(), 1}
+,m_pool{engine::instance().device(), tph::command_pool_options::reset}
 #ifdef CAPTAL_DEBUG
 ,m_own_attachments{true}
 ,m_has_multisampling{sample_count != tph::sample_count::msaa_x1}
@@ -250,7 +250,7 @@ void render_texture::present()
     submit_info.command_buffers.emplace_back(m_data->buffer);
 
     std::unique_lock lock{engine::instance().submit_mutex()};
-    tph::submit(engine::instance().renderer(), submit_info, m_data->fence);
+    tph::submit(engine::instance().device(), submit_info, m_data->fence);
     lock.unlock();
 
     m_data->epoch = m_epoch;
@@ -286,32 +286,32 @@ void render_texture::set_name(std::string_view name)
 {
     m_name = name;
 
-    tph::set_object_name(engine::instance().renderer(), get_render_pass(), m_name + " render pass");
-    tph::set_object_name(engine::instance().renderer(), m_pool, m_name + " command pool");
-    tph::set_object_name(engine::instance().renderer(), m_framebuffer, m_name + " framebuffer");
+    tph::set_object_name(engine::instance().device(), get_render_pass(), m_name + " render pass");
+    tph::set_object_name(engine::instance().device(), m_pool, m_name + " command pool");
+    tph::set_object_name(engine::instance().device(), m_framebuffer, m_name + " framebuffer");
 
     if(m_own_attachments)
     {
         if(m_has_multisampling)
         {
-            tph::set_object_name(engine::instance().renderer(), m_attachments[0]->get_texture(), m_name + " multisampling attachment.");
+            tph::set_object_name(engine::instance().device(), m_attachments[0]->get_texture(), m_name + " multisampling attachment.");
 
             if(m_has_depth_stencil)
             {
-                tph::set_object_name(engine::instance().renderer(), m_attachments[1]->get_texture(), m_name + " depth stencil attachment.");
+                tph::set_object_name(engine::instance().device(), m_attachments[1]->get_texture(), m_name + " depth stencil attachment.");
             }
         }
         else if(m_has_depth_stencil)
         {
-            tph::set_object_name(engine::instance().renderer(), m_attachments[1]->get_texture(), m_name + " depth stencil attachment.");
+            tph::set_object_name(engine::instance().device(), m_attachments[1]->get_texture(), m_name + " depth stencil attachment.");
         }
     }
 
     for(std::size_t i{}; i < std::size(m_frames_data); ++i)
     {
-        tph::set_object_name(engine::instance().renderer(), m_frames_data[i].buffer,     m_name + " frame #" + std::to_string(i) + " command buffer");
-        tph::set_object_name(engine::instance().renderer(), m_frames_data[i].fence,      m_name + " frame #" + std::to_string(i) + " fence");
-        tph::set_object_name(engine::instance().renderer(), m_frames_data[i].query_pool, m_name + " frame #" + std::to_string(i) + " query pool");
+        tph::set_object_name(engine::instance().device(), m_frames_data[i].buffer,     m_name + " frame #" + std::to_string(i) + " command buffer");
+        tph::set_object_name(engine::instance().device(), m_frames_data[i].fence,      m_name + " frame #" + std::to_string(i) + " fence");
+        tph::set_object_name(engine::instance().device(), m_frames_data[i].query_pool, m_name + " frame #" + std::to_string(i) + " query pool");
     }
 }
 #endif
@@ -389,14 +389,14 @@ render_texture::frame_data& render_texture::add_frame_data()
 {
     frame_data data{};
     data.buffer = tph::cmd::begin(m_pool, tph::command_buffer_level::primary);
-    data.fence = tph::fence{engine::instance().renderer(), true};
-    data.query_pool = tph::query_pool{engine::instance().renderer(), 2, tph::query_type::timestamp};
+    data.fence = tph::fence{engine::instance().device(), true};
+    data.query_pool = tph::query_pool{engine::instance().device(), 2, tph::query_type::timestamp};
 
 #ifdef CAPTAL_DEBUG
     const std::size_t i{std::size(m_frames_data)};
-    tph::set_object_name(engine::instance().renderer(), data.buffer,     m_name + " frame #" + std::to_string(i) + " command buffer");
-    tph::set_object_name(engine::instance().renderer(), data.fence,      m_name + " frame #" + std::to_string(i) + " fence");
-    tph::set_object_name(engine::instance().renderer(), data.query_pool, m_name + " frame #" + std::to_string(i) + " query pool");
+    tph::set_object_name(engine::instance().device(), data.buffer,     m_name + " frame #" + std::to_string(i) + " command buffer");
+    tph::set_object_name(engine::instance().device(), data.fence,      m_name + " frame #" + std::to_string(i) + " fence");
+    tph::set_object_name(engine::instance().device(), data.query_pool, m_name + " frame #" + std::to_string(i) + " query pool");
 #endif
 
     return m_frames_data.emplace_back(std::move(data));

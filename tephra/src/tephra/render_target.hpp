@@ -39,7 +39,7 @@
 namespace tph
 {
 
-class renderer;
+class device;
 
 struct attachment_description
 {
@@ -99,7 +99,7 @@ class TEPHRA_API framebuffer
 
 public:
     constexpr framebuffer() = default;
-    explicit framebuffer(renderer& renderer, const render_pass& render_pass, std::span<const std::reference_wrapper<texture_view>> attachments, std::uint32_t width, std::uint32_t height, std::uint32_t layers);
+    explicit framebuffer(device& device, const render_pass& render_pass, std::span<const std::reference_wrapper<texture_view>> attachments, std::uint32_t width, std::uint32_t height, std::uint32_t layers);
 
     explicit framebuffer(vulkan::framebuffer framebuffer, std::vector<clear_value_t> clear_values, std::uint32_t width, std::uint32_t height, std::uint32_t layers) noexcept
     :m_framebuffer{std::move(framebuffer)}
@@ -116,6 +116,11 @@ public:
     framebuffer& operator=(const framebuffer&) = delete;
     framebuffer(framebuffer&& other) noexcept = default;
     framebuffer& operator=(framebuffer&& other) noexcept = default;
+
+    vulkan::device_context context() const noexcept
+    {
+        return m_framebuffer.context();
+    }
 
     void set_clear_value(std::uint32_t attachment_index, const clear_value_t& value);
     void set_clear_values(std::vector<clear_value_t> clear_values);
@@ -148,7 +153,7 @@ private:
     std::uint32_t m_layers{};
 };
 
-TEPHRA_API void set_object_name(renderer& renderer, const framebuffer& object, const std::string& name);
+TEPHRA_API void set_object_name(device& device, const framebuffer& object, const std::string& name);
 
 template<>
 inline VkDevice underlying_cast(const framebuffer& framebuffer) noexcept
@@ -169,7 +174,7 @@ class TEPHRA_API render_pass
 
 public:
     constexpr render_pass() = default;
-    explicit render_pass(renderer& renderer, const render_pass_info& info);
+    explicit render_pass(device& device, const render_pass_info& info);
 
     explicit render_pass(vulkan::render_pass render_pass) noexcept
     :m_render_pass{std::move(render_pass)}
@@ -183,11 +188,16 @@ public:
     render_pass(render_pass&& other) noexcept = default;
     render_pass& operator=(render_pass&& other) noexcept = default;
 
+    vulkan::device_context context() const noexcept
+    {
+        return m_render_pass.context();
+    }
+
 private:
     vulkan::render_pass m_render_pass{};
 };
 
-TEPHRA_API void set_object_name(renderer& renderer, const render_pass& object, const std::string& name);
+TEPHRA_API void set_object_name(device& device, const render_pass& object, const std::string& name);
 
 template<>
 inline VkDevice underlying_cast(const render_pass& render_pass) noexcept

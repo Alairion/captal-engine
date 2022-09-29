@@ -190,7 +190,7 @@ static void add_logic(cpt::render_window_ptr target, entt::registry& world, cpt:
 
     drawer.upload();
 
-    //Display current FPS in window title, and GPU memory usage (only memory allocated using Tephra's renderer's allocator)
+    //Display current FPS in window title, and GPU memory usage (only memory allocated using Tephra's device's allocator)
     cpt::engine::instance().frame_per_second_update_signal().connect([&world, text, drawer = std::move(drawer), time](std::uint32_t frame_per_second) mutable
     {
         const auto format_data = [](std::size_t amount)
@@ -214,9 +214,9 @@ static void add_logic(cpt::render_window_ptr target, entt::registry& world, cpt:
             return ss.str();
         };
 
-        const auto memory_heaps{cpt::engine::instance().renderer().allocator().heap_count()};
-        const auto memory_used {cpt::engine::instance().renderer().allocator().used_memory()};
-        const auto memory_alloc{cpt::engine::instance().renderer().allocator().allocated_memory()};
+        const auto memory_heaps{cpt::engine::instance().device().allocator().heap_count()};
+        const auto memory_used {cpt::engine::instance().device().allocator().used_memory()};
+        const auto memory_alloc{cpt::engine::instance().device().allocator().allocated_memory()};
 
         std::string info{};
         info += "Device local (" + std::to_string(memory_heaps.device_local) + "): " + format_data(memory_used.device_local) + " / " + format_data(memory_alloc.device_local) + "\n";
@@ -225,7 +225,7 @@ static void add_logic(cpt::render_window_ptr target, entt::registry& world, cpt:
         info += std::to_string(frame_per_second) + " FPS\n";
         info += "Frame time: " + std::to_string(std::chrono::duration<double, std::milli>{*time}.count()) + "ms";
 
-        cpt::engine::instance().renderer().allocator().clean_dedicated();
+        cpt::engine::instance().device().allocator().clean_dedicated();
 
         world.get<cpt::components::drawable>(text).attach(drawer.draw(info));
         world.get<cpt::components::node>(text).update();
@@ -477,8 +477,8 @@ int main()
 
         const cpt::graphics_parameters graphics
         {
-            //The renderer options (c.f. tph::renderer_options)
-            .options = tph::renderer_options::tiny_memory_heaps,
+            //The device options (c.f. tph::device_options)
+            .options = tph::device_options::tiny_memory_heaps,
             //The physical device's features. Real application must check feature availability
             .features = tph::physical_device_features
             {

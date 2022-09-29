@@ -35,7 +35,7 @@
 namespace tph
 {
 
-class renderer;
+class device;
 
 enum class image_usage : std::uint32_t
 {
@@ -91,11 +91,11 @@ public:
 
 public:
     constexpr image() = default;
-    explicit image(renderer& renderer, const std::filesystem::path& file, image_usage usage);
-    explicit image(renderer& renderer, std::span<const std::uint8_t> data, image_usage usage);
-    explicit image(renderer& renderer, std::istream& stream, image_usage usage);
-    explicit image(renderer& renderer, size_type width, size_type height, const std::uint8_t* data, image_usage usage);
-    explicit image(renderer& renderer, size_type width, size_type height, image_usage usage);
+    explicit image(device& device, const std::filesystem::path& file, image_usage usage);
+    explicit image(device& device, std::span<const std::uint8_t> data, image_usage usage);
+    explicit image(device& device, std::istream& stream, image_usage usage);
+    explicit image(device& device, size_type width, size_type height, const std::uint8_t* data, image_usage usage);
+    explicit image(device& device, size_type width, size_type height, image_usage usage);
 
     ~image() = default;
     image(const image&) = delete;
@@ -110,6 +110,11 @@ public:
     void unmap() noexcept;
 
     buffer to_buffer() noexcept;
+
+    vulkan::device_context context() const noexcept
+    {
+        return m_buffer.context();
+    }
 
     pointer data() noexcept
     {
@@ -245,7 +250,7 @@ private:
     image_usage m_usage{};
 };
 
-TEPHRA_API void set_object_name(renderer& renderer, const image& object, const std::string& name);
+TEPHRA_API void set_object_name(device& device, const image& object, const std::string& name);
 
 template<>
 inline VkDevice underlying_cast(const image& image) noexcept

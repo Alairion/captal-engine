@@ -34,7 +34,7 @@ namespace tph
 
 class application;
 class physical_device;
-class renderer;
+class device;
 
 enum class surface_transform : std::uint32_t
 {
@@ -122,16 +122,21 @@ public:
     surface(surface&&) noexcept = default;
     surface& operator=(surface&&) noexcept = default;
 
+    vulkan::instance_context context() const noexcept
+    {
+        return m_surface.context();
+    }
+
     surface_capabilities capabilities(const physical_device& physical_device) const;
-    surface_capabilities capabilities(const renderer& renderer) const;
+    surface_capabilities capabilities(const device& device) const;
     std::vector<texture_format> formats(const physical_device& physical_device) const;
-    std::vector<texture_format> formats(const renderer& renderer) const;
+    std::vector<texture_format> formats(const device& device) const;
 
 private:
     vulkan::surface m_surface{};
 };
 
-TEPHRA_API void set_object_name(renderer& renderer, const surface& object, const std::string& name);
+TEPHRA_API void set_object_name(device& device, const surface& object, const std::string& name);
 
 template<>
 inline VkInstance underlying_cast(const surface& surface) noexcept

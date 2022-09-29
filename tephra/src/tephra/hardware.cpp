@@ -28,7 +28,7 @@
 #include "vulkan/vulkan_functions.hpp"
 
 #include "application.hpp"
-#include "renderer.hpp"
+#include "device.hpp"
 #include "surface.hpp"
 
 using namespace tph::vulkan::functions;
@@ -205,10 +205,10 @@ static physical_device_limits make_limits(const VkPhysicalDeviceLimits& limits) 
     return output;
 }
 
-static physical_device_memory_properties make_memory_properties(VkPhysicalDevice physical_device) noexcept
+static physical_device_memory_properties make_memory_properties(const vulkan::instance_context& context, VkPhysicalDevice physical_device) noexcept
 {
     VkPhysicalDeviceMemoryProperties properties{};
-    vkGetPhysicalDeviceMemoryProperties(physical_device, &properties);
+    context->vkGetPhysicalDeviceMemoryProperties(physical_device, &properties);
 
     std::vector<VkMemoryPropertyFlags> heaps_flags{};
     heaps_flags.resize(properties.memoryHeapCount);
@@ -250,8 +250,9 @@ static physical_device_driver make_driver(const VkPhysicalDeviceDriverProperties
     return output;
 }
 
-physical_device make_physical_device(VkPhysicalDevice device, tph::version instance_version) noexcept
+physical_device make_physical_device(const vulkan::instance_context& context, VkPhysicalDevice device, tph::version instance_version) noexcept
 {
+#ifdef VK_VERSION_1_2
     if(instance_version >= tph::version{1, 2})
     {
         VkPhysicalDeviceDriverProperties driver{};
@@ -261,37 +262,40 @@ physical_device make_physical_device(VkPhysicalDevice device, tph::version insta
         properties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
         properties.pNext = &driver;
 
-        vkGetPhysicalDeviceProperties2(device, &properties);
+        context->vkGetPhysicalDeviceProperties2(device, &properties);
 
         VkPhysicalDeviceFeatures features{};
-        vkGetPhysicalDeviceFeatures(device, &features);
+        context->vkGetPhysicalDeviceFeatures(device, &features);
 
         physical_device output{};
 
+        output.m_context = context;
         output.m_physical_device = device;
         output.m_properties = make_properties(properties.properties);
         output.m_features = make_features(features);
         output.m_limits = make_limits(properties.properties.limits);
-        output.m_memory_properties = make_memory_properties(device);
+        output.m_memory_properties = make_memory_properties(context, device);
         output.m_driver = make_driver(driver);
 
         return output;
     }
     else
+#endif
     {
         VkPhysicalDeviceProperties properties{};
-        vkGetPhysicalDeviceProperties(device, &properties);
+        context->vkGetPhysicalDeviceProperties(device, &properties);
 
         VkPhysicalDeviceFeatures features{};
-        vkGetPhysicalDeviceFeatures(device, &features);
+        context->vkGetPhysicalDeviceFeatures(device, &features);
 
         physical_device output{};
 
+        output.m_context = context;
         output.m_physical_device = device;
         output.m_properties = make_properties(properties);
         output.m_features = make_features(features);
         output.m_limits = make_limits(properties.limits);
-        output.m_memory_properties = make_memory_properties(device);
+        output.m_memory_properties = make_memory_properties(context, device);
 
         return output;
     }
@@ -302,13 +306,12 @@ physical_device make_physical_device(VkPhysicalDevice device, tph::version insta
 bool physical_device::support_presentation(const surface& surface) const
 {
     std::uint32_t count{};
-    vkGetPhysicalDeviceQueueFamilyProperties(m_physical_device, &count, nullptr);
+    m_context->vkGetPhysicalDeviceQueueFamilyProperties(m_physical_device, &count, nullptr);
 
     for(std::uint32_t i{}; i < count; ++i)
     {
         VkBool32 support{};
-        if(auto result{vkGetPhysicalDeviceSurfaceSupportKHR(m_physical_device, i, underlying_cast<VkSurfaceKHR>(surface), &support)}; result != VK_SUCCESS)
-            throw vulkan::error{result};
+        vulkan::check(m_context->vkGetPhysicalDeviceSurfaceSupportKHR(m_physical_device, i, underlying_cast<VkSurfaceKHR>(surface), &support));
 
         if(support)
         {
@@ -322,17 +325,14 @@ bool physical_device::support_presentation(const surface& surface) const
 physical_device_surface_capabilities physical_device::surface_capabilities(const surface& surface) const
 {
     std::uint32_t count{};
-    if(auto result{vkGetPhysicalDeviceSurfacePresentModesKHR(m_physical_device, underlying_cast<VkSurfaceKHR>(surface), &count, nullptr)}; result != VK_SUCCESS)
-        throw vulkan::error{result};
+    vulkan::check(m_context->vkGetPhysicalDeviceSurfacePresentModesKHR(m_physical_device, underlying_cast<VkSurfaceKHR>(surface), &count, nullptr));
 
     std::vector<VkPresentModeKHR> present_modes{};
     present_modes.resize(count);
-    if(auto result{vkGetPhysicalDeviceSurfacePresentModesKHR(m_physical_device, underlying_cast<VkSurfaceKHR>(surface), &count, std::data(present_modes))}; result != VK_SUCCESS)
-        throw vulkan::error{result};
+    vulkan::check(m_context->vkGetPhysicalDeviceSurfacePresentModesKHR(m_physical_device, underlying_cast<VkSurfaceKHR>(surface), &count, std::data(present_modes)));
 
     VkSurfaceCapabilitiesKHR capabilities{};
-    if(auto result{vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_physical_device, underlying_cast<VkSurfaceKHR>(surface), &capabilities)}; result != VK_SUCCESS)
-        throw vulkan::error{result};
+    vulkan::check(m_context->vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_physical_device, underlying_cast<VkSurfaceKHR>(surface), &capabilities));
 
     physical_device_surface_capabilities output{};
 
@@ -351,7 +351,7 @@ physical_device_surface_capabilities physical_device::surface_capabilities(const
 physical_device_format_properties physical_device::format_properties(texture_format format) const noexcept
 {
     VkFormatProperties properties{};
-    vkGetPhysicalDeviceFormatProperties(m_physical_device, static_cast<VkFormat>(format), &properties);
+    m_context->vkGetPhysicalDeviceFormatProperties(m_physical_device, static_cast<VkFormat>(format), &properties);
 
     physical_device_format_properties output{};
     output.linear = static_cast<format_feature>(properties.linearTilingFeatures);
@@ -364,7 +364,7 @@ physical_device_format_properties physical_device::format_properties(texture_for
 bool physical_device::support_texture_format(texture_format format, format_feature features) const
 {
     VkFormatProperties properties{};
-    vkGetPhysicalDeviceFormatProperties(m_physical_device, static_cast<VkFormat>(format), &properties);
+    m_context->vkGetPhysicalDeviceFormatProperties(m_physical_device, static_cast<VkFormat>(format), &properties);
 
     return (static_cast<format_feature>(properties.optimalTilingFeatures) & features) == features;
 }

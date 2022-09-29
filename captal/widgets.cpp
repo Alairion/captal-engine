@@ -134,7 +134,7 @@ int main()
 
     const cpt::graphics_parameters graphics
     {
-        .options = tph::renderer_options::small_memory_heaps,
+        .options = tph::device_options::small_memory_heaps,
     };
 
     try

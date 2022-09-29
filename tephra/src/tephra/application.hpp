@@ -95,6 +95,16 @@ public:
         return m_version;
     }
 
+    vulkan::instance_context context() const noexcept
+    {
+        return m_instance.context();
+    }
+
+    const vulkan::functions::instance_level_functions* operator->() const noexcept
+    {
+        return m_instance.operator->();
+    }
+
     application_layer enabled_layers() const noexcept
     {
         return m_layers;

@@ -37,13 +37,13 @@ static std::string thread_name(std::thread::id thread)
     return ss.str();
 }
 
-memory_transfer_scheduler::memory_transfer_scheduler(tph::renderer& renderer) noexcept
-:m_renderer{&renderer}
-,m_pool{renderer, tph::command_pool_options::reset | tph::command_pool_options::transient}
+memory_transfer_scheduler::memory_transfer_scheduler(tph::device& device) noexcept
+:m_device{&device}
+,m_pool{device, tph::command_pool_options::reset | tph::command_pool_options::transient}
 {
     if(debug_enabled)
     {
-        tph::set_object_name(*m_renderer, m_pool, "cpt::engine's primary transfer command pool");
+        tph::set_object_name(*m_device, m_pool, "cpt::engine's primary transfer command pool");
     }
 
     m_thread_pools.reserve(4);
@@ -53,14 +53,14 @@ memory_transfer_scheduler::memory_transfer_scheduler(tph::renderer& renderer) no
     const auto thread{std::this_thread::get_id()};
 
     thread_transfer_pool main_pool{};
-    main_pool.pool = tph::command_pool{*m_renderer, tph::command_pool_options::reset | tph::command_pool_options::transient};
+    main_pool.pool = tph::command_pool{*m_device, tph::command_pool_options::reset | tph::command_pool_options::transient};
     main_pool.buffers.reserve(4);
 
     if(debug_enabled)
     {
         const auto name{thread_name(thread)};
 
-        tph::set_object_name(*m_renderer, main_pool.pool, "cpt::engine's thread transfer pool (thread: " + name + ")");
+        tph::set_object_name(*m_device, main_pool.pool, "cpt::engine's thread transfer pool (thread: " + name + ")");
     }
 
     m_thread_pools.emplace(thread, std::move(main_pool));
@@ -113,7 +113,7 @@ void memory_transfer_scheduler::submit_transfers()
     info.command_buffers.emplace_back(buffer.buffer);
 
     std::unique_lock queue_lock{engine::instance().submit_mutex()};
-    tph::submit(*m_renderer, info, buffer.fence);
+    tph::submit(*m_device, info, buffer.fence);
     queue_lock.unlock();
 }
 
@@ -136,12 +136,12 @@ memory_transfer_scheduler::transfer_buffer& memory_transfer_scheduler::add_buffe
 {
     transfer_buffer data{};
     data.buffer = tph::cmd::begin(m_pool, tph::command_buffer_level::primary, tph::command_buffer_options::one_time_submit);
-    data.fence  = tph::fence{*m_renderer, true};
+    data.fence  = tph::fence{*m_device, true};
 
     if constexpr(debug_enabled)
     {
-        tph::set_object_name(*m_renderer, data.buffer, "cpt::engine's primary transfer buffer #" + std::to_string(std::size(m_buffers)));
-        tph::set_object_name(*m_renderer, data.fence, "cpt::engine's transfer fence #" + std::to_string(std::size(m_buffers)));
+        tph::set_object_name(*m_device, data.buffer, "cpt::engine's primary transfer buffer #" + std::to_string(std::size(m_buffers)));
+        tph::set_object_name(*m_device, data.fence, "cpt::engine's transfer fence #" + std::to_string(std::size(m_buffers)));
     }
 
     return m_buffers.emplace_back(std::move(data));
@@ -231,7 +231,7 @@ memory_transfer_scheduler::thread_transfer_pool& memory_transfer_scheduler::get_
     if(it == std::end(m_thread_pools))
     {
         thread_transfer_pool pool{};
-        pool.pool = tph::command_pool{*m_renderer, tph::command_pool_options::reset | tph::command_pool_options::transient};
+        pool.pool = tph::command_pool{*m_device, tph::command_pool_options::reset | tph::command_pool_options::transient};
         pool.exit_promise = std::promise<void>{};
         pool.exit_promise.set_value_at_thread_exit();
         pool.exit_future = pool.exit_promise.get_future();
@@ -241,7 +241,7 @@ memory_transfer_scheduler::thread_transfer_pool& memory_transfer_scheduler::get_
         {
             const auto name{thread_name(thread)};
 
-            tph::set_object_name(*m_renderer, pool.pool, "cpt::engine's thread transfer pool (thread: " + name + ")");
+            tph::set_object_name(*m_device, pool.pool, "cpt::engine's thread transfer pool (thread: " + name + ")");
         }
 
         it = m_thread_pools.emplace(thread, std::move(pool)).first;
@@ -292,7 +292,7 @@ memory_transfer_scheduler::thread_transfer_buffer& memory_transfer_scheduler::ad
     {
         const auto name{thread_name(thread)};
 
-        tph::set_object_name(*m_renderer, data.buffer, "cpt::engine's thread transfer buffer #" + std::to_string(std::size(pool.buffers)) + " (thread: " + name + ")");
+        tph::set_object_name(*m_device, data.buffer, "cpt::engine's thread transfer buffer #" + std::to_string(std::size(pool.buffers)) + " (thread: " + name + ")");
         tph::cmd::begin_label(data.buffer, "cpt::engine's transfer (thread: " + name + ")", 1.0f, 0.843f, 0.0f, 1.0f);
     }
 

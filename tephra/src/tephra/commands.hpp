@@ -36,7 +36,7 @@
 namespace tph
 {
 
-class renderer;
+class device;
 class render_pass;
 class command_buffer;
 class semaphore;
@@ -73,8 +73,8 @@ class TEPHRA_API command_pool
 
 public:
     constexpr command_pool() = default;
-    explicit command_pool(renderer& renderer, command_pool_options options = command_pool_options::none);
-    explicit command_pool(renderer& renderer, queue queue, command_pool_options options = command_pool_options::none);
+    explicit command_pool(device& device, command_pool_options options = command_pool_options::none);
+    explicit command_pool(device& device, queue queue, command_pool_options options = command_pool_options::none);
 
     explicit command_pool(vulkan::command_pool pool, queue queue, const std::array<std::uint32_t, static_cast<std::size_t>(queue::count)>& queue_families) noexcept
     :m_pool{std::move(pool)}
@@ -93,6 +93,11 @@ public:
     void reset(command_pool_reset_options options = command_pool_reset_options::none);
     void trim() noexcept;
 
+    vulkan::device_context context() const noexcept
+    {
+        return m_pool.context();
+    }
+
     const std::array<std::uint32_t, static_cast<std::size_t>(queue::count)>& queue_families() const noexcept
     {
         return m_queue_families;
@@ -109,7 +114,7 @@ private:
     std::uint32_t m_queue_family{};
 };
 
-TEPHRA_API void set_object_name(renderer& renderer, const command_pool& object, const std::string& name);
+TEPHRA_API void set_object_name(device& device, const command_pool& object, const std::string& name);
 
 template<>
 inline VkDevice underlying_cast(const command_pool& pool) noexcept
@@ -145,6 +150,11 @@ public:
     command_buffer(command_buffer&& other) noexcept = default;
     command_buffer& operator=(command_buffer&& other) noexcept = default;
 
+    vulkan::device_context context() const noexcept
+    {
+        return m_buffer.context();
+    }
+
     const std::array<std::uint32_t, static_cast<std::size_t>(queue::count)>& queue_families() const noexcept
     {
         return m_queue_families;
@@ -161,7 +171,7 @@ private:
     std::uint32_t m_queue_family{};
 };
 
-TEPHRA_API void set_object_name(renderer& renderer, const command_buffer& object, const std::string& name);
+TEPHRA_API void set_object_name(device& device, const command_buffer& object, const std::string& name);
 
 template<>
 inline VkDevice underlying_cast(const command_buffer& buffer) noexcept
@@ -448,10 +458,10 @@ TEPHRA_API void generate_mipmaps(command_buffer& buffer, pipeline_stage source_s
 
 }
 
-TEPHRA_API void submit(renderer& renderer, const submit_info& info, optional_ref<fence> fence);
-TEPHRA_API void submit(renderer& renderer, std::span<const submit_info> submits, optional_ref<fence> fence);
-TEPHRA_API void submit(renderer& renderer, queue queue, const submit_info& info, optional_ref<fence> fence);
-TEPHRA_API void submit(renderer& renderer, queue queue, std::span<const submit_info> submits, optional_ref<fence> fence);
+TEPHRA_API void submit(device& device, const submit_info& info, optional_ref<fence> fence);
+TEPHRA_API void submit(device& device, std::span<const submit_info> submits, optional_ref<fence> fence);
+TEPHRA_API void submit(device& device, queue queue, const submit_info& info, optional_ref<fence> fence);
+TEPHRA_API void submit(device& device, queue queue, std::span<const submit_info> submits, optional_ref<fence> fence);
 
 }
 

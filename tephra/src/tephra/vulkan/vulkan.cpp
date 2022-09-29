@@ -22,6 +22,8 @@
 
 #include "vulkan.hpp"
 
+#include <memory>
+
 #include "vulkan_functions.hpp"
 
 using namespace tph::vulkan::functions;
@@ -133,6 +135,9 @@ const char* error::what() const noexcept
 
 instance::instance(const std::string& application_name, version application_version, version api_version, std::span<const char* const> layers, std::span<const char* const> extensions)
 {
+    tph::vulkan::functions::load_external_level_functions();
+    tph::vulkan::functions::load_global_level_functions();
+
     VkApplicationInfo application_info{};
     application_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
     application_info.pApplicationName = std::data(application_name);
@@ -149,19 +154,30 @@ instance::instance(const std::string& application_name, version application_vers
     create_info.enabledExtensionCount = static_cast<std::uint32_t>(std::size(extensions));
     create_info.ppEnabledExtensionNames = std::data(extensions);
 
-    if(auto result{vkCreateInstance(&create_info, nullptr, &m_instance)}; result != VK_SUCCESS)
-        throw error{result};
+    vulkan::check(vkCreateInstance(&create_info, nullptr, &m_context.instance));
+
+    auto functions = std::make_unique<instance_level_functions>();
+    load_instance_level_functions(m_context.instance, *functions);
+    m_context.functions = functions.release();
+}
+
+instance::instance(VkInstance instance) noexcept
+:m_context{instance}
+{
+    auto functions = std::make_unique<instance_level_functions>();
+    load_instance_level_functions(m_context.instance, *functions);
+    m_context.functions = functions.release();
 }
 
 instance::~instance()
 {
-    if(m_instance)
-        vkDestroyInstance(m_instance, nullptr);
+    if(m_context.instance)
+        m_context->vkDestroyInstance(m_context.instance, nullptr);
 }
 
 /////////////////////////////////////////////////////////////////////
 
-device::device(VkPhysicalDevice physical_device, std::span<const char* const> layers, std::span<const char* const> extensions, std::span<const VkDeviceQueueCreateInfo> queues, const VkPhysicalDeviceFeatures& features)
+device::device(const instance_context& instance, VkPhysicalDevice physical_device, std::span<const char* const> layers, std::span<const char* const> extensions, std::span<const VkDeviceQueueCreateInfo> queues, const VkPhysicalDeviceFeatures& features)
 {
     VkDeviceCreateInfo create_info{};
     create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -173,40 +189,50 @@ device::device(VkPhysicalDevice physical_device, std::span<const char* const> la
     create_info.pQueueCreateInfos = std::data(queues);
     create_info.pEnabledFeatures = &features;
 
-    if(auto result{vkCreateDevice(physical_device, &create_info, nullptr, &m_device)}; result != VK_SUCCESS)
-        throw error{result};
+    vulkan::check(instance->vkCreateDevice(physical_device, &create_info, nullptr, &m_context.device));
+
+    auto functions = std::make_unique<device_level_functions>();
+    load_device_level_functions(m_context.device, *instance.functions, *functions);
+    m_context.functions = functions.release();
+}
+
+device::device(const instance_context& instance, VkDevice device) noexcept
+:m_context{device}
+{
+    auto functions = std::make_unique<device_level_functions>();
+    load_device_level_functions(m_context.device, *instance.functions, *functions);
+    m_context.functions = functions.release();
 }
 
 device::~device()
 {
-    if(m_device)
-        vkDestroyDevice(m_device, nullptr);
+    if(m_context.device)
+        m_context->vkDestroyDevice(m_context.device, nullptr);
 }
 
 /////////////////////////////////////////////////////////////////////
 
-device_memory::device_memory(VkDevice device, std::uint32_t memory_type, std::uint64_t size)
-:m_device{device}
+device_memory::device_memory(const device_context& context, std::uint32_t memory_type, std::uint64_t size)
+:m_context{context}
 {
     VkMemoryAllocateInfo allocation_info{};
     allocation_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     allocation_info.memoryTypeIndex = memory_type;
     allocation_info.allocationSize = size;
 
-    if(auto result{vkAllocateMemory(m_device, &allocation_info, nullptr, &m_device_memory)}; result != VK_SUCCESS)
-        throw error{result};
+    vulkan::check(m_context->vkAllocateMemory(m_context.device, &allocation_info, nullptr, &m_device_memory));
 }
 
 device_memory::~device_memory()
 {
     if(m_device_memory)
-        vkFreeMemory(m_device, m_device_memory, nullptr);
+        m_context->vkFreeMemory(m_context.device, m_device_memory, nullptr);
 }
 
 /////////////////////////////////////////////////////////////////////
 
-buffer::buffer(VkDevice device, std::uint64_t size, VkBufferUsageFlags usage)
-:m_device{device}
+buffer::buffer(const device_context& context, std::uint64_t size, VkBufferUsageFlags usage)
+:m_context{context}
 {
     VkBufferCreateInfo create_info{};
     create_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -214,20 +240,19 @@ buffer::buffer(VkDevice device, std::uint64_t size, VkBufferUsageFlags usage)
     create_info.usage = usage;
     create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-    if(auto result{vkCreateBuffer(m_device, &create_info, nullptr, &m_buffer)}; result != VK_SUCCESS)
-        throw error{result};
+    vulkan::check(m_context->vkCreateBuffer(m_context.device, &create_info, nullptr, &m_buffer));
 }
 
 buffer::~buffer()
 {
     if(m_buffer)
-        vkDestroyBuffer(m_device, m_buffer, nullptr);
+        m_context->vkDestroyBuffer(m_context.device, m_buffer, nullptr);
 }
 
 /////////////////////////////////////////////////////////////////////
 
-buffer_view::buffer_view(VkDevice device, VkBuffer buffer, VkFormat format, std::uint64_t offset, std::uint64_t size)
-:m_device{device}
+buffer_view::buffer_view(const device_context& context, VkBuffer buffer, VkFormat format, std::uint64_t offset, std::uint64_t size)
+:m_context{context}
 {
     VkBufferViewCreateInfo create_info{};
     create_info.sType = VK_STRUCTURE_TYPE_BUFFER_VIEW_CREATE_INFO;
@@ -236,65 +261,61 @@ buffer_view::buffer_view(VkDevice device, VkBuffer buffer, VkFormat format, std:
     create_info.offset = offset;
     create_info.range = size;
 
-    if(auto result{vkCreateBufferView(m_device, &create_info, nullptr, &m_buffer_view)}; result != VK_SUCCESS)
-        throw error{result};
+    vulkan::check(m_context->vkCreateBufferView(m_context.device, &create_info, nullptr, &m_buffer_view));
 }
 
 buffer_view::~buffer_view()
 {
     if(m_buffer_view)
-        vkDestroyBufferView(m_device, m_buffer_view, nullptr);
+        m_context->vkDestroyBufferView(m_context.device, m_buffer_view, nullptr);
 }
 
 /////////////////////////////////////////////////////////////////////
 
-image::image(VkDevice device, const VkImageCreateInfo& info)
-:m_device{device}
+image::image(const device_context& context, const VkImageCreateInfo& info)
+:m_context{context}
 {
-    if(auto result{vkCreateImage(m_device, &info, nullptr, &m_image)}; result != VK_SUCCESS)
-        throw error{result};
+    vulkan::check(m_context->vkCreateImage(m_context.device, &info, nullptr, &m_image));
 }
 
 image::~image()
 {
-    if(m_device && m_image)
-        vkDestroyImage(m_device, m_image, nullptr);
+    if(m_context.device && m_image)
+        m_context->vkDestroyImage(m_context.device, m_image, nullptr);
 }
 
 /////////////////////////////////////////////////////////////////////
 
-image_view::image_view(VkDevice device, const VkImageViewCreateInfo& info)
-:m_device{device}
+image_view::image_view(const device_context& context, const VkImageViewCreateInfo& info)
+:m_context{context}
 {
-    if(auto result{vkCreateImageView(m_device, &info, nullptr, &m_image_view)}; result != VK_SUCCESS)
-        throw error{result};
+    vulkan::check(m_context->vkCreateImageView(m_context.device, &info, nullptr, &m_image_view));
 }
 
 image_view::~image_view()
 {
     if(m_image_view)
-        vkDestroyImageView(m_device, m_image_view, nullptr);
+        m_context->vkDestroyImageView(m_context.device, m_image_view, nullptr);
 }
 
 /////////////////////////////////////////////////////////////////////
 
-sampler::sampler(VkDevice device, const VkSamplerCreateInfo& info)
-:m_device{device}
+sampler::sampler(const device_context& context, const VkSamplerCreateInfo& info)
+:m_context{context}
 {
-    if(auto result{vkCreateSampler(m_device, &info, nullptr, &m_sampler)}; result != VK_SUCCESS)
-        throw error{result};
+    vulkan::check(m_context->vkCreateSampler(m_context.device, &info, nullptr, &m_sampler));
 }
 
 sampler::~sampler()
 {
     if(m_sampler)
-        vkDestroySampler(m_device, m_sampler, nullptr);
+        m_context->vkDestroySampler(m_context.device, m_sampler, nullptr);
 }
 
 /////////////////////////////////////////////////////////////////////
 
-framebuffer::framebuffer(VkDevice device, VkRenderPass render_pass, std::span<const VkImageView> attachments, VkExtent2D size, std::uint32_t layers)
-:m_device{device}
+framebuffer::framebuffer(const device_context& context, VkRenderPass render_pass, std::span<const VkImageView> attachments, VkExtent2D size, std::uint32_t layers)
+:m_context{context}
 {
     VkFramebufferCreateInfo create_info{};
     create_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
@@ -305,115 +326,109 @@ framebuffer::framebuffer(VkDevice device, VkRenderPass render_pass, std::span<co
     create_info.height = size.height;
     create_info.layers = layers;
 
-    if(auto result{vkCreateFramebuffer(m_device, &create_info, nullptr, &m_framebuffer)}; result != VK_SUCCESS)
-        throw error{result};
+    vulkan::check(m_context->vkCreateFramebuffer(m_context.device, &create_info, nullptr, &m_framebuffer));
 }
 
 framebuffer::~framebuffer()
 {
     if(m_framebuffer)
-        vkDestroyFramebuffer(m_device, m_framebuffer, nullptr);
+        m_context->vkDestroyFramebuffer(m_context.device, m_framebuffer, nullptr);
 }
 
 /////////////////////////////////////////////////////////////////////
 
-shader::shader(VkDevice device, std::size_t size, const std::uint32_t* code)
-:m_device{device}
+shader::shader(const device_context& context, std::size_t size, const std::uint32_t* code)
+:m_context{context}
 {
     VkShaderModuleCreateInfo create_info{};
     create_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
     create_info.codeSize = static_cast<std::uint32_t>(size);
     create_info.pCode = code;
 
-    if(auto result{vkCreateShaderModule(m_device, &create_info, nullptr, &m_shader)}; result != VK_SUCCESS)
-        throw error{result};
+    vulkan::check(m_context->vkCreateShaderModule(m_context.device, &create_info, nullptr, &m_shader));
 }
 
 shader::~shader()
 {
     if(m_shader)
-        vkDestroyShaderModule(m_device, m_shader, nullptr);
+        m_context->vkDestroyShaderModule(m_context.device, m_shader, nullptr);
 }
 
 /////////////////////////////////////////////////////////////////////
 
-semaphore::semaphore(VkDevice device)
-:m_device{device}
+semaphore::semaphore(const device_context& context)
+:m_context{context}
 {
     VkSemaphoreCreateInfo create_info{};
     create_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
-    if(auto result{vkCreateSemaphore(m_device, &create_info, nullptr, &m_semaphore)}; result != VK_SUCCESS)
-        throw error{result};
+    vulkan::check(m_context->vkCreateSemaphore(m_context.device, &create_info, nullptr, &m_semaphore));
 }
 
 semaphore::~semaphore()
 {
     if(m_semaphore)
-        vkDestroySemaphore(m_device, m_semaphore, nullptr);
+        m_context->vkDestroySemaphore(m_context.device, m_semaphore, nullptr);
 }
 
 /////////////////////////////////////////////////////////////////////
 
-fence::fence(VkDevice device, VkFenceCreateFlags flags)
-:m_device{device}
+fence::fence(const device_context& context, VkFenceCreateFlags flags)
+:m_context{context}
 {
     VkFenceCreateInfo create_info{};
     create_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
     create_info.flags = flags;
 
-    if(auto result{vkCreateFence(m_device, &create_info, nullptr, &m_fence)}; result != VK_SUCCESS)
-        throw error{result};
+    vulkan::check(m_context->vkCreateFence(m_context.device, &create_info, nullptr, &m_fence));
 }
 
 fence::~fence()
 {
     if(m_fence)
-        vkDestroyFence(m_device, m_fence, nullptr);
+        m_context->vkDestroyFence(m_context.device, m_fence, nullptr);
 }
 
 /////////////////////////////////////////////////////////////////////
 
-event::event(VkDevice device)
-:m_device{device}
+event::event(const device_context& context)
+:m_context{context}
 {
     VkEventCreateInfo create_info{};
     create_info.sType = VK_STRUCTURE_TYPE_EVENT_CREATE_INFO;
 
-    if(auto result{vkCreateEvent(m_device, &create_info, nullptr, &m_event)}; result != VK_SUCCESS)
-        throw error{result};
+    vulkan::check(m_context->vkCreateEvent(m_context.device, &create_info, nullptr, &m_event));
 }
 
 event::~event()
 {
     if(m_event)
-        vkDestroyEvent(m_device, m_event, nullptr);
+        m_context->vkDestroyEvent(m_context.device, m_event, nullptr);
 }
 
 /////////////////////////////////////////////////////////////////////
 
-command_pool::command_pool(VkDevice device, uint32_t queue_family, VkCommandPoolCreateFlags flags)
-:m_device{device}
+command_pool::command_pool(const device_context& context, uint32_t queue_family, VkCommandPoolCreateFlags flags)
+:m_context{context}
 {
     VkCommandPoolCreateInfo create_info{};
     create_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     create_info.flags = flags;
     create_info.queueFamilyIndex = queue_family;
 
-    if(auto result{vkCreateCommandPool(m_device, &create_info, nullptr, &m_command_pool)}; result != VK_SUCCESS)
-        throw error{result};
+    vulkan::check(m_context->vkCreateCommandPool(m_context.device, &create_info, nullptr, &m_command_pool));
 }
 
 command_pool::~command_pool()
 {
     if(m_command_pool)
-        vkDestroyCommandPool(m_device, m_command_pool, nullptr);
+        m_context->vkDestroyCommandPool(m_context.device, m_command_pool, nullptr);
 }
 
 /////////////////////////////////////////////////////////////////////
 
-command_buffer::command_buffer(VkDevice device, VkCommandPool command_pool, VkCommandBufferLevel level)
-:m_device{device}
+command_buffer::command_buffer(const device_context& context, VkCommandPool command_pool, VkCommandBufferLevel level)
+:m_context{context}
 ,m_command_pool{command_pool}
 {
     VkCommandBufferAllocateInfo allocate_info{};
@@ -422,40 +437,38 @@ command_buffer::command_buffer(VkDevice device, VkCommandPool command_pool, VkCo
     allocate_info.level = level;
     allocate_info.commandBufferCount = 1;
 
-    if(auto result{vkAllocateCommandBuffers(m_device, &allocate_info, &m_command_buffer)}; result != VK_SUCCESS)
-        throw error{result};
+    vulkan::check(m_context->vkAllocateCommandBuffers(m_context.device, &allocate_info, &m_command_buffer));
 }
 
 command_buffer::~command_buffer()
 {
     if(m_command_buffer)
-        vkFreeCommandBuffers(m_device, m_command_pool, 1, &m_command_buffer);
+        m_context->vkFreeCommandBuffers(m_context.device, m_command_pool, 1, &m_command_buffer);
 }
 
 /////////////////////////////////////////////////////////////////////
 
-descriptor_set_layout::descriptor_set_layout(VkDevice device, std::span<const VkDescriptorSetLayoutBinding> bindings)
-:m_device{device}
+descriptor_set_layout::descriptor_set_layout(const device_context& context, std::span<const VkDescriptorSetLayoutBinding> bindings)
+:m_context{context}
 {
     VkDescriptorSetLayoutCreateInfo create_info{};
     create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     create_info.bindingCount = static_cast<std::uint32_t>(std::size(bindings));
     create_info.pBindings = std::data(bindings);
 
-    if(auto result{vkCreateDescriptorSetLayout(m_device, &create_info, nullptr, &m_descriptor_set_layout)}; result != VK_SUCCESS)
-        throw error{result};
+    vulkan::check(m_context->vkCreateDescriptorSetLayout(m_context.device, &create_info, nullptr, &m_descriptor_set_layout));
 }
 
 descriptor_set_layout::~descriptor_set_layout()
 {
     if(m_descriptor_set_layout)
-        vkDestroyDescriptorSetLayout(m_device, m_descriptor_set_layout, nullptr);
+        m_context->vkDestroyDescriptorSetLayout(m_context.device, m_descriptor_set_layout, nullptr);
 }
 
 /////////////////////////////////////////////////////////////////////
 
-descriptor_pool::descriptor_pool(VkDevice device, std::span<const VkDescriptorPoolSize> sizes, std::uint32_t max_sets)
-:m_device{device}
+descriptor_pool::descriptor_pool(const device_context& context, std::span<const VkDescriptorPoolSize> sizes, std::uint32_t max_sets)
+:m_context{context}
 {
     VkDescriptorPoolCreateInfo create_info{};
     create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -463,20 +476,19 @@ descriptor_pool::descriptor_pool(VkDevice device, std::span<const VkDescriptorPo
     create_info.pPoolSizes = std::data(sizes);
     create_info.maxSets = max_sets;
 
-    if(auto result{vkCreateDescriptorPool(m_device, &create_info, nullptr, &m_descriptor_pool)}; result != VK_SUCCESS)
-        throw error{result};
+    vulkan::check(m_context->vkCreateDescriptorPool(m_context.device, &create_info, nullptr, &m_descriptor_pool));
 }
 
 descriptor_pool::~descriptor_pool()
 {
     if(m_descriptor_pool)
-        vkDestroyDescriptorPool(m_device, m_descriptor_pool, nullptr);
+        m_context->vkDestroyDescriptorPool(m_context.device, m_descriptor_pool, nullptr);
 }
 
 /////////////////////////////////////////////////////////////////////
 
-descriptor_set::descriptor_set(VkDevice device, VkDescriptorPool descriptor_pool, VkDescriptorSetLayout descriptor_set_layout)
-:m_device{device}
+descriptor_set::descriptor_set(const device_context& context, VkDescriptorPool descriptor_pool, VkDescriptorSetLayout descriptor_set_layout)
+:m_context{context}
 {
     VkDescriptorSetAllocateInfo allocator_info{};
     allocator_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -484,14 +496,13 @@ descriptor_set::descriptor_set(VkDevice device, VkDescriptorPool descriptor_pool
     allocator_info.descriptorSetCount = 1;
     allocator_info.pSetLayouts = &descriptor_set_layout;
 
-    if(auto result{vkAllocateDescriptorSets(m_device, &allocator_info, &m_descriptor_set)}; result != VK_SUCCESS)
-        throw error{result};
+    vulkan::check(m_context->vkAllocateDescriptorSets(m_context.device, &allocator_info, &m_descriptor_set));
 }
 
 /////////////////////////////////////////////////////////////////////
 
-pipeline_layout::pipeline_layout(VkDevice device, std::span<const VkDescriptorSetLayout> layouts, std::span<const VkPushConstantRange> ranges)
-:m_device{device}
+pipeline_layout::pipeline_layout(const device_context& context, std::span<const VkDescriptorSetLayout> layouts, std::span<const VkPushConstantRange> ranges)
+:m_context{context}
 {
     VkPipelineLayoutCreateInfo create_info{};
     create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -500,20 +511,19 @@ pipeline_layout::pipeline_layout(VkDevice device, std::span<const VkDescriptorSe
     create_info.pushConstantRangeCount = static_cast<std::uint32_t>(std::size(ranges));
     create_info.pPushConstantRanges = std::data(ranges);
 
-    if(auto result{vkCreatePipelineLayout(m_device, &create_info, nullptr, &m_pipeline_layout)}; result != VK_SUCCESS)
-        throw error{result};
+    vulkan::check(m_context->vkCreatePipelineLayout(m_context.device, &create_info, nullptr, &m_pipeline_layout));
 }
 
 pipeline_layout::~pipeline_layout()
 {
     if(m_pipeline_layout)
-        vkDestroyPipelineLayout(m_device, m_pipeline_layout, nullptr);
+        m_context->vkDestroyPipelineLayout(m_context.device, m_pipeline_layout, nullptr);
 }
 
 /////////////////////////////////////////////////////////////////////
 
-render_pass::render_pass(VkDevice device, std::span<const VkAttachmentDescription> attachments, std::span<const VkSubpassDescription> subpasses, std::span<const VkSubpassDependency> dependencies)
-:m_device{device}
+render_pass::render_pass(const device_context& context, std::span<const VkAttachmentDescription> attachments, std::span<const VkSubpassDescription> subpasses, std::span<const VkSubpassDependency> dependencies)
+:m_context{context}
 {
     VkRenderPassCreateInfo create_info{};
     create_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
@@ -524,62 +534,58 @@ render_pass::render_pass(VkDevice device, std::span<const VkAttachmentDescriptio
     create_info.dependencyCount = static_cast<std::uint32_t>(std::size(dependencies));
     create_info.pDependencies = std::data(dependencies);
 
-    if(auto result{vkCreateRenderPass(m_device, &create_info, nullptr, &m_render_pass)}; result != VK_SUCCESS)
-        throw error{result};
+    vulkan::check(m_context->vkCreateRenderPass(m_context.device, &create_info, nullptr, &m_render_pass));
 }
 
 render_pass::~render_pass()
 {
     if(m_render_pass)
-        vkDestroyRenderPass(m_device, m_render_pass, nullptr);
+        m_context->vkDestroyRenderPass(m_context.device, m_render_pass, nullptr);
 }
 
 /////////////////////////////////////////////////////////////////////
 
-pipeline::pipeline(VkDevice device, const VkGraphicsPipelineCreateInfo& create_info, VkPipelineCache cache)
-:m_device{device}
+pipeline::pipeline(const device_context& context, const VkGraphicsPipelineCreateInfo& create_info, VkPipelineCache cache)
+:m_context{context}
 {
-    if(auto result{vkCreateGraphicsPipelines(m_device, cache, 1, &create_info, nullptr, &m_pipeline)}; result != VK_SUCCESS)
-        throw error{result};
+    vulkan::check(m_context->vkCreateGraphicsPipelines(m_context.device, cache, 1, &create_info, nullptr, &m_pipeline));
 }
 
-pipeline::pipeline(VkDevice device, const VkComputePipelineCreateInfo& create_info, VkPipelineCache cache)
-:m_device{device}
+pipeline::pipeline(const device_context& context, const VkComputePipelineCreateInfo& create_info, VkPipelineCache cache)
+:m_context{context}
 {
-    if(auto result{vkCreateComputePipelines(m_device, cache, 1, &create_info, nullptr, &m_pipeline)}; result != VK_SUCCESS)
-        throw error{result};
+    vulkan::check(m_context->vkCreateComputePipelines(m_context.device, cache, 1, &create_info, nullptr, &m_pipeline));
 }
 
 pipeline::~pipeline()
 {
     if(m_pipeline)
-        vkDestroyPipeline(m_device, m_pipeline, nullptr);
+        m_context->vkDestroyPipeline(m_context.device, m_pipeline, nullptr);
 }
 
 /////////////////////////////////////////////////////////////////////
 
-pipeline_cache::pipeline_cache(VkDevice device, const void* initial_data, std::size_t size)
-:m_device{device}
+pipeline_cache::pipeline_cache(const device_context& context, const void* initial_data, std::size_t size)
+:m_context{context}
 {
     VkPipelineCacheCreateInfo create_info{};
     create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
     create_info.pInitialData = initial_data;
     create_info.initialDataSize = size;
 
-    if(auto result{vkCreatePipelineCache(m_device, &create_info, nullptr, &m_pipeline_cache)}; result != VK_SUCCESS)
-        throw error{result};
+    vulkan::check(m_context->vkCreatePipelineCache(m_context.device, &create_info, nullptr, &m_pipeline_cache));
 }
 
 pipeline_cache::~pipeline_cache()
 {
     if(m_pipeline_cache)
-        vkDestroyPipelineCache(m_device, m_pipeline_cache, nullptr);
+        m_context->vkDestroyPipelineCache(m_context.device, m_pipeline_cache, nullptr);
 }
 
 /////////////////////////////////////////////////////////////////////
 
-query_pool::query_pool(VkDevice device, VkQueryType type, std::uint32_t count, VkQueryPipelineStatisticFlags statistics)
-:m_device{device}
+query_pool::query_pool(const device_context& context, VkQueryType type, std::uint32_t count, VkQueryPipelineStatisticFlags statistics)
+:m_context{context}
 {
     VkQueryPoolCreateInfo create_info{};
     create_info.sType = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
@@ -587,20 +593,19 @@ query_pool::query_pool(VkDevice device, VkQueryType type, std::uint32_t count, V
     create_info.queryCount = count;
     create_info.pipelineStatistics = statistics;
 
-    if(auto result{vkCreateQueryPool(m_device, &create_info, nullptr, &m_query_pool)}; result != VK_SUCCESS)
-        throw error{result};
+    vulkan::check(m_context->vkCreateQueryPool(m_context.device, &create_info, nullptr, &m_query_pool));
 }
 
 query_pool::~query_pool()
 {
     if(m_query_pool)
-        vkDestroyQueryPool(m_device, m_query_pool, nullptr);
+        m_context->vkDestroyQueryPool(m_context.device, m_query_pool, nullptr);
 }
 
 /////////////////////////////////////////////////////////////////////
 
-debug_messenger::debug_messenger(VkInstance instance, PFN_vkDebugUtilsMessengerCallbackEXT callback, VkDebugUtilsMessageSeverityFlagBitsEXT severity, VkDebugUtilsMessageTypeFlagBitsEXT type, void* userdata)
-:m_instance{instance}
+debug_messenger::debug_messenger(const instance_context& instance, PFN_vkDebugUtilsMessengerCallbackEXT callback, VkDebugUtilsMessageSeverityFlagBitsEXT severity, VkDebugUtilsMessageTypeFlagBitsEXT type, void* userdata)
+:m_context{instance}
 {
     VkDebugUtilsMessengerCreateInfoEXT create_info{};
     create_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
@@ -609,114 +614,113 @@ debug_messenger::debug_messenger(VkInstance instance, PFN_vkDebugUtilsMessengerC
     create_info.pfnUserCallback = callback;
     create_info.pUserData = userdata;
 
-    if(auto result{vkCreateDebugUtilsMessengerEXT(instance, &create_info, nullptr, &m_debug_messenger)}; result != VK_SUCCESS)
-        throw error{result};
+    vulkan::check(m_context->vkCreateDebugUtilsMessengerEXT(m_context.instance, &create_info, nullptr, &m_debug_messenger));
 }
 
 debug_messenger::~debug_messenger()
 {
     if(m_debug_messenger)
-        vkDestroyDebugUtilsMessengerEXT(m_instance, m_debug_messenger, nullptr);
+        m_context->vkDestroyDebugUtilsMessengerEXT(m_context.instance, m_debug_messenger, nullptr);
 }
 
 /////////////////////////////////////////////////////////////////////
 
 #ifdef TPH_PLATFORM_ANDROID
-surface::surface(VkInstance instance, const android_surface_info& info)
+surface::surface(const instance_context& instance, const android_surface_info& info)
+:m_context{instance}
 {
     VkAndroidSurfaceCreateInfoKHR create_info{};
     create_info.sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR;
     create_info.window = info.window;
 
-    if(auto result{vkCreateAndroidSurfaceKHR(instance, &create_info, nullptr, &m_surface)}; result != VK_SUCCESS)
-        throw error{result};
+    vulkan::check(m_context->vkCreateAndroidSurfaceKHR(m_context.instance, &create_info, nullptr, &m_surface));
 }
 #endif
 
 #ifdef TPH_PLATFORM_IOS
-surface::surface(VkInstance instance, const ios_surface_info& info)
+surface::surface(const instance_context& instance, const ios_surface_info& info)
+:m_context{instance}
 {
     VkIOSSurfaceCreateInfoMVK create_info{};
     create_info.sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR;
     create_info.pView = info.view;
 
-    if(auto result{vkCreateIOSSurfaceMVK(instance, &create_info, nullptr, &m_surface)}; result != VK_SUCCESS)
-        throw error{result};
+    vulkan::check(m_context->vkCreateIOSSurfaceMVK(m_context.instance, &create_info, nullptr, &m_surface));
 }
 #endif
 
 #ifdef TPH_PLATFORM_WIN32
-surface::surface(VkInstance instance, const win32_surface_info& info)
+surface::surface(const instance_context& instance, const win32_surface_info& info)
+:m_context{instance}
 {
     VkWin32SurfaceCreateInfoKHR create_info{};
     create_info.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
     create_info.hinstance = reinterpret_cast<HINSTANCE>(info.instance);
     create_info.hwnd = reinterpret_cast<HWND>(info.window);
 
-    if(auto result{vkCreateWin32SurfaceKHR(instance, &create_info, nullptr, &m_surface)}; result != VK_SUCCESS)
-        throw error{result};
+    vulkan::check(m_context->vkCreateWin32SurfaceKHR(m_context.instance, &create_info, nullptr, &m_surface));
 }
 #endif
 
 #ifdef TPH_PLATFORM_MACOS
-surface::surface(VkInstance instance, const macos_surface_info& info)
+surface::surface(const instance_context& instance, const macos_surface_info& info)
+:m_context{instance}
 {
     VkMacOSSurfaceCreateInfoMVK create_info{};
     create_info.sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR;
     create_info.pView = info.view;
 
-    if(auto result{vkCreateMacOSSurfaceMVK(instance, &create_info, nullptr, &m_surface)}; result != VK_SUCCESS)
-        throw error{result};
+    vulkan::check(m_context->vkCreateMacOSSurfaceMVK(m_context.instance, &create_info, nullptr, &m_surface));
 }
 #endif
 
 #ifdef TPH_PLATFORM_XLIB
-surface::surface(VkInstance instance, const xlib_surface_info& info)
+surface::surface(const instance_context& instance, const xlib_surface_info& info)
+:m_context{instance}
 {
     VkXlibSurfaceCreateInfoKHR create_info{};
     create_info.sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR;
     create_info.dpy = info.display;
     create_info.window = info.window;
 
-    if(auto result{vkCreateXlibSurfaceKHR(instance, &create_info, nullptr, &m_surface)}; result != VK_SUCCESS)
-        throw error{result};
+    vulkan::check(m_context->vkCreateXlibSurfaceKHR(m_context.instance, &create_info, nullptr, &m_surface));
 }
 #endif
 
 #ifdef TPH_PLATFORM_XCB
-surface::surface(VkInstance instance, const xcb_surface_info& info)
+surface::surface(const instance_context& instance, const xcb_surface_info& info)
+:m_context{instance}
 {
     VkXcbSurfaceCreateInfoKHR create_info{};
     create_info.sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR;
     create_info.connection = info.connection;
     create_info.window = info.window;
 
-    if(auto result{vkCreateXcbSurfaceKHR(instance, &create_info, nullptr, &m_surface)}; result != VK_SUCCESS)
-        throw error{result};
+    vulkan::check(m_context->vkCreateXcbSurfaceKHR(m_context.instance, &create_info, nullptr, &m_surface));
 }
 #endif
 
 #ifdef TPH_PLATFORM_WAYLAND
-surface::surface(VkInstance instance, const wayland_surface_info& info)
+surface::surface(const instance_context& instance, const wayland_surface_info& info)
+:m_context{instance}
 {
     VkWaylandSurfaceCreateInfoKHR create_info{};
     create_info.sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR;
     create_info.display = info.display;
     create_info.window = info.window;
 
-    if(auto result{vkCreateWaylandSurfaceKHR(instance, &create_info, nullptr, &m_surface)}; result != VK_SUCCESS)
-        throw error{result};
+    vulkan::check(m_context->vkCreateWaylandSurfaceKHR(m_context.instance, &create_info, nullptr, &m_surface));
 }
 #endif
 
 surface::~surface()
 {
     if(m_surface)
-        vkDestroySurfaceKHR(m_instance, m_surface, nullptr);
+        m_context->vkDestroySurfaceKHR(m_context.instance, m_surface, nullptr);
 }
 
-swapchain::swapchain(VkDevice device, VkSurfaceKHR surface, VkExtent2D size, std::uint32_t image_count, VkSurfaceFormatKHR format, VkImageUsageFlags usage, std::span<const std::uint32_t> families, VkSurfaceTransformFlagBitsKHR transform, VkCompositeAlphaFlagBitsKHR composite, VkPresentModeKHR present_mode, VkBool32 clipped, VkSwapchainKHR old)
-:m_device{device}
+swapchain::swapchain(const device_context& context, VkSurfaceKHR surface, VkExtent2D size, std::uint32_t image_count, VkSurfaceFormatKHR format, VkImageUsageFlags usage, std::span<const std::uint32_t> families, VkSurfaceTransformFlagBitsKHR transform, VkCompositeAlphaFlagBitsKHR composite, VkPresentModeKHR present_mode, VkBool32 clipped, VkSwapchainKHR old)
+:m_context{context}
 {
     VkSwapchainCreateInfoKHR create_info{};
     create_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
@@ -745,14 +749,13 @@ swapchain::swapchain(VkDevice device, VkSurfaceKHR surface, VkExtent2D size, std
     create_info.clipped = clipped;
     create_info.oldSwapchain = old;
 
-    if(auto result{vkCreateSwapchainKHR(m_device, &create_info, nullptr, &m_swapchain)}; result != VK_SUCCESS)
-        throw vulkan::error{result};
+    vulkan::check(m_context->vkCreateSwapchainKHR(m_context.device, &create_info, nullptr, &m_swapchain));
 }
 
 swapchain::~swapchain()
 {
     if(m_swapchain)
-        vkDestroySwapchainKHR(m_device, m_swapchain, nullptr);
+        m_context->vkDestroySwapchainKHR(m_context.device, m_swapchain, nullptr);
 }
 
 }

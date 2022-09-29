@@ -40,7 +40,7 @@ namespace tph
 {
 
 class application;
-class renderer;
+class device;
 
 enum class debug_message_severity : std::uint32_t
 {
@@ -105,6 +105,11 @@ public:
     debug_messenger& operator=(const debug_messenger&) = delete;
     debug_messenger(debug_messenger&& other) noexcept = default;
     debug_messenger& operator=(debug_messenger&& other) noexcept = default;
+
+    vulkan::instance_context context() const noexcept
+    {
+        return m_debug_messenger.context();
+    }
 
     const callback_type& callback() const noexcept
     {
