@@ -39,38 +39,38 @@ std::uint32_t find_memory_type(const instance_context& context, VkPhysicalDevice
     return find_memory_type(memory_properties, type, minimal, optimal);
 }
 
-std::uint32_t find_memory_type(const VkPhysicalDeviceMemoryProperties& memory_properties, std::uint32_t type, VkMemoryPropertyFlags minimal, VkMemoryPropertyFlags optimal)
+std::uint32_t find_memory_type(const VkPhysicalDeviceMemoryProperties& properties, std::uint32_t type, VkMemoryPropertyFlags minimal, VkMemoryPropertyFlags optimal)
 {
     if(optimal != 0)
     {
-        for(std::uint32_t i{}; i < memory_properties.memoryTypeCount; ++i)
+        for(std::uint32_t i{}; i < properties.memoryTypeCount; ++i)
         {
-            if(type & (1 << i) && memory_properties.memoryTypes[i].propertyFlags == optimal)
+            if(type & (1 << i) && properties.memoryTypes[i].propertyFlags == optimal)
             {
                 return i;
             }
         }
 
-        for(std::uint32_t i{}; i < memory_properties.memoryTypeCount; ++i)
+        for(std::uint32_t i{}; i < properties.memoryTypeCount; ++i)
         {
-            if(type & (1 << i) && (memory_properties.memoryTypes[i].propertyFlags & optimal) == optimal)
+            if(type & (1 << i) && (properties.memoryTypes[i].propertyFlags & optimal) == optimal)
             {
                 return i;
             }
         }
     }
 
-    for(std::uint32_t i{}; i < memory_properties.memoryTypeCount; ++i)
+    for(std::uint32_t i{}; i < properties.memoryTypeCount; ++i)
     {
-        if(type & (1 << i) && memory_properties.memoryTypes[i].propertyFlags == minimal)
+        if(type & (1 << i) && properties.memoryTypes[i].propertyFlags == minimal)
         {
             return i;
         }
     }
 
-    for(std::uint32_t i{}; i < memory_properties.memoryTypeCount; ++i)
+    for(std::uint32_t i{}; i < properties.memoryTypeCount; ++i)
     {
-        if(type & (1 << i) && (memory_properties.memoryTypes[i].propertyFlags & minimal) == minimal)
+        if(type & (1 << i) && (properties.memoryTypes[i].propertyFlags & minimal) == minimal)
         {
             return i;
         }

@@ -94,8 +94,8 @@ public:
     constexpr debug_messenger() = default;
     explicit debug_messenger(application& app, callback_type callback, debug_message_severity severities, debug_message_type types);
 
-    explicit debug_messenger(vulkan::debug_messenger debug_messenger) noexcept
-    :m_debug_messenger{std::move(debug_messenger)}
+    explicit debug_messenger(vulkan::debug_messenger dbg_messenger) noexcept
+    :m_debug_messenger{std::move(dbg_messenger)}
     {
 
     }
@@ -122,15 +122,15 @@ private:
 };
 
 template<>
-inline VkInstance underlying_cast(const debug_messenger& debug_messenger) noexcept
+inline VkInstance underlying_cast(const debug_messenger& dbg_messenger) noexcept
 {
-    return debug_messenger.m_debug_messenger.instance();
+    return dbg_messenger.m_debug_messenger.instance();
 }
 
 template<>
-inline VkDebugUtilsMessengerEXT underlying_cast(const debug_messenger& debug_messenger) noexcept
+inline VkDebugUtilsMessengerEXT underlying_cast(const debug_messenger& dbg_messenger) noexcept
 {
-    return debug_messenger.m_debug_messenger;
+    return dbg_messenger.m_debug_messenger;
 }
 
 }

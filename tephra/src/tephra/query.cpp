@@ -31,8 +31,8 @@ using namespace tph::vulkan::functions;
 namespace tph
 {
 
-query_pool::query_pool(device& device, std::uint32_t count, query_type type, query_pipeline_statistic statistics)
-:m_query_pool{device.context(), static_cast<VkQueryType>(type), count, static_cast<VkQueryPipelineStatisticFlagBits>(statistics)}
+query_pool::query_pool(device& dev, std::uint32_t count, query_type type, query_pipeline_statistic statistics)
+:m_query_pool{dev.context(), static_cast<VkQueryType>(type), count, static_cast<VkQueryPipelineStatisticFlagBits>(statistics)}
 {
 
 }
@@ -58,7 +58,7 @@ bool query_pool::results(std::uint32_t first, std::uint32_t count, std::size_t b
     return true;
 }
 
-void set_object_name(device& device, const query_pool& object, const std::string& name)
+void set_object_name(device& dev, const query_pool& object, const std::string& name)
 {
     VkDebugUtilsObjectNameInfoEXT info{};
     info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
@@ -66,7 +66,7 @@ void set_object_name(device& device, const query_pool& object, const std::string
     info.objectHandle = reinterpret_cast<std::uint64_t>(underlying_cast<VkQueryPool>(object));
     info.pObjectName = std::data(name);
 
-    vulkan::check(device->vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(device), &info));
+    vulkan::check(dev->vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(dev), &info));
 }
 
 }

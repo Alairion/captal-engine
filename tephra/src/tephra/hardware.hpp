@@ -65,7 +65,7 @@ struct physical_device_features
     bool geometry_shader{};
     bool tessellation_shader{};
     bool sample_shading{};
-    bool dual_source_blend{};
+    bool dual_src_blend{};
     bool logic_op{};
     bool multi_draw_indirect{};
     bool draw_indirect_first_instance{};
@@ -152,7 +152,7 @@ struct physical_device_limits
     std::uint32_t                max_geometry_total_output_components{};
     std::uint32_t                max_fragment_input_components{};
     std::uint32_t                max_fragment_output_attachments{};
-    std::uint32_t                max_fragment_dual_source_attachments{};
+    std::uint32_t                max_fragment_dual_src_attachments{};
     std::uint32_t                max_fragment_combined_output_resources{};
     std::uint32_t                max_compute_shared_memory_size{};
     std::array<std::uint32_t, 3> max_compute_work_group_count{};
@@ -253,7 +253,7 @@ class physical_device;
 namespace vulkan
 {
 
-physical_device make_physical_device(const vulkan::instance_context& context, VkPhysicalDevice device, tph::version instance_version) noexcept;
+physical_device make_physical_device(const vulkan::instance_context& context, VkPhysicalDevice phydev, tph::version instance_version) noexcept;
 
 }
 
@@ -262,7 +262,7 @@ class TEPHRA_API physical_device
     template<typename VulkanObject, typename... Args>
     friend VulkanObject underlying_cast(const Args&...) noexcept;
 
-    friend physical_device vulkan::make_physical_device(const vulkan::instance_context& context, VkPhysicalDevice device, tph::version instance_version) noexcept;
+    friend physical_device vulkan::make_physical_device(const vulkan::instance_context& context, VkPhysicalDevice phydev, tph::version instance_version) noexcept;
 
 public:
     constexpr physical_device() = default;
@@ -272,8 +272,8 @@ public:
     physical_device(physical_device&&) noexcept = default;
     physical_device& operator=(physical_device&&) noexcept = default;
 
-    bool support_presentation(const surface& surface) const;
-    physical_device_surface_capabilities surface_capabilities(const surface& surface) const;
+    bool support_presentation(const surface& surf) const;
+    physical_device_surface_capabilities surface_capabilities(const surface& surf) const;
     physical_device_format_properties format_properties(texture_format format) const noexcept;
     bool support_texture_format(texture_format format, format_feature features) const;
 
@@ -313,9 +313,9 @@ private:
 };
 
 template<>
-inline VkPhysicalDevice underlying_cast(const physical_device& physical_device) noexcept
+inline VkPhysicalDevice underlying_cast(const physical_device& phydev) noexcept
 {
-    return physical_device.m_physical_device;
+    return phydev.m_physical_device;
 }
 
 TEPHRA_API bool default_physical_device_comparator(const physical_device& left, const physical_device& right) noexcept;

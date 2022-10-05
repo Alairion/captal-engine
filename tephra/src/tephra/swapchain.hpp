@@ -69,10 +69,10 @@ class TEPHRA_API swapchain
 
 public:
     constexpr swapchain() = default;
-    explicit swapchain(device& device, surface& surface, const swapchain_info& info, optional_ref<swapchain> old_swapchain = nullref);
+    explicit swapchain(device& dev, surface& surf, const swapchain_info& info, optional_ref<tph::swapchain> old_swapchain = nullref);
 
-    explicit swapchain(vulkan::swapchain swapchain, VkQueue present_queue, const swapchain_info& info, std::vector<tph::texture> textures) noexcept
-    :m_swapchain{std::move(swapchain)}
+    explicit swapchain(vulkan::swapchain swpchain, VkQueue present_queue, const swapchain_info& info, std::vector<tph::texture> textures) noexcept
+    :m_swapchain{std::move(swpchain)}
     ,m_queue{present_queue}
     ,m_info{info}
     ,m_textures{std::move(textures)}
@@ -91,37 +91,37 @@ public:
         return m_swapchain.context();
     }
 
-    swapchain_status acquire(optional_ref<semaphore> semaphore, optional_ref<fence> fence)
+    swapchain_status acquire(optional_ref<semaphore> semaphr, optional_ref<fence> fen)
     {
-        return acquire_impl(std::numeric_limits<std::uint64_t>::max(), semaphore, fence);
+        return acquire_impl(std::numeric_limits<std::uint64_t>::max(), semaphr, fen);
     }
 
-    swapchain_status try_acquire(optional_ref<semaphore> semaphore, optional_ref<fence> fence)
+    swapchain_status try_acquire(optional_ref<semaphore> semaphr, optional_ref<fence> fen)
     {
-        return acquire_impl(0, semaphore, fence);
+        return acquire_impl(0, semaphr, fen);
     }
 
     template<typename Rep, typename Period>
-    swapchain_status acquire_for(const std::chrono::duration<Rep, Period>& timeout, optional_ref<semaphore> semaphore, optional_ref<fence> fence)
+    swapchain_status acquire_for(const std::chrono::duration<Rep, Period>& timeout, optional_ref<semaphore> semaphr, optional_ref<fence> fen)
     {
-        return acquire_impl(std::chrono::duration_cast<std::chrono::nanoseconds>(timeout).count(), semaphore, fence);
+        return acquire_impl(std::chrono::duration_cast<std::chrono::nanoseconds>(timeout).count(), semaphr, fen);
     }
 
     template<typename Clock, typename Duration>
-    swapchain_status acquire_until(const std::chrono::time_point<Clock, Duration>& time, optional_ref<semaphore> semaphore, optional_ref<fence> fence)
+    swapchain_status acquire_until(const std::chrono::time_point<Clock, Duration>& time, optional_ref<semaphore> semaphr, optional_ref<fence> fen)
     {
         const auto current_time{Clock::now()};
         if(time < current_time)
         {
-            return try_acquire(semaphore, fence);
+            return try_acquire(semaphr, fen);
         }
 
-        return acquire_impl(std::chrono::duration_cast<std::chrono::nanoseconds>(time - current_time).count(), semaphore, fence);
+        return acquire_impl(std::chrono::duration_cast<std::chrono::nanoseconds>(time - current_time).count(), semaphr, fen);
     }
 
-    swapchain_status present(std::span<const std::reference_wrapper<semaphore>> wait_semaphores);
-    swapchain_status present(std::span<semaphore> wait_semaphores);
-    swapchain_status present(semaphore& wait_semaphore);
+    swapchain_status present(std::span<const std::reference_wrapper<semaphore>> wait_semaphrs);
+    swapchain_status present(std::span<semaphore> wait_semaphrs);
+    swapchain_status present(semaphore& wait_semaphr);
 
     const swapchain_info& info() const noexcept
     {
@@ -154,7 +154,7 @@ public:
     }
 
 private:
-    swapchain_status acquire_impl(std::uint64_t timeout, optional_ref<semaphore> semaphore, optional_ref<fence> fence);
+    swapchain_status acquire_impl(std::uint64_t timeout, optional_ref<semaphore> semaphr, optional_ref<fence> fen);
 
 private:
     vulkan::swapchain m_swapchain{};
@@ -165,18 +165,18 @@ private:
     std::uint32_t m_image_index{};
 };
 
-TEPHRA_API void set_object_name(device& device, const swapchain& object, const std::string& name);
+TEPHRA_API void set_object_name(device& dev, const swapchain& object, const std::string& name);
 
 template<>
-inline VkDevice underlying_cast(const swapchain& swapchain) noexcept
+inline VkDevice underlying_cast(const swapchain& swpchain) noexcept
 {
-    return swapchain.m_swapchain.device();
+    return swpchain.m_swapchain.device();
 }
 
 template<>
-inline VkSwapchainKHR underlying_cast(const swapchain& swapchain) noexcept
+inline VkSwapchainKHR underlying_cast(const swapchain& swpchain) noexcept
 {
-    return swapchain.m_swapchain;
+    return swpchain.m_swapchain;
 }
 
 }

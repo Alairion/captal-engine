@@ -73,13 +73,13 @@ class TEPHRA_API command_pool
 
 public:
     constexpr command_pool() = default;
-    explicit command_pool(device& device, command_pool_options options = command_pool_options::none);
-    explicit command_pool(device& device, queue queue, command_pool_options options = command_pool_options::none);
+    explicit command_pool(device& dev, command_pool_options options = command_pool_options::none);
+    explicit command_pool(device& dev, queue q, command_pool_options options = command_pool_options::none);
 
-    explicit command_pool(vulkan::command_pool pool, queue queue, const std::array<std::uint32_t, static_cast<std::size_t>(queue::count)>& queue_families) noexcept
-    :m_pool{std::move(pool)}
+    explicit command_pool(vulkan::command_pool cmdpool, queue q, const std::array<std::uint32_t, static_cast<std::size_t>(queue::count)>& queue_families) noexcept
+    :m_pool{std::move(cmdpool)}
     ,m_queue_families{queue_families}
-    ,m_queue_family{queue_families[static_cast<std::size_t>(queue)]}
+    ,m_queue_family{queue_families[static_cast<std::size_t>(q)]}
     {
 
     }
@@ -114,7 +114,7 @@ private:
     std::uint32_t m_queue_family{};
 };
 
-TEPHRA_API void set_object_name(device& device, const command_pool& object, const std::string& name);
+TEPHRA_API void set_object_name(device& dev, const command_pool& object, const std::string& name);
 
 template<>
 inline VkDevice underlying_cast(const command_pool& pool) noexcept
@@ -136,8 +136,8 @@ class TEPHRA_API command_buffer
 public:
     constexpr command_buffer() = default;
 
-    explicit command_buffer(vulkan::command_buffer buffer, std::uint32_t queue_family, const std::array<std::uint32_t, static_cast<std::size_t>(queue::count)>& queue_families) noexcept
-    :m_buffer{std::move(buffer)}
+    explicit command_buffer(vulkan::command_buffer cmdbuf, std::uint32_t queue_family, const std::array<std::uint32_t, static_cast<std::size_t>(queue::count)>& queue_families) noexcept
+    :m_cmdbuf{std::move(cmdbuf)}
     ,m_queue_families{queue_families}
     ,m_queue_family{queue_family}
     {
@@ -152,7 +152,7 @@ public:
 
     vulkan::device_context context() const noexcept
     {
-        return m_buffer.context();
+        return m_cmdbuf.context();
     }
 
     const std::array<std::uint32_t, static_cast<std::size_t>(queue::count)>& queue_families() const noexcept
@@ -166,29 +166,29 @@ public:
     }
 
 private:
-    vulkan::command_buffer m_buffer{};
+    vulkan::command_buffer m_cmdbuf{};
     std::array<std::uint32_t, static_cast<std::size_t>(queue::count)> m_queue_families{};
     std::uint32_t m_queue_family{};
 };
 
-TEPHRA_API void set_object_name(device& device, const command_buffer& object, const std::string& name);
+TEPHRA_API void set_object_name(device& dev, const command_buffer& object, const std::string& name);
 
 template<>
-inline VkDevice underlying_cast(const command_buffer& buffer) noexcept
+inline VkDevice underlying_cast(const command_buffer& cmdbuf) noexcept
 {
-    return buffer.m_buffer.device();
+    return cmdbuf.m_cmdbuf.device();
 }
 
 template<>
-inline VkCommandPool underlying_cast(const command_buffer& buffer) noexcept
+inline VkCommandPool underlying_cast(const command_buffer& cmdbuf) noexcept
 {
-    return buffer.m_buffer.command_pool();
+    return cmdbuf.m_cmdbuf.command_pool();
 }
 
 template<>
-inline VkCommandBuffer underlying_cast(const command_buffer& buffer) noexcept
+inline VkCommandBuffer underlying_cast(const command_buffer& cmdbuf) noexcept
 {
-    return buffer.m_buffer;
+    return cmdbuf.m_cmdbuf;
 }
 
 enum class command_buffer_level : std::uint32_t
@@ -234,17 +234,17 @@ struct texture_subresource_layer
 
 struct buffer_copy
 {
-    std::uint64_t source_offset{};
-    std::uint64_t destination_offset{};
+    std::uint64_t src_offset{};
+    std::uint64_t dest_offset{};
     std::uint64_t size{};
 };
 
 struct texture_copy
 {
-    texture_subresource_layer source_subresource{};
-    copy_offset source_offset{};
-    texture_subresource_layer destination_subresource{};
-    copy_offset destination_offset{};
+    texture_subresource_layer src_subresource{};
+    copy_offset src_offset{};
+    texture_subresource_layer dest_subresource{};
+    copy_offset dest_offset{};
     copy_extent size{};
 };
 
@@ -272,18 +272,18 @@ struct image_texture_copy
 
 struct texture_blit
 {
-    texture_subresource_layer source_subresource{};
-    copy_offset source_offset{};
-    copy_extent source_size{};
-    texture_subresource_layer destination_subresource{};
-    copy_offset destination_offset{};
-    copy_extent destination_size{};
+    texture_subresource_layer src_subresource{};
+    copy_offset src_offset{};
+    copy_extent src_size{};
+    texture_subresource_layer dest_subresource{};
+    copy_offset dest_offset{};
+    copy_extent dest_size{};
 };
 
 struct memory_barrier
 {
-    resource_access source_access{};
-    resource_access destination_access{};
+    resource_access src_access{};
+    resource_access dest_access{};
 };
 
 struct buffer_memory_barrier
@@ -291,30 +291,30 @@ struct buffer_memory_barrier
     std::reference_wrapper<tph::buffer> buffer;
     std::uint64_t offset{};
     std::uint64_t size{VK_WHOLE_SIZE};
-    resource_access source_access{};
-    resource_access destination_access{};
-    std::uint32_t source_queue_family{VK_QUEUE_FAMILY_IGNORED};
-    std::uint32_t destination_queue_family{VK_QUEUE_FAMILY_IGNORED};
+    resource_access src_access{};
+    resource_access dest_access{};
+    std::uint32_t src_queue_family{VK_QUEUE_FAMILY_IGNORED};
+    std::uint32_t dest_queue_family{VK_QUEUE_FAMILY_IGNORED};
 };
 
 struct texture_memory_barrier
 {
     std::reference_wrapper<tph::texture> texture;
     texture_subresource_range subresource{};
-    resource_access source_access{};
-    resource_access destination_access{};
+    resource_access src_access{};
+    resource_access dest_access{};
     texture_layout old_layout{};
     texture_layout new_layout{};
-    std::uint32_t source_queue_family{VK_QUEUE_FAMILY_IGNORED};
-    std::uint32_t destination_queue_family{VK_QUEUE_FAMILY_IGNORED};
+    std::uint32_t src_queue_family{VK_QUEUE_FAMILY_IGNORED};
+    std::uint32_t dest_queue_family{VK_QUEUE_FAMILY_IGNORED};
 };
 
 struct texture_resolve
 {
-    copy_offset source_offset{};
-    texture_subresource_layer source_subresource{};
-    copy_offset destination_offset{};
-    texture_subresource_layer destination_subresource{};
+    copy_offset src_offset{};
+    texture_subresource_layer src_subresource{};
+    copy_offset dest_offset{};
+    texture_subresource_layer dest_subresource{};
     copy_extent size{};
 };
 
@@ -346,94 +346,94 @@ struct submit_info
 namespace cmd
 {
 
-TEPHRA_API command_buffer begin(command_pool& pool, command_buffer_level level = command_buffer_level::primary, command_buffer_options options = command_buffer_options::none);
-TEPHRA_API command_buffer begin(command_pool& pool, render_pass& render_pass, optional_ref<framebuffer> framebuffer, command_buffer_options options = command_buffer_options::none);
-TEPHRA_API void begin(command_buffer& buffer, command_buffer_reset_options reset = command_buffer_reset_options::none, command_buffer_options options = command_buffer_options::none);
-TEPHRA_API void begin(command_buffer& buffer, render_pass& render_pass, optional_ref<framebuffer> framebuffer, command_buffer_reset_options reset = command_buffer_reset_options::none, command_buffer_options options = command_buffer_options::none);
+TEPHRA_API command_buffer begin(command_pool& cmdpool, command_buffer_level level = command_buffer_level::primary, command_buffer_options options = command_buffer_options::none);
+TEPHRA_API command_buffer begin(command_pool& cmdpool, render_pass& renpass, optional_ref<framebuffer> framebuf, command_buffer_options options = command_buffer_options::none);
+TEPHRA_API void begin(command_buffer& cmdbuf, command_buffer_reset_options reset = command_buffer_reset_options::none, command_buffer_options options = command_buffer_options::none);
+TEPHRA_API void begin(command_buffer& cmdbuf, render_pass& renpass, optional_ref<framebuffer> framebuf, command_buffer_reset_options reset = command_buffer_reset_options::none, command_buffer_options options = command_buffer_options::none);
 
-TEPHRA_API void copy(command_buffer& command_buffer, buffer& source, buffer& destination, const buffer_copy& region) noexcept;
-TEPHRA_API void copy(command_buffer& command_buffer, buffer& source, buffer& destination, std::span<const buffer_copy> regions);
-TEPHRA_API void copy(command_buffer& command_buffer, buffer& source, image& destination, const buffer_image_copy& region) noexcept;
-TEPHRA_API void copy(command_buffer& command_buffer, buffer& source, texture& destination, const buffer_texture_copy& region) noexcept;
-TEPHRA_API void copy(command_buffer& command_buffer, buffer& source, texture& destination, std::span<const buffer_texture_copy> regions);
+TEPHRA_API void copy(command_buffer& cmdbuf, buffer& src, buffer& dest, const buffer_copy& region) noexcept;
+TEPHRA_API void copy(command_buffer& cmdbuf, buffer& src, buffer& dest, std::span<const buffer_copy> regions);
+TEPHRA_API void copy(command_buffer& cmdbuf, buffer& src, image& dest, const buffer_image_copy& region) noexcept;
+TEPHRA_API void copy(command_buffer& cmdbuf, buffer& src, texture& dest, const buffer_texture_copy& region) noexcept;
+TEPHRA_API void copy(command_buffer& cmdbuf, buffer& src, texture& dest, std::span<const buffer_texture_copy> regions);
 
-TEPHRA_API void copy(command_buffer& command_buffer, image& source, buffer& destination, const buffer_image_copy& region) noexcept;
-TEPHRA_API void copy(command_buffer& command_buffer, image& source, texture& destination, const image_texture_copy& region) noexcept;
-TEPHRA_API void copy(command_buffer& command_buffer, image& source, texture& destination, std::span<const image_texture_copy> regions);
+TEPHRA_API void copy(command_buffer& cmdbuf, image& src, buffer& dest, const buffer_image_copy& region) noexcept;
+TEPHRA_API void copy(command_buffer& cmdbuf, image& src, texture& dest, const image_texture_copy& region) noexcept;
+TEPHRA_API void copy(command_buffer& cmdbuf, image& src, texture& dest, std::span<const image_texture_copy> regions);
 
-TEPHRA_API void copy(command_buffer& command_buffer, texture& source, buffer& destination, const buffer_texture_copy& region) noexcept;
-TEPHRA_API void copy(command_buffer& command_buffer, texture& source, buffer& destination, std::span<const buffer_texture_copy> regions);
-TEPHRA_API void copy(command_buffer& command_buffer, texture& source, image& destination, const image_texture_copy& region) noexcept;
-TEPHRA_API void copy(command_buffer& command_buffer, texture& source, image& destination, std::span<const image_texture_copy> regions);
-TEPHRA_API void copy(command_buffer& command_buffer, texture& source, texture& destination, const texture_copy& region) noexcept;
-TEPHRA_API void copy(command_buffer& command_buffer, texture& source, texture& destination, std::span<const texture_copy> regions);
+TEPHRA_API void copy(command_buffer& cmdbuf, texture& src, buffer& dest, const buffer_texture_copy& region) noexcept;
+TEPHRA_API void copy(command_buffer& cmdbuf, texture& src, buffer& dest, std::span<const buffer_texture_copy> regions);
+TEPHRA_API void copy(command_buffer& cmdbuf, texture& src, image& dest, const image_texture_copy& region) noexcept;
+TEPHRA_API void copy(command_buffer& cmdbuf, texture& src, image& dest, std::span<const image_texture_copy> regions);
+TEPHRA_API void copy(command_buffer& cmdbuf, texture& src, texture& dest, const texture_copy& region) noexcept;
+TEPHRA_API void copy(command_buffer& cmdbuf, texture& src, texture& dest, std::span<const texture_copy> regions);
 
-TEPHRA_API void blit(command_buffer& command_buffer, texture& source, texture& destination, filter filter, const texture_blit& region) noexcept;
-TEPHRA_API void blit(command_buffer& command_buffer, texture& source, texture& destination, filter filter, std::span<const texture_blit> regions);
+TEPHRA_API void blit(command_buffer& cmdbuf, texture& src, texture& dest, filter filter, const texture_blit& region) noexcept;
+TEPHRA_API void blit(command_buffer& cmdbuf, texture& src, texture& dest, filter filter, std::span<const texture_blit> regions);
 
-TEPHRA_API void pipeline_barrier(command_buffer& command_buffer, pipeline_stage source_stage, pipeline_stage destination_stage, dependency_flags flags) noexcept;
-TEPHRA_API void pipeline_barrier(command_buffer& command_buffer, resource_access source_access, resource_access destination_access, dependency_flags flags, pipeline_stage source_stage, pipeline_stage destination_stage) noexcept;
-TEPHRA_API void pipeline_barrier(command_buffer& command_buffer, pipeline_stage source_stage, pipeline_stage destination_stage, dependency_flags flags, std::span<const memory_barrier> memory_barriers, std::span<const buffer_memory_barrier> buffer_barriers, std::span<const texture_memory_barrier> texture_barriers);
+TEPHRA_API void pipeline_barrier(command_buffer& cmdbuf, pipeline_stage src_stage, pipeline_stage dest_stage, dependency_flags flags) noexcept;
+TEPHRA_API void pipeline_barrier(command_buffer& cmdbuf, resource_access src_access, resource_access dest_access, dependency_flags flags, pipeline_stage src_stage, pipeline_stage dest_stage) noexcept;
+TEPHRA_API void pipeline_barrier(command_buffer& cmdbuf, pipeline_stage src_stage, pipeline_stage dest_stage, dependency_flags flags, std::span<const memory_barrier> memory_barriers, std::span<const buffer_memory_barrier> buffer_barriers, std::span<const texture_memory_barrier> texture_barriers);
 
-TEPHRA_API void update_buffer(command_buffer& command_buffer, tph::buffer& buffer, std::uint64_t offset, std::uint64_t size, const void* data) noexcept;
-TEPHRA_API void fill_buffer(command_buffer& command_buffer, tph::buffer& buffer, std::uint64_t offset, std::uint64_t size, std::uint32_t value) noexcept;
-TEPHRA_API void push_constants(command_buffer& command_buffer, pipeline_layout& layout, shader_stage stages, std::uint32_t offset, std::uint32_t size, const void* data) noexcept;
+TEPHRA_API void update_buffer(command_buffer& cmdbuf, tph::buffer& buffer, std::uint64_t offset, std::uint64_t size, const void* data) noexcept;
+TEPHRA_API void fill_buffer(command_buffer& cmdbuf, tph::buffer& buffer, std::uint64_t offset, std::uint64_t size, std::uint32_t value) noexcept;
+TEPHRA_API void push_constants(command_buffer& cmdbuf, pipeline_layout& layout, shader_stage stages, std::uint32_t offset, std::uint32_t size, const void* data) noexcept;
 
-TEPHRA_API void begin_render_pass(command_buffer& command_buffer, const render_pass& render_pass, const framebuffer& framebuffer, render_pass_content content = render_pass_content::inlined) noexcept;
-TEPHRA_API void begin_render_pass(command_buffer& command_buffer, const render_pass& render_pass, const framebuffer& framebuffer, const scissor& area, render_pass_content content = render_pass_content::inlined) noexcept;
-TEPHRA_API void next_subpass(command_buffer& command_buffer, render_pass_content content = render_pass_content::inlined) noexcept;
-TEPHRA_API void end_render_pass(command_buffer& command_buffer) noexcept;
+TEPHRA_API void begin_render_pass(command_buffer& cmdbuf, const render_pass& rpass, const framebuffer& framebuf, render_pass_content content = render_pass_content::inlined) noexcept;
+TEPHRA_API void begin_render_pass(command_buffer& cmdbuf, const render_pass& rpass, const framebuffer& framebuf, const scissor& area, render_pass_content content = render_pass_content::inlined) noexcept;
+TEPHRA_API void next_subpass(command_buffer& cmdbuf, render_pass_content content = render_pass_content::inlined) noexcept;
+TEPHRA_API void end_render_pass(command_buffer& cmdbuf) noexcept;
 
-TEPHRA_API void bind_pipeline(command_buffer& command_buffer, pipeline& pipeline) noexcept;
-TEPHRA_API void bind_vertex_buffer(command_buffer& command_buffer, buffer& buffer, std::uint64_t offset) noexcept;
-TEPHRA_API void bind_index_buffer(command_buffer& command_buffer, buffer& buffer, std::uint64_t offset, index_type type) noexcept;
-TEPHRA_API void bind_descriptor_set(command_buffer& command_buffer, std::uint32_t index, descriptor_set& set, pipeline_layout& layout, pipeline_type bind_point = pipeline_type::graphics) noexcept;
-TEPHRA_API void bind_descriptor_set(command_buffer& command_buffer, std::uint32_t index, std::span<descriptor_set> sets, pipeline_layout& layout, pipeline_type bind_point = pipeline_type::graphics) noexcept;
+TEPHRA_API void bind_pipeline(command_buffer& cmdbuf, pipeline& pipeline) noexcept;
+TEPHRA_API void bind_vertex_buffer(command_buffer& cmdbuf, buffer& buffer, std::uint64_t offset) noexcept;
+TEPHRA_API void bind_index_buffer(command_buffer& cmdbuf, buffer& buffer, std::uint64_t offset, index_type type) noexcept;
+TEPHRA_API void bind_descriptor_set(command_buffer& cmdbuf, std::uint32_t index, descriptor_set& set, pipeline_layout& layout, pipeline_type bind_point = pipeline_type::graphics) noexcept;
+TEPHRA_API void bind_descriptor_set(command_buffer& cmdbuf, std::uint32_t index, std::span<descriptor_set> sets, pipeline_layout& layout, pipeline_type bind_point = pipeline_type::graphics) noexcept;
 
-TEPHRA_API void reset_event(command_buffer& command_buffer, event& event, pipeline_stage stage) noexcept;
-TEPHRA_API void set_event(command_buffer& command_buffer, event& event, pipeline_stage stage) noexcept;
-TEPHRA_API void wait_event(command_buffer& command_buffer, event& event, pipeline_stage source_stage, pipeline_stage destination_stage) noexcept;
-TEPHRA_API void wait_event(command_buffer& command_buffer, event& event, resource_access source_access, resource_access destination_access, pipeline_stage source_stage, pipeline_stage destination_stage) noexcept;
+TEPHRA_API void reset_event(command_buffer& cmdbuf, event& evt, pipeline_stage stage) noexcept;
+TEPHRA_API void set_event(command_buffer& cmdbuf, event& evt, pipeline_stage stage) noexcept;
+TEPHRA_API void wait_event(command_buffer& cmdbuf, event& evt, pipeline_stage src_stage, pipeline_stage dest_stage) noexcept;
+TEPHRA_API void wait_event(command_buffer& cmdbuf, event& evt, resource_access src_access, resource_access dest_access, pipeline_stage src_stage, pipeline_stage dest_stage) noexcept;
 
-TEPHRA_API void resolve_image(command_buffer& command_buffer, texture& source, texture_layout source_layout, texture& destination, texture_layout destination_layout, std::span<const texture_resolve> resolves);
+TEPHRA_API void resolve_image(command_buffer& cmdbuf, texture& src, texture_layout src_layout, texture& dest, texture_layout dest_layout, std::span<const texture_resolve> resolves);
 
-TEPHRA_API void clear_attachments(command_buffer& command_buffer, std::span<const clear_attachment> attachments, std::span<const clear_rect> rects);
-TEPHRA_API void clear_color_image(command_buffer& command_buffer, texture& texture, texture_layout layout, const clear_color_value& color, std::span<const texture_subresource_range> subresources);
-TEPHRA_API void clear_depth_stencil_image(command_buffer& command_buffer, texture& texture, texture_layout layout, const clear_depth_stencil_value& value, std::span<const texture_subresource_range> subresources);
+TEPHRA_API void clear_attachments(command_buffer& cmdbuf, std::span<const clear_attachment> attachments, std::span<const clear_rect> rects);
+TEPHRA_API void clear_color_image(command_buffer& cmdbuf, texture& tex, texture_layout layout, const clear_color_value& color, std::span<const texture_subresource_range> subresources);
+TEPHRA_API void clear_depth_stencil_image(command_buffer& cmdbuf, texture& tex, texture_layout layout, const clear_depth_stencil_value& value, std::span<const texture_subresource_range> subresources);
 
-TEPHRA_API void set_viewport(command_buffer& command_buffer, const viewport& viewport, std::uint32_t index = 0) noexcept;
-TEPHRA_API void set_scissor(command_buffer& command_buffer, const scissor& scissor, std::uint32_t index = 0) noexcept;
-TEPHRA_API void set_line_width(command_buffer& command_buffer, float width) noexcept;
-TEPHRA_API void set_depth_bias(command_buffer& command_buffer, float constant_factor, float clamp, float slope_factor) noexcept;
-TEPHRA_API void set_blend_constants(command_buffer& command_buffer, float red, float green, float blue, float alpha) noexcept;
-TEPHRA_API void set_depth_bounds(command_buffer& command_buffer, float min, float max) noexcept;
-TEPHRA_API void set_stencil_compare_mask(command_buffer& command_buffer, stencil_face face, std::uint32_t compare_mask) noexcept;
-TEPHRA_API void set_stencil_reference(command_buffer& command_buffer, stencil_face face, std::uint32_t reference) noexcept;
-TEPHRA_API void set_stencil_write_mask(command_buffer& command_buffer, stencil_face face, std::uint32_t write_mask) noexcept;
+TEPHRA_API void set_viewport(command_buffer& cmdbuf, const viewport& vwport, std::uint32_t index = 0) noexcept;
+TEPHRA_API void set_scissor(command_buffer& cmdbuf, const scissor& scisr, std::uint32_t index = 0) noexcept;
+TEPHRA_API void set_line_width(command_buffer& cmdbuf, float width) noexcept;
+TEPHRA_API void set_depth_bias(command_buffer& cmdbuf, float constant_factor, float clamp, float slope_factor) noexcept;
+TEPHRA_API void set_blend_constants(command_buffer& cmdbuf, float red, float green, float blue, float alpha) noexcept;
+TEPHRA_API void set_depth_bounds(command_buffer& cmdbuf, float min, float max) noexcept;
+TEPHRA_API void set_stencil_compare_mask(command_buffer& cmdbuf, stencil_face face, std::uint32_t compare_mask) noexcept;
+TEPHRA_API void set_stencil_reference(command_buffer& cmdbuf, stencil_face face, std::uint32_t reference) noexcept;
+TEPHRA_API void set_stencil_write_mask(command_buffer& cmdbuf, stencil_face face, std::uint32_t write_mask) noexcept;
 
-TEPHRA_API void draw(command_buffer& command_buffer, std::uint32_t vertex_count, std::uint32_t instance_count, std::uint32_t first_vertex, std::uint32_t first_instance) noexcept;
-TEPHRA_API void draw_indexed(command_buffer& command_buffer, std::uint32_t index_count, std::uint32_t instance_count, std::uint32_t first_index, std::uint32_t first_vertex, std::uint32_t first_instance) noexcept;
-TEPHRA_API void draw_indirect(command_buffer& command_buffer, buffer& buffer, std::uint64_t offset, std::uint32_t draw_count, std::uint32_t stride) noexcept;
-TEPHRA_API void draw_indexed_indirect(command_buffer& command_buffer, buffer& buffer, std::uint64_t offset, std::uint32_t draw_count, std::uint32_t stride) noexcept;
+TEPHRA_API void draw(command_buffer& cmdbuf, std::uint32_t vertex_count, std::uint32_t instance_count, std::uint32_t first_vertex, std::uint32_t first_instance) noexcept;
+TEPHRA_API void draw_indexed(command_buffer& cmdbuf, std::uint32_t index_count, std::uint32_t instance_count, std::uint32_t first_index, std::uint32_t first_vertex, std::uint32_t first_instance) noexcept;
+TEPHRA_API void draw_indirect(command_buffer& cmdbuf, buffer& buf, std::uint64_t offset, std::uint32_t draw_count, std::uint32_t stride) noexcept;
+TEPHRA_API void draw_indexed_indirect(command_buffer& cmdbuf, buffer& buf, std::uint64_t offset, std::uint32_t draw_count, std::uint32_t stride) noexcept;
 
-TEPHRA_API void dispatch(command_buffer& command_buffer, std::uint32_t group_count_x, std::uint32_t group_count_y, std::uint32_t group_count_z) noexcept;
-TEPHRA_API void dispatch_indirect(command_buffer& command_buffer, buffer& buffer, std::uint64_t offset) noexcept;
+TEPHRA_API void dispatch(command_buffer& cmdbuf, std::uint32_t group_count_x, std::uint32_t group_count_y, std::uint32_t group_count_z) noexcept;
+TEPHRA_API void dispatch_indirect(command_buffer& cmdbuf, buffer& buffer, std::uint64_t offset) noexcept;
 
-TEPHRA_API void reset_query_pool(command_buffer& command_buffer, query_pool& pool, std::uint32_t first, std::uint32_t count) noexcept;
-TEPHRA_API void write_timestamp(command_buffer& command_buffer, query_pool& pool, std::uint32_t query, pipeline_stage stage) noexcept;
-TEPHRA_API void begin_query(command_buffer& command_buffer, query_pool& pool, std::uint32_t query, query_control options) noexcept;
-TEPHRA_API void end_query(command_buffer& command_buffer, query_pool& pool, std::uint32_t query) noexcept;
-TEPHRA_API void copy_query_pool_results(command_buffer& command_buffer, query_pool& pool, std::uint32_t first, std::uint32_t count, buffer& destination, std::uint64_t offset, std::uint64_t stride, query_results options) noexcept;
+TEPHRA_API void reset_query_pool(command_buffer& cmdbuf, query_pool& pool, std::uint32_t first, std::uint32_t count) noexcept;
+TEPHRA_API void write_timestamp(command_buffer& cmdbuf, query_pool& pool, std::uint32_t query, pipeline_stage stage) noexcept;
+TEPHRA_API void begin_query(command_buffer& cmdbuf, query_pool& pool, std::uint32_t query, query_control options) noexcept;
+TEPHRA_API void end_query(command_buffer& cmdbuf, query_pool& pool, std::uint32_t query) noexcept;
+TEPHRA_API void copy_query_pool_results(command_buffer& cmdbuf, query_pool& pool, std::uint32_t first, std::uint32_t count, buffer& dest, std::uint64_t offset, std::uint64_t stride, query_results options) noexcept;
 
-TEPHRA_API void begin_label(command_buffer& command_buffer, const std::string& name, float red = 0.0f, float green = 0.0f, float blue = 0.0f, float alpha = 0.0f) noexcept;
-TEPHRA_API void end_label(command_buffer& command_buffer) noexcept;
-TEPHRA_API void insert_label(command_buffer& command_buffer, const std::string& name, float red = 0.0f, float green = 0.0f, float blue = 0.0f, float alpha = 0.0f) noexcept;
+TEPHRA_API void begin_label(command_buffer& cmdbuf, const std::string& name, float red = 0.0f, float green = 0.0f, float blue = 0.0f, float alpha = 0.0f) noexcept;
+TEPHRA_API void end_label(command_buffer& cmdbuf) noexcept;
+TEPHRA_API void insert_label(command_buffer& cmdbuf, const std::string& name, float red = 0.0f, float green = 0.0f, float blue = 0.0f, float alpha = 0.0f) noexcept;
 
-TEPHRA_API void end(command_buffer& command_buffer);
+TEPHRA_API void end(command_buffer& cmdbuf);
 
-TEPHRA_API void execute(command_buffer& buffer, command_buffer& secondary_buffer) noexcept;
-TEPHRA_API void execute(command_buffer& buffer, std::span<const command_buffer> secondary_buffers);
-TEPHRA_API void execute(command_buffer& buffer, std::span<const std::reference_wrapper<command_buffer>> secondary_buffers);
+TEPHRA_API void execute(command_buffer& cmdbuf, command_buffer& secondary_cmdbuf) noexcept;
+TEPHRA_API void execute(command_buffer& cmdbuf, std::span<const command_buffer> secondary_cmdbufs);
+TEPHRA_API void execute(command_buffer& cmdbuf, std::span<const std::reference_wrapper<command_buffer>> secondary_cmdbufs);
 
 }
 
@@ -443,25 +443,25 @@ struct mipmap_generation_info
     tph::filter filter{tph::filter::linear};
     std::uint32_t base_array_layer{};
     std::uint32_t array_layer_count{1};
-    resource_access source_access{};
-    resource_access destination_access{};
+    resource_access src_access{};
+    resource_access dest_access{};
     texture_layout old_layout{};
     texture_layout new_layout{};
-    std::uint32_t source_queue_family{VK_QUEUE_FAMILY_IGNORED};
-    std::uint32_t destination_queue_family{VK_QUEUE_FAMILY_IGNORED};
+    std::uint32_t src_queue_family{VK_QUEUE_FAMILY_IGNORED};
+    std::uint32_t dest_queue_family{VK_QUEUE_FAMILY_IGNORED};
 };
 
 namespace cmd
 {
 
-TEPHRA_API void generate_mipmaps(command_buffer& buffer, pipeline_stage source_stage, pipeline_stage destination_stage, dependency_flags flags, std::span<const mipmap_generation_info> infos);
+TEPHRA_API void generate_mipmaps(command_buffer& cmdbuf, pipeline_stage src_stage, pipeline_stage dest_stage, dependency_flags flags, std::span<const mipmap_generation_info> infos);
 
 }
 
-TEPHRA_API void submit(device& device, const submit_info& info, optional_ref<fence> fence);
-TEPHRA_API void submit(device& device, std::span<const submit_info> submits, optional_ref<fence> fence);
-TEPHRA_API void submit(device& device, queue queue, const submit_info& info, optional_ref<fence> fence);
-TEPHRA_API void submit(device& device, queue queue, std::span<const submit_info> submits, optional_ref<fence> fence);
+TEPHRA_API void submit(device& dev, const submit_info& info, optional_ref<fence> fen);
+TEPHRA_API void submit(device& dev, std::span<const submit_info> submits, optional_ref<fence> fen);
+TEPHRA_API void submit(device& dev, tph::queue queue, const submit_info& info, optional_ref<fence> fen);
+TEPHRA_API void submit(device& dev, tph::queue queue, std::span<const submit_info> submits, optional_ref<fence> fen);
 
 }
 

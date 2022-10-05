@@ -52,10 +52,10 @@ class TEPHRA_API query_pool
 
 public:
     constexpr query_pool() = default;
-    explicit query_pool(device& device, std::uint32_t count, query_type type, query_pipeline_statistic statistics = query_pipeline_statistic{});
+    explicit query_pool(device& dev, std::uint32_t count, query_type type, query_pipeline_statistic statistics = query_pipeline_statistic{});
 
-    explicit query_pool(vulkan::query_pool query_pool) noexcept
-    :m_query_pool{std::move(query_pool)}
+    explicit query_pool(vulkan::query_pool pool) noexcept
+    :m_query_pool{std::move(pool)}
     {
 
     }
@@ -78,18 +78,18 @@ private:
     vulkan::query_pool m_query_pool{};
 };
 
-TEPHRA_API void set_object_name(device& device, const query_pool& object, const std::string& name);
+TEPHRA_API void set_object_name(device& dev, const query_pool& object, const std::string& name);
 
 template<>
-inline VkDevice underlying_cast(const query_pool& query_pool) noexcept
+inline VkDevice underlying_cast(const query_pool& pool) noexcept
 {
-    return query_pool.m_query_pool.device();
+    return pool.m_query_pool.device();
 }
 
 template<>
-inline VkQueryPool underlying_cast(const query_pool& query_pool) noexcept
+inline VkQueryPool underlying_cast(const query_pool& pool) noexcept
 {
-    return query_pool.m_query_pool;
+    return pool.m_query_pool;
 }
 
 }

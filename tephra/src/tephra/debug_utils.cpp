@@ -28,10 +28,7 @@
 #include <charconv>
 #include <algorithm>
 
-#include "vulkan/vulkan_functions.hpp"
-
 #include "application.hpp"
-#include "device.hpp"
 
 using namespace tph::vulkan::functions;
 

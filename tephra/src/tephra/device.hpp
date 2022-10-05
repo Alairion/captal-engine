@@ -81,9 +81,9 @@ public:
 
 public:
     constexpr device() = default;
-    explicit device(application& application, const physical_device& physical_device, device_layer layers, device_extension extensions, const physical_device_features& enabled_features = physical_device_features{}, device_options options = device_options::none);
+    explicit device(application& app, const physical_device& phydev, device_layer layers, device_extension extensions, const physical_device_features& enabled_features = physical_device_features{}, device_options options = device_options::none);
 
-    explicit device(application& application, const physical_device& physical_device, vulkan::device device, device_layer layers, device_extension extensions,
+    explicit device(application& app, const physical_device& phydev, vulkan::device dev, device_layer layers, device_extension extensions,
                     const queue_families_t& queue_families, const queues_t& queues, const vulkan::memory_allocator::heap_sizes& sizes);
 
     ~device() = default;
@@ -155,27 +155,27 @@ private:
     std::unique_ptr<vulkan::memory_allocator> m_allocator{};
 };
 
-TEPHRA_API void set_object_name(device& device, const std::string& name);
-TEPHRA_API void begin_queue_label(device& device, queue queue, const std::string& name, float red = 0.0f, float green = 0.0f, float blue = 0.0f, float alpha = 0.0f) noexcept;
-TEPHRA_API void end_queue_label(device& device, queue queue) noexcept;
-TEPHRA_API void insert_queue_label(device& device, queue queue, const std::string& name, float red = 0.0f, float green = 0.0f, float blue = 0.0f, float alpha = 0.0f) noexcept;
+TEPHRA_API void set_object_name(device& dev, const std::string& name);
+TEPHRA_API void begin_queue_label(device& dev, queue q, const std::string& name, float red = 0.0f, float green = 0.0f, float blue = 0.0f, float alpha = 0.0f) noexcept;
+TEPHRA_API void end_queue_label(device& dev, queue q) noexcept;
+TEPHRA_API void insert_queue_label(device& dev, queue q, const std::string& name, float red = 0.0f, float green = 0.0f, float blue = 0.0f, float alpha = 0.0f) noexcept;
 
 template<>
-inline VkPhysicalDevice underlying_cast(const device& device) noexcept
+inline VkPhysicalDevice underlying_cast(const device& dev) noexcept
 {
-    return device.m_physical_device;
+    return dev.m_physical_device;
 }
 
 template<>
-inline VkDevice underlying_cast(const device& device) noexcept
+inline VkDevice underlying_cast(const device& dev) noexcept
 {
-    return device.m_device;
+    return dev.m_device;
 }
 
 template<>
-inline VkQueue underlying_cast(const device& device, const queue& index) noexcept
+inline VkQueue underlying_cast(const device& dev, const queue& q) noexcept
 {
-    return device.m_queues[static_cast<std::size_t>(index)];
+    return dev.m_queues[static_cast<std::size_t>(q)];
 }
 
 }

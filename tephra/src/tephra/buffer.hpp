@@ -38,8 +38,8 @@ class command_buffer;
 
 enum class buffer_usage : std::uint32_t
 {
-    transfer_source = VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-    transfer_destination = VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+    transfer_src = VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+    transfer_dest = VK_BUFFER_USAGE_TRANSFER_DST_BIT,
     uniform_texel = VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT,
     storage_texel = VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT,
     uniform = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
@@ -60,11 +60,11 @@ class TEPHRA_API buffer
 
 public:
     constexpr buffer() = default;
-    explicit buffer(device& device, std::uint64_t size, buffer_usage usage);
+    explicit buffer(device& dev, std::uint64_t size, buffer_usage usage);
 
-    explicit buffer(vulkan::buffer buffer, vulkan::memory_heap_chunk memory, std::uint64_t size) noexcept
-    :m_buffer{std::move(buffer)}
-    ,m_memory{std::move(memory)}
+    explicit buffer(vulkan::buffer buf, vulkan::memory_heap_chunk mem, std::uint64_t size) noexcept
+    :m_buffer{std::move(buf)}
+    ,m_memory{std::move(mem)}
     ,m_size{size}
     {
 
@@ -96,7 +96,7 @@ private:
     std::uint64_t m_size{};
 };
 
-TEPHRA_API void set_object_name(device& device, const buffer& object, const std::string& name);
+TEPHRA_API void set_object_name(device& dev, const buffer& object, const std::string& name);
 
 template<>
 inline VkDevice underlying_cast(const buffer& buffer) noexcept

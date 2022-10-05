@@ -51,7 +51,7 @@ static tph::texture_format format_from_color_space(color_space space) noexcept
 template<typename... Args>
 static tph::image make_image(Args&&... args)
 {
-    tph::image output{engine::instance().device(), std::forward<Args>(args)..., tph::image_usage::transfer_source};
+    tph::image output{engine::instance().device(), std::forward<Args>(args)..., tph::image_usage::transfer_src};
 
 #ifdef CAPTAL_DEBUG
     tph::set_object_name(engine::instance().device(), output, "transfer image");
@@ -62,16 +62,16 @@ static tph::image make_image(Args&&... args)
 
 static texture_ptr make_texture_impl(const tph::sampler_info& sampling, tph::texture_format format, tph::image image)
 {
-    const tph::texture_info info{format, tph::texture_usage::sampled | tph::texture_usage::transfer_destination};
+    const tph::texture_info info{format, tph::texture_usage::sampled | tph::texture_usage::transfer_dest};
     texture_ptr texture{make_texture(sampling, static_cast<std::uint32_t>(image.width()), static_cast<std::uint32_t>(image.height()), info)};
 
     auto&& [buffer, signal, keeper] = cpt::engine::instance().begin_transfer();
 
     tph::texture_memory_barrier barrier{texture->get_texture()};
-    barrier.source_access      = tph::resource_access::none;
-    barrier.destination_access = tph::resource_access::transfer_write;
-    barrier.old_layout         = tph::texture_layout::undefined;
-    barrier.new_layout         = tph::texture_layout::transfer_destination_optimal;
+    barrier.src_access  = tph::resource_access::none;
+    barrier.dest_access = tph::resource_access::transfer_write;
+    barrier.old_layout  = tph::texture_layout::undefined;
+    barrier.new_layout  = tph::texture_layout::transfer_dest_optimal;
 
     tph::cmd::pipeline_barrier(buffer, tph::pipeline_stage::top_of_pipe, tph::pipeline_stage::transfer, tph::dependency_flags::none, {}, {}, std::span{&barrier, 1});
 
@@ -81,10 +81,10 @@ static texture_ptr make_texture_impl(const tph::sampler_info& sampling, tph::tex
 
     tph::cmd::copy(buffer, image, texture->get_texture(), region);
 
-    barrier.source_access      = tph::resource_access::transfer_write;
-    barrier.destination_access = tph::resource_access::shader_read;
-    barrier.old_layout         = tph::texture_layout::transfer_destination_optimal;
-    barrier.new_layout         = tph::texture_layout::shader_read_only_optimal;
+    barrier.src_access  = tph::resource_access::transfer_write;
+    barrier.dest_access = tph::resource_access::shader_read;
+    barrier.old_layout  = tph::texture_layout::transfer_dest_optimal;
+    barrier.new_layout  = tph::texture_layout::shader_read_only_optimal;
 
     tph::cmd::pipeline_barrier(buffer, tph::pipeline_stage::transfer, tph::pipeline_stage::fragment_shader, tph::dependency_flags::none, {}, {}, std::span{&barrier, 1});
 

@@ -56,7 +56,7 @@ class TEPHRA_API descriptor_set_layout
 
 public:
     constexpr descriptor_set_layout() = default;
-    explicit descriptor_set_layout(device& device, std::span<const descriptor_set_layout_binding> bindings);
+    explicit descriptor_set_layout(device& dev, std::span<const descriptor_set_layout_binding> bindings);
 
     explicit descriptor_set_layout(vulkan::descriptor_set_layout layout) noexcept
     :m_layout{std::move(layout)}
@@ -74,7 +74,7 @@ private:
     vulkan::descriptor_set_layout m_layout{};
 };
 
-TEPHRA_API void set_object_name(device& device, const descriptor_set_layout& object, const std::string& name);
+TEPHRA_API void set_object_name(device& dev, const descriptor_set_layout& object, const std::string& name);
 
 template<>
 inline VkDevice underlying_cast(const descriptor_set_layout& layout) noexcept
@@ -101,7 +101,7 @@ class TEPHRA_API descriptor_pool
 
 public:
     constexpr descriptor_pool() = default;
-    explicit descriptor_pool(device& device, std::span<const descriptor_pool_size> sizes, std::optional<std::uint32_t> max_sets = std::nullopt);
+    explicit descriptor_pool(device& dev, std::span<const descriptor_pool_size> sizes, std::optional<std::uint32_t> max_sets = std::nullopt);
 
     explicit descriptor_pool(vulkan::descriptor_pool descriptor_pool) noexcept
     :m_descriptor_pool{std::move(descriptor_pool)}
@@ -124,18 +124,18 @@ private:
     vulkan::descriptor_pool m_descriptor_pool{};
 };
 
-TEPHRA_API void set_object_name(device& device, const descriptor_pool& object, const std::string& name);
+TEPHRA_API void set_object_name(device& dev, const descriptor_pool& object, const std::string& name);
 
 template<>
-inline VkDevice underlying_cast(const descriptor_pool& descriptor_pool) noexcept
+inline VkDevice underlying_cast(const descriptor_pool& desc_pool) noexcept
 {
-    return descriptor_pool.m_descriptor_pool.device();
+    return desc_pool.m_descriptor_pool.device();
 }
 
 template<>
-inline VkDescriptorPool underlying_cast(const descriptor_pool& descriptor_pool) noexcept
+inline VkDescriptorPool underlying_cast(const descriptor_pool& desc_pool) noexcept
 {
-   return descriptor_pool.m_descriptor_pool;
+   return desc_pool.m_descriptor_pool;
 }
 
 class TEPHRA_API descriptor_set
@@ -145,10 +145,10 @@ class TEPHRA_API descriptor_set
 
 public:
     constexpr descriptor_set() = default;
-    explicit descriptor_set(device& device, descriptor_pool& pool, descriptor_set_layout& layout);
+    explicit descriptor_set(device& dev, descriptor_pool& pool, descriptor_set_layout& layout);
 
-    explicit descriptor_set(vulkan::descriptor_set descriptor_set) noexcept
-    :m_descriptor_set{std::move(descriptor_set)}
+    explicit descriptor_set(vulkan::descriptor_set desc_set) noexcept
+    :m_descriptor_set{std::move(desc_set)}
     {
 
     }
@@ -168,18 +168,18 @@ private:
     vulkan::descriptor_set m_descriptor_set{};
 };
 
-TEPHRA_API void set_object_name(device& device, const descriptor_set& object, const std::string& name);
+TEPHRA_API void set_object_name(device& dev, const descriptor_set& object, const std::string& name);
 
 template<>
-inline VkDevice underlying_cast(const descriptor_set& descriptor_set) noexcept
+inline VkDevice underlying_cast(const descriptor_set& desc_set) noexcept
 {
-    return descriptor_set.m_descriptor_set.device();
+    return desc_set.m_descriptor_set.device();
 }
 
 template<>
-inline VkDescriptorSet underlying_cast(const descriptor_set& descriptor_set) noexcept
+inline VkDescriptorSet underlying_cast(const descriptor_set& desc_set) noexcept
 {
-   return descriptor_set.m_descriptor_set;
+   return desc_set.m_descriptor_set;
 }
 
 struct descriptor_texture_info
@@ -212,15 +212,15 @@ struct descriptor_copy
     std::reference_wrapper<tph::descriptor_set> source_set;
     std::uint32_t source_binding{};
     std::uint32_t source_array_index{};
-    std::reference_wrapper<tph::descriptor_set> destination_set;
-    std::uint32_t destination_binding{};
-    std::uint32_t destination_array_index{};
+    std::reference_wrapper<tph::descriptor_set> dest_set;
+    std::uint32_t dest_binding{};
+    std::uint32_t dest_array_index{};
     std::uint32_t count{1};
 };
 
-TEPHRA_API void write_descriptors(device& device, std::span<const descriptor_write> writes);
-TEPHRA_API void copy_descriptors(device& device, std::span<const descriptor_copy> copies);
-TEPHRA_API void update_descriptors(device& device, std::span<const descriptor_write> writes, std::span<const descriptor_copy> copies);
+TEPHRA_API void write_descriptors(device& dev, std::span<const descriptor_write> writes);
+TEPHRA_API void copy_descriptors(device& dev, std::span<const descriptor_copy> copies);
+TEPHRA_API void update_descriptors(device& dev, std::span<const descriptor_write> writes, std::span<const descriptor_copy> copies);
 
 }
 

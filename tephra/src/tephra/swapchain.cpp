@@ -32,8 +32,8 @@ namespace tph
 
 using namespace vulkan::functions;
 
-swapchain::swapchain(device& device, surface& surface, const swapchain_info& info, optional_ref<swapchain> old_swapchain)
-:m_queue{underlying_cast<VkQueue>(device, queue::present)}
+swapchain::swapchain(device& dev, surface& surf, const swapchain_info& info, optional_ref<swapchain> old_swapchain)
+:m_queue{underlying_cast<VkQueue>(dev, queue::present)}
 ,m_info{info}
 {
     VkSwapchainKHR old{};
@@ -44,8 +44,8 @@ swapchain::swapchain(device& device, surface& surface, const swapchain_info& inf
 
     m_swapchain = vulkan::swapchain
     {
-        device.context(),
-        underlying_cast<VkSurfaceKHR>(surface),
+        dev.context(),
+        underlying_cast<VkSurfaceKHR>(surf),
         VkExtent2D{info.width, info.height},
         info.image_count,
         VkSurfaceFormatKHR{static_cast<VkFormat>(info.format), VK_COLOR_SPACE_SRGB_NONLINEAR_KHR},
@@ -58,11 +58,11 @@ swapchain::swapchain(device& device, surface& surface, const swapchain_info& inf
         old
     };
 
-    vulkan::check(device->vkGetSwapchainImagesKHR(underlying_cast<VkDevice>(device), m_swapchain, &m_info.image_count, nullptr));
+    vulkan::check(dev->vkGetSwapchainImagesKHR(underlying_cast<VkDevice>(dev), m_swapchain, &m_info.image_count, nullptr));
 
     std::vector<VkImage> images{};
     images.resize(static_cast<std::size_t>(m_info.image_count));
-    vulkan::check(device->vkGetSwapchainImagesKHR(underlying_cast<VkDevice>(device), m_swapchain, &m_info.image_count, std::data(images)));
+    vulkan::check(dev->vkGetSwapchainImagesKHR(underlying_cast<VkDevice>(dev), m_swapchain, &m_info.image_count, std::data(images)));
 
     m_textures.reserve(m_info.image_count);
     for(auto image : images)
@@ -79,18 +79,18 @@ swapchain::swapchain(device& device, surface& surface, const swapchain_info& inf
         texture.m_array_layers = 1;
         texture.m_mip_levels   = 1;
 
-        m_texture_views.emplace_back(device, texture);
+        m_texture_views.emplace_back(dev, texture);
     }
 }
 
-swapchain_status swapchain::present(std::span<const std::reference_wrapper<semaphore>> wait_semaphores)
+swapchain_status swapchain::present(std::span<const std::reference_wrapper<semaphore>> wait_semaphrs)
 {
     VkSwapchainKHR native_swapchain{m_swapchain};
 
     std::vector<VkSemaphore> native_semaphores{};
-    native_semaphores.reserve(std::size(wait_semaphores));
+    native_semaphores.reserve(std::size(wait_semaphrs));
 
-    for(semaphore& semaphore : wait_semaphores)
+    for(semaphore& semaphore : wait_semaphrs)
     {
         native_semaphores.emplace_back(underlying_cast<VkSemaphore>(semaphore));
     }
@@ -115,14 +115,14 @@ swapchain_status swapchain::present(std::span<const std::reference_wrapper<semap
     }
 }
 
-swapchain_status swapchain::present(std::span<semaphore> wait_semaphores)
+swapchain_status swapchain::present(std::span<semaphore> wait_semaphrs)
 {
     VkSwapchainKHR native_swapchain{m_swapchain};
 
     std::vector<VkSemaphore> native_semaphores{};
-    native_semaphores.reserve(std::size(wait_semaphores));
+    native_semaphores.reserve(std::size(wait_semaphrs));
 
-    for(semaphore& semaphore : wait_semaphores)
+    for(semaphore& semaphore : wait_semaphrs)
     {
         native_semaphores.emplace_back(underlying_cast<VkSemaphore>(semaphore));
     }
@@ -147,10 +147,10 @@ swapchain_status swapchain::present(std::span<semaphore> wait_semaphores)
     }
 }
 
-swapchain_status swapchain::present(semaphore& wait_semaphore)
+swapchain_status swapchain::present(semaphore& wait_semaphr)
 {
     VkSwapchainKHR native_swapchain{m_swapchain};
-    VkSemaphore    native_semaphore{underlying_cast<VkSemaphore>(wait_semaphore)};
+    VkSemaphore    native_semaphore{underlying_cast<VkSemaphore>(wait_semaphr)};
 
     VkPresentInfoKHR present_info{};
     present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -172,10 +172,10 @@ swapchain_status swapchain::present(semaphore& wait_semaphore)
     }
 }
 
-swapchain_status swapchain::acquire_impl(std::uint64_t timeout, optional_ref<semaphore> semaphore, optional_ref<fence> fence)
+swapchain_status swapchain::acquire_impl(std::uint64_t timeout, optional_ref<semaphore> semaphr, optional_ref<fence> fen)
 {
-    VkSemaphore native_semaphore{semaphore.has_value() ? underlying_cast<VkSemaphore>(*semaphore) : VkSemaphore{}};
-    VkFence     native_fence    {fence.has_value() ? underlying_cast<VkFence>(*fence) : VkFence{}};
+    VkSemaphore native_semaphore{semaphr.has_value() ? underlying_cast<VkSemaphore>(*semaphr) : VkSemaphore{}};
+    VkFence     native_fence    {fen.has_value() ? underlying_cast<VkFence>(*fen) : VkFence{}};
 
     const auto result{context()->vkAcquireNextImageKHR(m_swapchain.device(), m_swapchain, timeout, native_semaphore, native_fence, &m_image_index)};
 
@@ -191,7 +191,7 @@ swapchain_status swapchain::acquire_impl(std::uint64_t timeout, optional_ref<sem
     }
 }
 
-void set_object_name(device& device, const swapchain& object, const std::string& name)
+void set_object_name(device& dev, const swapchain& object, const std::string& name)
 {
     VkDebugUtilsObjectNameInfoEXT info{};
     info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
@@ -199,7 +199,7 @@ void set_object_name(device& device, const swapchain& object, const std::string&
     info.objectHandle = reinterpret_cast<std::uint64_t>(underlying_cast<VkSwapchainKHR>(object));
     info.pObjectName = std::data(name);
 
-    vulkan::check(device->vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(device), &info));
+    vulkan::check(dev->vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(dev), &info));
 }
 
 

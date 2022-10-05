@@ -78,8 +78,8 @@ const void* buffer_heap_chunk::map(std::uint64_t offset) const noexcept
 }
 
 buffer_heap::buffer_heap(std::uint64_t size, tph::buffer_usage usage)
-:m_local_data{engine::instance().device(), size, usage | tph::buffer_usage::transfer_source}
-,m_device_data{engine::instance().device(), size, usage | tph::buffer_usage::transfer_destination | tph::buffer_usage::device_only}
+:m_local_data{engine::instance().device(), size, usage | tph::buffer_usage::transfer_src}
+,m_device_data{engine::instance().device(), size, usage | tph::buffer_usage::transfer_dest | tph::buffer_usage::device_only}
 ,m_size{size}
 ,m_local_map{m_local_data.map()}
 {
@@ -196,9 +196,9 @@ static ForwardIt coalesce(ForwardIt begin, ForwardIt end)
 
     while(++begin != end)
     {
-        if(last->source_offset + last->size >= begin->source_offset) //Overlaping or contiguous
+        if(last->src_offset + last->size >= begin->src_offset) //Overlaping or contiguous
         {
-            last->size = std::max(begin->source_offset + begin->size - last->source_offset, last->size);
+            last->size = std::max(begin->src_offset + begin->size - last->src_offset, last->size);
         }
         else
         {
@@ -223,7 +223,7 @@ bool buffer_heap::begin_upload(tph::command_buffer& command_buffer)
 
     const auto sort_predicate = [](const tph::buffer_copy& left, const tph::buffer_copy& right)
     {
-        return left.source_offset < right.source_offset;
+        return left.src_offset < right.src_offset;
     };
 
     std::sort(std::begin(m_upload_ranges), std::end(m_upload_ranges), sort_predicate);
@@ -273,7 +273,7 @@ bool buffer_heap::begin_upload(tph::command_buffer& command_buffer)
     }
     else
     {
-        constexpr auto usage{tph::buffer_usage::transfer_source | tph::buffer_usage::transfer_destination};
+        constexpr auto usage{tph::buffer_usage::transfer_src | tph::buffer_usage::transfer_dest};
 
         m_stagings.emplace_back(staging_buffer{tph::buffer{engine::instance().device(), m_size, usage}});
 
@@ -292,7 +292,7 @@ bool buffer_heap::begin_upload(tph::command_buffer& command_buffer)
     std::uint64_t current_offset{chunk_size * m_current_mask_index};
     for(auto& range : m_upload_ranges)
     {
-        range.destination_offset = current_offset;
+        range.dest_offset = current_offset;
         current_offset += range.size;
     }
 
@@ -314,7 +314,7 @@ void buffer_heap::end_upload(tph::command_buffer& command_buffer, transfer_ended
 
     for(auto& range : m_upload_ranges)
     {
-        std::swap(range.source_offset, range.destination_offset);
+        std::swap(range.src_offset, range.dest_offset);
     }
 
     tph::cmd::copy(command_buffer, staging.buffer, m_device_data, m_upload_ranges);

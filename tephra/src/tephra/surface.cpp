@@ -35,10 +35,10 @@ using namespace tph::vulkan::functions;
 namespace tph
 {
 
-static surface_capabilities convert_capabilities(const vulkan::instance_context& instance, VkPhysicalDevice physical_device, VkSurfaceKHR surface)
+static surface_capabilities convert_capabilities(const vulkan::instance_context& context, VkPhysicalDevice phydev, VkSurfaceKHR surf)
 {
     VkSurfaceCapabilitiesKHR capabilities{};
-    vulkan::check(instance->vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_device, surface, &capabilities));
+    vulkan::check(context->vkGetPhysicalDeviceSurfaceCapabilitiesKHR(phydev, surf, &capabilities));
 
     surface_capabilities output{};
     output.min_image_count = capabilities.minImageCount;
@@ -58,15 +58,15 @@ static surface_capabilities convert_capabilities(const vulkan::instance_context&
     return output;
 }
 
-static std::vector<texture_format> convert_formats(const vulkan::instance_context& instance, VkPhysicalDevice physical_device, VkSurfaceKHR surface)
+static std::vector<texture_format> convert_formats(const vulkan::instance_context& context, VkPhysicalDevice phydev, VkSurfaceKHR surf)
 {
     std::uint32_t count{};
-    vulkan::check(instance->vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device, surface, &count, nullptr));
+    vulkan::check(context->vkGetPhysicalDeviceSurfaceFormatsKHR(phydev, surf, &count, nullptr));
 
     stack_memory_pool<512> pool{};
     auto formats{make_stack_vector<VkSurfaceFormatKHR>(pool)};
     formats.resize(count);
-    vulkan::check(instance->vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device, surface, &count, std::data(formats)));
+    vulkan::check(context->vkGetPhysicalDeviceSurfaceFormatsKHR(phydev, surf, &count, std::data(formats)));
 
     std::vector<texture_format> output{};
     output.reserve(std::size(formats));
@@ -79,82 +79,82 @@ static std::vector<texture_format> convert_formats(const vulkan::instance_contex
 }
 
 #ifdef TPH_PLATFORM_ANDROID
-surface::surface(application& application, const vulkan::android_surface_info& info)
-:m_surface{application.context(), info}
+surface::surface(application& app, const vulkan::android_surface_info& info)
+:m_surface{app.context(), info}
 {
 
 }
 #endif
 
 #ifdef TPH_PLATFORM_IOS
-surface::surface(application& application, const vulkan::ios_surface_info& info)
-:m_surface{application.context(), info}
+surface::surface(application& app, const vulkan::ios_surface_info& info)
+:m_surface{app.context(), info}
 {
 
 }
 #endif
 
 #ifdef TPH_PLATFORM_WIN32
-surface::surface(application& application, const vulkan::win32_surface_info& info)
-:m_surface{application.context(), info}
+surface::surface(application& app, const vulkan::win32_surface_info& info)
+:m_surface{app.context(), info}
 {
 
 }
 #endif
 
 #ifdef TPH_PLATFORM_MACOS
-surface::surface(application& application, const vulkan::macos_surface_info& info)
-:m_surface{application.context(), info}
+surface::surface(application& app, const vulkan::macos_surface_info& info)
+:m_surface{app.context(), info}
 {
 
 }
 #endif
 
 #ifdef TPH_PLATFORM_XLIB
-surface::surface(application& application, const vulkan::xlib_surface_info& info)
-:m_surface{application.context(), info}
+surface::surface(application& app, const vulkan::xlib_surface_info& info)
+:m_surface{app.context(), info}
 {
 
 }
 #endif
 
 #ifdef TPH_PLATFORM_XCB
-surface::surface(application& application, const vulkan::xcb_surface_info& info)
-:m_surface{application.context(), info}
+surface::surface(application& app, const vulkan::xcb_surface_info& info)
+:m_surface{app.context(), info}
 {
 
 }
 #endif
 
 #ifdef TPH_PLATFORM_WAYLAND
-surface::surface(application& application, const vulkan::wayland_surface_info& info)
-:m_surface{application.context(), info}
+surface::surface(application& app, const vulkan::wayland_surface_info& info)
+:m_surface{app.context(), info}
 {
 
 }
 #endif
 
-surface_capabilities surface::capabilities(const physical_device& physical_device) const
+surface_capabilities surface::capabilities(const physical_device& phydev) const
 {
-    return convert_capabilities(context(), underlying_cast<VkPhysicalDevice>(physical_device), m_surface);
+    return convert_capabilities(context(), underlying_cast<VkPhysicalDevice>(phydev), m_surface);
 }
 
-surface_capabilities surface::capabilities(const device& device) const
+surface_capabilities surface::capabilities(const device& dev) const
 {
-    return convert_capabilities(context(), underlying_cast<VkPhysicalDevice>(device), m_surface);
+    return convert_capabilities(context(), underlying_cast<VkPhysicalDevice>(dev), m_surface);
 }
 
-std::vector<texture_format> surface::formats(const physical_device& physical_device) const
+std::vector<texture_format> surface::formats(const physical_device& phydev) const
 {
-    return convert_formats(context(), underlying_cast<VkPhysicalDevice>(physical_device), m_surface);
+    return convert_formats(context(), underlying_cast<VkPhysicalDevice>(phydev), m_surface);
 }
 
-std::vector<texture_format> surface::formats(const device& device) const
+std::vector<texture_format> surface::formats(const device& dev) const
 {
-    return convert_formats(context(), underlying_cast<VkPhysicalDevice>(device), m_surface);
+    return convert_formats(context(), underlying_cast<VkPhysicalDevice>(dev), m_surface);
 }
 
-void set_object_name(device& device, const surface& object, const std::string& name)
+void set_object_name(device& dev, const surface& object, const std::string& name)
 {
     VkDebugUtilsObjectNameInfoEXT info{};
     info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
@@ -162,7 +162,7 @@ void set_object_name(device& device, const surface& object, const std::string& n
     info.objectHandle = reinterpret_cast<std::uint64_t>(underlying_cast<VkSurfaceKHR>(object));
     info.pObjectName = std::data(name);
 
-    vulkan::check(device->vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(device), &info));
+    vulkan::check(dev->vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(dev), &info));
 }
 
 }

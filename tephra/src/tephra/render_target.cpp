@@ -59,8 +59,8 @@ static std::vector<clear_value_t> make_clear_values(std::span<const std::referen
     return output;
 }
 
-framebuffer::framebuffer(device& device, const render_pass& render_pass, std::span<const std::reference_wrapper<texture_view>> attachments, std::uint32_t width, std::uint32_t height, std::uint32_t layers)
-:m_framebuffer{make_framebuffer(device, render_pass, attachments, width, height, layers)}
+framebuffer::framebuffer(device& dev, const render_pass& rpass, std::span<const std::reference_wrapper<texture_view>> attachments, std::uint32_t width, std::uint32_t height, std::uint32_t layers)
+:m_framebuffer{make_framebuffer(dev, rpass, attachments, width, height, layers)}
 ,m_clear_values{make_clear_values(attachments)}
 ,m_width{width}
 ,m_height{height}
@@ -79,7 +79,7 @@ void framebuffer::set_clear_values(std::vector<clear_value_t> clear_values)
     m_clear_values = std::move(clear_values);
 }
 
-void set_object_name(device& device, const framebuffer& object, const std::string& name)
+void set_object_name(device& dev, const framebuffer& object, const std::string& name)
 {
     VkDebugUtilsObjectNameInfoEXT info{};
     info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
@@ -87,7 +87,7 @@ void set_object_name(device& device, const framebuffer& object, const std::strin
     info.objectHandle = reinterpret_cast<std::uint64_t>(underlying_cast<VkFramebuffer>(object));
     info.pObjectName = std::data(name);
 
-    vulkan::check(device->vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(device), &info));
+    vulkan::check(dev->vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(dev), &info));
 }
 
 
@@ -210,19 +210,19 @@ static stack_vector_t<VkSubpassDependency> make_dependencies(memory_pool_t& pool
     {
         auto& native_dependency{output.emplace_back()};
 
-        native_dependency.srcSubpass = dependency.source_subpass;
-        native_dependency.dstSubpass = dependency.destination_subpass;
-        native_dependency.srcStageMask = static_cast<VkPipelineStageFlags>(dependency.source_stage);
-        native_dependency.dstStageMask = static_cast<VkPipelineStageFlags>(dependency.destination_stage);
-        native_dependency.srcAccessMask = static_cast<VkAccessFlags>(dependency.source_access);
-        native_dependency.dstAccessMask = static_cast<VkAccessFlags>(dependency.destination_access);
+        native_dependency.srcSubpass = dependency.src_subpass;
+        native_dependency.dstSubpass = dependency.dest_subpass;
+        native_dependency.srcStageMask = static_cast<VkPipelineStageFlags>(dependency.src_stage);
+        native_dependency.dstStageMask = static_cast<VkPipelineStageFlags>(dependency.dest_stage);
+        native_dependency.srcAccessMask = static_cast<VkAccessFlags>(dependency.src_access);
+        native_dependency.dstAccessMask = static_cast<VkAccessFlags>(dependency.dest_access);
         native_dependency.dependencyFlags = static_cast<VkDependencyFlags>(dependency.dependency_flags);
     }
 
     return output;
 }
 
-render_pass::render_pass(device& device, const render_pass_info& info)
+render_pass::render_pass(device& dev, const render_pass_info& info)
 {
     memory_pool_t pool{};
 
@@ -231,10 +231,10 @@ render_pass::render_pass(device& device, const render_pass_info& info)
     const auto subpass{make_subpasses(pool, subpasses_data)};
     const auto dependencies{make_dependencies(pool, info.dependencies)};
 
-    m_render_pass = vulkan::render_pass{device.context(), attachments, subpass, dependencies};
+    m_render_pass = vulkan::render_pass{dev.context(), attachments, subpass, dependencies};
 }
 
-void set_object_name(device& device, const render_pass& object, const std::string& name)
+void set_object_name(device& dev, const render_pass& object, const std::string& name)
 {
     VkDebugUtilsObjectNameInfoEXT info{};
     info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
@@ -242,7 +242,7 @@ void set_object_name(device& device, const render_pass& object, const std::strin
     info.objectHandle = reinterpret_cast<std::uint64_t>(underlying_cast<VkRenderPass>(object));
     info.pObjectName = std::data(name);
 
-    vulkan::check(device->vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(device), &info));
+    vulkan::check(dev->vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(dev), &info));
 }
 
 }

@@ -37,13 +37,13 @@ using namespace tph::vulkan::functions;
 namespace tph
 {
 
-shader::shader(device& device, shader_stage stage, const std::filesystem::path& file)
-:shader{device, stage, read_file<std::vector<std::uint32_t>>(file)}
+shader::shader(device& dev, shader_stage stage, const std::filesystem::path& file)
+:shader{dev, stage, read_file<std::vector<std::uint32_t>>(file)}
 {
 
 }
 
-shader::shader(device& device, shader_stage stage, std::span<const std::uint8_t> data)
+shader::shader(device& dev, shader_stage stage, std::span<const std::uint8_t> data)
 :m_stage{stage}
 {
     std::vector<std::uint32_t> code{};
@@ -51,17 +51,17 @@ shader::shader(device& device, shader_stage stage, std::span<const std::uint8_t>
 
     std::memcpy(std::data(code), std::data(data), std::size(data));
 
-    m_shader = vulkan::shader{device.context(), std::size(code) * 4, std::data(code)};
+    m_shader = vulkan::shader{dev.context(), std::size(code) * 4, std::data(code)};
 }
 
-shader::shader(device& device, shader_stage stage, std::span<const std::uint32_t> spirv)
-:m_stage{stage}
-,m_shader{device.context(), std::size(spirv) * sizeof(std::uint32_t), std::data(spirv)}
+shader::shader(device& dev, shader_stage stage, std::span<const std::uint32_t> spirv)
+:m_shader{dev.context(), std::size(spirv) * sizeof(std::uint32_t), std::data(spirv)}
+,m_stage{stage}
 {
 
 }
 
-shader::shader(device& device, shader_stage stage, std::istream& stream)
+shader::shader(device& dev, shader_stage stage, std::istream& stream)
 :m_stage{stage}
 {
     stream.seekg(0, std::ios_base::end);
@@ -73,10 +73,10 @@ shader::shader(device& device, shader_stage stage, std::istream& stream)
     stream.seekg(0, std::ios_base::beg);
     stream.read(reinterpret_cast<char*>(std::data(code)), file_size);
 
-    m_shader = vulkan::shader{device.context(), std::size(code) * 4, std::data(code)};
+    m_shader = vulkan::shader{dev.context(), std::size(code) * 4, std::data(code)};
 }
 
-void set_object_name(device& device, const shader& object, const std::string& name)
+void set_object_name(device& dev, const shader& object, const std::string& name)
 {
     VkDebugUtilsObjectNameInfoEXT info{};
     info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
@@ -84,7 +84,7 @@ void set_object_name(device& device, const shader& object, const std::string& na
     info.objectHandle = reinterpret_cast<std::uint64_t>(underlying_cast<VkShaderModule>(object));
     info.pObjectName = std::data(name);
 
-    vulkan::check(device->vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(device), &info));
+    vulkan::check(dev->vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(dev), &info));
 }
 
 }

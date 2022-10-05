@@ -56,11 +56,11 @@ class TEPHRA_API pipeline_layout
 
 public:
     constexpr pipeline_layout() = default;
-    explicit pipeline_layout(device& device, std::span<descriptor_set_layout> layouts = {}, std::span<const push_constant_range> ranges = {});
-    explicit pipeline_layout(device& device, std::span<std::reference_wrapper<descriptor_set_layout>> layouts = {}, std::span<const push_constant_range> ranges = {});
+    explicit pipeline_layout(device& dev, std::span<descriptor_set_layout> layouts = {}, std::span<const push_constant_range> ranges = {});
+    explicit pipeline_layout(device& dev, std::span<std::reference_wrapper<descriptor_set_layout>> layouts = {}, std::span<const push_constant_range> ranges = {});
 
-    explicit pipeline_layout(vulkan::pipeline_layout pipeline_layout) noexcept
-    :m_pipeline_layout{std::move(pipeline_layout)}
+    explicit pipeline_layout(vulkan::pipeline_layout pipeln_layout) noexcept
+    :m_pipeline_layout{std::move(pipeln_layout)}
     {
 
     }
@@ -80,18 +80,18 @@ private:
     vulkan::pipeline_layout m_pipeline_layout{};
 };
 
-TEPHRA_API void set_object_name(device& device, const pipeline_layout& object, const std::string& name);
+TEPHRA_API void set_object_name(device& dev, const pipeline_layout& object, const std::string& name);
 
 template<>
-inline VkDevice underlying_cast(const pipeline_layout& pipeline_layout) noexcept
+inline VkDevice underlying_cast(const pipeline_layout& pipeln_layout) noexcept
 {
-    return pipeline_layout.m_pipeline_layout.device();
+    return pipeln_layout.m_pipeline_layout.device();
 }
 
 template<>
-inline VkPipelineLayout underlying_cast(const pipeline_layout& pipeline_layout) noexcept
+inline VkPipelineLayout underlying_cast(const pipeline_layout& pipeln_layout) noexcept
 {
-   return pipeline_layout.m_pipeline_layout;
+   return pipeln_layout.m_pipeline_layout;
 }
 
 class TEPHRA_API pipeline_cache
@@ -101,13 +101,13 @@ class TEPHRA_API pipeline_cache
 
 public:
     constexpr pipeline_cache() = default;
-    explicit pipeline_cache(device& device);
-    explicit pipeline_cache(device& device, const std::filesystem::path& file);
-    explicit pipeline_cache(device& device, std::span<const std::uint8_t> data);
-    explicit pipeline_cache(device& device, std::istream& stream);
+    explicit pipeline_cache(device& dev);
+    explicit pipeline_cache(device& dev, const std::filesystem::path& file);
+    explicit pipeline_cache(device& dev, std::span<const std::uint8_t> data);
+    explicit pipeline_cache(device& dev, std::istream& stream);
 
-    explicit pipeline_cache(vulkan::pipeline_cache pipeline_cache) noexcept
-    :m_pipeline_cache{std::move(pipeline_cache)}
+    explicit pipeline_cache(vulkan::pipeline_cache pipeln_cache) noexcept
+    :m_pipeline_cache{std::move(pipeln_cache)}
     {
 
     }
@@ -132,18 +132,18 @@ private:
     vulkan::pipeline_cache m_pipeline_cache{};
 };
 
-TEPHRA_API void set_object_name(device& device, const pipeline_cache& object, const std::string& name);
+TEPHRA_API void set_object_name(device& dev, const pipeline_cache& object, const std::string& name);
 
 template<>
-inline VkDevice underlying_cast(const pipeline_cache& pipeline_cache) noexcept
+inline VkDevice underlying_cast(const pipeline_cache& pipeln_cache) noexcept
 {
-    return pipeline_cache.m_pipeline_cache.device();
+    return pipeln_cache.m_pipeline_cache.device();
 }
 
 template<>
-inline VkPipelineCache underlying_cast(const pipeline_cache& pipeline_cache) noexcept
+inline VkPipelineCache underlying_cast(const pipeline_cache& pipeln_cache) noexcept
 {
-   return pipeline_cache.m_pipeline_cache;
+   return pipeln_cache.m_pipeline_cache;
 }
 
 struct specialisation_map_entry
@@ -256,11 +256,11 @@ struct pipeline_depth_stencil
 struct pipeline_color_blend_attachment
 {
     bool blend{true};
-    blend_factor source_color_blend_factor{blend_factor::source_alpha};
-    blend_factor destination_color_blend_factor{blend_factor::one_minus_source_alpha};
+    blend_factor src_color_blend_factor{blend_factor::src_alpha};
+    blend_factor dest_color_blend_factor{blend_factor::one_minus_src_alpha};
     blend_op color_blend_op{blend_op::add};
-    blend_factor source_alpha_blend_factor{blend_factor::source_alpha};
-    blend_factor destination_alpha_blend_factor{blend_factor::one_minus_source_alpha};
+    blend_factor src_alpha_blend_factor{blend_factor::src_alpha};
+    blend_factor dest_alpha_blend_factor{blend_factor::one_minus_src_alpha};
     blend_op alpha_blend_op{blend_op::add};
     color_component color_write_mask{color_component::r | color_component::g | color_component::b | color_component::a};
 };
@@ -307,9 +307,9 @@ class TEPHRA_API pipeline
 
 public:
     constexpr pipeline() = default;
-    explicit pipeline(device& device, render_pass& render_pass, const graphics_pipeline_info& info, const pipeline_layout& layout, optional_ref<pipeline_cache> cache = nullref, optional_ref<pipeline> parent = nullref);
-    explicit pipeline(device& device, render_pass& render_pass, std::uint32_t subpass, const graphics_pipeline_info& info, const pipeline_layout& layout, optional_ref<pipeline_cache> cache = nullref, optional_ref<pipeline> parent = nullref);
-    explicit pipeline(device& device, const compute_pipeline_info& info, const pipeline_layout& layout, optional_ref<pipeline_cache> cache = nullref, optional_ref<pipeline> parent = nullref);
+    explicit pipeline(device& dev, render_pass& rpass, const graphics_pipeline_info& info, const pipeline_layout& layout, optional_ref<pipeline_cache> cache = nullref, optional_ref<pipeline> parent = nullref);
+    explicit pipeline(device& dev, render_pass& rpass, std::uint32_t subpass, const graphics_pipeline_info& info, const pipeline_layout& layout, optional_ref<pipeline_cache> cache = nullref, optional_ref<pipeline> parent = nullref);
+    explicit pipeline(device& dev, const compute_pipeline_info& info, const pipeline_layout& layout, optional_ref<pipeline_cache> cache = nullref, optional_ref<pipeline> parent = nullref);
 
     explicit pipeline(vulkan::pipeline pipeline) noexcept
     :m_pipeline{std::move(pipeline)}

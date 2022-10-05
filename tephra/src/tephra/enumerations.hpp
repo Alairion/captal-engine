@@ -177,19 +177,19 @@ enum class blend_factor : std::uint32_t
 {
     zero = VK_BLEND_FACTOR_ZERO,
     one = VK_BLEND_FACTOR_ONE,
-    source_color = VK_BLEND_FACTOR_SRC_COLOR,
-    one_minus_source_color = VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR,
-    destination_color = VK_BLEND_FACTOR_DST_COLOR,
-    one_minus_destination_color = VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR,
-    source_alpha = VK_BLEND_FACTOR_SRC_ALPHA,
-    one_minus_source_alpha = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
-    destination_alpha = VK_BLEND_FACTOR_DST_ALPHA,
-    one_minus_destination_alpha = VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA,
+    src_color = VK_BLEND_FACTOR_SRC_COLOR,
+    one_minus_src_color = VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR,
+    dest_color = VK_BLEND_FACTOR_DST_COLOR,
+    one_minus_dest_color = VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR,
+    src_alpha = VK_BLEND_FACTOR_SRC_ALPHA,
+    one_minus_src_alpha = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+    dest_alpha = VK_BLEND_FACTOR_DST_ALPHA,
+    one_minus_dest_alpha = VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA,
     constant_color = VK_BLEND_FACTOR_CONSTANT_COLOR,
     one_minus_constant_color = VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_COLOR,
     constant_alpha = VK_BLEND_FACTOR_CONSTANT_ALPHA,
     one_minus_constant_alpha = VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_ALPHA,
-    source_alpha_saturate = VK_BLEND_FACTOR_SRC_ALPHA_SATURATE,
+    src_alpha_saturate = VK_BLEND_FACTOR_SRC_ALPHA_SATURATE,
 };
 
 enum class blend_op : std::uint32_t
@@ -290,10 +290,10 @@ enum class texture_layout : std::uint32_t
     depth_stencil_attachment_optimal = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
     depth_stencil_read_only_optimal = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL,
     shader_read_only_optimal = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-    transfer_source_optimal = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-    transfer_destination_optimal = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+    transfer_src_optimal = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+    transfer_dest_optimal = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
     preinitialized = VK_IMAGE_LAYOUT_PREINITIALIZED,
-    present_source = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
+    present_src = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
 };
 
 enum class descriptor_type : std::uint32_t
@@ -493,11 +493,11 @@ enum class format_feature : std::uint32_t
     color_attachment = VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT,
     color_attachment_blend = VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT,
     depth_stencil_attachment = VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT,
-    blit_source = VK_FORMAT_FEATURE_BLIT_SRC_BIT,
-    blit_destination = VK_FORMAT_FEATURE_BLIT_DST_BIT,
+    blit_src = VK_FORMAT_FEATURE_BLIT_SRC_BIT,
+    blit_dest = VK_FORMAT_FEATURE_BLIT_DST_BIT,
     sampled_image_filter_linear = VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT,
-    transfer_source = VK_FORMAT_FEATURE_TRANSFER_SRC_BIT,
-    transfer_destination = VK_FORMAT_FEATURE_TRANSFER_DST_BIT,
+    transfer_src = VK_FORMAT_FEATURE_TRANSFER_SRC_BIT,
+    transfer_dest = VK_FORMAT_FEATURE_TRANSFER_DST_BIT,
 };
 
 enum class component_swizzle : std::uint32_t

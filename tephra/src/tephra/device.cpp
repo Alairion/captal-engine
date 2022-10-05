@@ -34,14 +34,14 @@ using namespace tph::vulkan::functions;
 namespace tph
 {
 
-static std::vector<VkLayerProperties> available_device_layers(application& application, VkPhysicalDevice physical_device)
+static std::vector<VkLayerProperties> available_device_layers(application& app, VkPhysicalDevice phydev)
 {
     std::vector<VkLayerProperties> extensions{};
 
     std::uint32_t count{};
-    application->vkEnumerateDeviceLayerProperties(physical_device, &count, nullptr);
+    app->vkEnumerateDeviceLayerProperties(phydev, &count, nullptr);
     extensions.resize(count);
-    application->vkEnumerateDeviceLayerProperties(physical_device, &count, std::data(extensions));
+    app->vkEnumerateDeviceLayerProperties(phydev, &count, std::data(extensions));
 
     return extensions;
 }
@@ -56,9 +56,9 @@ static device_layer layer_from_name(std::string_view name) noexcept
     return device_layer::none;
 }
 
-static std::vector<const char*> filter_device_layers(application& application, VkPhysicalDevice physical_device, std::vector<const char*> layers, device_layer& layer_bits)
+static std::vector<const char*> filter_device_layers(application& app, VkPhysicalDevice phydev, std::vector<const char*> layers, device_layer& layer_bits)
 {
-    const std::vector<VkLayerProperties> available{available_device_layers(application, physical_device)};
+    const std::vector<VkLayerProperties> available{available_device_layers(app, phydev)};
 
     for(auto it{std::cbegin(layers)}; it != std::cend(layers);)
     {
@@ -85,7 +85,7 @@ static std::vector<const char*> filter_device_layers(application& application, V
     return layers;
 }
 
-static std::vector<const char*> required_device_layers(application& application, VkPhysicalDevice physical_device, device_layer& layers)
+static std::vector<const char*> required_device_layers(application& app, VkPhysicalDevice phydev, device_layer& layers)
 {
     std::vector<const char*> output{};
 
@@ -94,25 +94,25 @@ static std::vector<const char*> required_device_layers(application& application,
         output.emplace_back("VK_LAYER_KHRONOS_validation");
     }
 
-    return filter_device_layers(application, physical_device, std::move(output), layers);
+    return filter_device_layers(app, phydev, std::move(output), layers);
 }
 
-static std::vector<VkExtensionProperties> available_device_extensions(application& application, VkPhysicalDevice physical_device, const std::vector<const char*>& layers)
+static std::vector<VkExtensionProperties> available_device_extensions(application& app, VkPhysicalDevice phydev, const std::vector<const char*>& layers)
 {
     std::vector<VkExtensionProperties> extensions{};
 
     std::uint32_t count{};
-    application->vkEnumerateDeviceExtensionProperties(physical_device, nullptr, &count, nullptr);
+    app->vkEnumerateDeviceExtensionProperties(phydev, nullptr, &count, nullptr);
     extensions.resize(count);
-    application->vkEnumerateDeviceExtensionProperties(physical_device, nullptr, &count, std::data(extensions));
+    app->vkEnumerateDeviceExtensionProperties(phydev, nullptr, &count, std::data(extensions));
 
     for(auto layer : layers)
     {
         std::vector<VkExtensionProperties> layer_extensions{};
 
-        application->vkEnumerateDeviceExtensionProperties(physical_device, layer, &count, nullptr);
+        app->vkEnumerateDeviceExtensionProperties(phydev, layer, &count, nullptr);
         layer_extensions.resize(count);
-        application->vkEnumerateDeviceExtensionProperties(physical_device, layer, &count, std::data(layer_extensions));
+        app->vkEnumerateDeviceExtensionProperties(phydev, layer, &count, std::data(layer_extensions));
 
         extensions.insert(std::cend(extensions), std::cbegin(layer_extensions), std::cend(layer_extensions));
     }
@@ -130,9 +130,9 @@ static device_extension extension_from_name(std::string_view name) noexcept
     return device_extension::none;
 }
 
-static std::vector<const char*> filter_device_extensions(application& application, VkPhysicalDevice physical_device, const std::vector<const char*>& layers, std::vector<const char*> extensions, device_extension& extension_bits)
+static std::vector<const char*> filter_device_extensions(application& app, VkPhysicalDevice phydev, const std::vector<const char*>& layers, std::vector<const char*> extensions, device_extension& extension_bits)
 {
-    const std::vector<VkExtensionProperties> available{available_device_extensions(application, physical_device, layers)};
+    const std::vector<VkExtensionProperties> available{available_device_extensions(app, phydev, layers)};
 
     for(auto it{std::cbegin(extensions)}; it != std::cend(extensions);)
     {
@@ -159,7 +159,7 @@ static std::vector<const char*> filter_device_extensions(application& applicatio
     return extensions;
 }
 
-static std::vector<const char*> required_device_extensions(application& application, VkPhysicalDevice physical_device, const std::vector<const char*>& layers, device_extension extensions)
+static std::vector<const char*> required_device_extensions(application& app, VkPhysicalDevice phydev, const std::vector<const char*>& layers, device_extension extensions)
 {
     std::vector<const char*> output{};
 
@@ -168,7 +168,7 @@ static std::vector<const char*> required_device_extensions(application& applicat
         output.emplace_back("VK_KHR_swapchain");
     }
 
-    return filter_device_extensions(application, physical_device, layers, std::move(output), extensions);
+    return filter_device_extensions(app, phydev, layers, std::move(output), extensions);
 }
 
 static VkPhysicalDeviceFeatures parse_enabled_features(const physical_device_features& features)
@@ -182,7 +182,7 @@ static VkPhysicalDeviceFeatures parse_enabled_features(const physical_device_fea
     output.geometryShader                          = static_cast<VkBool32>(features.geometry_shader);
     output.tessellationShader                      = static_cast<VkBool32>(features.tessellation_shader);
     output.sampleRateShading                       = static_cast<VkBool32>(features.sample_shading);
-    output.dualSrcBlend                            = static_cast<VkBool32>(features.dual_source_blend);
+    output.dualSrcBlend                            = static_cast<VkBool32>(features.dual_src_blend);
     output.logicOp                                 = static_cast<VkBool32>(features.logic_op);
     output.multiDrawIndirect                       = static_cast<VkBool32>(features.multi_draw_indirect);
     output.drawIndirectFirstInstance               = static_cast<VkBool32>(features.draw_indirect_first_instance);
@@ -235,13 +235,13 @@ static std::uint32_t choose_generic_family(const std::vector<VkQueueFamilyProper
     std::terminate();
 }
 
-static std::uint32_t choose_present_family(application& application, VkPhysicalDevice physical_device [[maybe_unused]], const std::vector<VkQueueFamilyProperties>& queue_families)
+static std::uint32_t choose_present_family(application& app, VkPhysicalDevice phydev [[maybe_unused]], const std::vector<VkQueueFamilyProperties>& queue_families)
 {
 #if defined(TPH_PLATFORM_WIN32)
 
     for(std::size_t i{}; i < std::size(queue_families); ++i)
     {
-        if(application->vkGetPhysicalDeviceWin32PresentationSupportKHR(physical_device, static_cast<std::uint32_t>(i)) == VK_TRUE)
+        if(app->vkGetPhysicalDeviceWin32PresentationSupportKHR(phydev, static_cast<std::uint32_t>(i)) == VK_TRUE)
         {
             return static_cast<std::uint32_t>(i);
         }
@@ -256,7 +256,7 @@ static std::uint32_t choose_present_family(application& application, VkPhysicalD
 
     for(std::size_t i{}; i < std::size(queue_families); ++i)
     {
-        if(application->vkGetPhysicalDeviceXlibPresentationSupportKHR(physical_device, static_cast<std::uint32_t>(i), display, id) == VK_TRUE)
+        if(app->vkGetPhysicalDeviceXlibPresentationSupportKHR(phydev, static_cast<std::uint32_t>(i), display, id) == VK_TRUE)
         {
             XCloseDisplay(display);
             return static_cast<std::uint32_t>(i);
@@ -288,7 +288,7 @@ static std::uint32_t choose_present_family(application& application, VkPhysicalD
 
     for(std::size_t i{}; i < std::size(queue_families); ++i)
     {
-        if(application->vkGetPhysicalDeviceXcbPresentationSupportKHR(physical_device, static_cast<std::uint32_t>(i), connection, id) == VK_TRUE)
+        if(app->vkGetPhysicalDeviceXcbPresentationSupportKHR(phydev, static_cast<std::uint32_t>(i), connection, id) == VK_TRUE)
         {
             xcb_disconnect(connection);
             return static_cast<std::uint32_t>(i);
@@ -303,7 +303,7 @@ static std::uint32_t choose_present_family(application& application, VkPhysicalD
 
     for(std::size_t i{}; i < std::size(queue_families); ++i)
     {
-        if(application->vkGetPhysicalDeviceWaylandPresentationSupportKHR(physical_device, static_cast<std::uint32_t>(i), display) == VK_TRUE)
+        if(app->vkGetPhysicalDeviceWaylandPresentationSupportKHR(phydev, static_cast<std::uint32_t>(i), display) == VK_TRUE)
         {
             wl_display_disconnect(connection);
             return static_cast<std::uint32_t>(i);
@@ -349,21 +349,21 @@ static std::uint32_t choose_compute_family(const std::vector<VkQueueFamilyProper
     return choose_generic_family(queue_families);
 }
 
-static device::queue_families_t choose_queue_families(application& application, VkPhysicalDevice physical_device, device_options options, device_extension extensions, device::transfer_granularity& granularity)
+static device::queue_families_t choose_queue_families(application& app, VkPhysicalDevice phydev, device_options options, device_extension extensions, device::transfer_granularity& granularity)
 {
     std::uint32_t count{};
-    application->vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &count, nullptr);
+    app->vkGetPhysicalDeviceQueueFamilyProperties(phydev, &count, nullptr);
 
     std::vector<VkQueueFamilyProperties> queue_family_properties{};
     queue_family_properties.resize(count);
-    application->vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &count, std::data(queue_family_properties));
+    app->vkGetPhysicalDeviceQueueFamilyProperties(phydev, &count, std::data(queue_family_properties));
 
     device::queue_families_t output{};
     output[static_cast<std::size_t>(queue::graphics)] = choose_generic_family(queue_family_properties);
 
     if(static_cast<bool>(extensions & device_extension::swapchain))
     {
-        output[static_cast<std::size_t>(queue::present)] = choose_present_family(application, physical_device, queue_family_properties);
+        output[static_cast<std::size_t>(queue::present)] = choose_present_family(app, phydev, queue_family_properties);
     }
 
     if(static_cast<bool>(options & device_options::standalone_transfer_queue))
@@ -490,13 +490,13 @@ static vulkan::memory_allocator::heap_sizes compute_heap_sizes(const physical_de
     return output;
 }
 
-device::device(application& application, const physical_device& physical_device, device_layer layers, device_extension extensions, const physical_device_features& enabled_features, device_options options)
+device::device(application& app, const physical_device& phydev, device_layer layers, device_extension extensions, const physical_device_features& enabled_features, device_options options)
 {
-    m_physical_device = underlying_cast<VkPhysicalDevice>(physical_device);
-    m_queue_families = choose_queue_families(application, m_physical_device, options, extensions, m_transfer_queue_granularity);
+    m_physical_device = underlying_cast<VkPhysicalDevice>(phydev);
+    m_queue_families = choose_queue_families(app, m_physical_device, options, extensions, m_transfer_queue_granularity);
 
-    const std::vector<const char*> layer_names    {required_device_layers(application, m_physical_device, layers)};
-    const std::vector<const char*> extension_names{required_device_extensions(application, m_physical_device, layer_names, extensions)};
+    const std::vector<const char*> layer_names    {required_device_layers(app, m_physical_device, layers)};
+    const std::vector<const char*> extension_names{required_device_extensions(app, m_physical_device, layer_names, extensions)};
     const VkPhysicalDeviceFeatures features{parse_enabled_features(enabled_features)};
 
     std::vector<VkDeviceQueueCreateInfo> queues{make_queue_create_info(m_queue_families, options)};
@@ -506,7 +506,7 @@ device::device(application& application, const physical_device& physical_device,
         queue.pQueuePriorities = &priority;
     }
 
-    m_device = vulkan::device{application.context(), m_physical_device, layer_names, extension_names, queues, features};
+    m_device = vulkan::device{app.context(), m_physical_device, layer_names, extension_names, queues, features};
     m_layers = layers;
     m_extensions = extensions;
 
@@ -515,17 +515,17 @@ device::device(application& application, const physical_device& physical_device,
         m_device->vkGetDeviceQueue(m_device, m_queue_families[i], 0, &m_queues[i]);
     }
 
-    m_allocator = std::make_unique<vulkan::memory_allocator>(application.context(), m_device.context(), m_physical_device, compute_heap_sizes(physical_device, options));
+    m_allocator = std::make_unique<vulkan::memory_allocator>(app.context(), m_device.context(), m_physical_device, compute_heap_sizes(phydev, options));
 }
 
-static device::transfer_granularity compute_transfer_granularity(const vulkan::instance_context& context, VkPhysicalDevice physical_device, std::uint32_t family)
+static device::transfer_granularity compute_transfer_granularity(const vulkan::instance_context& context, VkPhysicalDevice phydev, std::uint32_t family)
 {
     std::uint32_t count{};
-    context->vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &count, nullptr);
+    context->vkGetPhysicalDeviceQueueFamilyProperties(phydev, &count, nullptr);
 
     std::vector<VkQueueFamilyProperties> queue_family_properties{};
     queue_family_properties.resize(count);
-    context->vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &count, std::data(queue_family_properties));
+    context->vkGetPhysicalDeviceQueueFamilyProperties(phydev, &count, std::data(queue_family_properties));
 
     const VkExtent3D native_granularity{queue_family_properties[family].minImageTransferGranularity};
 
@@ -537,17 +537,17 @@ static device::transfer_granularity compute_transfer_granularity(const vulkan::i
     return output;
 }
 
-device::device(application& application, const physical_device& physical_device, vulkan::device device, device_layer layers, device_extension extensions,
+device::device(application& app, const physical_device& phydev, vulkan::device dev, device_layer layers, device_extension extensions,
                    const queue_families_t& queue_families, const queues_t& queues, const vulkan::memory_allocator::heap_sizes& sizes)
-:m_physical_device{underlying_cast<VkPhysicalDevice>(physical_device)}
-,m_device{std::move(device)}
+:m_physical_device{underlying_cast<VkPhysicalDevice>(phydev)}
+,m_device{std::move(dev)}
 ,m_layers{layers}
 ,m_extensions{extensions}
 ,m_queue_families{queue_families}
 ,m_queues{queues}
-,m_transfer_queue_granularity{compute_transfer_granularity(application.context(), m_physical_device, queue_family(queue::transfer))}
+,m_transfer_queue_granularity{compute_transfer_granularity(app.context(), m_physical_device, queue_family(queue::transfer))}
 {
-    m_allocator = std::make_unique<vulkan::memory_allocator>(application.context(),  m_device.context(), m_physical_device, sizes);
+    m_allocator = std::make_unique<vulkan::memory_allocator>(app.context(),  m_device.context(), m_physical_device, sizes);
 }
 
 void device::wait()
@@ -566,7 +566,7 @@ void set_object_name(device& device, const std::string& name)
     vulkan::check(device->vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(device), &info));
 }
 
-void begin_queue_label(device& device, queue queue, const std::string& name, float red, float green, float blue, float alpha) noexcept
+void begin_queue_label(device& dev, queue q, const std::string& name, float red, float green, float blue, float alpha) noexcept
 {
     VkDebugUtilsLabelEXT label{};
     label.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
@@ -576,15 +576,15 @@ void begin_queue_label(device& device, queue queue, const std::string& name, flo
     label.color[2] = blue;
     label.color[3] = alpha;
 
-    device->vkQueueBeginDebugUtilsLabelEXT(underlying_cast<VkQueue>(device, queue), &label);
+    dev->vkQueueBeginDebugUtilsLabelEXT(underlying_cast<VkQueue>(dev, q), &label);
 }
 
-void end_queue_label(device& device, queue queue) noexcept
+void end_queue_label(device& dev, queue q) noexcept
 {
-    device->vkQueueEndDebugUtilsLabelEXT(underlying_cast<VkQueue>(device, queue));
+    dev->vkQueueEndDebugUtilsLabelEXT(underlying_cast<VkQueue>(dev, q));
 }
 
-void insert_queue_label(device& device, queue queue, const std::string& name, float red, float green, float blue, float alpha) noexcept
+void insert_queue_label(device& dev, queue q, const std::string& name, float red, float green, float blue, float alpha) noexcept
 {
     VkDebugUtilsLabelEXT label{};
     label.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
@@ -594,7 +594,7 @@ void insert_queue_label(device& device, queue queue, const std::string& name, fl
     label.color[2] = blue;
     label.color[3] = alpha;
 
-    device->vkQueueInsertDebugUtilsLabelEXT(underlying_cast<VkQueue>(device, queue), &label);
+    dev->vkQueueInsertDebugUtilsLabelEXT(underlying_cast<VkQueue>(dev, q), &label);
 }
 
 }

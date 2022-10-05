@@ -41,10 +41,10 @@ class TEPHRA_API semaphore
 
 public:
     constexpr semaphore() = default;
-    explicit semaphore(device& device);
+    explicit semaphore(device& dev);
 
-    explicit semaphore(vulkan::semaphore semaphore) noexcept
-    :m_semaphore{std::move(semaphore)}
+    explicit semaphore(vulkan::semaphore semaphr) noexcept
+    :m_semaphore{std::move(semaphr)}
     {
 
     }
@@ -64,18 +64,18 @@ private:
     vulkan::semaphore m_semaphore{};
 };
 
-TEPHRA_API void set_object_name(device& device, const semaphore& object, const std::string& name);
+TEPHRA_API void set_object_name(device& dev, const semaphore& object, const std::string& name);
 
 template<>
-inline VkDevice underlying_cast(const semaphore& semaphore) noexcept
+inline VkDevice underlying_cast(const semaphore& semaphr) noexcept
 {
-    return semaphore.m_semaphore.device();
+    return semaphr.m_semaphore.device();
 }
 
 template<>
-inline VkSemaphore underlying_cast(const semaphore& semaphore) noexcept
+inline VkSemaphore underlying_cast(const semaphore& semaphr) noexcept
 {
-    return semaphore.m_semaphore;
+    return semaphr.m_semaphore;
 }
 
 class TEPHRA_API fence
@@ -85,10 +85,10 @@ class TEPHRA_API fence
 
 public:
     constexpr fence() = default;
-    explicit fence(device& device, bool signaled = false);
+    explicit fence(device& dev, bool signaled = false);
 
-    explicit fence(vulkan::fence fence) noexcept
-    :m_fence{std::move(fence)}
+    explicit fence(vulkan::fence fen) noexcept
+    :m_fence{std::move(fen)}
     {
 
     }
@@ -141,18 +141,18 @@ private:
     vulkan::fence m_fence{};
 };
 
-TEPHRA_API void set_object_name(device& device, const fence& object, const std::string& name);
+TEPHRA_API void set_object_name(device& dev, const fence& object, const std::string& name);
 
 template<>
-inline VkDevice underlying_cast(const fence& fence) noexcept
+inline VkDevice underlying_cast(const fence& fen) noexcept
 {
-    return fence.m_fence.device();
+    return fen.m_fence.device();
 }
 
 template<>
-inline VkFence underlying_cast(const fence& fence) noexcept
+inline VkFence underlying_cast(const fence& fen) noexcept
 {
-    return fence.m_fence;
+    return fen.m_fence;
 }
 
 class TEPHRA_API event
@@ -162,10 +162,10 @@ class TEPHRA_API event
 
 public:
     constexpr event() = default;
-    explicit event(device& device);
+    explicit event(device& dev);
 
-    explicit event(vulkan::event event) noexcept
-    :m_event{std::move(event)}
+    explicit event(vulkan::event evt) noexcept
+    :m_event{std::move(evt)}
     {
 
     }
@@ -188,18 +188,18 @@ private:
     vulkan::event m_event{};
 };
 
-TEPHRA_API void set_object_name(device& device, const event& object, const std::string& name);
+TEPHRA_API void set_object_name(device& dev, const event& object, const std::string& name);
 
 template<>
-inline VkDevice underlying_cast(const event& event) noexcept
+inline VkDevice underlying_cast(const event& evt) noexcept
 {
-    return event.m_event.device();
+    return evt.m_event.device();
 }
 
 template<>
-inline VkEvent underlying_cast(const event& event) noexcept
+inline VkEvent underlying_cast(const event& evt) noexcept
 {
-    return event.m_event;
+    return evt.m_event;
 }
 
 }

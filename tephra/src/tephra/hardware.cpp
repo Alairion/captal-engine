@@ -63,7 +63,7 @@ static physical_device_features make_features(const VkPhysicalDeviceFeatures& fe
     output.geometry_shader                              = static_cast<bool>(features.geometryShader);
     output.tessellation_shader                          = static_cast<bool>(features.tessellationShader);
     output.sample_shading                               = static_cast<bool>(features.sampleRateShading);
-    output.dual_source_blend                            = static_cast<bool>(features.dualSrcBlend);
+    output.dual_src_blend                            = static_cast<bool>(features.dualSrcBlend);
     output.logic_op                                     = static_cast<bool>(features.logicOp);
     output.multi_draw_indirect                          = static_cast<bool>(features.multiDrawIndirect);
     output.draw_indirect_first_instance                 = static_cast<bool>(features.drawIndirectFirstInstance);
@@ -154,7 +154,7 @@ static physical_device_limits make_limits(const VkPhysicalDeviceLimits& limits) 
     output.max_geometry_total_output_components                  = limits.maxGeometryTotalOutputComponents;
     output.max_fragment_input_components                         = limits.maxFragmentInputComponents;
     output.max_fragment_output_attachments                       = limits.maxFragmentOutputAttachments;
-    output.max_fragment_dual_source_attachments                  = limits.maxFragmentDualSrcAttachments;
+    output.max_fragment_dual_src_attachments                  = limits.maxFragmentDualSrcAttachments;
     output.max_fragment_combined_output_resources                = limits.maxFragmentCombinedOutputResources;
     output.max_compute_shared_memory_size                        = limits.maxComputeSharedMemorySize;
     output.max_compute_work_group_count                          = std::to_array(limits.maxComputeWorkGroupCount);
@@ -250,7 +250,7 @@ static physical_device_driver make_driver(const VkPhysicalDeviceDriverProperties
     return output;
 }
 
-physical_device make_physical_device(const vulkan::instance_context& context, VkPhysicalDevice device, tph::version instance_version) noexcept
+physical_device make_physical_device(const vulkan::instance_context& context, VkPhysicalDevice phydev, tph::version instance_version) noexcept
 {
 #ifdef VK_VERSION_1_2
     if(instance_version >= tph::version{1, 2})
@@ -262,19 +262,19 @@ physical_device make_physical_device(const vulkan::instance_context& context, Vk
         properties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
         properties.pNext = &driver;
 
-        context->vkGetPhysicalDeviceProperties2(device, &properties);
+        context->vkGetPhysicalDeviceProperties2(phydev, &properties);
 
         VkPhysicalDeviceFeatures features{};
-        context->vkGetPhysicalDeviceFeatures(device, &features);
+        context->vkGetPhysicalDeviceFeatures(phydev, &features);
 
         physical_device output{};
 
         output.m_context = context;
-        output.m_physical_device = device;
+        output.m_physical_device = phydev;
         output.m_properties = make_properties(properties.properties);
         output.m_features = make_features(features);
         output.m_limits = make_limits(properties.properties.limits);
-        output.m_memory_properties = make_memory_properties(context, device);
+        output.m_memory_properties = make_memory_properties(context, phydev);
         output.m_driver = make_driver(driver);
 
         return output;
@@ -283,19 +283,19 @@ physical_device make_physical_device(const vulkan::instance_context& context, Vk
 #endif
     {
         VkPhysicalDeviceProperties properties{};
-        context->vkGetPhysicalDeviceProperties(device, &properties);
+        context->vkGetPhysicalDeviceProperties(phydev, &properties);
 
         VkPhysicalDeviceFeatures features{};
-        context->vkGetPhysicalDeviceFeatures(device, &features);
+        context->vkGetPhysicalDeviceFeatures(phydev, &features);
 
         physical_device output{};
 
         output.m_context = context;
-        output.m_physical_device = device;
+        output.m_physical_device = phydev;
         output.m_properties = make_properties(properties);
         output.m_features = make_features(features);
         output.m_limits = make_limits(properties.limits);
-        output.m_memory_properties = make_memory_properties(context, device);
+        output.m_memory_properties = make_memory_properties(context, phydev);
 
         return output;
     }
@@ -303,7 +303,7 @@ physical_device make_physical_device(const vulkan::instance_context& context, Vk
 
 }
 
-bool physical_device::support_presentation(const surface& surface) const
+bool physical_device::support_presentation(const surface& surf) const
 {
     std::uint32_t count{};
     m_context->vkGetPhysicalDeviceQueueFamilyProperties(m_physical_device, &count, nullptr);
@@ -311,7 +311,7 @@ bool physical_device::support_presentation(const surface& surface) const
     for(std::uint32_t i{}; i < count; ++i)
     {
         VkBool32 support{};
-        vulkan::check(m_context->vkGetPhysicalDeviceSurfaceSupportKHR(m_physical_device, i, underlying_cast<VkSurfaceKHR>(surface), &support));
+        vulkan::check(m_context->vkGetPhysicalDeviceSurfaceSupportKHR(m_physical_device, i, underlying_cast<VkSurfaceKHR>(surf), &support));
 
         if(support)
         {
@@ -322,17 +322,17 @@ bool physical_device::support_presentation(const surface& surface) const
     return false;
 }
 
-physical_device_surface_capabilities physical_device::surface_capabilities(const surface& surface) const
+physical_device_surface_capabilities physical_device::surface_capabilities(const surface& surf) const
 {
     std::uint32_t count{};
-    vulkan::check(m_context->vkGetPhysicalDeviceSurfacePresentModesKHR(m_physical_device, underlying_cast<VkSurfaceKHR>(surface), &count, nullptr));
+    vulkan::check(m_context->vkGetPhysicalDeviceSurfacePresentModesKHR(m_physical_device, underlying_cast<VkSurfaceKHR>(surf), &count, nullptr));
 
     std::vector<VkPresentModeKHR> present_modes{};
     present_modes.resize(count);
-    vulkan::check(m_context->vkGetPhysicalDeviceSurfacePresentModesKHR(m_physical_device, underlying_cast<VkSurfaceKHR>(surface), &count, std::data(present_modes)));
+    vulkan::check(m_context->vkGetPhysicalDeviceSurfacePresentModesKHR(m_physical_device, underlying_cast<VkSurfaceKHR>(surf), &count, std::data(present_modes)));
 
     VkSurfaceCapabilitiesKHR capabilities{};
-    vulkan::check(m_context->vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_physical_device, underlying_cast<VkSurfaceKHR>(surface), &capabilities));
+    vulkan::check(m_context->vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_physical_device, underlying_cast<VkSurfaceKHR>(surf), &capabilities));
 
     physical_device_surface_capabilities output{};
 

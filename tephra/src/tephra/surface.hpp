@@ -83,35 +83,35 @@ public:
     constexpr surface() = default;
 
 #ifdef TPH_PLATFORM_ANDROID
-    explicit surface(application& application, const vulkan::android_surface_info& info);
+    explicit surface(application& app, const vulkan::android_surface_info& info);
 #endif
 
 #ifdef TPH_PLATFORM_IOS
-    explicit surface(application& application, const vulkan::ios_surface_info& info);
+    explicit surface(application& app, const vulkan::ios_surface_info& info);
 #endif
 
 #ifdef TPH_PLATFORM_WIN32
-    explicit surface(application& application, const vulkan::win32_surface_info& info);
+    explicit surface(application& app, const vulkan::win32_surface_info& info);
 #endif
 
 #ifdef TPH_PLATFORM_MACOS
-    explicit surface(application& application, const vulkan::macos_surface_info& info);
+    explicit surface(application& app, const vulkan::macos_surface_info& info);
 #endif
 
 #ifdef TPH_PLATFORM_XLIB
-    explicit surface(application& application, const vulkan::xlib_surface_info& info);
+    explicit surface(application& app, const vulkan::xlib_surface_info& info);
 #endif
 
 #ifdef TPH_PLATFORM_XCB
-    explicit surface(application& application, const vulkan::xcb_surface_info& info);
+    explicit surface(application& app, const vulkan::xcb_surface_info& info);
 #endif
 
 #ifdef TPH_PLATFORM_WAYLAND
-    explicit surface(application& application, const vulkan::wayland_surface_info& info);
+    explicit surface(application& app, const vulkan::wayland_surface_info& info);
 #endif
 
-    explicit surface(vulkan::surface surface) noexcept
-    :m_surface{std::move(surface)}
+    explicit surface(vulkan::surface surf) noexcept
+    :m_surface{std::move(surf)}
     {
 
     }
@@ -127,16 +127,16 @@ public:
         return m_surface.context();
     }
 
-    surface_capabilities capabilities(const physical_device& physical_device) const;
-    surface_capabilities capabilities(const device& device) const;
-    std::vector<texture_format> formats(const physical_device& physical_device) const;
-    std::vector<texture_format> formats(const device& device) const;
+    surface_capabilities capabilities(const physical_device& phydev) const;
+    surface_capabilities capabilities(const device& dev) const;
+    std::vector<texture_format> formats(const physical_device& phydev) const;
+    std::vector<texture_format> formats(const device& dev) const;
 
 private:
     vulkan::surface m_surface{};
 };
 
-TEPHRA_API void set_object_name(device& device, const surface& object, const std::string& name);
+TEPHRA_API void set_object_name(device& dev, const surface& object, const std::string& name);
 
 template<>
 inline VkInstance underlying_cast(const surface& surface) noexcept

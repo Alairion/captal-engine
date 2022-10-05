@@ -37,7 +37,7 @@ using namespace tph::vulkan::functions;
 namespace tph
 {
 
-descriptor_set_layout::descriptor_set_layout(device& device, std::span<const descriptor_set_layout_binding> bindings)
+descriptor_set_layout::descriptor_set_layout(device& dev, std::span<const descriptor_set_layout_binding> bindings)
 {
     stack_memory_pool<1024 * 2> pool{};
 
@@ -55,10 +55,10 @@ descriptor_set_layout::descriptor_set_layout(device& device, std::span<const des
         native_bindings.emplace_back(native_binding);
     }
 
-    m_layout = vulkan::descriptor_set_layout{device.context(), native_bindings};
+    m_layout = vulkan::descriptor_set_layout{dev.context(), native_bindings};
 }
 
-void set_object_name(device& device, const descriptor_set_layout& object, const std::string& name)
+void set_object_name(device& dev, const descriptor_set_layout& object, const std::string& name)
 {
     VkDebugUtilsObjectNameInfoEXT info{};
     info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
@@ -66,10 +66,10 @@ void set_object_name(device& device, const descriptor_set_layout& object, const 
     info.objectHandle = reinterpret_cast<std::uint64_t>(underlying_cast<VkDescriptorSetLayout>(object));
     info.pObjectName = std::data(name);
 
-    vulkan::check(device->vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(device), &info));
+    vulkan::check(dev->vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(dev), &info));
 }
 
-descriptor_pool::descriptor_pool(device& device, std::span<const descriptor_pool_size> sizes, std::optional<std::uint32_t> max_sets)
+descriptor_pool::descriptor_pool(device& dev, std::span<const descriptor_pool_size> sizes, std::optional<std::uint32_t> max_sets)
 {
     stack_memory_pool<1024> pool{};
 
@@ -94,10 +94,10 @@ descriptor_pool::descriptor_pool(device& device, std::span<const descriptor_pool
         max_sets = total_size;
     }
 
-    m_descriptor_pool = vulkan::descriptor_pool{device.context(), native_sizes, *max_sets};
+    m_descriptor_pool = vulkan::descriptor_pool{dev.context(), native_sizes, *max_sets};
 }
 
-void set_object_name(device& device, const descriptor_pool& object, const std::string& name)
+void set_object_name(device& dev, const descriptor_pool& object, const std::string& name)
 {
     VkDebugUtilsObjectNameInfoEXT info{};
     info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
@@ -105,16 +105,16 @@ void set_object_name(device& device, const descriptor_pool& object, const std::s
     info.objectHandle = reinterpret_cast<std::uint64_t>(underlying_cast<VkDescriptorPool>(object));
     info.pObjectName = std::data(name);
 
-    vulkan::check(device->vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(device), &info));
+    vulkan::check(dev->vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(dev), &info));
 }
 
-descriptor_set::descriptor_set(device& device, descriptor_pool& pool, descriptor_set_layout& layout)
-:m_descriptor_set{device.context(), underlying_cast<VkDescriptorPool>(pool), underlying_cast<VkDescriptorSetLayout>(layout)}
+descriptor_set::descriptor_set(device& dev, descriptor_pool& pool, descriptor_set_layout& layout)
+:m_descriptor_set{dev.context(), underlying_cast<VkDescriptorPool>(pool), underlying_cast<VkDescriptorSetLayout>(layout)}
 {
 
 }
 
-void set_object_name(device& device, const descriptor_set& object, const std::string& name)
+void set_object_name(device& dev, const descriptor_set& object, const std::string& name)
 {
     VkDebugUtilsObjectNameInfoEXT info{};
     info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
@@ -122,20 +122,20 @@ void set_object_name(device& device, const descriptor_set& object, const std::st
     info.objectHandle = reinterpret_cast<std::uint64_t>(underlying_cast<VkDescriptorSet>(object));
     info.pObjectName = std::data(name);
 
-    vulkan::check(device->vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(device), &info));
+    vulkan::check(dev->vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(dev), &info));
 }
 
-void write_descriptors(device& device, std::span<const descriptor_write> writes)
+void write_descriptors(device& dev, std::span<const descriptor_write> writes)
 {
-    update_descriptors(device, writes, std::span<const descriptor_copy>{});
+    update_descriptors(dev, writes, std::span<const descriptor_copy>{});
 }
 
-void copy_descriptors(device& device, std::span<const descriptor_copy> copies)
+void copy_descriptors(device& dev, std::span<const descriptor_copy> copies)
 {
-    update_descriptors(device, std::span<const descriptor_write>{}, copies);
+    update_descriptors(dev, std::span<const descriptor_write>{}, copies);
 }
 
-void update_descriptors(device& device, std::span<const descriptor_write> writes, std::span<const descriptor_copy> copies)
+void update_descriptors(device& dev, std::span<const descriptor_write> writes, std::span<const descriptor_copy> copies)
 {
     std::size_t image_count{};
     std::size_t buffer_count{};
@@ -210,13 +210,13 @@ void update_descriptors(device& device, std::span<const descriptor_write> writes
         native_copy.srcSet = underlying_cast<VkDescriptorSet>(copy.source_set.get());
         native_copy.srcBinding = copy.source_binding;
         native_copy.srcArrayElement = copy.source_array_index;
-        native_copy.dstSet = underlying_cast<VkDescriptorSet>(copy.destination_set.get());
-        native_copy.dstBinding = copy.destination_binding;
-        native_copy.dstArrayElement = copy.destination_array_index;
+        native_copy.dstSet = underlying_cast<VkDescriptorSet>(copy.dest_set.get());
+        native_copy.dstBinding = copy.dest_binding;
+        native_copy.dstArrayElement = copy.dest_array_index;
         native_copy.descriptorCount = copy.count;
     }
 
-    device->vkUpdateDescriptorSets(underlying_cast<VkDevice>(device), static_cast<std::uint32_t>(std::size(native_writes)), std::data(native_writes), static_cast<std::uint32_t>(std::size(native_copies)), std::data(native_copies));
+    dev->vkUpdateDescriptorSets(underlying_cast<VkDevice>(dev), static_cast<std::uint32_t>(std::size(native_writes)), std::data(native_writes), static_cast<std::uint32_t>(std::size(native_copies)), std::data(native_copies));
 }
 
 }

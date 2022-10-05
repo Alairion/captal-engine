@@ -39,7 +39,7 @@ using namespace tph::vulkan::functions;
 namespace tph
 {
 
-pipeline_layout::pipeline_layout(device& device, std::span<descriptor_set_layout> layouts, std::span<const push_constant_range> ranges)
+pipeline_layout::pipeline_layout(device& dev, std::span<descriptor_set_layout> layouts, std::span<const push_constant_range> ranges)
 {
     stack_memory_pool<1024> pool{};
 
@@ -62,10 +62,10 @@ pipeline_layout::pipeline_layout(device& device, std::span<descriptor_set_layout
         native_ranges.emplace_back(native_range);
     }
 
-    m_pipeline_layout = vulkan::pipeline_layout{device.context(), native_layouts, native_ranges};
+    m_pipeline_layout = vulkan::pipeline_layout{dev.context(), native_layouts, native_ranges};
 }
 
-pipeline_layout::pipeline_layout(device& device, std::span<std::reference_wrapper<descriptor_set_layout> > layouts, std::span<const push_constant_range> ranges)
+pipeline_layout::pipeline_layout(device& dev, std::span<std::reference_wrapper<descriptor_set_layout> > layouts, std::span<const push_constant_range> ranges)
 {
     stack_memory_pool<1024> pool{};
 
@@ -88,10 +88,10 @@ pipeline_layout::pipeline_layout(device& device, std::span<std::reference_wrappe
         native_ranges.emplace_back(native_range);
     }
 
-    m_pipeline_layout = vulkan::pipeline_layout{device.context(), native_layouts, native_ranges};
+    m_pipeline_layout = vulkan::pipeline_layout{dev.context(), native_layouts, native_ranges};
 }
 
-void set_object_name(device& device, const pipeline_layout& object, const std::string& name)
+void set_object_name(device& dev, const pipeline_layout& object, const std::string& name)
 {
     VkDebugUtilsObjectNameInfoEXT info{};
     info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
@@ -99,11 +99,11 @@ void set_object_name(device& device, const pipeline_layout& object, const std::s
     info.objectHandle = reinterpret_cast<std::uint64_t>(underlying_cast<VkPipelineLayout>(object));
     info.pObjectName = std::data(name);
 
-    vulkan::check(device->vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(device), &info));
+    vulkan::check(dev->vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(dev), &info));
 }
 
-pipeline_cache::pipeline_cache(device& device)
-:m_pipeline_cache{device.context()}
+pipeline_cache::pipeline_cache(device& dev)
+:m_pipeline_cache{dev.context()}
 {
 
 }
@@ -114,18 +114,18 @@ pipeline_cache::pipeline_cache(device& device, std::span<const uint8_t> data)
 
 }
 
-pipeline_cache::pipeline_cache(device& device, const std::filesystem::path& file)
-:pipeline_cache{device, read_file<std::vector<std::uint8_t>>(file)}
+pipeline_cache::pipeline_cache(device& dev, const std::filesystem::path& file)
+:pipeline_cache{dev, read_file<std::vector<std::uint8_t>>(file)}
 {
 
 }
 
-pipeline_cache::pipeline_cache(device& device, std::istream& stream)
+pipeline_cache::pipeline_cache(device& dev, std::istream& stream)
 {
     assert(stream && "Invalid stream.");
 
     const std::string initial_data{std::istreambuf_iterator<char>{stream}, std::istreambuf_iterator<char>{}};
-    m_pipeline_cache = vulkan::pipeline_cache{device.context(), std::data(initial_data), std::size(initial_data)};
+    m_pipeline_cache = vulkan::pipeline_cache{dev.context(), std::data(initial_data), std::size(initial_data)};
 }
 
 pipeline_cache& pipeline_cache::merge_with(pipeline_cache& other)
@@ -164,7 +164,7 @@ std::string pipeline_cache::data() const
     return output;
 }
 
-void set_object_name(device& device, const pipeline_cache& object, const std::string& name)
+void set_object_name(device& dev, const pipeline_cache& object, const std::string& name)
 {
     VkDebugUtilsObjectNameInfoEXT info{};
     info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
@@ -172,16 +172,16 @@ void set_object_name(device& device, const pipeline_cache& object, const std::st
     info.objectHandle = reinterpret_cast<std::uint64_t>(underlying_cast<VkPipelineCache>(object));
     info.pObjectName = std::data(name);
 
-    vulkan::check(device->vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(device), &info));
+    vulkan::check(dev->vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(dev), &info));
 }
 
-pipeline::pipeline(device& device, render_pass& render_pass, const graphics_pipeline_info& info, const pipeline_layout& layout, optional_ref<pipeline_cache> cache, optional_ref<pipeline> parent)
-:pipeline{device, render_pass, 0, info, layout, cache, parent}
+pipeline::pipeline(device& dev, render_pass& rpass, const graphics_pipeline_info& info, const pipeline_layout& layout, optional_ref<pipeline_cache> cache, optional_ref<pipeline> parent)
+:pipeline{dev, rpass, 0, info, layout, cache, parent}
 {
 
 }
 
-pipeline::pipeline(device& device, render_pass& render_pass, std::uint32_t subpass, const graphics_pipeline_info& info, const pipeline_layout& layout, optional_ref<pipeline_cache> cache, optional_ref<pipeline> parent)
+pipeline::pipeline(device& dev, render_pass& rpass, std::uint32_t subpass, const graphics_pipeline_info& info, const pipeline_layout& layout, optional_ref<pipeline_cache> cache, optional_ref<pipeline> parent)
 :m_type{pipeline_type::graphics}
 {
     VkGraphicsPipelineCreateInfo create_info{};
@@ -309,11 +309,11 @@ pipeline::pipeline(device& device, render_pass& render_pass, std::uint32_t subpa
     {
         VkPipelineColorBlendAttachmentState& native_attachment{attachements.emplace_back()};
         native_attachment.blendEnable = static_cast<VkBool32>(attachment.blend);
-        native_attachment.srcColorBlendFactor = static_cast<VkBlendFactor>(attachment.source_color_blend_factor);
-        native_attachment.dstColorBlendFactor = static_cast<VkBlendFactor>(attachment.destination_color_blend_factor);
+        native_attachment.srcColorBlendFactor = static_cast<VkBlendFactor>(attachment.src_color_blend_factor);
+        native_attachment.dstColorBlendFactor = static_cast<VkBlendFactor>(attachment.dest_color_blend_factor);
         native_attachment.colorBlendOp = static_cast<VkBlendOp>(attachment.color_blend_op);
-        native_attachment.srcAlphaBlendFactor = static_cast<VkBlendFactor>(attachment.source_alpha_blend_factor);
-        native_attachment.dstAlphaBlendFactor = static_cast<VkBlendFactor>(attachment.destination_alpha_blend_factor);
+        native_attachment.srcAlphaBlendFactor = static_cast<VkBlendFactor>(attachment.src_alpha_blend_factor);
+        native_attachment.dstAlphaBlendFactor = static_cast<VkBlendFactor>(attachment.dest_alpha_blend_factor);
         native_attachment.alphaBlendOp = static_cast<VkBlendOp>(attachment.alpha_blend_op);
         native_attachment.colorWriteMask = static_cast<VkColorComponentFlags>(attachment.color_write_mask);
     }
@@ -336,7 +336,7 @@ pipeline::pipeline(device& device, render_pass& render_pass, std::uint32_t subpa
     create_info.pDynamicState = &dynamic_state;
 
     create_info.layout = underlying_cast<VkPipelineLayout>(layout);
-    create_info.renderPass = underlying_cast<VkRenderPass>(render_pass);
+    create_info.renderPass = underlying_cast<VkRenderPass>(rpass);
     create_info.subpass = subpass;
 
     if(parent.has_value())
@@ -347,10 +347,10 @@ pipeline::pipeline(device& device, render_pass& render_pass, std::uint32_t subpa
 
     VkPipelineCache native_cache{cache.has_value() ? underlying_cast<VkPipelineCache>(*cache) : VkPipelineCache{}};
 
-    m_pipeline = vulkan::pipeline{device.context(), create_info, native_cache};
+    m_pipeline = vulkan::pipeline{dev.context(), create_info, native_cache};
 }
 
-pipeline::pipeline(device& device, const compute_pipeline_info& info, const pipeline_layout& layout, optional_ref<pipeline_cache> cache, optional_ref<pipeline> parent)
+pipeline::pipeline(device& dev, const compute_pipeline_info& info, const pipeline_layout& layout, optional_ref<pipeline_cache> cache, optional_ref<pipeline> parent)
 :m_type{pipeline_type::compute}
 {
     VkComputePipelineCreateInfo create_info{};
@@ -383,7 +383,7 @@ pipeline::pipeline(device& device, const compute_pipeline_info& info, const pipe
 
     VkPipelineCache native_cache{cache.has_value() ? underlying_cast<VkPipelineCache>(*cache) : VkPipelineCache{}};
 
-    m_pipeline = vulkan::pipeline{device.context(), create_info, native_cache};
+    m_pipeline = vulkan::pipeline{dev.context(), create_info, native_cache};
 }
 
 void set_object_name(device& device, const pipeline& object, const std::string& name)

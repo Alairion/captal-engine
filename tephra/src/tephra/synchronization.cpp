@@ -31,13 +31,13 @@ using namespace tph::vulkan::functions;
 namespace tph
 {
 
-semaphore::semaphore(device& device)
-:m_semaphore{device.context()}
+semaphore::semaphore(device& dev)
+:m_semaphore{dev.context()}
 {
 
 }
 
-void set_object_name(device& device, const semaphore& object, const std::string& name)
+void set_object_name(device& dev, const semaphore& object, const std::string& name)
 {
     VkDebugUtilsObjectNameInfoEXT info{};
     info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
@@ -45,18 +45,18 @@ void set_object_name(device& device, const semaphore& object, const std::string&
     info.objectHandle = reinterpret_cast<std::uint64_t>(underlying_cast<VkSemaphore>(object));
     info.pObjectName = std::data(name);
 
-    vulkan::check(device->vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(device), &info));
+    vulkan::check(dev->vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(dev), &info));
 }
 
-fence::fence(device& device, bool signaled)
+fence::fence(device& dev, bool signaled)
 {
     if(signaled)
     {
-        m_fence = vulkan::fence{device.context(), VK_FENCE_CREATE_SIGNALED_BIT};
+        m_fence = vulkan::fence{dev.context(), VK_FENCE_CREATE_SIGNALED_BIT};
     }
     else
     {
-        m_fence = vulkan::fence{device.context()};
+        m_fence = vulkan::fence{dev.context()};
     }
 }
 
@@ -90,7 +90,7 @@ bool fence::wait_impl(std::uint64_t nanoseconds) const
     }
 }
 
-void set_object_name(device& device, const fence& object, const std::string& name)
+void set_object_name(device& dev, const fence& object, const std::string& name)
 {
     VkDebugUtilsObjectNameInfoEXT info{};
     info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
@@ -98,11 +98,11 @@ void set_object_name(device& device, const fence& object, const std::string& nam
     info.objectHandle = reinterpret_cast<std::uint64_t>(underlying_cast<VkFence>(object));
     info.pObjectName = std::data(name);
 
-    vulkan::check(device->vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(device), &info));
+    vulkan::check(dev->vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(dev), &info));
 }
 
-event::event(device& device)
-:m_event{device.context()}
+event::event(device& dev)
+:m_event{dev.context()}
 {
 
 }
@@ -117,7 +117,7 @@ void event::reset()
     vulkan::check(context()->vkResetEvent(m_event.device(), m_event));
 }
 
-void set_object_name(device& device, const event& object, const std::string& name)
+void set_object_name(device& dev, const event& object, const std::string& name)
 {
     VkDebugUtilsObjectNameInfoEXT info{};
     info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
@@ -125,7 +125,7 @@ void set_object_name(device& device, const event& object, const std::string& nam
     info.objectHandle = reinterpret_cast<std::uint64_t>(underlying_cast<VkEvent>(object));
     info.pObjectName = std::data(name);
 
-    vulkan::check(device->vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(device), &info));
+    vulkan::check(dev->vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(dev), &info));
 }
 
 }

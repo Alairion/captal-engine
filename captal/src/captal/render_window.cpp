@@ -105,7 +105,7 @@ static tph::render_pass_info make_render_pass_info(tph::texture_format color_for
     }
     else
     {
-        color_attachement.final_layout = tph::texture_layout::present_source;
+        color_attachement.final_layout = tph::texture_layout::present_src;
     }
 
     subpass.color_attachments.emplace_back(tph::attachment_reference{0, tph::texture_layout::color_attachment_optimal});
@@ -135,7 +135,7 @@ static tph::render_pass_info make_render_pass_info(tph::texture_format color_for
         resolve_attachement.stencil_load_op = tph::attachment_load_op::clear;
         resolve_attachement.stencil_store_op = tph::attachment_store_op::dont_care;
         resolve_attachement.initial_layout = tph::texture_layout::undefined;
-        resolve_attachement.final_layout = tph::texture_layout::present_source;
+        resolve_attachement.final_layout = tph::texture_layout::present_src;
 
         if(has_depth_stencil)
         {

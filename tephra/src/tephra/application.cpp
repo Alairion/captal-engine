@@ -251,13 +251,13 @@ static std::vector<physical_device> make_physical_devices(const vulkan::instance
     return devices;
 }
 
-application::application(const std::string& application_name, version application_version, application_layer layers, application_extension extensions)
-:application{application_name, application_version, enumerate_instance_version(), layers, extensions}
+application::application(const std::string& name, version app_version, application_layer layers, application_extension extensions)
+:application{name, app_version, enumerate_instance_version(), layers, extensions}
 {
 
 }
 
-application::application(const std::string& application_name, version application_version, version api_version, application_layer layers, application_extension extensions)
+application::application(const std::string& name, version app_version, version api_version, application_layer layers, application_extension extensions)
 :m_version{api_version}
 {
     tph::vulkan::functions::load_external_level_functions();
@@ -266,15 +266,15 @@ application::application(const std::string& application_name, version applicatio
     const std::vector<const char*> layer_names{required_instance_layers(layers)};
     const std::vector<const char*> extension_names{required_instance_extensions(layer_names, extensions)};
 
-    m_instance = vulkan::instance{application_name, application_version, api_version, layer_names, extension_names};
+    m_instance = vulkan::instance{name, app_version, api_version, layer_names, extension_names};
     m_layers = layers;
     m_extensions = extensions;
 
     m_physical_devices = make_physical_devices(m_instance.context(), m_version);
 }
 
-application::application(vulkan::instance instance, tph::version api_version, application_layer layers, application_extension extensions)
-:m_instance{std::move(instance)}
+application::application(vulkan::instance inst, tph::version api_version, application_layer layers, application_extension extensions)
+:m_instance{std::move(inst)}
 ,m_version{api_version}
 ,m_layers{layers}
 ,m_extensions{extensions}

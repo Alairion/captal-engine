@@ -45,10 +45,10 @@ class TEPHRA_API shader
 
 public:
     constexpr shader() = default;
-    explicit shader(device& device, shader_stage stage, const std::filesystem::path& file);
-    explicit shader(device& device, shader_stage stage, std::span<const std::uint8_t> data);
-    explicit shader(device& device, shader_stage stage, std::span<const std::uint32_t> spirv);
-    explicit shader(device& device, shader_stage stage, std::istream& stream);
+    explicit shader(device& dev, shader_stage stage, const std::filesystem::path& file);
+    explicit shader(device& dev, shader_stage stage, std::span<const std::uint8_t> data);
+    explicit shader(device& dev, shader_stage stage, std::span<const std::uint32_t> spirv);
+    explicit shader(device& dev, shader_stage stage, std::istream& stream);
 
     explicit shader(vulkan::shader shader, shader_stage stage) noexcept
     :m_shader{std::move(shader)}
@@ -78,18 +78,18 @@ private:
     shader_stage m_stage{};
 };
 
-TEPHRA_API void set_object_name(device& device, const shader& object, const std::string& name);
+TEPHRA_API void set_object_name(device& dev, const shader& object, const std::string& name);
 
 template<>
-inline VkDevice underlying_cast(const shader& shader) noexcept
+inline VkDevice underlying_cast(const shader& shadr) noexcept
 {
-    return shader.m_shader.device();
+    return shadr.m_shader.device();
 }
 
 template<>
-inline VkShaderModule underlying_cast(const shader& shader) noexcept
+inline VkShaderModule underlying_cast(const shader& shadr) noexcept
 {
-    return shader.m_shader;
+    return shadr.m_shader;
 }
 
 }

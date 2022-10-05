@@ -40,8 +40,8 @@ class device;
 enum class image_usage : std::uint32_t
 {
     none = 0,
-    transfer_source = VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-    transfer_destination = VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+    transfer_src = VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+    transfer_dest = VK_BUFFER_USAGE_TRANSFER_DST_BIT,
     persistant_mapping = 0x80000000,
 };
 
@@ -91,11 +91,11 @@ public:
 
 public:
     constexpr image() = default;
-    explicit image(device& device, const std::filesystem::path& file, image_usage usage);
-    explicit image(device& device, std::span<const std::uint8_t> data, image_usage usage);
-    explicit image(device& device, std::istream& stream, image_usage usage);
-    explicit image(device& device, size_type width, size_type height, const std::uint8_t* data, image_usage usage);
-    explicit image(device& device, size_type width, size_type height, image_usage usage);
+    explicit image(device& dev, const std::filesystem::path& file, image_usage usage);
+    explicit image(device& dev, std::span<const std::uint8_t> data, image_usage usage);
+    explicit image(device& dev, std::istream& stream, image_usage usage);
+    explicit image(device& dev, size_type width, size_type height, const std::uint8_t* data, image_usage usage);
+    explicit image(device& dev, size_type width, size_type height, image_usage usage);
 
     ~image() = default;
     image(const image&) = delete;
@@ -250,18 +250,18 @@ private:
     image_usage m_usage{};
 };
 
-TEPHRA_API void set_object_name(device& device, const image& object, const std::string& name);
+TEPHRA_API void set_object_name(device& dev, const image& object, const std::string& name);
 
 template<>
-inline VkDevice underlying_cast(const image& image) noexcept
+inline VkDevice underlying_cast(const image& img) noexcept
 {
-    return image.m_buffer.device();
+    return img.m_buffer.device();
 }
 
 template<>
-inline VkBuffer underlying_cast(const image& image) noexcept
+inline VkBuffer underlying_cast(const image& img) noexcept
 {
-     return image.m_buffer;
+     return img.m_buffer;
 }
 
 }
