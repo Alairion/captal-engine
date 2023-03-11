@@ -31,46 +31,46 @@ using namespace tph::vulkan::functions;
 namespace tph::vulkan
 {
 
-std::uint32_t find_memory_type(VkPhysicalDevice physical_device, std::uint32_t type, VkMemoryPropertyFlags minimal, VkMemoryPropertyFlags optimal)
+std::uint32_t find_memory_type(const instance_context& context, VkPhysicalDevice physical_device, std::uint32_t type, VkMemoryPropertyFlags minimal, VkMemoryPropertyFlags optimal)
 {
     VkPhysicalDeviceMemoryProperties memory_properties{};
-    vkGetPhysicalDeviceMemoryProperties(physical_device, &memory_properties);
+    context->vkGetPhysicalDeviceMemoryProperties(physical_device, &memory_properties);
 
     return find_memory_type(memory_properties, type, minimal, optimal);
 }
 
-std::uint32_t find_memory_type(const VkPhysicalDeviceMemoryProperties& memory_properties, std::uint32_t type, VkMemoryPropertyFlags minimal, VkMemoryPropertyFlags optimal)
+std::uint32_t find_memory_type(const VkPhysicalDeviceMemoryProperties& properties, std::uint32_t type, VkMemoryPropertyFlags minimal, VkMemoryPropertyFlags optimal)
 {
     if(optimal != 0)
     {
-        for(std::uint32_t i{}; i < memory_properties.memoryTypeCount; ++i)
+        for(std::uint32_t i{}; i < properties.memoryTypeCount; ++i)
         {
-            if(type & (1 << i) && memory_properties.memoryTypes[i].propertyFlags == optimal)
+            if(type & (1 << i) && properties.memoryTypes[i].propertyFlags == optimal)
             {
                 return i;
             }
         }
 
-        for(std::uint32_t i{}; i < memory_properties.memoryTypeCount; ++i)
+        for(std::uint32_t i{}; i < properties.memoryTypeCount; ++i)
         {
-            if(type & (1 << i) && (memory_properties.memoryTypes[i].propertyFlags & optimal) == optimal)
+            if(type & (1 << i) && (properties.memoryTypes[i].propertyFlags & optimal) == optimal)
             {
                 return i;
             }
         }
     }
 
-    for(std::uint32_t i{}; i < memory_properties.memoryTypeCount; ++i)
+    for(std::uint32_t i{}; i < properties.memoryTypeCount; ++i)
     {
-        if(type & (1 << i) && memory_properties.memoryTypes[i].propertyFlags == minimal)
+        if(type & (1 << i) && properties.memoryTypes[i].propertyFlags == minimal)
         {
             return i;
         }
     }
 
-    for(std::uint32_t i{}; i < memory_properties.memoryTypeCount; ++i)
+    for(std::uint32_t i{}; i < properties.memoryTypeCount; ++i)
     {
-        if(type & (1 << i) && (memory_properties.memoryTypes[i].propertyFlags & minimal) == minimal)
+        if(type & (1 << i) && (properties.memoryTypes[i].propertyFlags & minimal) == minimal)
         {
             return i;
         }
@@ -79,12 +79,12 @@ std::uint32_t find_memory_type(const VkPhysicalDeviceMemoryProperties& memory_pr
     throw std::runtime_error{"Can not find a suitable memory type."};
 }
 
-VkFormat find_format(VkPhysicalDevice physical_device, std::span<const VkFormat> candidates, VkImageTiling tiling, VkFormatFeatureFlags features)
+VkFormat find_format(const instance_context& context, VkPhysicalDevice physical_device, std::span<const VkFormat> candidates, VkImageTiling tiling, VkFormatFeatureFlags features)
 {
     for(VkFormat format : candidates)
     {
         VkFormatProperties props{};
-        vkGetPhysicalDeviceFormatProperties(physical_device, format, &props);
+        context->vkGetPhysicalDeviceFormatProperties(physical_device, format, &props);
 
         if(tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features)
         {

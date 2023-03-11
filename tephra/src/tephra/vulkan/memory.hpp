@@ -123,8 +123,8 @@ private:
 
         }
 
-        std::uint64_t granularity{};
-        std::uint64_t non_coherent_atom_size{};
+        const std::uint64_t granularity{};
+        const std::uint64_t non_coherent_atom_size{};
         std::uint64_t map_count{};
         std::vector<memory_range> ranges{};
         mutable std::mutex mutex{};
@@ -136,9 +136,9 @@ private:
     };
 
 public:
-    explicit memory_heap(VkDevice device, std::uint32_t type, std::uint64_t size, std::uint64_t granularity, std::uint64_t non_coherent_atom_size, bool coherent);
-    explicit memory_heap(VkDevice device, VkImage image, std::uint32_t type, std::uint64_t size);
-    explicit memory_heap(VkDevice device, VkBuffer buffer, std::uint32_t type, std::uint64_t size);
+    explicit memory_heap(const device_context& context, std::uint32_t type, std::uint64_t size, std::uint64_t granularity, std::uint64_t non_coherent_atom_size, bool coherent);
+    explicit memory_heap(const device_context& context, VkImage image, std::uint32_t type, std::uint64_t size);
+    explicit memory_heap(const device_context& context, VkBuffer buffer, std::uint32_t type, std::uint64_t size);
 
     ~memory_heap();
     memory_heap(const memory_heap&) = delete;
@@ -181,9 +181,14 @@ public:
         return m_heap.index() == 1;
     }
 
+    device_context context() const noexcept
+    {
+        return m_context;
+    }
+
     operator VkDevice() const noexcept
     {
-        return m_device;
+        return m_context.device;
     }
 
     operator VkDeviceMemory() const noexcept
@@ -199,7 +204,7 @@ private:
     void unregister_chunk(const memory_heap_chunk& chunk) noexcept;
 
 private:
-    VkDevice m_device{};
+    device_context m_context{};
     device_memory m_memory{};
     std::uint32_t m_type{};
     std::uint64_t m_size{};
@@ -221,7 +226,7 @@ public:
     };
 
 public:
-    explicit memory_allocator(VkPhysicalDevice physical_device, VkDevice device, const heap_sizes& sizes);
+    explicit memory_allocator(const instance_context& instance, const device_context& device, VkPhysicalDevice physical_device, const heap_sizes& sizes);
     ~memory_allocator() = default;
 
     memory_allocator(const memory_allocator&) = delete;
@@ -261,7 +266,7 @@ public:
 
     operator VkDevice() const noexcept
     {
-        return m_device;
+        return m_context.device;
     }
 
 private:
@@ -269,7 +274,7 @@ private:
 
 private:
     VkPhysicalDevice m_physical_device{};
-    VkDevice m_device{};
+    device_context m_context{};
     tph::version m_version{};
     VkPhysicalDeviceMemoryProperties m_memory_properties{};
     std::vector<VkMemoryPropertyFlags> m_heaps_flags{};

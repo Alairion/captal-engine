@@ -31,7 +31,7 @@
 #include <swell/stream.hpp>
 #include <swell/audio_pulser.hpp>
 
-#include <tephra/renderer.hpp>
+#include <tephra/device.hpp>
 #include <tephra/commands.hpp>
 #include <tephra/shader.hpp>
 
@@ -63,9 +63,9 @@ struct audio_parameters
 
 struct graphics_parameters
 {
-    tph::renderer_options options{};
-    tph::renderer_layer layers{};
-    tph::renderer_extension extensions{};
+    tph::device_options options{};
+    tph::device_layer layers{};
+    tph::device_extension extensions{};
     tph::physical_device_features features{};
     optional_ref<const tph::physical_device> physical_device{};
 };
@@ -165,14 +165,14 @@ public:
         return m_graphics_device;
     }
 
-    tph::renderer& renderer() noexcept
+    tph::device& device() noexcept
     {
-        return m_renderer;
+        return m_device;
     }
 
-    const tph::renderer& renderer() const noexcept
+    const tph::device& device() const noexcept
     {
-        return m_renderer;
+        return m_device;
     }
 
     memory_transfer_scheduler& transfer_scheduler() noexcept
@@ -269,7 +269,7 @@ private:
     swl::stream m_audio_stream;
 
     const tph::physical_device& m_graphics_device;
-    tph::renderer m_renderer;
+    tph::device m_device;
 
     buffer_pool m_uniform_pool;
     memory_transfer_scheduler m_transfer_scheduler;

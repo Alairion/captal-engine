@@ -81,7 +81,7 @@ void font_engine::clean() noexcept
 
 static constexpr std::uint32_t default_size{256};
 static constexpr tph::component_mapping red_to_alpha_mapping{tph::component_swizzle::one, tph::component_swizzle::one, tph::component_swizzle::one, tph::component_swizzle::r};
-static constexpr auto font_atlas_usage{tph::texture_usage::sampled | tph::texture_usage::transfer_destination | tph::texture_usage::transfer_source};
+static constexpr auto font_atlas_usage{tph::texture_usage::sampled | tph::texture_usage::transfer_dest | tph::texture_usage::transfer_src};
 
 font_atlas::font_atlas(glyph_format format, const tph::sampler_info& sampling)
 :m_format{format}
@@ -201,20 +201,20 @@ void font_atlas::upload()
         if(std::exchange(m_first_upload, false))
         {
             tph::texture_memory_barrier barrier{m_texture->get_texture()};
-            barrier.source_access      = tph::resource_access::none;
-            barrier.destination_access = tph::resource_access::transfer_write;
-            barrier.old_layout         = tph::texture_layout::undefined;
-            barrier.new_layout         = tph::texture_layout::transfer_destination_optimal;
+            barrier.src_access  = tph::resource_access::none;
+            barrier.dest_access = tph::resource_access::transfer_write;
+            barrier.old_layout  = tph::texture_layout::undefined;
+            barrier.new_layout  = tph::texture_layout::transfer_dest_optimal;
 
             tph::cmd::pipeline_barrier(buffer, tph::pipeline_stage::top_of_pipe, tph::pipeline_stage::transfer, tph::dependency_flags::none, {}, {}, std::span{&barrier, 1});
         }
         else
         {
             tph::texture_memory_barrier barrier{m_texture->get_texture()};
-            barrier.source_access      = tph::resource_access::none;
-            barrier.destination_access = tph::resource_access::transfer_write;
-            barrier.old_layout         = tph::texture_layout::shader_read_only_optimal;
-            barrier.new_layout         = tph::texture_layout::transfer_destination_optimal;
+            barrier.src_access  = tph::resource_access::none;
+            barrier.dest_access = tph::resource_access::transfer_write;
+            barrier.old_layout  = tph::texture_layout::shader_read_only_optimal;
+            barrier.new_layout  = tph::texture_layout::transfer_dest_optimal;
 
             tph::cmd::pipeline_barrier(buffer, tph::pipeline_stage::top_of_pipe, tph::pipeline_stage::transfer, tph::dependency_flags::none, {}, {}, std::span{&barrier, 1});
         }
@@ -238,24 +238,24 @@ void font_atlas::upload()
         copies.emplace_back(copy);
     }
 
-    tph::buffer staging_buffer{engine::instance().renderer(), std::size(m_buffer_data), tph::buffer_usage::staging | tph::buffer_usage::transfer_source};
+    tph::buffer staging_buffer{engine::instance().device(), std::size(m_buffer_data), tph::buffer_usage::staging | tph::buffer_usage::transfer_src};
     std::memcpy(staging_buffer.map(), std::data(m_buffer_data), std::size(m_buffer_data));
     staging_buffer.unmap();
 
 #ifdef CAPTAL_DEBUG
     if(!std::empty(m_name))
     {
-        tph::set_object_name(engine::instance().renderer(), staging_buffer, m_name + " staging buffer (frame: " + std::to_string(engine::instance().frame()) + ")");
+        tph::set_object_name(engine::instance().device(), staging_buffer, m_name + " staging buffer (frame: " + std::to_string(engine::instance().frame()) + ")");
     }
 #endif
 
     tph::cmd::copy(buffer, staging_buffer, m_texture->get_texture(), copies);
 
     tph::texture_memory_barrier barrier{m_texture->get_texture()};
-    barrier.source_access      = tph::resource_access::transfer_write;
-    barrier.destination_access = tph::resource_access::shader_read;
-    barrier.old_layout         = tph::texture_layout::transfer_destination_optimal;
-    barrier.new_layout         = tph::texture_layout::shader_read_only_optimal;
+    barrier.src_access  = tph::resource_access::transfer_write;
+    barrier.dest_access = tph::resource_access::shader_read;
+    barrier.old_layout  = tph::texture_layout::transfer_dest_optimal;
+    barrier.new_layout  = tph::texture_layout::shader_read_only_optimal;
 
     tph::cmd::pipeline_barrier(buffer, tph::pipeline_stage::transfer, tph::pipeline_stage::fragment_shader, tph::dependency_flags::none, {}, {}, std::span{&barrier, 1});
 
@@ -298,29 +298,29 @@ void font_atlas::resize(tph::command_buffer& buffer, asynchronous_resource_keepe
     if(std::exchange(m_first_upload, false))
     {
         tph::texture_memory_barrier barrier{m_texture->get_texture()};
-        barrier.source_access      = tph::resource_access::none;
-        barrier.destination_access = tph::resource_access::transfer_read;
-        barrier.old_layout         = tph::texture_layout::undefined;
-        barrier.new_layout         = tph::texture_layout::transfer_source_optimal;
+        barrier.src_access  = tph::resource_access::none;
+        barrier.dest_access = tph::resource_access::transfer_read;
+        barrier.old_layout  = tph::texture_layout::undefined;
+        barrier.new_layout  = tph::texture_layout::transfer_src_optimal;
 
         tph::cmd::pipeline_barrier(buffer, tph::pipeline_stage::top_of_pipe, tph::pipeline_stage::transfer, tph::dependency_flags::none, {}, {}, std::span{&barrier, 1});
     }
     else
     {
         tph::texture_memory_barrier barrier{m_texture->get_texture()};
-        barrier.source_access      = tph::resource_access::none;
-        barrier.destination_access = tph::resource_access::transfer_read;
-        barrier.old_layout         = tph::texture_layout::shader_read_only_optimal;
-        barrier.new_layout         = tph::texture_layout::transfer_source_optimal;
+        barrier.src_access  = tph::resource_access::none;
+        barrier.dest_access = tph::resource_access::transfer_read;
+        barrier.old_layout  = tph::texture_layout::shader_read_only_optimal;
+        barrier.new_layout  = tph::texture_layout::transfer_src_optimal;
 
         tph::cmd::pipeline_barrier(buffer, tph::pipeline_stage::top_of_pipe, tph::pipeline_stage::transfer, tph::dependency_flags::none, {}, {}, std::span{&barrier, 1});
     }
 
     tph::texture_memory_barrier barrier{new_texture->get_texture()};
-    barrier.source_access      = tph::resource_access::none;
-    barrier.destination_access = tph::resource_access::transfer_write;
-    barrier.old_layout         = tph::texture_layout::undefined;
-    barrier.new_layout         = tph::texture_layout::transfer_destination_optimal;
+    barrier.src_access  = tph::resource_access::none;
+    barrier.dest_access = tph::resource_access::transfer_write;
+    barrier.old_layout  = tph::texture_layout::undefined;
+    barrier.new_layout  = tph::texture_layout::transfer_dest_optimal;
 
     tph::cmd::pipeline_barrier(buffer, tph::pipeline_stage::top_of_pipe, tph::pipeline_stage::transfer, tph::dependency_flags::none, {}, {}, std::span{&barrier, 1});
 

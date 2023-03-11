@@ -37,7 +37,7 @@
 
 #include "vulkan/vulkan_functions.hpp"
 
-#include "renderer.hpp"
+#include "device.hpp"
 
 using namespace tph::vulkan::functions;
 
@@ -58,7 +58,7 @@ static constexpr image_usage not_extension{~image_usage::persistant_mapping};
 
 static VkMemoryPropertyFlags optimal_memory_types(image_usage usage)
 {
-    if(usage == image_usage::transfer_source)
+    if(usage == image_usage::transfer_src)
     {
         return VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
     }
@@ -66,13 +66,13 @@ static VkMemoryPropertyFlags optimal_memory_types(image_usage usage)
     return VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
 }
 
-image::image(renderer& renderer, const std::filesystem::path& file, image_usage usage)
-:image{renderer, read_file<std::vector<std::uint8_t>>(file), usage}
+image::image(device& dev, const std::filesystem::path& file, image_usage usage)
+:image{dev, read_file<std::vector<std::uint8_t>>(file), usage}
 {
 
 }
 
-image::image(renderer& renderer, std::span<const std::uint8_t> data, image_usage usage)
+image::image(device& dev, std::span<const std::uint8_t> data, image_usage usage)
 :m_usage{usage}
 {
     int width{};
@@ -83,8 +83,8 @@ image::image(renderer& renderer, std::span<const std::uint8_t> data, image_usage
     if(!pixels)
         throw std::runtime_error{"Can not load image. " + std::string{stbi_failure_reason()}};
 
-    m_buffer = vulkan::buffer{underlying_cast<VkDevice>(renderer), static_cast<std::uint64_t>(width * height * 4), static_cast<VkBufferUsageFlags>(usage & not_extension)};
-    m_memory = renderer.allocator().allocate_bound(m_buffer, vulkan::memory_resource_type::linear, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, optimal_memory_types(usage));
+    m_buffer = vulkan::buffer{dev.context(), static_cast<std::uint64_t>(width * height * 4), static_cast<VkBufferUsageFlags>(usage & not_extension)};
+    m_memory = dev.allocator().allocate_bound(m_buffer, vulkan::memory_resource_type::linear, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, optimal_memory_types(usage));
 
     m_map = m_memory.map();
     std::memcpy(m_map, pixels.get(), static_cast<std::size_t>(width * height * 4));
@@ -98,7 +98,7 @@ image::image(renderer& renderer, std::span<const std::uint8_t> data, image_usage
     m_height = static_cast<size_type>(height);
 }
 
-image::image(renderer& renderer, std::istream& stream, image_usage usage)
+image::image(device& dev, std::istream& stream, image_usage usage)
 :m_usage{usage}
 {
     assert(stream && "Invalid stream.");
@@ -112,8 +112,8 @@ image::image(renderer& renderer, std::istream& stream, image_usage usage)
     if(!pixels)
         throw std::runtime_error{"Can not load image. " + std::string{stbi_failure_reason()}};
 
-    m_buffer = vulkan::buffer{underlying_cast<VkDevice>(renderer), static_cast<std::uint64_t>(width * height * 4), static_cast<VkBufferUsageFlags>(usage & not_extension)};
-    m_memory = renderer.allocator().allocate_bound(m_buffer, vulkan::memory_resource_type::linear, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, optimal_memory_types(usage));
+    m_buffer = vulkan::buffer{dev.context(), static_cast<std::uint64_t>(width * height * 4), static_cast<VkBufferUsageFlags>(usage & not_extension)};
+    m_memory = dev.allocator().allocate_bound(m_buffer, vulkan::memory_resource_type::linear, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, optimal_memory_types(usage));
 
     m_map = m_memory.map();
     std::memcpy(m_map, pixels.get(), static_cast<std::size_t>(width * height * 4));
@@ -127,7 +127,7 @@ image::image(renderer& renderer, std::istream& stream, image_usage usage)
     m_height = static_cast<size_type>(height);
 }
 
-image::image(renderer& renderer, size_type width, size_type height, const std::uint8_t* data, image_usage usage)
+image::image(device& dev, size_type width, size_type height, const std::uint8_t* data, image_usage usage)
 :m_width{width}
 ,m_height{height}
 ,m_usage{usage}
@@ -135,8 +135,8 @@ image::image(renderer& renderer, size_type width, size_type height, const std::u
     assert(width > 0 && "Image width must be greater than 0");
     assert(height > 0 && "Image width must be greater than 0");
 
-    m_buffer = vulkan::buffer{underlying_cast<VkDevice>(renderer), static_cast<std::uint64_t>(width * height * 4), static_cast<VkBufferUsageFlags>(usage & not_extension)};
-    m_memory = renderer.allocator().allocate_bound(m_buffer, vulkan::memory_resource_type::linear, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, optimal_memory_types(usage));
+    m_buffer = vulkan::buffer{dev.context(), static_cast<std::uint64_t>(width * height * 4), static_cast<VkBufferUsageFlags>(usage & not_extension)};
+    m_memory = dev.allocator().allocate_bound(m_buffer, vulkan::memory_resource_type::linear, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, optimal_memory_types(usage));
 
     m_map = m_memory.map();
     std::memcpy(m_map, data, static_cast<std::size_t>(width * height * 4));
@@ -147,7 +147,7 @@ image::image(renderer& renderer, size_type width, size_type height, const std::u
     }
 }
 
-image::image(renderer& renderer, size_type width, size_type height, image_usage usage)
+image::image(device& dev, size_type width, size_type height, image_usage usage)
 :m_width{width}
 ,m_height{height}
 ,m_usage{usage}
@@ -155,8 +155,8 @@ image::image(renderer& renderer, size_type width, size_type height, image_usage 
     assert(width > 0 && "Image width must be greater than 0");
     assert(height > 0 && "Image width must be greater than 0");
 
-    m_buffer = vulkan::buffer{underlying_cast<VkDevice>(renderer), static_cast<std::uint64_t>(width * height * 4), static_cast<VkBufferUsageFlags>(usage & not_extension)};
-    m_memory = renderer.allocator().allocate_bound(m_buffer, vulkan::memory_resource_type::linear, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, optimal_memory_types(usage));
+    m_buffer = vulkan::buffer{dev.context(), static_cast<std::uint64_t>(width * height * 4), static_cast<VkBufferUsageFlags>(usage & not_extension)};
+    m_memory = dev.allocator().allocate_bound(m_buffer, vulkan::memory_resource_type::linear, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, optimal_memory_types(usage));
 
     if(static_cast<bool>(usage & image_usage::persistant_mapping))
     {
@@ -191,7 +191,7 @@ std::vector<std::uint8_t> image::write(image_format format, std::int32_t quality
     const void* input{};
     std::vector<pixel> local_buffer{};
 
-    if(m_usage != image_usage::transfer_source)
+    if(m_usage != image_usage::transfer_src)
     {
         if(!was_mapped)
         {
@@ -283,7 +283,7 @@ buffer image::to_buffer() noexcept
     return buffer{std::move(m_buffer), std::move(m_memory), m_width * m_height * 4};
 }
 
-void set_object_name(renderer& renderer, const image& object, const std::string& name)
+void set_object_name(device& dev, const image& object, const std::string& name)
 {
     VkDebugUtilsObjectNameInfoEXT info{};
     info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
@@ -291,8 +291,7 @@ void set_object_name(renderer& renderer, const image& object, const std::string&
     info.objectHandle = reinterpret_cast<std::uint64_t>(underlying_cast<VkBuffer>(object));
     info.pObjectName = std::data(name);
 
-    if(auto result{vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(renderer), &info)}; result != VK_SUCCESS)
-        throw vulkan::error{result};
+    vulkan::check(dev->vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(dev), &info));
 }
 
 }

@@ -53,38 +53,38 @@ class CAPTAL_API texture : public asynchronous_resource
 public:
     texture() = default;
 
-    template<typename... Args> requires std::constructible_from<tph::texture, tph::renderer&, Args...>
+    template<typename... Args> requires std::constructible_from<tph::texture, tph::device&, Args...>
     explicit texture(Args&&... args)
-    :m_texture{get_renderer(), std::forward<Args>(args)...}
-    ,m_texture_view{get_renderer(), m_texture}
-    ,m_sampler{get_renderer(), tph::sampler_info{}}
+    :m_texture{get_device(), std::forward<Args>(args)...}
+    ,m_texture_view{get_device(), m_texture}
+    ,m_sampler{get_device(), tph::sampler_info{}}
     {
 
     }
 
-    template<typename... Args> requires std::constructible_from<tph::texture, tph::renderer&, Args...>
+    template<typename... Args> requires std::constructible_from<tph::texture, tph::device&, Args...>
     explicit texture(const tph::sampler_info& sampler, Args&&... args)
-    :m_texture{get_renderer(), std::forward<Args>(args)...}
-    ,m_texture_view{get_renderer(), m_texture}
-    ,m_sampler{get_renderer(), sampler}
+    :m_texture{get_device(), std::forward<Args>(args)...}
+    ,m_texture_view{get_device(), m_texture}
+    ,m_sampler{get_device(), sampler}
     {
 
     }
 
-    template<typename... Args> requires std::constructible_from<tph::texture, tph::renderer&, Args...>
+    template<typename... Args> requires std::constructible_from<tph::texture, tph::device&, Args...>
     explicit texture(const tph::component_mapping& mapping, Args&&... args)
-    :m_texture{get_renderer(), std::forward<Args>(args)...}
-    ,m_texture_view{get_renderer(), m_texture, mapping}
-    ,m_sampler{get_renderer(), tph::sampler_info{}}
+    :m_texture{get_device(), std::forward<Args>(args)...}
+    ,m_texture_view{get_device(), m_texture, mapping}
+    ,m_sampler{get_device(), tph::sampler_info{}}
     {
 
     }
 
-    template<typename... Args> requires std::constructible_from<tph::texture, tph::renderer&, Args...>
+    template<typename... Args> requires std::constructible_from<tph::texture, tph::device&, Args...>
     explicit texture(const tph::sampler_info& sampler, const tph::component_mapping& mapping, Args&&... args)
-    :m_texture{get_renderer(), std::forward<Args>(args)...}
-    ,m_texture_view{get_renderer(), m_texture, mapping}
-    ,m_sampler{get_renderer(), sampler}
+    :m_texture{get_device(), std::forward<Args>(args)...}
+    ,m_texture_view{get_device(), m_texture, mapping}
+    ,m_sampler{get_device(), sampler}
     {
 
     }
@@ -188,7 +188,7 @@ public:
 #endif
 
 private:
-    static tph::renderer& get_renderer() noexcept;
+    static tph::device& get_device() noexcept;
 
 private:
     tph::texture m_texture{};

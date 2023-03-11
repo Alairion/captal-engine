@@ -39,7 +39,7 @@
 namespace tph
 {
 
-class renderer;
+class device;
 
 struct attachment_description
 {
@@ -74,12 +74,12 @@ static constexpr std::uint32_t external_subpass{VK_SUBPASS_EXTERNAL};
 
 struct subpass_dependency
 {
-    std::uint32_t source_subpass{};
-    std::uint32_t destination_subpass{};
-    pipeline_stage source_stage{};
-    pipeline_stage destination_stage{};
-    resource_access source_access{};
-    resource_access destination_access{};
+    std::uint32_t src_subpass{};
+    std::uint32_t dest_subpass{};
+    pipeline_stage src_stage{};
+    pipeline_stage dest_stage{};
+    resource_access src_access{};
+    resource_access dest_access{};
     tph::dependency_flags dependency_flags{};
 };
 
@@ -99,10 +99,10 @@ class TEPHRA_API framebuffer
 
 public:
     constexpr framebuffer() = default;
-    explicit framebuffer(renderer& renderer, const render_pass& render_pass, std::span<const std::reference_wrapper<texture_view>> attachments, std::uint32_t width, std::uint32_t height, std::uint32_t layers);
+    explicit framebuffer(device& dev, const render_pass& rpass, std::span<const std::reference_wrapper<texture_view>> attachments, std::uint32_t width, std::uint32_t height, std::uint32_t layers);
 
-    explicit framebuffer(vulkan::framebuffer framebuffer, std::vector<clear_value_t> clear_values, std::uint32_t width, std::uint32_t height, std::uint32_t layers) noexcept
-    :m_framebuffer{std::move(framebuffer)}
+    explicit framebuffer(vulkan::framebuffer framebuf, std::vector<clear_value_t> clear_values, std::uint32_t width, std::uint32_t height, std::uint32_t layers) noexcept
+    :m_framebuffer{std::move(framebuf)}
     ,m_clear_values{std::move(clear_values)}
     ,m_width{width}
     ,m_height{height}
@@ -116,6 +116,11 @@ public:
     framebuffer& operator=(const framebuffer&) = delete;
     framebuffer(framebuffer&& other) noexcept = default;
     framebuffer& operator=(framebuffer&& other) noexcept = default;
+
+    vulkan::device_context context() const noexcept
+    {
+        return m_framebuffer.context();
+    }
 
     void set_clear_value(std::uint32_t attachment_index, const clear_value_t& value);
     void set_clear_values(std::vector<clear_value_t> clear_values);
@@ -148,18 +153,18 @@ private:
     std::uint32_t m_layers{};
 };
 
-TEPHRA_API void set_object_name(renderer& renderer, const framebuffer& object, const std::string& name);
+TEPHRA_API void set_object_name(device& dev, const framebuffer& object, const std::string& name);
 
 template<>
-inline VkDevice underlying_cast(const framebuffer& framebuffer) noexcept
+inline VkDevice underlying_cast(const framebuffer& framebuf) noexcept
 {
-    return framebuffer.m_framebuffer.device();
+    return framebuf.m_framebuffer.device();
 }
 
 template<>
-inline VkFramebuffer underlying_cast(const framebuffer& framebuffer) noexcept
+inline VkFramebuffer underlying_cast(const framebuffer& framebuf) noexcept
 {
-    return framebuffer.m_framebuffer;
+    return framebuf.m_framebuffer;
 }
 
 class TEPHRA_API render_pass
@@ -169,10 +174,10 @@ class TEPHRA_API render_pass
 
 public:
     constexpr render_pass() = default;
-    explicit render_pass(renderer& renderer, const render_pass_info& info);
+    explicit render_pass(device& dev, const render_pass_info& info);
 
-    explicit render_pass(vulkan::render_pass render_pass) noexcept
-    :m_render_pass{std::move(render_pass)}
+    explicit render_pass(vulkan::render_pass rpass) noexcept
+    :m_render_pass{std::move(rpass)}
     {
 
     }
@@ -183,22 +188,27 @@ public:
     render_pass(render_pass&& other) noexcept = default;
     render_pass& operator=(render_pass&& other) noexcept = default;
 
+    vulkan::device_context context() const noexcept
+    {
+        return m_render_pass.context();
+    }
+
 private:
     vulkan::render_pass m_render_pass{};
 };
 
-TEPHRA_API void set_object_name(renderer& renderer, const render_pass& object, const std::string& name);
+TEPHRA_API void set_object_name(device& dev, const render_pass& object, const std::string& name);
 
 template<>
-inline VkDevice underlying_cast(const render_pass& render_pass) noexcept
+inline VkDevice underlying_cast(const render_pass& rpass) noexcept
 {
-    return render_pass.m_render_pass.device();
+    return rpass.m_render_pass.device();
 }
 
 template<>
-inline VkRenderPass underlying_cast(const render_pass& render_pass) noexcept
+inline VkRenderPass underlying_cast(const render_pass& rpass) noexcept
 {
-    return render_pass.m_render_pass;
+    return rpass.m_render_pass;
 }
 
 }

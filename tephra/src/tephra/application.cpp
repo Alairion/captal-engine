@@ -28,7 +28,7 @@
 
 #include "vulkan/vulkan_functions.hpp"
 
-#include "renderer.hpp"
+#include "device.hpp"
 
 using namespace tph::vulkan::functions;
 
@@ -37,13 +37,13 @@ namespace tph
 
 tph::version enumerate_instance_version()
 {
-    tph::vulkan::functions::load_external_level_functions();
-    tph::vulkan::functions::load_global_level_functions();
+#ifdef VK_VERSION_1_1
+    load_external_level_functions();
+    load_global_level_functions();
 
     std::uint32_t native_version{};
 
-    if(const auto result{vkEnumerateInstanceVersion(&native_version)}; result != VK_SUCCESS)
-        throw vulkan::error{result};
+    vulkan::check(vkEnumerateInstanceVersion(&native_version));
 
     tph::version output{};
     output.major = static_cast<std::uint16_t>(VK_VERSION_MAJOR(native_version));
@@ -51,6 +51,9 @@ tph::version enumerate_instance_version()
     output.patch = VK_VERSION_PATCH(native_version);
 
     return output;
+#else
+    return tph::version{1, 0, 0};
+#endif
 }
 
 static std::vector<VkLayerProperties> available_instance_layers()
@@ -228,33 +231,33 @@ static std::vector<const char*> required_instance_extensions(const std::vector<c
     return filter_instance_extensions(layers, std::move(output), extensions);
 }
 
-static std::vector<physical_device> make_physical_devices(VkInstance instance, tph::version version)
+static std::vector<physical_device> make_physical_devices(const vulkan::instance_context& context, tph::version version)
 {
     std::vector<VkPhysicalDevice> native_devices{};
 
     std::uint32_t count{};
-    vkEnumeratePhysicalDevices(instance, &count, nullptr);
+    context->vkEnumeratePhysicalDevices(context.instance, &count, nullptr);
     native_devices.resize(count);
-    vkEnumeratePhysicalDevices(instance, &count, std::data(native_devices));
+    context->vkEnumeratePhysicalDevices(context.instance, &count, std::data(native_devices));
 
     std::vector<physical_device> devices{};
     devices.reserve(count);
 
     for(auto&& native_device : native_devices)
     {
-        devices.emplace_back(vulkan::make_physical_device(native_device, version));
+        devices.emplace_back(vulkan::make_physical_device(context, native_device, version));
     }
 
     return devices;
 }
 
-application::application(const std::string& application_name, version application_version, application_layer layers, application_extension extensions)
-:application{application_name, application_version, enumerate_instance_version(), layers, extensions}
+application::application(const std::string& name, version app_version, application_layer layers, application_extension extensions)
+:application{name, app_version, enumerate_instance_version(), layers, extensions}
 {
 
 }
 
-application::application(const std::string& application_name, version application_version, version api_version, application_layer layers, application_extension extensions)
+application::application(const std::string& name, version app_version, version api_version, application_layer layers, application_extension extensions)
 :m_version{api_version}
 {
     tph::vulkan::functions::load_external_level_functions();
@@ -263,26 +266,20 @@ application::application(const std::string& application_name, version applicatio
     const std::vector<const char*> layer_names{required_instance_layers(layers)};
     const std::vector<const char*> extension_names{required_instance_extensions(layer_names, extensions)};
 
-    m_instance = vulkan::instance{application_name, application_version, api_version, layer_names, extension_names};
+    m_instance = vulkan::instance{name, app_version, api_version, layer_names, extension_names};
     m_layers = layers;
     m_extensions = extensions;
 
-    tph::vulkan::functions::load_instance_level_functions(m_instance);
-
-    m_physical_devices = make_physical_devices(m_instance, m_version);
+    m_physical_devices = make_physical_devices(m_instance.context(), m_version);
 }
 
-application::application(vulkan::instance instance, tph::version api_version, application_layer layers, application_extension extensions)
-:m_instance{std::move(instance)}
+application::application(vulkan::instance inst, tph::version api_version, application_layer layers, application_extension extensions)
+:m_instance{std::move(inst)}
 ,m_version{api_version}
 ,m_layers{layers}
 ,m_extensions{extensions}
 {
-    tph::vulkan::functions::load_external_level_functions();
-    tph::vulkan::functions::load_global_level_functions();
-    tph::vulkan::functions::load_instance_level_functions(m_instance);
-
-    m_physical_devices = make_physical_devices(m_instance, m_version);
+    m_physical_devices = make_physical_devices(m_instance.context(), m_version);
 }
 
 const physical_device& application::select_physical_device(const filter_type& required, const comparator_type& comparator) const

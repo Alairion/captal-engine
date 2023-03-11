@@ -30,11 +30,11 @@ namespace cpt
 {
 
 #ifdef CAPTAL_DEBUG
-static constexpr auto graphics_layers    {tph::renderer_layer::validation};
-static constexpr auto graphics_extensions{tph::renderer_extension::swapchain};
+static constexpr auto graphics_layers    {tph::device_layer::validation};
+static constexpr auto graphics_extensions{tph::device_extension::swapchain};
 #else
-static constexpr auto graphics_layers    {tph::renderer_layer::none};
-static constexpr auto graphics_extensions{tph::renderer_extension::swapchain};
+static constexpr auto graphics_layers    {tph::device_layer::none};
+static constexpr auto graphics_extensions{tph::device_extension::swapchain};
 #endif
 
 static constexpr auto default_vertex_shader_spv = std::to_array<std::uint32_t>(
@@ -66,9 +66,9 @@ engine::engine(const std::string& application_name, cpt::version version)
 ,m_listener{m_audio_pulser.bind(swl::listener{std::min(m_audio_device.max_output_channel(), 2u)})}
 ,m_audio_stream{m_application.audio_application(), m_audio_device, make_stream_info(*m_listener, m_audio_world, m_audio_device), swl::listener_bridge{*m_listener}}
 ,m_graphics_device{m_application.graphics_application().default_physical_device()}
-,m_renderer{m_graphics_device, graphics_layers, graphics_extensions}
+,m_device{m_application.graphics_application(), m_graphics_device, graphics_layers, graphics_extensions}
 ,m_uniform_pool{tph::buffer_usage::uniform | tph::buffer_usage::vertex | tph::buffer_usage::index}
-,m_transfer_scheduler{m_renderer}
+,m_transfer_scheduler{m_device}
 {
     init();
 }
@@ -150,16 +150,16 @@ engine::engine(cpt::application application, const system_parameters& system [[m
 ,m_listener{m_audio_pulser.bind(swl::listener{audio.channel_count})}
 ,m_audio_stream{m_application.audio_application(), m_audio_device, make_stream_info(*m_listener, m_audio_world, m_audio_device), swl::listener_bridge{*m_listener}}
 ,m_graphics_device{default_graphics_device(m_application.graphics_application(), graphics)}
-,m_renderer{m_graphics_device, graphics_layers | graphics.layers, graphics_extensions | graphics.extensions, graphics.features, graphics.options}
+,m_device{m_application.graphics_application(), m_graphics_device, graphics_layers | graphics.layers, graphics_extensions | graphics.extensions, graphics.features, graphics.options}
 ,m_uniform_pool{tph::buffer_usage::uniform | tph::buffer_usage::vertex | tph::buffer_usage::index}
-,m_transfer_scheduler{m_renderer}
+,m_transfer_scheduler{m_device}
 {
     init();
 }
 
 engine::~engine()
 {
-    m_renderer.wait();
+    m_device.wait();
 
     m_update_signal.disconnect_all();
     m_frame_per_second_signal.disconnect_all();
@@ -191,7 +191,7 @@ void engine::set_default_vertex_shader(tph::shader new_default_vertex_shader) no
     m_default_vertex_shader = std::move(new_default_vertex_shader);
 
     #ifdef CAPTAL_DEBUG
-    tph::set_object_name(m_renderer, m_default_vertex_shader, "cpt::engine's default vertex shader");
+    tph::set_object_name(m_device, m_default_vertex_shader, "cpt::engine's default vertex shader");
     #endif
 }
 
@@ -200,7 +200,7 @@ void engine::set_default_fragment_shader(tph::shader new_default_fragment_shader
     m_default_fragment_shader = std::move(new_default_fragment_shader);
 
     #ifdef CAPTAL_DEBUG
-    tph::set_object_name(m_renderer, m_default_fragment_shader, "cpt::engine's default fragment shader");
+    tph::set_object_name(m_device, m_default_fragment_shader, "cpt::engine's default fragment shader");
     #endif
 }
 
@@ -256,8 +256,8 @@ void engine::init()
     m_audio_pulser.start();
     m_audio_stream.start();
 
-    set_default_vertex_shader(tph::shader{m_renderer, tph::shader_stage::vertex, default_vertex_shader_spv});
-    set_default_fragment_shader(tph::shader{m_renderer, tph::shader_stage::fragment, default_fragment_shader_spv});
+    set_default_vertex_shader(tph::shader{m_device, tph::shader_stage::vertex, default_vertex_shader_spv});
+    set_default_fragment_shader(tph::shader{m_device, tph::shader_stage::fragment, default_fragment_shader_spv});
 
     render_layout_info view_info{};
     view_info.bindings.emplace_back(tph::shader_stage::vertex, 0, tph::descriptor_type::uniform_buffer);
@@ -370,9 +370,9 @@ void engine::init()
         std::cout << "  Graphics device: " << m_graphics_device.properties().name << "\n";
         std::cout << "    Pipeline Cache UUID: " << format_uuid(m_graphics_device.properties().uuid) << "\n";
         std::cout << "    Heap sizes:\n";
-        std::cout << "      Host shared: " << format_data(m_renderer.allocator().default_heap_sizes().host_shared) << "\n";
-        std::cout << "      Device shared: " << format_data(m_renderer.allocator().default_heap_sizes().device_shared) << "\n";
-        std::cout << "      Device local: " << format_data(m_renderer.allocator().default_heap_sizes().device_local) << "\n";
+        std::cout << "      Host shared: " << format_data(m_device.allocator().default_heap_sizes().host_shared) << "\n";
+        std::cout << "      Device shared: " << format_data(m_device.allocator().default_heap_sizes().device_shared) << "\n";
+        std::cout << "      Device local: " << format_data(m_device.allocator().default_heap_sizes().device_local) << "\n";
 
         if(m_graphics_device.driver())
         {

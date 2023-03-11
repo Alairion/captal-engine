@@ -25,20 +25,42 @@
 
 #include <vulkan/vulkan.h>
 
-namespace tph::vulkan::functions
+#ifndef VK_VERSION_1_1
+    #error "Tephra requires a Vulkan SDK that exposes at least Vulkan Core version 1.1"
+#endif
+
+namespace tph::vulkan
 {
 
+namespace functions
+{
+
+// this function are the same for everyone (i.e. system-level)
 #define TEPHRA_EXTERNAL_LEVEL_FUNCTION(function) extern PFN_##function function;
 #define TEPHRA_GLOBAL_LEVEL_FUNCTION(function) extern PFN_##function function;
-#define TEPHRA_INSTANCE_LEVEL_FUNCTION(function) extern PFN_##function function;
-#define TEPHRA_DEVICE_LEVEL_FUNCTION(function) extern PFN_##function function;
 
 #include "vulkan_functions_list"
 
+#define TEPHRA_INSTANCE_LEVEL_FUNCTION(function) PFN_##function function;
+
+struct instance_level_functions
+{
+    #include "vulkan_functions_list"
+};
+
+#define TEPHRA_DEVICE_LEVEL_FUNCTION(function) PFN_##function function;
+
+struct device_level_functions
+{
+    #include "vulkan_functions_list"
+};
+
 void load_external_level_functions();
 void load_global_level_functions();
-void load_instance_level_functions(VkInstance instance);
-void load_device_level_functions(VkDevice device);
+void load_instance_level_functions(VkInstance instance, instance_level_functions& instance_functions) noexcept;
+void load_device_level_functions(VkDevice device, const instance_level_functions& instance_functions, device_level_functions& device_functions) noexcept;
+
+}
 
 }
 

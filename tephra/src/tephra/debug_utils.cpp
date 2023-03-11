@@ -28,10 +28,7 @@
 #include <charconv>
 #include <algorithm>
 
-#include "vulkan/vulkan_functions.hpp"
-
 #include "application.hpp"
-#include "renderer.hpp"
 
 using namespace tph::vulkan::functions;
 
@@ -277,7 +274,7 @@ void debug_messenger_default_callback(debug_message_severity severity, debug_mes
 
 debug_messenger::debug_messenger(application& app, callback_type callback, debug_message_severity severities, debug_message_type types)
 :m_callback{std::make_unique<callback_type>(std::move(callback))}
-,m_debug_messenger{underlying_cast<VkInstance>(app), &debug_messenger_callback, static_cast<VkDebugUtilsMessageSeverityFlagBitsEXT>(severities), static_cast<VkDebugUtilsMessageTypeFlagBitsEXT>(types), m_callback.get()}
+,m_debug_messenger{app.context(), &debug_messenger_callback, static_cast<VkDebugUtilsMessageSeverityFlagBitsEXT>(severities), static_cast<VkDebugUtilsMessageTypeFlagBitsEXT>(types), m_callback.get()}
 {
 
 }

@@ -80,16 +80,14 @@ void memory_heap_chunk::bind(VkBuffer buffer)
 {
     assert(m_parent && "tph::vulkan::memory_heap_chunk::bind called with an invalid memory_heap_chunk.");
 
-    if(auto result{vkBindBufferMemory(*m_parent, buffer, *m_parent, m_offset)}; result != VK_SUCCESS)
-        throw vulkan::error{result};
+    vulkan::check(m_parent->context()->vkBindBufferMemory(*m_parent, buffer, *m_parent, m_offset));
 }
 
 void memory_heap_chunk::bind(VkImage image)
 {
     assert(m_parent && "tph::vulkan::memory_heap_chunk::bind called with an invalid memory_heap_chunk.");
 
-    if(auto result{vkBindImageMemory(*m_parent, image, *m_parent, m_offset)}; result != VK_SUCCESS)
-        throw vulkan::error{result};
+    vulkan::check(m_parent->context()->vkBindImageMemory(*m_parent, image, *m_parent, m_offset));
 }
 
 void* memory_heap_chunk::map()
@@ -141,9 +139,9 @@ void memory_heap_chunk::unmap() const noexcept
     m_mapped = false;
 }
 
-memory_heap::memory_heap(VkDevice device, std::uint32_t type, std::uint64_t size, std::uint64_t granularity, std::uint64_t non_coherent_atom_size, bool coherent)
-:m_device{device}
-,m_memory{device, type, size}
+memory_heap::memory_heap(const device_context& context, std::uint32_t type, std::uint64_t size, std::uint64_t granularity, std::uint64_t non_coherent_atom_size, bool coherent)
+:m_context{context}
+,m_memory{context, type, size}
 ,m_type{type}
 ,m_size{size}
 ,m_free_space{size}
@@ -153,8 +151,8 @@ memory_heap::memory_heap(VkDevice device, std::uint32_t type, std::uint64_t size
     std::get<non_dedicated_heap>(m_heap).ranges.reserve(64);
 }
 
-memory_heap::memory_heap(VkDevice device, VkImage image, std::uint32_t type, std::uint64_t size)
-:m_device{device}
+memory_heap::memory_heap(const device_context& context, VkImage image, std::uint32_t type, std::uint64_t size)
+:m_context{context}
 ,m_type{type}
 ,m_size{size}
 ,m_free_space{size}
@@ -171,14 +169,13 @@ memory_heap::memory_heap(VkDevice device, VkImage image, std::uint32_t type, std
     info.memoryTypeIndex = type;
 
     VkDeviceMemory memory{};
-    if(auto result{vkAllocateMemory(device, &info, nullptr, &memory)}; result != VK_SUCCESS)
-        throw vulkan::error{result};
+    vulkan::check(context->vkAllocateMemory(context.device, &info, nullptr, &memory));
 
-    m_memory = vulkan::device_memory{device, memory};
+    m_memory = vulkan::device_memory{context, memory};
 }
 
-memory_heap::memory_heap(VkDevice device, VkBuffer buffer, std::uint32_t type, std::uint64_t size)
-:m_device{device}
+memory_heap::memory_heap(const device_context& context, VkBuffer buffer, std::uint32_t type, std::uint64_t size)
+:m_context{context}
 ,m_type{type}
 ,m_size{size}
 ,m_free_space{size}
@@ -195,10 +192,9 @@ memory_heap::memory_heap(VkDevice device, VkBuffer buffer, std::uint32_t type, s
     info.memoryTypeIndex = type;
 
     VkDeviceMemory memory{};
-    if(auto result{vkAllocateMemory(device, &info, nullptr, &memory)}; result != VK_SUCCESS)
-        throw vulkan::error{result};
+    vulkan::check(context->vkAllocateMemory(context.device, &info, nullptr, &memory));
 
-    m_memory = vulkan::device_memory{device, memory};
+    m_memory = vulkan::device_memory{context, memory};
 }
 
 memory_heap::~memory_heap()
@@ -371,7 +367,7 @@ void* memory_heap::map()
     {
         if(!m_map)
         {
-            if(vkMapMemory(m_device, m_memory, 0, VK_WHOLE_SIZE, 0, &m_map) != VK_SUCCESS)
+            if(m_context->vkMapMemory(m_context.device, m_memory, 0, VK_WHOLE_SIZE, 0, &m_map) != VK_SUCCESS)
                 throw std::runtime_error{"Can not map memory."};
         }
     }
@@ -383,7 +379,7 @@ void* memory_heap::map()
 
         if(!m_map)
         {
-            if(vkMapMemory(m_device, m_memory, 0, VK_WHOLE_SIZE, 0, &m_map) != VK_SUCCESS)
+            if(m_context->vkMapMemory(m_context.device, m_memory, 0, VK_WHOLE_SIZE, 0, &m_map) != VK_SUCCESS)
                 throw std::runtime_error{"Can not map memory."};
         }
 
@@ -403,14 +399,11 @@ void memory_heap::flush(std::uint64_t offset, std::uint64_t size)
         range.offset = 0;
         range.size = VK_WHOLE_SIZE;
 
-        if(auto result{vkFlushMappedMemoryRanges(m_device, 1, &range)}; result != VK_SUCCESS)
-            throw vulkan::error{result};
+        vulkan::check(m_context->vkFlushMappedMemoryRanges(m_context.device, 1, &range));
     }
     else
     {
         auto& heap{std::get<non_dedicated_heap>(m_heap)};
-
-        std::lock_guard lock{heap.mutex};
 
         const std::uint64_t aligned_offset{align_down(offset, heap.non_coherent_atom_size)};
         const std::uint64_t aligned_size{align_up((offset - aligned_offset) + size, heap.non_coherent_atom_size)};
@@ -421,8 +414,7 @@ void memory_heap::flush(std::uint64_t offset, std::uint64_t size)
         range.offset = aligned_offset;
         range.size = aligned_size;
 
-        if(auto result{vkFlushMappedMemoryRanges(m_device, 1, &range)}; result != VK_SUCCESS)
-            throw vulkan::error{result};
+        vulkan::check(m_context->vkFlushMappedMemoryRanges(m_context.device, 1, &range));
     }
 
 }
@@ -437,14 +429,11 @@ void memory_heap::invalidate(std::uint64_t offset, std::uint64_t size)
         range.offset = 0;
         range.size = VK_WHOLE_SIZE;
 
-        if(auto result{vkInvalidateMappedMemoryRanges(m_device, 1, &range)}; result != VK_SUCCESS)
-            throw vulkan::error{result};
+        vulkan::check(m_context->vkInvalidateMappedMemoryRanges(m_context.device, 1, &range));
     }
     else
     {
         auto& heap{std::get<non_dedicated_heap>(m_heap)};
-
-        std::lock_guard lock{heap.mutex};
 
         const std::uint64_t aligned_offset{align_down(offset, heap.non_coherent_atom_size)};
         const std::uint64_t aligned_size{align_up((offset - aligned_offset) + size, heap.non_coherent_atom_size)};
@@ -455,8 +444,7 @@ void memory_heap::invalidate(std::uint64_t offset, std::uint64_t size)
         range.offset = aligned_offset;
         range.size = aligned_size;
 
-        if(auto result{vkInvalidateMappedMemoryRanges(m_device, 1, &range)}; result != VK_SUCCESS)
-            throw vulkan::error{result};
+        vulkan::check(m_context->vkInvalidateMappedMemoryRanges(m_context.device, 1, &range));
     }
 }
 
@@ -464,7 +452,7 @@ void memory_heap::unmap() noexcept
 {
     if(dedicated())
     {
-        vkUnmapMemory(m_device, m_memory);
+        m_context->vkUnmapMemory(m_context.device, m_memory);
         m_map = nullptr;
     }
     else
@@ -477,7 +465,7 @@ void memory_heap::unmap() noexcept
 
         if(heap.map_count == 0)
         {
-            vkUnmapMemory(m_device, m_memory);
+            m_context->vkUnmapMemory(m_context.device, m_memory);
             m_map = nullptr;
         }
     }
@@ -515,12 +503,12 @@ void memory_heap::unregister_chunk(const memory_heap_chunk& chunk) noexcept
     }
 }
 
-memory_allocator::memory_allocator(VkPhysicalDevice physical_device, VkDevice device, const heap_sizes& sizes)
+memory_allocator::memory_allocator(const instance_context& instance, const device_context& device, VkPhysicalDevice physical_device, const heap_sizes& sizes)
 :m_physical_device{physical_device}
-,m_device{device}
+,m_context{device}
 ,m_sizes{sizes}
 {
-    vkGetPhysicalDeviceMemoryProperties(m_physical_device, &m_memory_properties);
+    instance->vkGetPhysicalDeviceMemoryProperties(m_physical_device, &m_memory_properties);
 
     m_heaps_flags.resize(m_memory_properties.memoryHeapCount);
     for(std::uint32_t i{}; i < m_memory_properties.memoryTypeCount; ++i)
@@ -529,7 +517,7 @@ memory_allocator::memory_allocator(VkPhysicalDevice physical_device, VkDevice de
     }
 
     VkPhysicalDeviceProperties properties{};
-    vkGetPhysicalDeviceProperties(m_physical_device, &properties);
+    instance->vkGetPhysicalDeviceProperties(m_physical_device, &properties);
 
     m_version.major = static_cast<std::uint16_t>(VK_VERSION_MAJOR(properties.apiVersion));
     m_version.minor = static_cast<std::uint16_t>(VK_VERSION_MINOR(properties.apiVersion));
@@ -545,7 +533,7 @@ memory_heap_chunk memory_allocator::allocate(const VkMemoryRequirements& require
 
     if(requirements.size > default_size) //Pseudo-dedicated allocation (because it is reusable unlike real dedicated allocations)
     {
-        auto heap{std::make_unique<memory_heap>(m_device, memory_type, requirements.size, m_granularity, m_non_coherent_atom_size, coherent)};
+        auto heap{std::make_unique<memory_heap>(m_context, memory_type, requirements.size, m_granularity, m_non_coherent_atom_size, coherent)};
         auto chunk{heap->allocate_pseudo_dedicated(resource_type, requirements.size)};
 
         std::lock_guard lock{m_mutex};
@@ -554,7 +542,7 @@ memory_heap_chunk memory_allocator::allocate(const VkMemoryRequirements& require
         return chunk;
     }
 
-    std::lock_guard lock{m_mutex};
+    std::unique_lock lock{m_mutex};
 
     if(!std::empty(m_heaps))
     {
@@ -591,13 +579,16 @@ memory_heap_chunk memory_allocator::allocate(const VkMemoryRequirements& require
         }
     }
 
-    auto& heap{m_heaps.emplace_back(std::make_unique<memory_heap>(m_device, memory_type, default_size, m_granularity, m_non_coherent_atom_size, coherent))};
+    auto& heap{m_heaps.emplace_back(std::make_unique<memory_heap>(m_context, memory_type, default_size, m_granularity, m_non_coherent_atom_size, coherent))};
+
+    lock.unlock();
 
     return heap->allocate(resource_type, requirements.size, requirements.alignment);
 }
 
 memory_heap_chunk memory_allocator::allocate(VkBuffer buffer, memory_resource_type resource_type, VkMemoryPropertyFlags minimal, VkMemoryPropertyFlags optimal)
 {
+#ifdef VK_VERSION_1_1
     if(m_version >= tph::version{1, 1})
     {
         VkBufferMemoryRequirementsInfo2 info{};
@@ -611,14 +602,14 @@ memory_heap_chunk memory_allocator::allocate(VkBuffer buffer, memory_resource_ty
         requirements.sType = VK_STRUCTURE_TYPE_MEMORY_REQUIREMENTS_2;
         requirements.pNext = &dedicated_requirements;
 
-        vkGetBufferMemoryRequirements2(m_device, &info, &requirements);
+        m_context->vkGetBufferMemoryRequirements2(m_context.device, &info, &requirements);
 
         if(dedicated_requirements.prefersDedicatedAllocation == VK_TRUE)
         {
             const std::uint32_t memory_type{find_memory_type(m_memory_properties, requirements.memoryRequirements.memoryTypeBits, minimal, optimal)};
             const std::uint64_t size{requirements.memoryRequirements.size};
 
-            auto heap{std::make_unique<memory_heap>(m_device, buffer, memory_type, size)};
+            auto heap{std::make_unique<memory_heap>(m_context, buffer, memory_type, size)};
             auto chunk{heap->allocate_dedicated(size)};
 
             std::lock_guard lock{m_mutex};
@@ -632,9 +623,10 @@ memory_heap_chunk memory_allocator::allocate(VkBuffer buffer, memory_resource_ty
         }
     }
     else
+#endif
     {
         VkMemoryRequirements requirements{};
-        vkGetBufferMemoryRequirements(m_device, buffer, &requirements);
+        m_context->vkGetBufferMemoryRequirements(m_context.device, buffer, &requirements);
 
         return allocate(requirements, resource_type, minimal, optimal);
     }
@@ -642,6 +634,7 @@ memory_heap_chunk memory_allocator::allocate(VkBuffer buffer, memory_resource_ty
 
 memory_heap_chunk memory_allocator::allocate(VkImage image, memory_resource_type resource_type, VkMemoryPropertyFlags minimal, VkMemoryPropertyFlags optimal)
 {
+#ifdef VK_VERSION_1_1
     if(m_version >= tph::version{1, 1})
     {
         VkImageMemoryRequirementsInfo2 info{};
@@ -655,14 +648,14 @@ memory_heap_chunk memory_allocator::allocate(VkImage image, memory_resource_type
         requirements.sType = VK_STRUCTURE_TYPE_MEMORY_REQUIREMENTS_2;
         requirements.pNext = &dedicated_requirements;
 
-        vkGetImageMemoryRequirements2(m_device, &info, &requirements);
+        m_context->vkGetImageMemoryRequirements2(m_context.device, &info, &requirements);
 
         if(dedicated_requirements.prefersDedicatedAllocation == VK_TRUE)
         {
             const std::uint32_t memory_type{find_memory_type(m_memory_properties, requirements.memoryRequirements.memoryTypeBits, minimal, optimal)};
             const std::uint64_t size{requirements.memoryRequirements.size};
 
-            auto heap{std::make_unique<memory_heap>(m_device, image, memory_type, size)};
+            auto heap{std::make_unique<memory_heap>(m_context, image, memory_type, size)};
             auto chunk{heap->allocate_dedicated(size)};
 
             std::lock_guard lock{m_mutex};
@@ -676,9 +669,10 @@ memory_heap_chunk memory_allocator::allocate(VkImage image, memory_resource_type
         }
     }
     else
+#endif
     {
         VkMemoryRequirements requirements{};
-        vkGetImageMemoryRequirements(m_device, image, &requirements);
+        m_context->vkGetImageMemoryRequirements(m_context.device, image, &requirements);
 
         return allocate(requirements, resource_type, minimal, optimal);
     }

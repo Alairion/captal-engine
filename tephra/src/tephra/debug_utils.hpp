@@ -40,7 +40,7 @@ namespace tph
 {
 
 class application;
-class renderer;
+class device;
 
 enum class debug_message_severity : std::uint32_t
 {
@@ -94,8 +94,8 @@ public:
     constexpr debug_messenger() = default;
     explicit debug_messenger(application& app, callback_type callback, debug_message_severity severities, debug_message_type types);
 
-    explicit debug_messenger(vulkan::debug_messenger debug_messenger) noexcept
-    :m_debug_messenger{std::move(debug_messenger)}
+    explicit debug_messenger(vulkan::debug_messenger dbg_messenger) noexcept
+    :m_debug_messenger{std::move(dbg_messenger)}
     {
 
     }
@@ -105,6 +105,11 @@ public:
     debug_messenger& operator=(const debug_messenger&) = delete;
     debug_messenger(debug_messenger&& other) noexcept = default;
     debug_messenger& operator=(debug_messenger&& other) noexcept = default;
+
+    vulkan::instance_context context() const noexcept
+    {
+        return m_debug_messenger.context();
+    }
 
     const callback_type& callback() const noexcept
     {
@@ -117,15 +122,15 @@ private:
 };
 
 template<>
-inline VkInstance underlying_cast(const debug_messenger& debug_messenger) noexcept
+inline VkInstance underlying_cast(const debug_messenger& dbg_messenger) noexcept
 {
-    return debug_messenger.m_debug_messenger.instance();
+    return dbg_messenger.m_debug_messenger.instance();
 }
 
 template<>
-inline VkDebugUtilsMessengerEXT underlying_cast(const debug_messenger& debug_messenger) noexcept
+inline VkDebugUtilsMessengerEXT underlying_cast(const debug_messenger& dbg_messenger) noexcept
 {
-    return debug_messenger.m_debug_messenger;
+    return dbg_messenger.m_debug_messenger;
 }
 
 }

@@ -37,7 +37,7 @@ static tph::surface make_window_surface(apr::window& window)
 {
     tph::application& application{engine::instance().application().graphics_application()};
 
-    tph::surface output{tph::vulkan::surface{tph::underlying_cast<VkInstance>(application), window.make_surface(tph::underlying_cast<VkInstance>(application))}};
+    tph::surface output{tph::vulkan::surface{application.context(), window.make_surface(tph::underlying_cast<VkInstance>(application))}};
     check_presentation_support(output);
 
     return output;
@@ -169,7 +169,7 @@ void window::dispatch_event(const apr::event& event)
 #ifdef CAPTAL_DEBUG
 void window::set_name(std::string_view name)
 {
-    tph::set_object_name(engine::instance().renderer(), m_surface, std::string{name} + " surface");
+    tph::set_object_name(engine::instance().device(), m_surface, std::string{name} + " surface");
 }
 #endif
 

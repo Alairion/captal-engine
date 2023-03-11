@@ -1,17 +1,17 @@
 # Download and build external project Pugixml
 
-option(CAPTAL_SUPERBUILD_EXCLUDE_PUGIXML "Does not build pugixml as a part of the superbuild, falling back on classic find_package." OFF)
+option(CPT_SUPERBUILD_EXCLUDE_PUGIXML "Does not build pugixml as a part of the superbuild, falling back on classic find_package." OFF)
 
-if(NOT CAPTAL_SUPERBUILD_EXCLUDE_PUGIXML)
-    set(CAPTAL_SUPERBUILD_PUGIXML_GIT_URL "https://github.com/zeux/pugixml.git" CACHE STRING "Used url for pugixml git clone (allow usage of mirrors or interal repo)")
-    set(CAPTAL_SUPERBUILD_PUGIXML_GIT_TAG "v1.12.1" CACHE STRING "Used tag for pugixml git clone")
+if(NOT CPT_SUPERBUILD_EXCLUDE_PUGIXML)
+    set(CPT_SUPERBUILD_PUGIXML_GIT_URL "https://github.com/zeux/pugixml.git" CACHE STRING "Used url for pugixml git clone (allow usage of mirrors or interal repo)")
+    set(CPT_SUPERBUILD_PUGIXML_GIT_TAG "v1.12.1" CACHE STRING "Used tag for pugixml git clone")
 
-    mark_as_advanced(CAPTAL_SUPERBUILD_PUGIXML_GIT_URL)
-    mark_as_advanced(CAPTAL_SUPERBUILD_PUGIXML_GIT_TAG)
+    mark_as_advanced(CPT_SUPERBUILD_PUGIXML_GIT_URL)
+    mark_as_advanced(CPT_SUPERBUILD_PUGIXML_GIT_TAG)
 
     ExternalProject_Add(pugixml
-        GIT_REPOSITORY ${CAPTAL_SUPERBUILD_PUGIXML_GIT_URL}
-        GIT_TAG        ${CAPTAL_SUPERBUILD_PUGIXML_GIT_TAG}
+        GIT_REPOSITORY ${CPT_SUPERBUILD_PUGIXML_GIT_URL}
+        GIT_TAG        ${CPT_SUPERBUILD_PUGIXML_GIT_TAG}
         GIT_SHALLOW    TRUE
         GIT_PROGRESS   TRUE
         PREFIX         "${CMAKE_BINARY_DIR}/dependencies/pugixml"

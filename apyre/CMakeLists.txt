@@ -24,7 +24,7 @@ set(APYRE_SOURCES
     src/apyre/power.cpp
 )
 
-if(CAPTAL_BUILD_APYRE_STATIC)
+if(CPT_BUILD_APYRE_STATIC)
     add_library(Apyre STATIC ${APYRE_SOURCES})
     target_compile_definitions(Apyre PUBLIC APYRE_STATIC_BUILD)
     set_target_properties(Apyre PROPERTIES POSITION_INDEPENDENT_CODE ON)
@@ -62,7 +62,7 @@ if(WIN32)
     target_compile_definitions(Apyre PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
 endif()
 
-if(CAPTAL_BUILD_APYRE_EXAMPLES)
+if(CPT_BUILD_APYRE_EXAMPLES)
     add_executable(ApyreTest "main.cpp")
     target_link_libraries(ApyreTest PRIVATE Apyre)
 endif()

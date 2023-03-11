@@ -124,7 +124,7 @@ void basic_renderable::bind(frame_render_info info, cpt::view& view)
         {
             const std::string layout_name{std::empty(layout->m_name) ? std::string{"unknown"} : layout->m_name};
 
-            tph::set_object_name(engine::instance().renderer(), data.set->set(), m_name + " descriptor set for render layout " + layout_name);
+            tph::set_object_name(engine::instance().device(), data.set->set(), m_name + " descriptor set for render layout " + layout_name);
         }
         #endif
 
@@ -152,7 +152,7 @@ void basic_renderable::bind(frame_render_info info, cpt::view& view)
             }
         }
 
-        tph::write_descriptors(engine::instance().renderer(), writes);
+        tph::write_descriptors(engine::instance().device(), writes);
     };
 
     auto it{m_sets.find(layout)};
@@ -258,7 +258,7 @@ void basic_renderable::set_name(std::string_view name)
         {
             const std::string layout_name{std::empty(layout->m_name) ? std::string{"unknown"} : layout->m_name};
 
-            tph::set_object_name(engine::instance().renderer(), set.set->set(), m_name + " descriptor set for render layout " + layout_name);
+            tph::set_object_name(engine::instance().device(), set.set->set(), m_name + " descriptor set for render layout " + layout_name);
         }
     }
 }

@@ -28,7 +28,7 @@ namespace cpt
 {
 
 render_target::render_target(const tph::render_pass_info& info)
-:m_render_pass{engine::instance().renderer(), info}
+:m_render_pass{engine::instance().device(), info}
 {
 
 }

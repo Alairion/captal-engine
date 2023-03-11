@@ -28,7 +28,7 @@
 #include <unordered_map>
 #include <future>
 
-#include <tephra/renderer.hpp>
+#include <tephra/device.hpp>
 #include <tephra/commands.hpp>
 #include <tephra/synchronization.hpp>
 
@@ -52,7 +52,7 @@ class CAPTAL_API memory_transfer_scheduler
     static constexpr std::size_t no_parent{std::numeric_limits<std::size_t>::max()};
 
 public:
-    explicit memory_transfer_scheduler(tph::renderer& renderer) noexcept;
+    explicit memory_transfer_scheduler(tph::device& device) noexcept;
     ~memory_transfer_scheduler();
     memory_transfer_scheduler(const memory_transfer_scheduler&) = delete;
     memory_transfer_scheduler& operator=(const memory_transfer_scheduler&) = delete;
@@ -101,7 +101,7 @@ private:
     thread_transfer_buffer& add_thread_buffer(thread_transfer_pool& pool, std::thread::id thread);
 
 private:
-    tph::renderer* m_renderer{};
+    tph::device* m_device{};
     std::unordered_map<std::thread::id, thread_transfer_pool> m_thread_pools{};
     tph::command_pool m_pool{};
     std::vector<transfer_buffer> m_buffers{};

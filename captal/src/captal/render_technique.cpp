@@ -42,7 +42,7 @@ descriptor_pool::descriptor_pool(render_layout& parent, tph::descriptor_set_layo
 {
     for(auto&& set : m_sets)
     {
-        set = std::make_shared<descriptor_set>(*this, tph::descriptor_set{engine::instance().renderer(), m_pool, layout});
+        set = std::make_shared<descriptor_set>(*this, tph::descriptor_set{engine::instance().device(), m_pool, layout});
     }
 }
 
@@ -72,11 +72,11 @@ void descriptor_pool::set_name(std::string_view name)
 {
     const std::string name_str{name};
 
-    tph::set_object_name(engine::instance().renderer(), m_pool, name_str);
+    tph::set_object_name(engine::instance().device(), m_pool, name_str);
 
     for(std::size_t i{}; i < std::size(m_sets); ++i)
     {
-        tph::set_object_name(engine::instance().renderer(), m_pool, name_str + " descriptor set #" + std::to_string(i));
+        tph::set_object_name(engine::instance().device(), m_pool, name_str + " descriptor set #" + std::to_string(i));
     }
 }
 #endif
@@ -97,7 +97,7 @@ static std::vector<tph::descriptor_pool_size> make_pool_sizes(std::span<const tp
 render_layout::layout_data render_layout::make_layout_data(const render_layout_info& info)
 {
     layout_data output{};
-    output.layout = tph::descriptor_set_layout{engine::instance().renderer(), info.bindings};
+    output.layout = tph::descriptor_set_layout{engine::instance().device(), info.bindings};
     output.sizes = make_pool_sizes(info.bindings);
 
     output.bindings = info.bindings;
@@ -157,7 +157,7 @@ render_layout::render_layout(const render_layout_info& view_info, const render_l
     auto descriptor_set_layouts{make_layout_refs(m_layout_data)};
     auto push_constant_ranges  {make_push_constant_ranges(m_layout_data)};
 
-    m_layout = tph::pipeline_layout{engine::instance().renderer(), descriptor_set_layouts, push_constant_ranges};
+    m_layout = tph::pipeline_layout{engine::instance().device(), descriptor_set_layouts, push_constant_ranges};
 }
 
 descriptor_set_ptr render_layout::make_set(std::uint32_t layout_index)
@@ -174,7 +174,7 @@ descriptor_set_ptr render_layout::make_set(std::uint32_t layout_index)
         }
     }
 
-    tph::descriptor_pool pool{engine::instance().renderer(), data.sizes, static_cast<std::uint32_t>(descriptor_pool::pool_size)};
+    tph::descriptor_pool pool{engine::instance().device(), data.sizes, static_cast<std::uint32_t>(descriptor_pool::pool_size)};
     data.pools.emplace_back(std::make_unique<descriptor_pool>(*this, data.layout, std::move(pool)));
 
 #ifdef CAPTAL_DEBUG
@@ -203,9 +203,9 @@ void render_layout::set_name(std::string_view name)
 {
     m_name = name;
 
-    tph::set_object_name(engine::instance().renderer(), m_layout_data[0].layout, m_name + " view descriptor set layout");
-    tph::set_object_name(engine::instance().renderer(), m_layout_data[1].layout, m_name + " renderable descriptor set layout");
-    tph::set_object_name(engine::instance().renderer(), m_layout, m_name + " pipeline layout");
+    tph::set_object_name(engine::instance().device(), m_layout_data[0].layout, m_name + " view descriptor set layout");
+    tph::set_object_name(engine::instance().device(), m_layout_data[1].layout, m_name + " renderable descriptor set layout");
+    tph::set_object_name(engine::instance().device(), m_layout, m_name + " pipeline layout");
 
     for(std::size_t i{}; i < std::size(m_layout_data[0].pools); ++i)
     {
@@ -283,7 +283,7 @@ static tph::graphics_pipeline_info make_info(const render_technique_info& info, 
 
 render_technique::render_technique(const render_target_ptr& target, const render_technique_info& info, render_layout_ptr layout, render_technique_options options)
 :m_layout{layout ? std::move(layout) : engine::instance().default_render_layout()}
-,m_pipeline{engine::instance().renderer(), target->get_render_pass(), make_info(info, options), m_layout->pipeline_layout()}
+,m_pipeline{engine::instance().device(), target->get_render_pass(), make_info(info, options), m_layout->pipeline_layout()}
 {
 
 }
@@ -291,7 +291,7 @@ render_technique::render_technique(const render_target_ptr& target, const render
 #ifdef CAPTAL_DEBUG
 void render_technique::set_name(std::string_view name)
 {
-    tph::set_object_name(engine::instance().renderer(), m_pipeline, std::string{name} + " pipeline");
+    tph::set_object_name(engine::instance().device(), m_pipeline, std::string{name} + " pipeline");
 }
 #endif
 

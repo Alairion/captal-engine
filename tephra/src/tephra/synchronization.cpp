@@ -24,20 +24,20 @@
 
 #include "vulkan/vulkan_functions.hpp"
 
-#include "renderer.hpp"
+#include "device.hpp"
 
 using namespace tph::vulkan::functions;
 
 namespace tph
 {
 
-semaphore::semaphore(renderer& renderer)
-:m_semaphore{underlying_cast<VkDevice>(renderer)}
+semaphore::semaphore(device& dev)
+:m_semaphore{dev.context(), VK_SEMAPHORE_TYPE_BINARY, 0}
 {
 
 }
 
-void set_object_name(renderer& renderer, const semaphore& object, const std::string& name)
+void set_object_name(device& dev, const semaphore& object, const std::string& name)
 {
     VkDebugUtilsObjectNameInfoEXT info{};
     info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
@@ -45,27 +45,25 @@ void set_object_name(renderer& renderer, const semaphore& object, const std::str
     info.objectHandle = reinterpret_cast<std::uint64_t>(underlying_cast<VkSemaphore>(object));
     info.pObjectName = std::data(name);
 
-    if(auto result{vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(renderer), &info)}; result != VK_SUCCESS)
-        throw vulkan::error{result};
+    vulkan::check(dev->vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(dev), &info));
 }
 
-fence::fence(renderer& renderer, bool signaled)
+fence::fence(device& dev, bool signaled)
 {
     if(signaled)
     {
-        m_fence = vulkan::fence{underlying_cast<VkDevice>(renderer), VK_FENCE_CREATE_SIGNALED_BIT};
+        m_fence = vulkan::fence{dev.context(), VK_FENCE_CREATE_SIGNALED_BIT};
     }
     else
     {
-        m_fence = vulkan::fence{underlying_cast<VkDevice>(renderer)};
+        m_fence = vulkan::fence{dev.context()};
     }
 }
 
 void fence::reset()
 {
     VkFence native_fence{m_fence};
-    if(auto result{vkResetFences(m_fence.device(), 1, &native_fence)}; result != VK_SUCCESS)
-        throw vulkan::error{result};
+    vulkan::check(context()->vkResetFences(m_fence.device(), 1, &native_fence));
 }
 
 bool fence::wait_impl(std::uint64_t nanoseconds) const
@@ -74,7 +72,7 @@ bool fence::wait_impl(std::uint64_t nanoseconds) const
 
     if(nanoseconds != 0)
     {
-        const auto result{vkWaitForFences(m_fence.device(), 1, &native_fence, VK_FALSE, nanoseconds)};
+        const auto result{context()->vkWaitForFences(m_fence.device(), 1, &native_fence, VK_FALSE, nanoseconds)};
 
         if(result < 0)
             throw vulkan::error{result};
@@ -83,7 +81,7 @@ bool fence::wait_impl(std::uint64_t nanoseconds) const
     }
     else
     {
-        const auto result{vkGetFenceStatus(m_fence.device(), native_fence)};
+        const auto result{context()->vkGetFenceStatus(m_fence.device(), native_fence)};
 
         if(result < 0)
             throw vulkan::error{result};
@@ -92,7 +90,7 @@ bool fence::wait_impl(std::uint64_t nanoseconds) const
     }
 }
 
-void set_object_name(renderer& renderer, const fence& object, const std::string& name)
+void set_object_name(device& dev, const fence& object, const std::string& name)
 {
     VkDebugUtilsObjectNameInfoEXT info{};
     info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
@@ -100,29 +98,26 @@ void set_object_name(renderer& renderer, const fence& object, const std::string&
     info.objectHandle = reinterpret_cast<std::uint64_t>(underlying_cast<VkFence>(object));
     info.pObjectName = std::data(name);
 
-    if(auto result{vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(renderer), &info)}; result != VK_SUCCESS)
-        throw vulkan::error{result};
+    vulkan::check(dev->vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(dev), &info));
 }
 
-event::event(renderer& renderer)
-:m_event{underlying_cast<VkDevice>(renderer)}
+event::event(device& dev)
+:m_event{dev.context()}
 {
 
 }
 
 void event::set()
 {
-    if(auto result{vkSetEvent(m_event.device(), m_event)}; result != VK_SUCCESS)
-        throw vulkan::error{result};
+    vulkan::check(context()->vkSetEvent(m_event.device(), m_event));
 }
 
 void event::reset()
 {
-    if(auto result{vkResetEvent(m_event.device(), m_event)}; result != VK_SUCCESS)
-        throw vulkan::error{result};
+    vulkan::check(context()->vkResetEvent(m_event.device(), m_event));
 }
 
-void set_object_name(renderer& renderer, const event& object, const std::string& name)
+void set_object_name(device& dev, const event& object, const std::string& name)
 {
     VkDebugUtilsObjectNameInfoEXT info{};
     info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
@@ -130,8 +125,7 @@ void set_object_name(renderer& renderer, const event& object, const std::string&
     info.objectHandle = reinterpret_cast<std::uint64_t>(underlying_cast<VkEvent>(object));
     info.pObjectName = std::data(name);
 
-    if(auto result{vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(renderer), &info)}; result != VK_SUCCESS)
-        throw vulkan::error{result};
+    vulkan::check(dev->vkSetDebugUtilsObjectNameEXT(underlying_cast<VkDevice>(dev), &info));
 }
 
 }

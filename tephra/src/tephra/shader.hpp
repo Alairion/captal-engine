@@ -36,7 +36,7 @@
 namespace tph
 {
 
-class renderer;
+class device;
 
 class TEPHRA_API shader
 {
@@ -45,14 +45,14 @@ class TEPHRA_API shader
 
 public:
     constexpr shader() = default;
-    explicit shader(renderer& renderer, shader_stage stage, const std::filesystem::path& file);
-    explicit shader(renderer& renderer, shader_stage stage, std::span<const std::uint8_t> data);
-    explicit shader(renderer& renderer, shader_stage stage, std::span<const std::uint32_t> spirv);
-    explicit shader(renderer& renderer, shader_stage stage, std::istream& stream);
+    explicit shader(device& dev, shader_stage stage, const std::filesystem::path& file);
+    explicit shader(device& dev, shader_stage stage, std::span<const std::uint8_t> data);
+    explicit shader(device& dev, shader_stage stage, std::span<const std::uint32_t> spirv);
+    explicit shader(device& dev, shader_stage stage, std::istream& stream);
 
-    explicit shader(shader_stage stage, vulkan::shader shader) noexcept
-    :m_stage{stage}
-    ,m_shader{std::move(shader)}
+    explicit shader(vulkan::shader shader, shader_stage stage) noexcept
+    :m_shader{std::move(shader)}
+    ,m_stage{stage}
     {
 
     }
@@ -63,28 +63,33 @@ public:
     shader(shader&&) noexcept = default;
     shader& operator=(shader&&) noexcept = default;
 
+    vulkan::device_context context() const noexcept
+    {
+        return m_shader.context();
+    }
+
     shader_stage stage() const noexcept
     {
         return m_stage;
     }
 
 private:
-    shader_stage m_stage{};
     vulkan::shader m_shader{};
+    shader_stage m_stage{};
 };
 
-TEPHRA_API void set_object_name(renderer& renderer, const shader& object, const std::string& name);
+TEPHRA_API void set_object_name(device& dev, const shader& object, const std::string& name);
 
 template<>
-inline VkDevice underlying_cast(const shader& shader) noexcept
+inline VkDevice underlying_cast(const shader& shadr) noexcept
 {
-    return shader.m_shader.device();
+    return shadr.m_shader.device();
 }
 
 template<>
-inline VkShaderModule underlying_cast(const shader& shader) noexcept
+inline VkShaderModule underlying_cast(const shader& shadr) noexcept
 {
-    return shader.m_shader;
+    return shadr.m_shader;
 }
 
 }
