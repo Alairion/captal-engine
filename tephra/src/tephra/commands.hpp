@@ -415,6 +415,8 @@ TEPHRA_API void draw(command_buffer& cmdbuf, std::uint32_t vertex_count, std::ui
 TEPHRA_API void draw_indexed(command_buffer& cmdbuf, std::uint32_t index_count, std::uint32_t instance_count, std::uint32_t first_index, std::uint32_t first_vertex, std::uint32_t first_instance) noexcept;
 TEPHRA_API void draw_indirect(command_buffer& cmdbuf, buffer& buf, std::uint64_t offset, std::uint32_t draw_count, std::uint32_t stride) noexcept;
 TEPHRA_API void draw_indexed_indirect(command_buffer& cmdbuf, buffer& buf, std::uint64_t offset, std::uint32_t draw_count, std::uint32_t stride) noexcept;
+TEPHRA_API void draw_indirect_count(command_buffer& cmdbuf, buffer& buf, std::uint64_t offset, buffer& count_buf, std::uint64_t count_offset, std::uint32_t draw_count, std::uint32_t stride) noexcept;
+TEPHRA_API void draw_indexed_indirect_count(command_buffer& cmdbuf, buffer& buf, std::uint64_t offset, buffer& count_buf, std::uint64_t count_offset, std::uint32_t draw_count, std::uint32_t stride) noexcept;
 
 TEPHRA_API void dispatch(command_buffer& cmdbuf, std::uint32_t group_count_x, std::uint32_t group_count_y, std::uint32_t group_count_z) noexcept;
 TEPHRA_API void dispatch_indirect(command_buffer& cmdbuf, buffer& buffer, std::uint64_t offset) noexcept;

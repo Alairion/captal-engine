@@ -1245,6 +1245,26 @@ void draw_indexed_indirect(command_buffer& cmdbuf, buffer& buf, std::uint64_t of
         underlying_cast<VkCommandBuffer>(cmdbuf), underlying_cast<VkBuffer>(buf), offset, draw_count, stride);
 }
 
+void draw_indirect_count(command_buffer& cmdbuf, buffer& buf, std::uint64_t offset, buffer& count_buf, std::uint64_t count_offset, std::uint32_t draw_count, std::uint32_t stride) noexcept
+{
+#ifdef VK_VERSION_1_2
+    cmdbuf.context()->vkCmdDrawIndirectCount(
+        underlying_cast<VkCommandBuffer>(cmdbuf), underlying_cast<VkBuffer>(buf), offset, underlying_cast<VkBuffer>(count_buf), count_offset, draw_count, stride);
+#else
+   std::terminate();
+#endif
+}
+
+void draw_indexed_indirect_count(command_buffer& cmdbuf, buffer& buf, std::uint64_t offset, buffer& count_buf, std::uint64_t count_offset, std::uint32_t draw_count, std::uint32_t stride) noexcept
+{
+#ifdef VK_VERSION_1_2
+    cmdbuf.context()->vkCmdDrawIndexedIndirectCount(
+        underlying_cast<VkCommandBuffer>(cmdbuf), underlying_cast<VkBuffer>(buf), offset, underlying_cast<VkBuffer>(count_buf), count_offset, draw_count, stride);
+#else
+   std::terminate();
+#endif
+}
+
 void dispatch(command_buffer& cmdbuf, std::uint32_t group_count_x, std::uint32_t group_count_y, std::uint32_t group_count_z) noexcept
 {
     cmdbuf.context()->vkCmdDispatch(

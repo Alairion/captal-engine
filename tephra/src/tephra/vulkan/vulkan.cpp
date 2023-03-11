@@ -356,11 +356,25 @@ shader::~shader()
 
 /////////////////////////////////////////////////////////////////////
 
-semaphore::semaphore(const device_context& context)
+semaphore::semaphore(const device_context& context, VkFlags type, std::uint64_t initial)
 :m_context{context}
 {
     VkSemaphoreCreateInfo create_info{};
     create_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+#ifdef VK_VERSION_1_2
+    VkSemaphoreTypeCreateInfo type_info{};
+    type_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO;
+    type_info.semaphoreType = static_cast<VkSemaphoreType>(type);
+    type_info.initialValue = initial;
+
+    create_info.pNext = &type_info;
+#else
+    if(type != 0 || initial != 0)
+    {
+        throw error{VK_ERROR_INCOMPATIBLE_DRIVER};
+    }
+#endif
 
     vulkan::check(m_context->vkCreateSemaphore(m_context.device, &create_info, nullptr, &m_semaphore));
 }

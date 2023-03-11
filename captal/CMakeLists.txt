@@ -100,7 +100,7 @@ set(CAPTAL_SOURCES
     src/captal/external/pugixml.cpp
 )
 
-if(CAPTAL_BUILD_CAPTAL_STATIC)
+if(CPT_BUILD_CAPTAL_STATIC)
     add_library(Captal STATIC ${CAPTAL_SOURCES})
     target_compile_definitions(Captal PUBLIC CAPTAL_STATIC_BUILD)
     set_target_properties(Captal PROPERTIES POSITION_INDEPENDENT_CODE ON)
@@ -146,7 +146,7 @@ target_link_libraries(Captal
         NotEnoughStandards::NotEnoughStandards
 )
 
-if(CAPTAL_BUILD_CAPTAL_EXAMPLES)
+if(CPT_BUILD_CAPTAL_EXAMPLES)
     add_library(CaptalSansation STATIC sansation.hpp sansation.cpp)
 
     add_executable(CaptalExample main.cpp)

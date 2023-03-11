@@ -32,7 +32,7 @@ namespace tph
 {
 
 semaphore::semaphore(device& dev)
-:m_semaphore{dev.context()}
+:m_semaphore{dev.context(), VK_SEMAPHORE_TYPE_BINARY, 0}
 {
 
 }

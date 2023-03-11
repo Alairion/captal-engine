@@ -1,17 +1,17 @@
 # Download and build external project Zlib
 
-option(CAPTAL_SUPERBUILD_EXCLUDE_ZLIB "Does not build Zlib as a part of the superbuild, falling back on classic find_package." OFF)
+option(CPT_SUPERBUILD_EXCLUDE_ZLIB "Does not build Zlib as a part of the superbuild, falling back on classic find_package." OFF)
 
-if(NOT CAPTAL_SUPERBUILD_EXCLUDE_ZLIB)
-    set(CAPTAL_SUPERBUILD_ZLIB_GIT_URL "https://github.com/zlib-ng/zlib-ng.git" CACHE STRING "Used url for Zlib git clone (allow usage of mirrors or interal repo)")
-    set(CAPTAL_SUPERBUILD_ZLIB_GIT_TAG "v2.0.0-RC2" CACHE STRING "Used tag for Zlib git clone")
+if(NOT CPT_SUPERBUILD_EXCLUDE_ZLIB)
+    set(CPT_SUPERBUILD_ZLIB_GIT_URL "https://github.com/zlib-ng/zlib-ng.git" CACHE STRING "Used url for Zlib git clone (allow usage of mirrors or interal repo)")
+    set(CPT_SUPERBUILD_ZLIB_GIT_TAG "v2.0.0-RC2" CACHE STRING "Used tag for Zlib git clone")
 
-    mark_as_advanced(CAPTAL_SUPERBUILD_ZLIB_GIT_URL)
-    mark_as_advanced(CAPTAL_SUPERBUILD_ZLIB_GIT_TAG)
+    mark_as_advanced(CPT_SUPERBUILD_ZLIB_GIT_URL)
+    mark_as_advanced(CPT_SUPERBUILD_ZLIB_GIT_TAG)
 
     ExternalProject_Add(Zlib
-        GIT_REPOSITORY ${CAPTAL_SUPERBUILD_ZLIB_GIT_URL}
-        GIT_TAG        ${CAPTAL_SUPERBUILD_ZLIB_GIT_TAG}
+        GIT_REPOSITORY ${CPT_SUPERBUILD_ZLIB_GIT_URL}
+        GIT_TAG        ${CPT_SUPERBUILD_ZLIB_GIT_TAG}
         GIT_SHALLOW    TRUE
         GIT_PROGRESS   TRUE
         PREFIX         "${CMAKE_BINARY_DIR}/dependencies/zlib"

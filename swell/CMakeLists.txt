@@ -33,7 +33,7 @@ set(SWELL_SOURCES
     src/swell/sound_file.cpp
 )
 
-if(CAPTAL_BUILD_SWELL_STATIC)
+if(CPT_BUILD_SWELL_STATIC)
     add_library(Swell STATIC ${SWELL_SOURCES})
     target_compile_definitions(Swell PUBLIC SWELL_STATIC_BUILD)
     set_target_properties(Swell PROPERTIES POSITION_INDEPENDENT_CODE ON)
@@ -66,7 +66,6 @@ target_link_libraries(Swell
         FLAC::FLAC
     PUBLIC
         CaptalFoundation
-        NotEnoughStandards::NotEnoughStandards
 )
 
 if(WIN32)
@@ -74,7 +73,7 @@ if(WIN32)
     target_compile_definitions(Swell PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
 endif()
 
-if(CAPTAL_BUILD_SWELL_EXAMPLES)
+if(CPT_BUILD_SWELL_EXAMPLES)
     add_executable(SwellTest "main.cpp")
     target_link_libraries(SwellTest Swell)
 endif()

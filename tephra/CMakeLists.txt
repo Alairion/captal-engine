@@ -2,6 +2,20 @@ cmake_minimum_required(VERSION 3.21.0)
 
 project(Tephra VERSION 0.1.0)
 
+include(CMakeDependentOption)
+
+cmake_dependent_option(TEPHRA_USE_PLATFORM_ANDROID "If on, enable the Android surface extension" ON "${CMAKE_SYSTEM_NAME} STREQUAL Android" OFF)
+cmake_dependent_option(TEPHRA_USE_PLATFORM_IOS "If on, enable the IOS surface extension" ON "${CMAKE_SYSTEM_NAME} STREQUAL iOS" OFF)
+cmake_dependent_option(TEPHRA_USE_PLATFORM_WIN32 "If on, enable the Windows surface extension" ON "${CMAKE_SYSTEM_NAME} STREQUAL Windows" OFF)
+cmake_dependent_option(TEPHRA_USE_PLATFORM_MACOS "If on, enable the OSX surface extension" ON "${CMAKE_SYSTEM_NAME} STREQUAL Darwin" OFF)
+cmake_dependent_option(TEPHRA_USE_PLATFORM_XLIB "If on, enable the Linux Xlib surface extension" ON "${CMAKE_SYSTEM_NAME} STREQUAL Linux" OFF)
+
+#Other linux platforms
+if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+    option(TEPHRA_USE_PLATFORM_XCB "If on, enable the Linux XCB surface extension" OFF)
+    option(TEPHRA_USE_PLATFORM_WAYLAND "If on, enable the Linux Wayland surface extension" OFF)
+endif()
+
 find_package(Vulkan REQUIRED)
 
 if(TEPHRA_USE_PLATFORM_XLIB)
@@ -58,7 +72,7 @@ set(TEPHRA_SOURCES
     src/tephra/vulkan/helper.cpp
 )
 
-if(CAPTAL_BUILD_TEPHRA_STATIC)
+if(CPT_BUILD_TEPHRA_STATIC)
     add_library(Tephra STATIC ${TEPHRA_SOURCES})
     target_compile_definitions(Tephra PUBLIC TEPHRA_STATIC_BUILD)
     set_target_properties(Tephra PROPERTIES POSITION_INDEPENDENT_CODE ON)
@@ -80,9 +94,9 @@ target_compile_definitions(Tephra
 target_link_libraries(Tephra
     PUBLIC
         CaptalFoundation
-        NotEnoughStandards::NotEnoughStandards
         Vulkan::Headers
     PRIVATE
+        NotEnoughStandards::NotEnoughStandards
         $<$<BOOL:${TEPHRA_USE_PLATFORM_XLIB}>:X11::X11>
 )
 
@@ -118,12 +132,12 @@ if(WIN32)
     target_compile_definitions(Tephra PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
 endif()
 
-if(CAPTAL_BUILD_TEPHRA_EXAMPLES)
+if(CPT_BUILD_TEPHRA_EXAMPLES)
     add_executable(TephraExample "example.cpp")
     target_link_libraries(TephraExample PRIVATE Tephra)
 endif()
 
-if(CAPTAL_BUILD_TEPHRA_TESTS)
+if(CPT_BUILD_TEPHRA_TESTS)
     add_executable(TephraTest "test.cpp")
     target_link_libraries(TephraTest PRIVATE Tephra Apyre Catch2)
 endif()

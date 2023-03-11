@@ -344,8 +344,8 @@ static void run()
     //Other parameter are more situational. Check out the doc.
     constexpr cpt::video_mode video_mode
     {
-        .image_count  = 2,
-        .present_mode = tph::present_mode::fifo,
+        .image_count  = 3,
+        .present_mode = tph::present_mode::mailbox,
         .sample_count = tph::sample_count::msaa_x4,
         .depth_format = tph::texture_format::d32_sfloat
     };

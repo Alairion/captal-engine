@@ -704,7 +704,7 @@ class TEPHRA_API semaphore
 {
 public:
     constexpr semaphore() = default;
-    explicit semaphore(const device_context& context);
+    explicit semaphore(const device_context& context, VkFlags type, std::uint64_t initial);
 
     explicit semaphore(const device_context& context, VkSemaphore semaphore) noexcept
     :m_context{context}

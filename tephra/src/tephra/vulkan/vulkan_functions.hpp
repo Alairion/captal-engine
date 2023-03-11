@@ -26,7 +26,7 @@
 #include <vulkan/vulkan.h>
 
 #ifndef VK_VERSION_1_1
-    #error "Tephra requires a Vulkan SDK that exposes at lease Vulkan Core version 1.1"
+    #error "Tephra requires a Vulkan SDK that exposes at least Vulkan Core version 1.1"
 #endif
 
 namespace tph::vulkan
