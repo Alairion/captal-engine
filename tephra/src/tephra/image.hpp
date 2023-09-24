@@ -45,24 +45,6 @@ enum class image_usage : std::uint32_t
     persistant_mapping = 0x80000000,
 };
 
-struct pixel
-{
-    std::uint8_t red{};
-    std::uint8_t green{};
-    std::uint8_t blue{};
-    std::uint8_t alpha{};
-};
-
-constexpr bool operator==(const pixel& left, const pixel& right) noexcept
-{
-    return left.red == right.red && left.green == right.green && left.blue == right.blue && left.alpha == right.alpha;
-}
-
-constexpr bool operator!=(const pixel& left, const pixel& right) noexcept
-{
-    return !(left == right);
-}
-
 enum class image_format
 {
     png = 0,
@@ -77,15 +59,15 @@ class TEPHRA_API image
     friend VulkanObject underlying_cast(const Args&...) noexcept;
 
 public:
-    using value_type = pixel;
+    using value_type = std::uint8_t;
     using size_type = std::size_t;
     using difference_type = std::ptrdiff_t;
-    using pointer = pixel*;
-    using const_pointer = const pixel*;
-    using reference = pixel&;
-    using const_reference = const pixel&;
-    using iterator = pixel*;
-    using const_iterator = const pixel*;
+    using pointer = std::uint8_t*;
+    using const_pointer = const std::uint8_t*;
+    using reference = std::uint8_t&;
+    using const_reference = const std::uint8_t&;
+    using iterator = std::uint8_t*;
+    using const_iterator = const std::uint8_t*;
     using reverse_iterator = std::reverse_iterator<iterator>;
     using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
@@ -143,32 +125,32 @@ public:
 
     iterator end() noexcept
     {
-        return reinterpret_cast<iterator>(m_map) + (m_width * m_height);
+        return reinterpret_cast<iterator>(m_map) + (m_width * m_height * 4);
     }
 
     const_iterator end() const noexcept
     {
-        return reinterpret_cast<const_iterator>(m_map) + (m_width * m_height);
+        return reinterpret_cast<const_iterator>(m_map) + (m_width * m_height * 4);
     }
 
     const_iterator cend() const noexcept
     {
-        return reinterpret_cast<const_iterator>(m_map) + (m_width * m_height);
+        return reinterpret_cast<const_iterator>(m_map) + (m_width * m_height * 4);
     }
 
     reverse_iterator rbegin() noexcept
     {
-        return reverse_iterator{reinterpret_cast<pointer>(m_map) + (m_width * m_height) - 1};
+        return reverse_iterator{reinterpret_cast<pointer>(m_map) + (m_width * m_height * 4) - 1};
     }
 
     const_reverse_iterator rbegin() const noexcept
     {
-        return const_reverse_iterator{reinterpret_cast<const_pointer>(m_map) + (m_width * m_height) - 1};
+        return const_reverse_iterator{reinterpret_cast<const_pointer>(m_map) + (m_width * m_height * 4) - 1};
     }
 
     const_reverse_iterator crbegin() const noexcept
     {
-        return const_reverse_iterator{reinterpret_cast<const_pointer>(m_map) + (m_width * m_height) - 1};
+        return const_reverse_iterator{reinterpret_cast<const_pointer>(m_map) + (m_width * m_height * 4) - 1};
     }
 
     reverse_iterator rend() noexcept
@@ -188,7 +170,7 @@ public:
 
     size_type size() const noexcept
     {
-        return m_width * m_height;
+        return m_width * m_height * 4;
     }
 
     size_type max_size() const noexcept
@@ -198,27 +180,7 @@ public:
 
     size_type byte_size() const noexcept
     {
-        return m_width * m_height * sizeof(value_type);
-    }
-
-    reference operator[](size_type index) noexcept
-    {
-        return reinterpret_cast<pixel*>(m_map)[index];
-    }
-
-    const_reference operator[](size_type index) const noexcept
-    {
-        return reinterpret_cast<const pixel*>(m_map)[index];
-    }
-
-    reference operator()(size_type x, size_type y) noexcept
-    {
-        return reinterpret_cast<pixel*>(m_map)[y * m_width + x];
-    }
-
-    const_reference operator()(size_type x, size_type y) const noexcept
-    {
-        return reinterpret_cast<const pixel*>(m_map)[y * m_width + x];
+        return m_width * m_height * 4 * sizeof(value_type);
     }
 
     std::uint8_t* bytes() noexcept

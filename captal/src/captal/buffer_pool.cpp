@@ -235,9 +235,9 @@ bool buffer_heap::begin_upload(tph::command_buffer& command_buffer)
     };
 
     const std::uint64_t total_size {std::accumulate(std::begin(m_upload_ranges), std::end(m_upload_ranges), 0ull, accumulator)};
-    const std::uint64_t chunk_size {m_size / 4};
+    const std::uint64_t chunk_size {m_size / 4ull};
     const std::uint64_t chunk_count{(total_size + chunk_size) / chunk_size};
-    const std::uint64_t chunk_mask {(1u << chunk_count) - 1u};
+    const std::uint64_t chunk_mask {(1ull << chunk_count) - 1ull};
 
     const auto find_staging = [this, chunk_mask]
     {
@@ -275,7 +275,9 @@ bool buffer_heap::begin_upload(tph::command_buffer& command_buffer)
     {
         constexpr auto usage{tph::buffer_usage::transfer_src | tph::buffer_usage::transfer_dest};
 
-        m_stagings.emplace_back(staging_buffer{tph::buffer{engine::instance().device(), m_size, usage}});
+        tph::buffer buf{engine::instance().device(), m_size, usage};
+        std::uint8_t* map{buf.map()};
+        m_stagings.emplace_back(staging_buffer{std::move(buf), map});
 
         #ifdef CAPTAL_DEBUG
         if(!std::empty(m_name))
@@ -299,8 +301,6 @@ bool buffer_heap::begin_upload(tph::command_buffer& command_buffer)
     staging_buffer& staging{m_stagings[m_current_staging]};
     staging.used |= m_current_mask;
 
-    tph::cmd::copy(command_buffer, m_local_data, staging.buffer, m_upload_ranges);
-
     lock.release();
 
     return true;
@@ -314,6 +314,7 @@ void buffer_heap::end_upload(tph::command_buffer& command_buffer, transfer_ended
 
     for(auto& range : m_upload_ranges)
     {
+        std::memcpy(staging.map + range.dest_offset, m_local_map + range.src_offset, range.size);
         std::swap(range.src_offset, range.dest_offset);
     }
 

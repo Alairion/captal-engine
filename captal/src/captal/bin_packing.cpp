@@ -50,11 +50,11 @@ std::optional<bin_packer::rect> bin_packer::append(std::uint32_t image_width, st
         if(splits.count > 0)
         {
             m_spaces.insert(std::lower_bound(std::begin(m_spaces), std::end(m_spaces), splits.parts[0], rect_area_comparator), splits.parts[0]);
-        }
 
-        if(splits.count > 1)
-        {
-            m_spaces.insert(std::lower_bound(std::begin(m_spaces), std::end(m_spaces), splits.parts[1], rect_area_comparator), splits.parts[1]);
+            if(splits.count > 1)
+            {
+                m_spaces.insert(std::lower_bound(std::begin(m_spaces), std::end(m_spaces), splits.parts[1], rect_area_comparator), splits.parts[1]);
+            }
         }
 
         return rect{candidate.x, candidate.y, image_width, image_height};

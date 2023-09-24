@@ -67,12 +67,6 @@ struct CAPTAL_API color
 
     }
 
-    constexpr explicit color(const tph::pixel& pixel) noexcept
-    :color{pixel.red, pixel.blue, pixel.green, pixel.alpha}
-    {
-
-    }
-
     constexpr explicit color(std::uint32_t rgba_value) noexcept
     :color{static_cast<std::uint8_t>(rgba_value >> 16), static_cast<std::uint8_t>(rgba_value >> 8), static_cast<std::uint8_t>(rgba_value), static_cast<std::uint8_t>(rgba_value >> 24)}
     {
@@ -82,11 +76,6 @@ struct CAPTAL_API color
     constexpr explicit operator vec4f() const noexcept
     {
         return vec4f{red, green, blue, alpha};
-    }
-
-    constexpr explicit operator tph::pixel() const noexcept
-    {
-        return tph::pixel{static_cast<std::uint8_t>(red * 255.0f), static_cast<std::uint8_t>(green * 255.0f), static_cast<std::uint8_t>(blue * 255.0f), static_cast<std::uint8_t>(alpha * 255.0f)};
     }
 
     float red{};

@@ -538,7 +538,7 @@ static device::transfer_granularity compute_transfer_granularity(const vulkan::i
 }
 
 device::device(application& app, const physical_device& phydev, vulkan::device dev, device_layer layers, device_extension extensions,
-                   const queue_families_t& queue_families, const queues_t& queues, const vulkan::memory_allocator::heap_sizes& sizes)
+               const queue_families_t& queue_families, const queues_t& queues, const vulkan::memory_allocator::heap_sizes& sizes)
 :m_physical_device{underlying_cast<VkPhysicalDevice>(phydev)}
 ,m_device{std::move(dev)}
 ,m_layers{layers}

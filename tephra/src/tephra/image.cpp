@@ -189,7 +189,7 @@ std::vector<std::uint8_t> image::write(image_format format, std::int32_t quality
     const unmapper unmapper{m_memory, !was_mapped};
 
     const void* input{};
-    std::vector<pixel> local_buffer{};
+    std::vector<std::uint8_t> local_buffer{};
 
     if(m_usage != image_usage::transfer_src)
     {

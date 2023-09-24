@@ -159,6 +159,7 @@ private:
     struct staging_buffer
     {
         tph::buffer buffer{};
+        std::uint8_t* map{};
         std::uint64_t used{}; //only 4 bits are used
         std::array<cpt::scoped_connection, 4> connection{};
     };
@@ -168,7 +169,7 @@ private:
     tph::buffer m_device_data{};
     std::vector<staging_buffer> m_stagings{};
     std::uint64_t m_size{};
-    void* m_local_map{};
+    std::uint8_t* m_local_map{};
     std::atomic<std::uint64_t> m_free_space{};
     std::atomic<std::size_t> m_allocation_count{};
     std::vector<range> m_ranges{};
