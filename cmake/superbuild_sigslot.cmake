@@ -13,7 +13,6 @@ if(NOT CPT_SUPERBUILD_EXCLUDE_SIGSLOT)
         GIT_REPOSITORY ${CPT_SUPERBUILD_SIGSLOT_GIT_URL}
         GIT_TAG        ${CPT_SUPERBUILD_SIGSLOT_GIT_TAG}
         GIT_SHALLOW    TRUE
-        GIT_PROGRESS   TRUE
         PREFIX         "${CMAKE_BINARY_DIR}/dependencies/sigslot"
         CMAKE_ARGS
             "-Wno-dev"

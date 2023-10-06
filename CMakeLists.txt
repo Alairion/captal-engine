@@ -1,10 +1,7 @@
-cmake_minimum_required(VERSION 3.21.0)
+cmake_minimum_required(VERSION 3.21)
 
 project(captal_engine VERSION 0.1.0
-                      DESCRIPTION "Captal Game Engine")
-
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+    DESCRIPTION "Captal Game Engine")
 
 option(CPT_SUPERBUILD "Build all Captal's dependencies" ON)
 option(CPT_USE_LTO "Build Captal and its submodules with LTO enabled, if supported" OFF)
@@ -62,11 +59,11 @@ if(CPT_SUPERBUILD)
     return()
 endif()
 
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake)
+list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
-if(CPT_BUILD_FOUNDATION_TESTS OR CPT_BUILD_APYRE_TESTS OR CPT_BUILD_TEPHRA_TESTS OR CPT_BUILD_SWELL_TESTS OR CPT_BUILD_CPT_TESTS)
-    include(cmake/download_submodule.cmake)
-    include(cmake/buildcatch.cmake)
+if(CPT_BUILD_FOUNDATION_TESTS OR CPT_BUILD_APYRE_TESTS OR CPT_BUILD_TEPHRA_TESTS OR CPT_BUILD_SWELL_TESTS OR CPT_BUILD_CAPTAL_TESTS)
+    include(download_submodule)
+    include(buildcatch)
 endif()
 
 find_package(NotEnoughStandards REQUIRED)
@@ -109,36 +106,35 @@ write_basic_package_version_file(
 )
 
 install(TARGETS ${TO_EXPORT}
-        EXPORT CaptalTargets
-        ARCHIVE DESTINATION "lib/${CMAKE_BUILD_TYPE}"
-        RUNTIME DESTINATION "bin/${CMAKE_BUILD_TYPE}"
-        LIBRARY DESTINATION "bin/${CMAKE_BUILD_TYPE}"
-        FRAMEWORK DESTINATION "lib/${CMAKE_BUILD_TYPE}"
-        COMPONENT library)
+    EXPORT CaptalTargets
+    ARCHIVE DESTINATION lib/$<CONFIG>
+    RUNTIME DESTINATION bin/$<CONFIG>
+    LIBRARY DESTINATION bin/$<CONFIG>
+)
 
 install(EXPORT CaptalTargets
-        DESTINATION lib/cmake/captal
-        NAMESPACE Captal::)
+    DESTINATION lib/cmake/captal
+    NAMESPACE Captal::
+)
 
 install(FILES
-        ${PROJECT_BINARY_DIR}/CaptalConfig.cmake
-        ${PROJECT_BINARY_DIR}/CaptalConfigVersion.cmake
-        DESTINATION lib/cmake/captal)
+    ${PROJECT_BINARY_DIR}/CaptalConfig.cmake
+    ${PROJECT_BINARY_DIR}/CaptalConfigVersion.cmake
+    DESTINATION lib/cmake/captal
+)
+
+export(EXPORT CaptalTargets
+    NAMESPACE Captal::
+    FILE ${PROJECT_BINARY_DIR}/CaptalTargets.cmake
+)
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-    if(CPT_BUILD_APYRE)
-        install(FILES $<TARGET_PDB_FILE:Apyre> DESTINATION bin/${CMAKE_BUILD_TYPE} OPTIONAL)
-    endif()
-
-    if(CPT_BUILD_TEPHRA)
-        install(FILES $<TARGET_PDB_FILE:Tephra> DESTINATION bin/${CMAKE_BUILD_TYPE} OPTIONAL)
-    endif()
-
-    if(CPT_BUILD_SWELL)
-        install(FILES $<TARGET_PDB_FILE:Swell> DESTINATION bin/${CMAKE_BUILD_TYPE} OPTIONAL)
-    endif()
-
-    if(CPT_BUILD_CAPTAL)
-        install(FILES $<TARGET_PDB_FILE:Captal> DESTINATION bin/${CMAKE_BUILD_TYPE} OPTIONAL)
-    endif()
+    install(FILES
+        $<$<BOOL:${CPT_BUILD_APYRE}>:$<TARGET_PDB_FILE:Apyre>>
+        $<$<BOOL:${CPT_BUILD_TEPHRA}>:$<TARGET_PDB_FILE:Tephra>>
+        $<$<BOOL:${CPT_BUILD_SWELL}>:$<TARGET_PDB_FILE:Swell>>
+        $<$<BOOL:${CPT_BUILD_CAPTAL}>:$<TARGET_PDB_FILE:Captal>>
+        DESTINATION bin/$<CONFIG> 
+        OPTIONAL
+    )
 endif()

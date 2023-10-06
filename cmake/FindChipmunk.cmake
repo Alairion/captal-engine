@@ -1,5 +1,3 @@
-
-
 find_library(CHIPMUNK_LIBS
     NAMES
         chipmunk
@@ -20,7 +18,7 @@ find_path(CHIPMUNK_INCLUDE_DIRS
         ${Chipmunk_DIR}/include
 )
 
-add_library(chipmunk::chipmunk_static UNKNOWN IMPORTED)
+add_library(chipmunk::chipmunk_static STATIC IMPORTED)
 set_target_properties(chipmunk::chipmunk_static PROPERTIES
     IMPORTED_LOCATION ${CHIPMUNK_LIBS}
     INTERFACE_INCLUDE_DIRECTORIES ${CHIPMUNK_INCLUDE_DIRS}

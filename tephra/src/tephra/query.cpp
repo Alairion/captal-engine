@@ -32,7 +32,7 @@ namespace tph
 {
 
 query_pool::query_pool(device& dev, std::uint32_t count, query_type type, query_pipeline_statistic statistics)
-:m_query_pool{dev.context(), static_cast<VkQueryType>(type), count, static_cast<VkQueryPipelineStatisticFlagBits>(statistics)}
+:m_query_pool{dev.context(), static_cast<VkQueryType>(type), count, static_cast<VkQueryPipelineStatisticFlags>(statistics)}
 {
 
 }

@@ -2,8 +2,7 @@ cmake_minimum_required(VERSION 3.21.0)
 
 project(Tephra VERSION 0.1.0)
 
-include(CMakeDependentOption)
-
+include(CMakeDependentOption) # Set a default value for each platform
 cmake_dependent_option(TEPHRA_USE_PLATFORM_ANDROID "If on, enable the Android surface extension" ON "${CMAKE_SYSTEM_NAME} STREQUAL Android" OFF)
 cmake_dependent_option(TEPHRA_USE_PLATFORM_IOS "If on, enable the IOS surface extension" ON "${CMAKE_SYSTEM_NAME} STREQUAL iOS" OFF)
 cmake_dependent_option(TEPHRA_USE_PLATFORM_WIN32 "If on, enable the Windows surface extension" ON "${CMAKE_SYSTEM_NAME} STREQUAL Windows" OFF)

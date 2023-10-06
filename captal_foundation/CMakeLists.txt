@@ -9,6 +9,8 @@ target_include_directories(CaptalFoundation INTERFACE
     $<INSTALL_INTERFACE:include/captal_foundation>
 )
 
+target_compile_features(CaptalFoundation INTERFACE cxx_std_20)
+
 target_sources(CaptalFoundation INTERFACE
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src/captal_foundation/base.hpp>
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src/captal_foundation/encoding.hpp>

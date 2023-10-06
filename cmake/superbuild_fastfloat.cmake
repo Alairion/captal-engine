@@ -13,7 +13,6 @@ if(NOT CPT_SUPERBUILD_EXCLUDE_FASTFLOAT)
         GIT_REPOSITORY ${CPT_SUPERBUILD_FASTFLOAT_GIT_URL}
         GIT_TAG        ${CPT_SUPERBUILD_FASTFLOAT_GIT_TAG}
         GIT_SHALLOW    TRUE
-        GIT_PROGRESS   TRUE
         PREFIX         "${CMAKE_BINARY_DIR}/dependencies/fastfloat"
         CMAKE_ARGS
             "-Wno-dev"

@@ -600,7 +600,7 @@ std::string translation_editor::encode() const
 
 cpt::version translation_editor::set_minimum_version(cpt::version requested)
 {
-    for(auto version : translation_versions)
+    for(auto&& version : translation_versions)
     {
         if(version >= requested)
         {

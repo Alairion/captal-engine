@@ -13,7 +13,6 @@ if(NOT CPT_SUPERBUILD_EXCLUDE_ENTT)
         GIT_REPOSITORY ${CPT_SUPERBUILD_ENTT_GIT_URL}
         GIT_TAG        ${CPT_SUPERBUILD_ENTT_GIT_TAG}
         GIT_SHALLOW    TRUE
-        GIT_PROGRESS   TRUE
         PREFIX         "${CMAKE_BINARY_DIR}/dependencies/entt"
         CMAKE_ARGS
             "-Wno-dev"

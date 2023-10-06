@@ -17,7 +17,7 @@ FILETYPE VFT_DLL
             VALUE "ProductVersion", MAKE_VERSION(CAPTAL_MAJOR_VERSION, CAPTAL_MINOR_VERSION, CAPTAL_PATCH_VERSION)
             VALUE "OriginalFilename", "captal.dll"
             VALUE "ProductName", "Captal"
-            VALUE "FileDescription", "Once again another game engine"
+            VALUE "FileDescription", "Yet another game engine"
             VALUE "InternalName", "captal"
         }
     }
