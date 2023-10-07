@@ -68,9 +68,6 @@ set(CAPTAL_SOURCES
     src/captal/systems/render.hpp
     src/captal/systems/physics.hpp
 
-    src/captal/external/pugiconfig.hpp
-    src/captal/external/pugixml.hpp
-
     #Sources:
     src/captal/application.cpp
     src/captal/memory_transfer.cpp
@@ -96,8 +93,6 @@ set(CAPTAL_SOURCES
     src/captal/tiled_map.cpp
     src/captal/physics.cpp
     src/captal/widgets.cpp
-
-    src/captal/external/pugixml.cpp
 )
 
 if(CPT_BUILD_CAPTAL_STATIC)
