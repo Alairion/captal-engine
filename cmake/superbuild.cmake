@@ -41,9 +41,9 @@ if(CPT_BUILD_APYRE)
     include(cmake/superbuild_sdl2.cmake)
 endif()
 
-if(CPT_BUILD_TEPHRA)
-    # Tephra has no dependency to build
-endif()
+#if(CPT_BUILD_TEPHRA)
+#    # Tephra has no dependency to build
+#endif()
 
 if(CPT_BUILD_SWELL)
     include(cmake/superbuild_portaudio.cmake)

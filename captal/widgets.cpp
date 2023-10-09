@@ -3,7 +3,6 @@
 #include <captal/engine.hpp>
 #include <captal/widgets.hpp>
 #include <captal/renderable.hpp>
-#include <captal/external/pugixml.hpp>
 
 #include <captal_foundation/stack_allocator.hpp>
 /*

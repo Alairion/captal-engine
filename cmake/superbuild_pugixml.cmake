@@ -4,7 +4,7 @@ option(CPT_SUPERBUILD_EXCLUDE_PUGIXML "Does not build pugixml as a part of the s
 
 if(NOT CPT_SUPERBUILD_EXCLUDE_PUGIXML)
     set(CPT_SUPERBUILD_PUGIXML_GIT_URL "https://github.com/zeux/pugixml.git" CACHE STRING "Used url for pugixml git clone (allow usage of mirrors or interal repo)")
-    set(CPT_SUPERBUILD_PUGIXML_GIT_TAG "v1.12.1" CACHE STRING "Used tag for pugixml git clone")
+    set(CPT_SUPERBUILD_PUGIXML_GIT_TAG "master" CACHE STRING "Used tag for pugixml git clone")
 
     mark_as_advanced(CPT_SUPERBUILD_PUGIXML_GIT_URL)
     mark_as_advanced(CPT_SUPERBUILD_PUGIXML_GIT_TAG)

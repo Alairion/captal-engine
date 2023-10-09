@@ -28,7 +28,7 @@
 #include <numbers>
 #include <cassert>
 
-#include "external/pugixml.hpp"
+#include <pugixml.hpp>
 
 #include <captal_foundation/encoding.hpp>
 

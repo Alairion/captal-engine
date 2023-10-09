@@ -36,8 +36,6 @@
 #include <captal_foundation/utility.hpp>
 #include <captal_foundation/stack_allocator.hpp>
 
-#include "external/pugixml.hpp"
-
 #include "engine.hpp"
 #include "texture.hpp"
 #include "algorithm.hpp"
