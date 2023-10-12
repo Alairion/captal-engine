@@ -160,6 +160,7 @@ engine::engine(cpt::application application, const system_parameters& system [[m
 engine::~engine()
 {
     m_device.wait();
+    m_audio_pulser.stop();
 
     m_update_signal.disconnect_all();
     m_frame_per_second_signal.disconnect_all();

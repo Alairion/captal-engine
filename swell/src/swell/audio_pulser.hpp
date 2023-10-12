@@ -118,7 +118,8 @@ enum class pulser_status : std::uint32_t
 {
     stopped = 0,
     running = 1,
-    aborted = 2
+    stopping = 2,
+    aborted = 3
 };
 
 class SWELL_API audio_pulser
@@ -156,6 +157,7 @@ private:
     pulser_status m_status{};
     std::thread m_thread{};
     std::condition_variable m_start_condition{};
+    std::condition_variable m_stop_condition{};
     mutable std::mutex m_mutex{};
     std::vector<std::unique_ptr<impl::listener_bind_data>> m_binds{};
 };

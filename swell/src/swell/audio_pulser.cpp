@@ -116,7 +116,9 @@ void audio_pulser::stop()
 
     if(m_status == pulser_status::running)
     {
-        m_status = pulser_status::stopped;
+        m_status = pulser_status::stopping;
+        m_stop_condition.wait(lock);
+        assert(m_status == pulser_status::stopped);
     }
 }
 
@@ -147,10 +149,16 @@ void audio_pulser::process() noexcept
             std::unique_lock lock{m_mutex};
             m_start_condition.wait(lock, [this]
             {
-                return m_status == pulser_status::running || m_status == pulser_status::aborted;
+                return m_status == pulser_status::running || m_status == pulser_status::aborted || m_status == pulser_status::stopping;
             });
 
-            if(m_status == pulser_status::aborted)
+            if(m_status == pulser_status::stopping)
+            {
+                m_status = pulser_status::stopped;
+                m_stop_condition.notify_one();
+                continue; // keep thread alive
+            }
+            else if(m_status == pulser_status::aborted)
             {
                 break;
             }
