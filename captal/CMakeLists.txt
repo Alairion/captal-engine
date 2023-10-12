@@ -144,7 +144,7 @@ target_link_libraries(Captal
 if(CPT_BUILD_CAPTAL_EXAMPLES)
     add_library(CaptalSansation STATIC sansation.hpp sansation.cpp)
 
-    add_executable(CaptalExample main.cpp)
+    add_executable(CaptalExample example.cpp)
     target_link_libraries(CaptalExample PRIVATE Captal CaptalSansation)
     target_include_directories(CaptalExample PRIVATE ${GLOBAL_INCLUDES})
 

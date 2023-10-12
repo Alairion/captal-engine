@@ -49,7 +49,8 @@ void view::upload(memory_transfer_info info)
     {
         auto buffer{std::get<uniform_buffer_ptr>(m_bindings.get(0))};
 
-        buffer->get<uniform_data>(0).view = look_at(m_position - (m_origin * m_scale), m_position - (m_origin * m_scale) - vec3f{0.0f, 0.0f, 1.0f}, vec3f{0.0f, 1.0f, 0.0f});
+        const auto center{m_position - (m_origin * m_scale)};
+        buffer->get<uniform_data>(0).view = look_at(center, center - vec3f{0.0f, 0.0f, 1.0f}, vec3f{0.0f, 1.0f, 0.0f});
         buffer->get<uniform_data>(0).projection = orthographic(0.0f, m_size.x() * m_scale.x(), 0.0f, m_size.y() * m_scale.y(), m_z_near * m_scale.z(), m_z_far * m_scale.z());
 
         buffer->upload();

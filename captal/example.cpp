@@ -238,11 +238,11 @@ static void add_logic(cpt::render_window_ptr target, entt::registry& world, cpt:
     {
         if(event.wheel > 0)
         {
-            world.get<cpt::components::node>(camera).scale(cpt::vec3f{1.0f / 2.0f, 1.0f / 2.0f, 1.0f});
+            world.get<cpt::components::node>(camera).scale(cpt::vec3f{1.0f / 2.0f, 1.0f / 2.0f, 1.0f / 2.0f});
         }
         else
         {
-            world.get<cpt::components::node>(camera).scale(cpt::vec3f{2.0f / 1.0f, 2.0f / 1.0f, 1.0f});
+            world.get<cpt::components::node>(camera).scale(cpt::vec3f{2.0f / 1.0f, 2.0f / 1.0f, 2.0f / 1.0f});
         }
     });
 
@@ -385,7 +385,6 @@ static void run()
             .depth_write = true,
             .depth_compare_op = tph::compare_op::greater_or_equal
         }
-
     };
 
     //Our camera, it will hold the cpt::view for our scene.
