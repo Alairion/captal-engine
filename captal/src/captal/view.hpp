@@ -41,11 +41,6 @@
 namespace cpt
 {
 
-enum class view_type
-{
-    orthographic = 0,
-};
-
 class CAPTAL_API view
 {
 public:
@@ -254,11 +249,6 @@ public:
         return m_scale;
     }
 
-    view_type type() const noexcept
-    {
-        return m_type;
-    }
-
 #ifdef CAPTAL_DEBUG
     void set_name(std::string_view name);
 #else
@@ -283,9 +273,8 @@ private:
     vec2f m_size{};
     float m_z_near{1.0f};
     float m_z_far{0.0f};
-    vec3f m_scale{1.0f};
     float m_rotation{};
-    view_type m_type{};
+    vec3f m_scale{1.0f};
 
     bool m_need_upload{true};
     bool m_need_descriptor_update{true};
